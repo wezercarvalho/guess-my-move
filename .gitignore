@@ -1,0 +1,22 @@
+# Dependências e build
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+
+# Mídia capturada em testes locais (nunca versionar)
+captures/
+*.webm
+*.mp4
+
+# Editor e sistema
+.DS_Store
+.idea/
+.vscode/
+*.log
