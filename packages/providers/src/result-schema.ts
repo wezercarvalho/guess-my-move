@@ -12,7 +12,15 @@ export class InvalidProviderOutputError extends Error {
     }
 }
 
-/** JSON Schema do objeto devolvido pelo provedor. Também usado pelo `codex`. */
+/**
+ * JSON Schema do objeto devolvido pelo provedor. Também usado pelo `codex`.
+ *
+ * Observação empírica (verificação do Codex, 2026-10-21): a saída estruturada
+ * da OpenAI exige que TODA propriedade de `properties` esteja em `required` e
+ * `additionalProperties: false`. Por isso ambos os campos são obrigatórios aqui
+ * — o modelo ainda pode devolver `insufficientEvidence: false`. O parser em
+ * `parseGuesserResult` mantém `insufficientEvidence` opcional no tipo TS.
+ */
 export const guesserResultJsonSchema = {
     type: 'object',
     additionalProperties: false,
@@ -20,7 +28,7 @@ export const guesserResultJsonSchema = {
         guess: { type: 'string' },
         insufficientEvidence: { type: 'boolean' },
     },
-    required: ['guess'],
+    required: ['guess', 'insufficientEvidence'],
 } as const
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
