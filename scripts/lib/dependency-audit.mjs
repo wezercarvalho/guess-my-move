@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { AuditFailure } from './dependency-audit-failure.mjs'
@@ -422,20 +422,92 @@ function runAudit(yarnCli, output, options) {
     return 0
 }
 
-// Raízes de cadeia que contam como produção: as chaves de `dependencies`.
-function readProductionRoots(packageJsonPath) {
-    let dependencies
+// Raízes de cadeia que contam como produção: a UNIÃO das `dependencies` do manifesto da raiz com
+// as `dependencies` de cada workspace. As `devDependencies` (raiz e workspaces) seguem como
+// tooling. Em um monorepo, as dependências de produção vivem nos pacotes (apps/, packages/), não
+// na raiz; ignorá-las classificaria toda a produção como tooling e enfraqueceria a política.
+export function readProductionRoots(packageJsonPath) {
+    const rootDir = dirname(packageJsonPath)
+    const manifest = readManifest(packageJsonPath)
+
+    // A raiz DEVE declarar o objeto `dependencies`, mesmo vazio (política do auditor).
+    if (!isRecord(manifest.dependencies))
+        throw new Error(`O package.json em ${packageJsonPath} não tem o objeto "dependencies".`)
+
+    const roots = new Set(Object.keys(manifest.dependencies))
+    for (const workspaceDir of resolveWorkspaceDirs(rootDir, manifest.workspaces)) {
+        const workspaceManifest = readOptionalManifest(join(workspaceDir, 'package.json'))
+        if (workspaceManifest && isRecord(workspaceManifest.dependencies)) {
+            for (const name of Object.keys(workspaceManifest.dependencies)) roots.add(name)
+        }
+    }
+    return roots
+}
+
+function readManifest(manifestPath) {
     try {
-        const manifest = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
-        dependencies = isRecord(manifest) ? manifest.dependencies : undefined
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+        if (!isRecord(manifest)) throw new Error('o conteúdo não é um objeto JSON')
+        return manifest
     } catch (error) {
         throw new Error(
-            `Não foi possível ler o package.json em ${packageJsonPath}: ${error.message}`,
+            `Não foi possível ler o package.json em ${manifestPath}: ${error.message}`,
         )
     }
-    if (!isRecord(dependencies))
-        throw new Error(`O package.json em ${packageJsonPath} não tem o objeto "dependencies".`)
-    return new Set(Object.keys(dependencies))
+}
+
+// Lê o package.json de um workspace, tolerando sua ausência: um padrão declarado sem pacote no
+// disco é ignorado (não inventa raízes nem derruba a auditoria). JSON corrompido ainda falha.
+function readOptionalManifest(manifestPath) {
+    let content
+    try {
+        content = readFileSync(manifestPath, 'utf8')
+    } catch {
+        return undefined
+    }
+    try {
+        const manifest = JSON.parse(content)
+        if (!isRecord(manifest)) throw new Error('o conteúdo não é um objeto JSON')
+        return manifest
+    } catch (error) {
+        throw new Error(
+            `Não foi possível ler o package.json em ${manifestPath}: ${error.message}`,
+        )
+    }
+}
+
+// Resolve os padrões de `workspaces` (Yarn 1) em diretórios existentes. Aceita um caminho exato
+// (`apps/web`) e um glob simples de um nível (`apps/*`); normaliza o formato objeto
+// `{ packages: [...] }`. Padrões não resolvidos são ignorados, sem inventar raízes.
+function resolveWorkspaceDirs(rootDir, workspaces) {
+    const patterns = Array.isArray(workspaces)
+        ? workspaces
+        : isRecord(workspaces) && Array.isArray(workspaces.packages)
+          ? workspaces.packages
+          : []
+    const dirs = new Set()
+    for (const pattern of patterns) {
+        if (typeof pattern !== 'string' || !pattern) continue
+        if (pattern.endsWith('/*')) {
+            const parent = join(rootDir, pattern.slice(0, -2))
+            for (const entry of readChildDirectories(parent)) dirs.add(entry)
+        } else {
+            dirs.add(join(rootDir, pattern))
+        }
+    }
+    return [...dirs]
+}
+
+function readChildDirectories(parent) {
+    let entries
+    try {
+        entries = readdirSync(parent, { withFileTypes: true })
+    } catch {
+        return []
+    }
+    return entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(parent, entry.name))
 }
 
 function writeAdvisories(output, report, effective) {
