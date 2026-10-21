@@ -46,8 +46,8 @@
 
 ## Fase 7 — Interface de estados (issue #9)
 
-- [ ] T020 [US-001] [FR-008] Escrever teste falhando dos estados `capturing`/`processing`/`success`/`error` (issue #9)
-- [ ] T021 [US-001] [FR-008] Implementar a interface com a carta Acenar (dica/sugestão), ações e exibição da duração, câmera utilizável após erro (issue #9)
+- [x] T020 [US-001] [FR-008] Escrever teste falhando dos estados `capturing`/`processing`/`success`/`error` (issue #9)
+- [x] T021 [US-001] [FR-008] Implementar a interface com a carta Acenar (dica/sugestão), ações e exibição da duração, câmera utilizável após erro (issue #9)
 
 ## Fase 8 — Adaptador codex (issue #7)
 
