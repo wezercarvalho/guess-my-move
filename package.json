@@ -9,7 +9,9 @@
     "workspaces": [
         "apps/web",
         "apps/server",
-        "packages/core"
+        "packages/core",
+        "packages/providers",
+        "packages/benchmark"
     ],
     "scripts": {
         "typecheck": "yarn workspaces run typecheck",
