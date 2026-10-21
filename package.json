@@ -3,7 +3,7 @@
     "private": true,
     "license": "MIT",
     "description": "Guess My Move: monorepo da PoC (web React+Vite, servidor NestJS, pacote core de contratos) e ferramentas de governança do repositório (SDD, docs e gates).",
-    "packageManager": "yarn@1.22.22",
+    "packageManager": "yarn@4.18.1",
     "engines": {
         "node": ">=24.18.0 <25"
     },
@@ -15,10 +15,10 @@
         "packages/benchmark"
     ],
     "scripts": {
-        "typecheck": "yarn workspaces run typecheck",
+        "typecheck": "yarn workspaces foreach --all --topological run typecheck",
         "lint": "eslint .",
-        "test": "yarn workspaces run test",
-        "build": "yarn workspaces run build",
+        "test": "yarn workspaces foreach --all --topological run test",
+        "build": "yarn workspaces foreach --all --topological run build",
         "check:static": "yarn typecheck && yarn lint",
         "check:all": "yarn check:static && yarn test && yarn build",
         "build:libs": "yarn workspace @guess-my-move/core build && yarn workspace @guess-my-move/providers build",
@@ -31,7 +31,6 @@
         "test:gates": "node --test test/security/dependency-audit.node-test.mjs test/security/dependency-audit-exceptions.node-test.mjs test/security/dependency-audit-workflows.node-test.mjs test/gates/hook-and-gate.node-test.mjs",
         "security:dependencies": "node scripts/audit-dependencies.mjs"
     },
-    "dependencies": {},
     "devDependencies": {
         "@eslint/js": "10.0.1",
         "eslint": "10.13.0",

@@ -2,8 +2,8 @@
 
 ## Requisitos
 
-- Node.js 24.18 ou superior (`.node-version`) e Yarn 1.22 via Corepack (`corepack enable`).
-- Instalação das dependências na raiz: `yarn install --frozen-lockfile` instala a raiz e todos os workspaces (`apps/web`, `apps/server`, `packages/core`) de uma vez.
+- Node.js 24.18 ou superior (`.node-version`) e Yarn 4.18 via Corepack (`corepack enable`).
+- Instalação das dependências na raiz: `yarn install --immutable` instala a raiz e todos os workspaces (`apps/web`, `apps/server`, `packages/core`) de uma vez.
 
 ## Verificações locais antes do push
 
@@ -23,7 +23,7 @@ Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha e
 
 **Auditoria de dependências.** Ela roda na sua máquina, não consome minutos de Actions e usa rede (consulta o registry). Vulnerabilidade High ou Critical barra o push e a saída do auditor aparece. Se o registry ou a rede falhar, o auditor imprime `registry-indisponivel` e diz que o problema não é vulnerabilidade: o hook só avisa, não barra, e informa que o `pr-gate` fará a verificação. A política está em [auditoria de dependências](../security/dependency-audit.md).
 
-**Requisito.** As dependências precisam estar instaladas. Sem `node_modules`, o hook barra o push e informa o comando (`yarn install --frozen-lockfile`).
+**Requisito.** As dependências precisam estar instaladas. Sem `node_modules`, o hook barra o push e informa o comando (`yarn install --immutable`).
 
 **Sob demanda.** `node scripts/git-hooks/local-checks.mjs` roda o mesmo núcleo do hook para o que mudou em relação ao merge-base com `origin/main` mais o working tree. Aceita `--mode static|full` (o escopo de código roda `yarn check:static` em `static` e `yarn check:all` em `full`) e `--files <arquivos>`.
 

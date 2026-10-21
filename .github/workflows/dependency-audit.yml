@@ -27,17 +27,17 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - name: Habilitar corepack
+              run: corepack enable
+
             - uses: actions/setup-node@v4
               with:
                   node-version-file: .node-version
                   cache: yarn
                   cache-dependency-path: yarn.lock
 
-            - name: Habilitar corepack
-              run: corepack enable
-
             - name: Instalar dependências
-              run: yarn install --frozen-lockfile
+              run: yarn install --immutable
 
             - name: Auditoria de dependências
               run: yarn security:dependencies

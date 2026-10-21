@@ -10,7 +10,7 @@ Este arquivo é o ponto de entrada compartilhado por pessoas e agentes de IA. El
 4. Carregue no [índice de contexto](docs/development-context/README.md) apenas políticas, guias e runbooks aplicáveis.
 5. Confirme a realidade em `package.json`, ESLint, TypeScript, Vitest e nos arquivos afetados antes de editar. Enquanto o código não existir, a fonte é a spec aprovada.
 6. Implemente e valide com os scripts oficiais de `package.json`; registre limitações reais em vez de presumir sucesso.
-7. Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push: `node scripts/git-hooks/install.mjs`. Ele roda localmente as verificações leves do `pr-gate` (SDD, formatação dos docs, testes dos gates e auditoria de dependências); o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
+7. Antes do primeiro push, instale as dependências (`yarn install --immutable`) e o hook de pré-push: `node scripts/git-hooks/install.mjs`. Ele roda localmente as verificações leves do `pr-gate` (SDD, formatação dos docs, testes dos gates e auditoria de dependências); o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
 
 ## Roteamento de contexto
 

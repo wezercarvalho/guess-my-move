@@ -13,14 +13,14 @@ O que a PoC prova depende do benchmark (`packages/benchmark`), que só pode ser 
 ## Requisitos
 
 - Node.js 24.18 ou superior (ver `.node-version`).
-- Yarn 1.22 via Corepack (`corepack enable`).
+- Yarn 4.18 via Corepack (`corepack enable`).
 - Modo `codex` (opcional): Codex CLI instalado e autenticado.
 
 ## Instalação
 
 ```sh
 corepack enable
-yarn install --frozen-lockfile
+yarn install --immutable
 ```
 
 Um único `yarn install` na raiz instala todos os workspaces. Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
@@ -114,7 +114,7 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 
 ## Contribuição
 
-Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push com `node scripts/git-hooks/install.mjs`: a verificação rápida roda na sua máquina e o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
+Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). Antes do primeiro push, instale as dependências (`yarn install --immutable`) e o hook de pré-push com `node scripts/git-hooks/install.mjs`: a verificação rápida roda na sua máquina e o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
 
 ## Licença
 

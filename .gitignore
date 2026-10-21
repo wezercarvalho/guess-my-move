@@ -20,3 +20,12 @@ captures/
 .idea/
 .vscode/
 *.log
+
+# Yarn 4: apenas o que é compartilhável entra no Git (cache e install-state ficam fora)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

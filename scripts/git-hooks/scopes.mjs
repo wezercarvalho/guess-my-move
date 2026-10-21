@@ -38,8 +38,8 @@ export function yarnExecutable(platform = process.platform) {
 
 export function installCommand(packageDir) {
     return packageDir === '.'
-        ? 'yarn install --frozen-lockfile'
-        : `cd ${packageDir} && yarn install --frozen-lockfile`
+        ? 'yarn install --immutable'
+        : `cd ${packageDir} && yarn install --immutable`
 }
 
 export function affectedScopes(changedFiles) {
