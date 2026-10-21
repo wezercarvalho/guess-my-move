@@ -1,12 +1,25 @@
 {
     "name": "guess-my-move",
     "private": true,
-    "description": "Guess My Move: ferramentas de governança do repositório (SDD, docs e gates). O código da aplicação entra na issue de scaffold.",
+    "description": "Guess My Move: monorepo da PoC (web React+Vite, servidor NestJS, pacote core de contratos) e ferramentas de governança do repositório (SDD, docs e gates).",
     "packageManager": "yarn@1.22.22",
     "engines": {
         "node": ">=24.18.0 <25"
     },
+    "workspaces": [
+        "apps/web",
+        "apps/server",
+        "packages/core"
+    ],
     "scripts": {
+        "typecheck": "yarn workspaces run typecheck",
+        "lint": "eslint .",
+        "test": "yarn workspaces run test",
+        "build": "yarn workspaces run build",
+        "check:static": "yarn typecheck && yarn lint",
+        "check:all": "yarn check:static && yarn test && yarn build",
+        "dev:web": "yarn workspace @guess-my-move/web dev",
+        "dev:server": "yarn workspace @guess-my-move/server dev",
         "sdd:check": "node scripts/sdd/check-specs.mjs --root .",
         "test:sdd": "node --test test/sdd/check-specs.node-test.mjs test/sdd/check-gate.node-test.mjs",
         "docs:format:check": "prettier --check .prettierrc AGENTS.md CLAUDE.md README.md \"docs/**/*.md\" \"specs/**/*.md\"",
@@ -16,7 +29,14 @@
     },
     "dependencies": {},
     "devDependencies": {
+        "@eslint/js": "10.0.1",
+        "eslint": "10.13.0",
+        "eslint-plugin-react-hooks": "7.1.1",
+        "eslint-plugin-react-refresh": "0.5.7",
+        "globals": "17.13.0",
         "prettier": "3.9.10",
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.72.0",
         "yaml": "2.9.0"
     }
 }
