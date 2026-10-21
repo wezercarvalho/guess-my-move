@@ -46,3 +46,14 @@ export type {
     JudgeOptions,
 } from './referee/index.js'
 export { judgeWithFallback } from './referee/index.js'
+
+// Motor da rodada: máquina de estados pura e determinística (#12).
+export type {
+    AttemptOutcome,
+    Clock,
+    Round,
+    RoundAttempt,
+    RoundConfig,
+    RoundState,
+} from './round/index.js'
+export { createRound } from './round/index.js'
