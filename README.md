@@ -2,16 +2,19 @@
 
 > An open-source AI-powered charades game where players act out prompts on camera and AI tries to guess what they're miming.
 
-**Act it. Let AI guess.** O jogador interpreta uma ação diante da webcam e uma IA multimodal tenta adivinhar. A IA nunca recebe a carta; um árbitro semântico (fase posterior) valida o palpite.
+**Act it. Let AI guess.** O jogador interpreta uma ação diante da webcam e uma IA multimodal tenta adivinhar. A IA nunca recebe a carta; um árbitro semântico valida o palpite.
 
 ## Estado
 
-PoC em andamento. O monorepo tem uma base executável: frontend (`apps/web`), servidor (`apps/server`) e contratos compartilhados (`packages/core`). A primeira entrega funcional é a **Fase 0 (PoC visual)** com uma única carta, **Acenar**: validar se um modelo multimodal pré-treinado reconhece o gesto a partir de uma sequência curta de frames. O servidor expõe hoje apenas `GET /api/health` e sobe no modo **mock** por padrão (`GUESSER_PROVIDER=mock`); a carta, a câmera, a captura de frames e o adivinhador chegam nas próximas issues.
+PoC visual (Fase 0) implementada e **ainda não validada com dados reais**. Existe uma tela com a carta **Acenar**, câmera com consentimento, captura de frames, rota `POST /api/guess` no servidor com provedor `mock` (padrão) ou `codex` (Codex CLI, só local) e um harness de benchmark. O núcleo do jogo (carta, árbitro determinístico, fallback opcional, motor da rodada e histórico de palpites rejeitados) está pronto em `packages/core` com testes, mas **ainda não está ligado à interface**.
+
+O que a PoC prova depende do benchmark (`packages/benchmark`), que só pode ser executado com clipes gravados pelo mantenedor. Até lá, não há nenhuma medição de acurácia ou latência.
 
 ## Requisitos
 
 - Node.js 24.18 ou superior (ver `.node-version`).
 - Yarn 1.22 via Corepack (`corepack enable`).
+- Modo `codex` (opcional): Codex CLI instalado e autenticado.
 
 ## Instalação
 
@@ -20,45 +23,80 @@ corepack enable
 yarn install --frozen-lockfile
 ```
 
-Um único `yarn install` na raiz instala a raiz e todos os workspaces (`apps/web`, `apps/server`, `packages/core`). Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
+Um único `yarn install` na raiz instala todos os workspaces. Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
 
-## Como rodar (modo mock)
-
-O servidor usa `GUESSER_PROVIDER=mock` por padrão; copie `.env.example` para `.env` e ajuste se quiser.
+## Como rodar em modo mock (sem credencial e sem custo)
 
 ```sh
-yarn dev:server   # sobe o servidor NestJS (porta configurável via PORT, padrão 3000)
-yarn dev:web      # sobe o frontend Vite; o proxy /api aponta para o servidor
+cp .env.example .env   # opcional; os padrões já usam GUESSER_PROVIDER=mock
+yarn dev:server        # compila core/providers e sobe o NestJS (PORT, padrão 3000)
+yarn dev:web           # em outro terminal: Vite com proxy de /api para o servidor
 ```
 
-Com o servidor no ar, `GET /api/health` responde `{ "status": "ok" }`. A porta do servidor é configurável por `PORT`; o Vite encaminha `/api` para `http://localhost:$VITE_SERVER_PORT` (padrão 3000).
+Abra o endereço do Vite, ative a câmera, acione **Capturar e adivinhar** e veja o palpite. O `mock` devolve um palpite determinístico e serve apenas para exercitar o fluxo.
+
+Servidor compilado: `yarn build` e depois `node apps/server/dist/main.js`.
+
+### API
+
+- `GET /api/health` responde `{ "status": "ok" }`.
+- `POST /api/guess` recebe `{ "frames": [{ "timestampMs", "mimeType", "data" }], "rejectedGuesses"?: [] }` (JPEG em base64, sem prefixo) e responde `200 { guess, insufficientEvidence?, durationMs, providerId }`. A rota não recebe nem conhece dados de carta. Erros têm formato estável `{ error: { code, message, retryable } }` com os códigos `invalid_payload`, `payload_too_large`, `rate_limited`, `provider_timeout`, `provider_error`, `invalid_model_response` e `cost_limit_reached`.
+- Limites (variáveis de ambiente, ver `.env.example`): `MAX_FRAMES`, `MAX_FRAME_BYTES`, `MAX_TOTAL_BYTES`, `REQUEST_TIMEOUT_MS`, `RATE_LIMIT_PER_MINUTE` e `COST_CEILING_ATTEMPTS_PER_HOUR`.
+
+## Como rodar em modo real (`codex`)
+
+Uso restrito a desenvolvimento e benchmark locais de uma pessoa. O adaptador chama `codex exec` em diretório temporário vazio e somente leitura, uma execução por vez, e usa a sessão autenticada do Codex CLI (assinatura do mantenedor); não é um backend para servir terceiros.
+
+```sh
+GUESSER_PROVIDER=codex CODEX_MODEL=gpt-6-luna CODEX_REASONING_EFFORT=low yarn dev:server
+```
+
+A latência medida por esse caminho inclui a inicialização do CLI e **não** representa a latência final de um provedor de API. Detalhes e a verificação empírica em [`packages/providers/README.md`](packages/providers/README.md).
+
+## Benchmark do gesto Acenar
+
+O harness offline fica em `packages/benchmark` (protocolo, formato do manifesto e relatório em [`packages/benchmark/README.md`](packages/benchmark/README.md)). Os clipes gravados com consentimento ficam **fora do Git**. Nenhum número de acurácia foi produzido ainda.
+
+## Estrutura
+
+| Pasta                | Conteúdo                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/web`           | React + Vite: câmera, captura de frames, tela da PoC.                                      |
+| `apps/server`        | NestJS: `GET /api/health`, `POST /api/guess`, limites, erros estáveis, métricas sem mídia. |
+| `packages/core`      | TypeScript puro: contratos, carta, árbitro, fallback opcional, motor da rodada.            |
+| `packages/providers` | Adaptadores de `GuesserProvider`: `mock` e `codex`.                                        |
+| `packages/benchmark` | CLI offline do benchmark.                                                                  |
 
 ## Scripts
 
-| Script                       | O que faz                                                           |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `yarn dev:web`               | Sobe o frontend (Vite).                                             |
-| `yarn dev:server`            | Sobe o servidor (NestJS, em watch).                                 |
-| `yarn typecheck`             | `tsc --noEmit` em todos os workspaces.                              |
-| `yarn lint`                  | ESLint (flat config) com TypeScript estrito em `apps/`/`packages/`. |
-| `yarn test`                  | Vitest em todos os workspaces.                                      |
-| `yarn build`                 | Build do frontend, do servidor e do pacote `core`.                  |
-| `yarn check:static`          | `typecheck` + `lint`.                                               |
-| `yarn check:all`             | `check:static` + `test` + `build` (o que o `pr-gate` roda).         |
-| `yarn security:dependencies` | Auditoria de dependências (High/Critical bloqueiam).                |
+| Script                       | O que faz                                                             |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `yarn dev:web`               | Sobe o frontend (Vite).                                               |
+| `yarn dev:server`            | Compila `core`/`providers` e sobe o servidor (NestJS, em watch).      |
+| `yarn typecheck`             | `tsc --noEmit` em todos os workspaces.                                |
+| `yarn lint`                  | ESLint (flat config) com TypeScript estrito em `apps/` e `packages/`. |
+| `yarn test`                  | Vitest em todos os workspaces (resolve pelo código-fonte).            |
+| `yarn build`                 | Build de todos os workspaces.                                         |
+| `yarn check:static`          | `typecheck` + `lint`.                                                 |
+| `yarn check:all`             | `check:static` + `test` + `build` (o que o `pr-gate` roda).           |
+| `yarn security:dependencies` | Auditoria de dependências (High/Critical bloqueiam).                  |
+
+Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gates`) estão em [Checks de qualidade](docs/development-context/quality/quality-gates.md).
 
 ## Privacidade
 
-- A IA adivinhadora não recebe a carta, a dica, a sugestão nem os aliases.
-- Frames da webcam são transitórios: não são persistidos por padrão nem registrados em logs.
+- A IA adivinhadora não recebe a carta, a dica, a sugestão nem os aliases. Há teste automatizado que falha se qualquer dado da carta entrar no payload.
+- Frames da webcam são transitórios: ficam em memória, não são persistidos nem registrados em logs e são descartados após o envio. No modo `codex`, os frames passam por arquivos temporários que são removidos ao fim da tentativa.
+- Os frames são enviados a um provedor externo; a interface avisa o jogador.
 - Chaves de provedor ficam somente no servidor, em variáveis de ambiente (`.env`, nunca versionado); nunca no bundle do navegador, em logs ou no repositório.
 - Nenhuma afirmação de precisão ou latência sem medição registrada.
 
 ## Limites conhecidos
 
-- Só há o scaffold: a rota `POST /api/guess`, a carta, a câmera, a captura de frames, o adivinhador (mock/codex), o árbitro e o motor ainda não existem.
-- O servidor expõe apenas `GET /api/health`.
-- O modo `codex` está desligado por padrão e ainda não tem adaptador implementado.
+- A câmera real, a captura de um `<video>` ao vivo e a aparência da interface foram testadas só com simulações (jsdom); falta verificar em navegador real.
+- O motor da rodada, o árbitro e o histórico de rejeitados existem no `core`, mas a tela da PoC ainda não os usa.
+- O benchmark não foi executado com dados reais.
+- O adaptador Bedrock (Claude Haiku 5.5 e Nova 2 Lite) e o acesso à AWS ainda não existem.
 - A licença será definida antes de divulgar o projeto como reutilizável por terceiros.
 
 ## Documentação
@@ -74,13 +112,6 @@ Com o servidor no ar, `GET /api/health` responde `{ "status": "ok" }`. A porta d
 | Pipeline de CI e gates                                         | [`docs/development-context/delivery/ci-pipeline.md`](docs/development-context/delivery/ci-pipeline.md)                 |
 | Desenvolvimento local e hook de pré-push                       | [`docs/development-context/operations/local-development.md`](docs/development-context/operations/local-development.md) |
 | Guia para agentes e colaboradores                              | [`AGENTS.md`](AGENTS.md)                                                                                               |
-
-## Princípios
-
-- A IA adivinhadora não recebe a carta, a dica, a sugestão nem os aliases.
-- Frames da webcam são transitórios e nunca persistidos por padrão.
-- Chaves de provedor ficam somente no servidor.
-- Nenhuma afirmação de precisão ou latência sem medição registrada.
 
 ## Contribuição
 

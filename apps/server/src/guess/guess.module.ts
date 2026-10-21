@@ -1,16 +1,70 @@
 import { Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { createDefaultRegistry } from '@guess-my-move/providers'
+import {
+    type CodexReasoningEffort,
+    CodexGuesserProvider,
+    createDefaultRegistry,
+    GuesserProviderRegistry,
+} from '@guess-my-move/providers'
 
 import type { EnvironmentVariables } from '../config/environment.js'
+import { GuesserProviderName } from '../config/environment.js'
 import { GuessController } from './guess.controller.js'
 import { GUESSER_REGISTRY, GuessService } from './guess.service.js'
 import { GuessMetricsLogger } from './metrics.js'
 
+const CODEX_EFFORTS: readonly CodexReasoningEffort[] = ['none', 'low', 'high']
+
+function parseReasoningEffort(
+    value: string | undefined,
+): CodexReasoningEffort | undefined {
+    if (value && (CODEX_EFFORTS as readonly string[]).includes(value)) {
+        return value as CodexReasoningEffort
+    }
+    return undefined
+}
+
+/**
+ * Monta o registro de provedores a partir da configuração. Exportado para
+ * teste direto: o `mock` está sempre disponível; o `codex` só é registrado
+ * quando `GUESSER_PROVIDER=codex`, mantendo-o desligado por padrão.
+ */
+export function buildGuesserRegistry(
+    config: ConfigService<EnvironmentVariables, true>,
+): GuesserProviderRegistry {
+    const registry = createDefaultRegistry()
+    const selected = config.get('GUESSER_PROVIDER', { infer: true })
+    if (selected === GuesserProviderName.Codex) {
+        const model = config.get('CODEX_MODEL', { infer: true })
+        const bin = config.get('CODEX_BIN', { infer: true })
+        const effort = config.get('CODEX_REASONING_EFFORT', { infer: true })
+        const timeoutMs = config.get('REQUEST_TIMEOUT_MS', { infer: true })
+        if (!model) {
+            throw new Error(
+                'GUESSER_PROVIDER=codex exige CODEX_MODEL configurado',
+            )
+        }
+        registry.register('codex', () => {
+            const options: ConstructorParameters<
+                typeof CodexGuesserProvider
+            >[0] = { model, timeoutMs }
+            if (bin) {
+                options.bin = bin
+            }
+            const parsed = parseReasoningEffort(effort)
+            if (parsed) {
+                options.reasoningEffort = parsed
+            }
+            return new CodexGuesserProvider(options)
+        })
+    }
+    return registry
+}
+
 /**
  * Módulo da rota de adivinhação. O registro de provedores é montado a partir da
  * configuração: o `mock` está sempre disponível; o `codex` só é adicionado
- * quando `GUESSER_PROVIDER=codex` (adaptador adicionado na issue #7).
+ * quando `GUESSER_PROVIDER=codex`, mantendo-o desligado por padrão.
  */
 @Module({
     controllers: [GuessController],
@@ -20,13 +74,7 @@ import { GuessMetricsLogger } from './metrics.js'
         {
             provide: GUESSER_REGISTRY,
             inject: [ConfigService],
-            useFactory: (
-                config: ConfigService<EnvironmentVariables, true>,
-            ) => {
-                void config
-                // Branch #6: apenas o mock. O codex é registrado na issue #7.
-                return createDefaultRegistry()
-            },
+            useFactory: buildGuesserRegistry,
         },
     ],
 })

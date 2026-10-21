@@ -69,6 +69,14 @@ function validateEvaluation(value: unknown, errors: string[]): void {
     ) {
         errors.push('evaluation.visualCriteria: array de strings quando presente')
     }
+    if (
+        value['ambiguousGuesses'] !== undefined &&
+        !isStringArray(value['ambiguousGuesses'])
+    ) {
+        errors.push(
+            'evaluation.ambiguousGuesses: array de strings quando presente',
+        )
+    }
 }
 
 /**
@@ -113,6 +121,9 @@ export function validateCard(value: unknown): ValidationResult {
         insufficientGuesses: [
             ...(evaluation['insufficientGuesses'] as string[]),
         ],
+        ...(isStringArray(evaluation['ambiguousGuesses'])
+            ? { ambiguousGuesses: [...evaluation['ambiguousGuesses']] }
+            : {}),
         ...(isStringArray(evaluation['visualCriteria'])
             ? { visualCriteria: [...evaluation['visualCriteria']] }
             : {}),

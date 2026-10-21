@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, HttpCode, Post } from '@nestjs/common'
 
 import { type GuessResponse, GuessService } from './guess.service.js'
 import { validateGuessPayload } from './payload.js'
@@ -13,6 +13,7 @@ export class GuessController {
     constructor(private readonly service: GuessService) {}
 
     @Post()
+    @HttpCode(200)
     async guess(@Body() body: unknown): Promise<GuessResponse> {
         const input = validateGuessPayload(body, this.service.limits)
         return this.service.guess(input)

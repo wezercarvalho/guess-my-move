@@ -58,6 +58,12 @@ export interface CardEvaluation {
     canonicalAnswer: string
     acceptedAliases: string[]
     insufficientGuesses: string[]
+    /**
+     * Palpites conhecidamente ambíguos: nem claramente corretos, nem claramente
+     * insuficientes. O árbitro determinístico os devolve como `undetermined`
+     * para que o fallback opcional por LLM (#14) decida de forma conservadora.
+     */
+    ambiguousGuesses?: string[]
     visualCriteria?: string[]
 }
 

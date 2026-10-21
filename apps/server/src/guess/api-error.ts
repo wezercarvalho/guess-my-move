@@ -53,6 +53,27 @@ export class ApiException extends HttpException {
 }
 
 /**
+ * Status 4xx de falhas do próprio cliente (JSON malformado, corpo grande demais,
+ * rota inexistente), vindas do Nest ou do parser HTTP. Devolve `null` para
+ * qualquer outra falha, que segue como erro interno genérico.
+ */
+function clientErrorStatus(exception: unknown): number | null {
+    const candidates: unknown[] = []
+    if (exception instanceof HttpException) {
+        candidates.push(exception.getStatus())
+    } else if (typeof exception === 'object' && exception !== null) {
+        const record = exception as Record<string, unknown>
+        candidates.push(record['status'], record['statusCode'])
+    }
+    for (const value of candidates) {
+        if (typeof value === 'number' && value >= 400 && value < 500) {
+            return value
+        }
+    }
+    return null
+}
+
+/**
  * Converte qualquer falha em um corpo `ApiError` estável. Um erro inesperado
  * vira `provider_error` genérico, sem vazar a mensagem interna ao cliente.
  */
@@ -64,6 +85,21 @@ export class ApiExceptionFilter implements ExceptionFilter {
             response
                 .status(exception.getStatus())
                 .json(exception.getResponse())
+            return
+        }
+        const clientStatus = clientErrorStatus(exception)
+        if (clientStatus !== null) {
+            const tooLarge = clientStatus === 413
+            const body: ApiError = {
+                error: {
+                    code: tooLarge ? 'payload_too_large' : 'invalid_payload',
+                    message: tooLarge
+                        ? 'o corpo da requisição excede o limite permitido'
+                        : 'requisição inválida',
+                    retryable: false,
+                },
+            }
+            response.status(clientStatus).json(body)
             return
         }
         const fallback: ApiError = {

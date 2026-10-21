@@ -11,6 +11,13 @@ export {
     type MockGuesserOptions,
 } from './mock-provider.js'
 export {
+    CodexExecutionError,
+    CodexGuesserProvider,
+    type CodexProviderOptions,
+    type CodexReasoningEffort,
+    uniqueRunId,
+} from './codex-provider.js'
+export {
     createDefaultRegistry,
     GuesserProviderRegistry,
     type GuesserProviderFactory,

@@ -1,0 +1,32 @@
+{
+    "name": "@guess-my-move/benchmark",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "source": "./src/index.ts",
+            "types": "./src/index.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "bin": {
+        "guess-benchmark": "./dist/cli.js"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "build": "tsc --build tsconfig.build.json",
+        "test": "vitest run",
+        "bench": "node dist/cli.js"
+    },
+    "dependencies": {
+        "@guess-my-move/core": "0.0.0",
+        "@guess-my-move/providers": "0.0.0"
+    },
+    "devDependencies": {
+        "typescript": "6.0.3",
+        "vitest": "5.0.5"
+    }
+}
