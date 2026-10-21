@@ -3,9 +3,10 @@
 // Os padrões são cópias literais dos de `.github/workflows/pr-gate.yml` (passo "Detectar paths
 // alterados"); um teste em `test/gates/` compara os dois.
 //
-// Ainda não há escopo de pacote (o repositório não tem código). Quando o scaffold da aplicação
-// chegar, o escopo do pacote entra aqui, no `detect-changes` do pr-gate e em `SELECTED_JOBS` de
-// `scripts/sdd/check-job-results.mjs`, com o mesmo comando que o gate remoto roda.
+// O escopo de código (`code`) cobre a aplicação (apps/, packages/) e roda `yarn check:static` no
+// modo `static` (hook por padrão) e `yarn check:all` no modo `full`, o mesmo conjunto que o gate
+// remoto executa. Seu padrão é cópia literal de `CODE_PATTERN` no `pr-gate.yml`, e o job `code`
+// entra também em `SELECTED_JOBS` de `scripts/sdd/check-job-results.mjs`.
 
 export const PATH_PATTERNS = {
     sdd: '^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\\.md$|^(package\\.json|yarn\\.lock)$|^\\.github/workflows/pr-gate\\.yml$',
@@ -14,14 +15,17 @@ export const PATH_PATTERNS = {
     // Testes dos próprios gates: hook local, auditor de dependências e workflows.
     tooling:
         '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$',
+    // Código da aplicação (apps/, packages/), manifesto/lockfile, tsconfig*, config do ESLint e
+    // o .env.example; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
+    code: '^apps/|^packages/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^eslint\\.config\\.[a-z]+$|^\\.env\\.example$',
     // Auditoria de dependências: só o que muda o veredito (manifesto, lockfile, auditor, exceções
     // e os workflows que a executam); `AUDIT_PATTERN` do gate.
     audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs)$|^\\.github/workflows/(pr-gate|dependency-audit)\\.yml$',
 }
 
-// Ordem de execução: leves primeiro, para falhar rápido; a auditoria consulta o registry e vem
-// por último entre as de governança.
-export const ALL_SCOPES = ['sdd', 'root-docs', 'tooling', 'audit']
+// Ordem de execução: leves primeiro, para falhar rápido; o escopo de código roda os gates da
+// aplicação e a auditoria consulta o registry, por isso vêm por último.
+export const ALL_SCOPES = ['sdd', 'root-docs', 'tooling', 'code', 'audit']
 
 export const MODES = ['static', 'full']
 
@@ -45,7 +49,7 @@ export function affectedScopes(changedFiles) {
     })
 }
 
-function stepsFor(scope, { changedFiles, exists }) {
+function stepsFor(scope, { changedFiles, exists, mode }) {
     const yarn = yarnExecutable()
     switch (scope) {
         case 'sdd': {
@@ -95,6 +99,20 @@ function stepsFor(scope, { changedFiles, exists }) {
                     args: ['test:gates'],
                 },
             ]
+        case 'code': {
+            // `static` roda a verificação rápida (typecheck + lint); `full` roda o conjunto
+            // completo que o gate remoto executa (typecheck + lint + test + build).
+            const script = mode === 'full' ? 'check:all' : 'check:static'
+            return [
+                {
+                    id: 'code',
+                    label: `Código: ${script === 'check:all' ? 'typecheck, lint, test e build' : 'typecheck e lint'} (yarn ${script})`,
+                    cwd: '.',
+                    command: yarn,
+                    args: [script],
+                },
+            ]
+        }
         default:
             return [
                 {
@@ -110,9 +128,9 @@ function stepsFor(scope, { changedFiles, exists }) {
 }
 
 // `exists(caminhoRelativoAaRaiz)` filtra os `.md` removidos (como `[ -f $FILE ]` no gate);
-// `scopes` força os escopos quando o intervalo é desconhecido. `mode` é validado e reservado: os
-// escopos de pacote, quando existirem, rodam a verificação rápida em `static` e a completa em
-// `full`; hoje os dois modos produzem o mesmo plano.
+// `scopes` força os escopos quando o intervalo é desconhecido. `mode` escolhe a profundidade do
+// escopo de código: `static` roda `yarn check:static` (typecheck + lint) e `full` roda
+// `yarn check:all` (typecheck + lint + test + build); os demais escopos ignoram o modo.
 export function planChecks(
     changedFiles,
     {
@@ -125,6 +143,6 @@ export function planChecks(
         throw new Error(`mode inválido: ${mode}. Use ${MODES.join(' ou ')}.`)
     }
     return ALL_SCOPES.filter((scope) => scopes.includes(scope)).flatMap(
-        (scope) => stepsFor(scope, { changedFiles, exists }),
+        (scope) => stepsFor(scope, { changedFiles, exists, mode }),
     )
 }
