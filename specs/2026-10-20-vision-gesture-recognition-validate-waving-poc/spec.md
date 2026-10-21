@@ -7,7 +7,7 @@ domain: vision
 capability: gesture-recognition
 objective: validate-waving-poc
 summary: PoC visual (Fase 0) que valida se um modelo multimodal gerenciado reconhece o gesto acenar a partir de frames da webcam, sem treinamento e sem receber a carta.
-status: draft
+status: implementing
 owners:
     - wezercarvalho
 reviewers: []
@@ -19,9 +19,11 @@ aliases:
     - adivinhador
 code_paths:
     - apps/
-related_specs: []
+    - packages/
+related_specs:
+    - 2026-10-21-game-engine-round-referee-build-core-loop
 supersedes: []
-branch: null
+branch: docs/1-clarify-plan-tasks
 constitution_version: 1.0.0
 created_at: 2026-10-20
 updated_at: 2026-10-21
@@ -142,14 +144,26 @@ Como mantenedor, quero um benchmark reproduzível para decidir sobre o provedor 
 
 ## Critérios mensuráveis de sucesso
 
+As metas abaixo são **exploratórias** da PoC, medidas sobre uma **amostra pequena** (ver seção do benchmark): não são taxa de acerto geral do produto e servem apenas para decidir manter, ajustar ou trocar o provedor. Foram definidas em 2026-10-21 pelo orquestrador sob aprovação geral do maintainer e são revisáveis.
+
 - **SC-001:** O benchmark produz um relatório reproduzível com os cenários positivos e negativos definidos em [`docs/research`](../../docs/research/multimodal-model-selection.md), sem extrapolar uma taxa de acerto geral.
 - **SC-002:** O teste de fronteira de informação passa e falha quando um campo da carta é adicionado ao payload.
 - **SC-003:** O modo mock executa o fluxo completo sem credencial.
 - **SC-004:** O relatório identifica a latência medida via `codex` como **não representativa** da produção (inclui inicialização do processo e camada de agente) e não a usa para decidir o provedor final; a latência de produção é medida de novo no provedor definitivo.
+- **SC-005:** Nos positivos P1–P6, o recall é **>= 80%**; nos negativos N1–N5 os falsos positivos ficam **<= 10%** e **nenhum** no N1 (pessoa parada). Medido via API, com o tamanho da amostra declarado.
+- **SC-006:** A latência por tentativa **medida via API** (não via Codex CLI) tem **mediana <= 8 s** e **p95 <= 15 s**; o custo estimado por tentativa é **<= US$ 0,01** em API paga. A latência do Codex CLI não conta para esta decisão (ver SC-004).
 
-## Questões críticas para clarificação
+## Perfil do benchmark
 
-- Metas numéricas mínimas de acerto e falso positivo para considerar a PoC bem-sucedida. As metas de latência ficam para o provedor definitivo.
-- Número e perfil das pessoas e ambientes do benchmark, e consentimento para coleta.
-- Variantes a testar no benchmark: `gpt-6-luna` via `codex` com esforço `none`, `low` e `high` (a confirmar o que o CLI expõe).
-- Critério para promover um provedor de produção depois da PoC (Bedrock, API da OpenAI ou outro), incluindo residência de dados.
+- Amostra mínima: **>= 3 pessoas**, **>= 2 ambientes** e **>= 2 condições de iluminação**, seguindo o protocolo da seção 11 de [`docs/research`](../../docs/research/multimodal-model-selection.md).
+- Consentimento **escrito, simples e específico** de quem aparece nos clipes.
+- Clipes e frames ficam **apenas locais, fora do Git**, apagáveis; são a única exceção à regra de não persistir frames, restrita ao benchmark.
+
+## Decisões de clarificação resolvidas
+
+Resolvidas em 2026-10-21 pelo orquestrador sob aprovação geral do maintainer (ver `clarification.md`), revisáveis:
+
+- **Metas da PoC:** definidas em SC-005 e SC-006 como metas exploratórias de amostra pequena.
+- **Perfil do benchmark e consentimento:** definidos na seção "Perfil do benchmark".
+- **Modelos:** a PoC usa o adaptador `codex` (`gpt-6-luna`, esforço `none`, `low` e `high`) e o `mock` para testes. Bedrock (Claude Haiku 5.5 e Nova 2 Lite) fica como candidato de produção em issue futura, dependente do acesso AWS (issue #2). O perfil de inferência `global` x `us` fica adiado até o acesso AWS ser configurado.
+- **Validação de acurácia:** a PoC não valida acurácia por conta própria; o benchmark (issue #10) só é executado com clipes reais gravados pelo maintainer. A entrega da issue #10 é o harness reproduzível + protocolo + modelo de relatório.
