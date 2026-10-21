@@ -40,13 +40,13 @@
 
 ## Fase 6 — Histórico de rejeitados e documentação (issue #15)
 
-- [ ] T017 [US-004] [FR-012] Escrever teste falhando de `rejectedGuesses` contendo só palpites do modelo, sem dado da carta, descartado ao fim da rodada (issue #15)
-- [ ] T018 [US-004] [FR-012] Implementar a montagem de `rejectedGuesses` a partir do histórico em memória (issue #15)
-- [ ] T019 [US-004] [FR-013] Atualizar o README com instalação, modos mock e real, testes e privacidade para execução por terceiros (issue #15)
+- [x] T017 [US-004] [FR-012] Escrever teste falhando de `rejectedGuesses` contendo só palpites do modelo, sem dado da carta, descartado ao fim da rodada (issue #15)
+- [x] T018 [US-004] [FR-012] Implementar a montagem de `rejectedGuesses` a partir do histórico em memória (issue #15)
+- [x] T019 [US-004] [FR-013] Atualizar o README com instalação, modos mock e real, testes e privacidade para execução por terceiros (issue #15)
 
 ## Fase final — Convergência
 
-- [ ] T020 [FR-003] Revisar o tratamento de erros ponta a ponta e reconciliar com a spec da PoC (issue #15)
+- [x] T020 [FR-003] Revisar o tratamento de erros ponta a ponta e reconciliar com a spec da PoC (issue #15)
 - [ ] T021 [SC-001] Executar os gates oficiais e registrar `validation.md` com comandos e resultados reais (issue #13)
 - [ ] T022 [SC-003] Reconciliar spec, plano, tarefas, implementação e evidências do núcleo (issue #12)
 

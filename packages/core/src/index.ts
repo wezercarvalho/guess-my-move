@@ -57,3 +57,6 @@ export type {
     RoundState,
 } from './round/index.js'
 export { createRound } from './round/index.js'
+
+// Histórico de palpites rejeitados do modelo, em memória (#15).
+export { RejectedGuesses } from './guesser/index.js'
