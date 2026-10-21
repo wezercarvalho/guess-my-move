@@ -177,6 +177,95 @@ a:focus-visible {
     font-size: 0.9rem;
 }
 
+.poc-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.card-view,
+.attempt-panel {
+    background: var(--cor-superficie);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-view h2,
+.attempt-panel h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.card-word {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cor-acento);
+}
+
+.card-details {
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.card-details div {
+    display: grid;
+    gap: 0.1rem;
+}
+
+.card-details dt {
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.card-details dd {
+    margin: 0;
+}
+
+.attempt-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.attempt-result {
+    min-height: 1.5rem;
+}
+
+.attempt-success strong {
+    color: var(--cor-ativo);
+    font-size: 1.1rem;
+}
+
+.attempt-duration {
+    color: var(--cor-texto-suave);
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0;
+}
+
+.attempt-error {
+    background: rgba(255, 107, 107, 0.12);
+    border: 1px solid var(--cor-erro);
+    border-radius: var(--raio);
+    padding: 0.75rem 1rem;
+}
+
+.attempt-error p {
+    margin: 0.25rem 0;
+}
+
+.attempt-error-hint {
+    color: var(--cor-texto-suave);
+    font-size: 0.9rem;
+}
+
 /* Conteúdo só para leitores de tela (anúncios aria-live). */
 .sr-only {
     position: absolute;

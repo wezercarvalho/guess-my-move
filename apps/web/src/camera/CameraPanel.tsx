@@ -1,10 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { type RefObject, useEffect, useRef } from 'react'
 
 import { type UseCameraResult } from './useCamera.js'
 
 /** Props do painel de câmera: recebe o resultado do hook `useCamera`. */
 export interface CameraPanelProps {
     camera: UseCameraResult
+    /**
+     * Ref externa opcional para o `<video>`, de modo que o componente pai
+     * (ex.: o fluxo de captura) possa ler frames do mesmo elemento.
+     */
+    videoRef?: RefObject<HTMLVideoElement | null>
 }
 
 /**
@@ -12,9 +17,10 @@ export interface CameraPanelProps {
  * visível de câmera ativa e instruções quando a permissão é negada ou a câmera
  * está indisponível. Nenhuma requisição ao modelo/servidor acontece aqui.
  */
-export function CameraPanel({ camera }: CameraPanelProps) {
+export function CameraPanel({ camera, videoRef: externalRef }: CameraPanelProps) {
     const { status, errorMessage, stream, isActive, start, stop } = camera
-    const videoRef = useRef<HTMLVideoElement>(null)
+    const internalRef = useRef<HTMLVideoElement>(null)
+    const videoRef = externalRef ?? internalRef
 
     // Liga a stream ao elemento <video> quando ela muda.
     useEffect(() => {
@@ -25,7 +31,7 @@ export function CameraPanel({ camera }: CameraPanelProps) {
             // `play()` pode rejeitar se o elemento for desmontado; ignoramos.
             void video.play().catch(() => undefined)
         }
-    }, [stream])
+    }, [stream, videoRef])
 
     const requesting = status === 'requesting'
 
