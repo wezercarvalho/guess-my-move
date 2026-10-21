@@ -9,7 +9,7 @@
 
 ## Fase 1 — Setup e fundações (issue #3)
 
-- [ ] T001 [FR-006] Criar o monorepo Yarn 1 com workspaces `apps/web`, `apps/server`, `packages/core`, `packages/providers`, `packages/benchmark` e scripts oficiais (issue #3)
+- [x] T001 [FR-006] Criar o monorepo Yarn 1 com workspaces `apps/web`, `apps/server`, `packages/core`, `packages/providers`, `packages/benchmark` e scripts oficiais (issue #3)
 - [x] T002 [FR-003] Scaffold do servidor NestJS mínimo com `GET /api/health` e `.env.example` só com placeholders (issue #3)
 - [x] T003 [NFR-001] Ligar os gates `typecheck`, `lint`, `test`, `build` ao `pr-gate` e ao hook, com `yarn security:dependencies` verde e versões exatas (issue #3)
 
@@ -58,9 +58,9 @@
 
 ## Fase 9 — Benchmark (issue #10)
 
-- [ ] T026 [US-003] [SC-001] Implementar o CLI offline de benchmark que lê clipes locais fora do Git e roda contra o provedor configurado (issue #10)
-- [ ] T027 [US-003] [SC-001] Produzir o modelo de relatório com métricas por provedor/variante, amostra declarada e limitações, sem taxa de acerto geral (issue #10)
-- [ ] T028 [US-003] [SC-004] Registrar a latência via `codex` como não representativa e separar visão de semântica (aliases determinísticos) (issue #10)
+- [x] T026 [US-003] [SC-001] Implementar o CLI offline de benchmark que lê clipes locais fora do Git e roda contra o provedor configurado (issue #10)
+- [x] T027 [US-003] [SC-001] Produzir o modelo de relatório com métricas por provedor/variante, amostra declarada e limitações, sem taxa de acerto geral (issue #10)
+- [x] T028 [US-003] [SC-004] Registrar a latência via `codex` como não representativa e separar visão de semântica (aliases determinísticos) (issue #10)
 
 ## Fase final — Convergência
 
