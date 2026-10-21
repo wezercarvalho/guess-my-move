@@ -6,8 +6,10 @@ import { defineConfig } from 'vite'
 // encaminha /api para o servidor NestJS em desenvolvimento.
 const serverPort = Number(process.env.VITE_SERVER_PORT ?? 3000)
 
+// Pacotes workspace: `source` aponta para o código-fonte (sem build prévio).
 export default defineConfig({
     plugins: [react()],
+    resolve: { conditions: ['source'] },
     server: {
         port: Number(process.env.VITE_PORT ?? 5173),
         proxy: {

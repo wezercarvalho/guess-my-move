@@ -30,6 +30,8 @@ export default tseslint.config(
                     allowDefaultProject: [
                         'apps/web/vite.config.ts',
                         'apps/server/vitest.config.ts',
+                        'packages/providers/vitest.config.ts',
+                        'packages/benchmark/vitest.config.ts',
                     ],
                 },
                 tsconfigRootDir: import.meta.dirname,
