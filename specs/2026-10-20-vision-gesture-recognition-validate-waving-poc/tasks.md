@@ -10,8 +10,8 @@
 ## Fase 1 — Setup e fundações (issue #3)
 
 - [ ] T001 [FR-006] Criar o monorepo Yarn 1 com workspaces `apps/web`, `apps/server`, `packages/core`, `packages/providers`, `packages/benchmark` e scripts oficiais (issue #3)
-- [ ] T002 [FR-003] Scaffold do servidor NestJS mínimo com `GET /api/health` e `.env.example` só com placeholders (issue #3)
-- [ ] T003 [NFR-001] Ligar os gates `typecheck`, `lint`, `test`, `build` ao `pr-gate` e ao hook, com `yarn security:dependencies` verde e versões exatas (issue #3)
+- [x] T002 [FR-003] Scaffold do servidor NestJS mínimo com `GET /api/health` e `.env.example` só com placeholders (issue #3)
+- [x] T003 [NFR-001] Ligar os gates `typecheck`, `lint`, `test`, `build` ao `pr-gate` e ao hook, com `yarn security:dependencies` verde e versões exatas (issue #3)
 
 ## Fase 2 — Contrato da carta (issue #11, pré-requisito vindo da Parte B)
 
@@ -64,7 +64,7 @@
 
 ## Fase final — Convergência
 
-- [ ] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
+- [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
 - [ ] T030 [SC-003] Executar os gates oficiais e registrar `validation.md` com comandos e resultados reais (issue #10)
 - [ ] T031 [SC-005] Reconciliar spec, plano, tarefas, implementação e evidências e aferir as metas exploratórias (issue #10)
 
