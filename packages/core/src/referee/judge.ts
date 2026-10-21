@@ -62,6 +62,20 @@ export function judge(
         }
     }
 
+    // Palpite conhecidamente ambíguo: dúvida material → undetermined. O
+    // fallback opcional por LLM (#14) pode decidir por cima de forma
+    // conservadora; sem fallback, permanece undetermined (nunca acerto).
+    const ambiguous = evaluation.ambiguousGuesses?.find(
+        (g) => normalize(g) === normalizedGuess,
+    )
+    if (ambiguous !== undefined) {
+        return {
+            isCorrect: false,
+            method: 'undetermined',
+            reason: `palpite ambíguo ("${ambiguous}") — dúvida material`,
+        }
+    }
+
     // Não corresponde a nada conhecido: incorreto, mas não insuficiente.
     return {
         isCorrect: false,

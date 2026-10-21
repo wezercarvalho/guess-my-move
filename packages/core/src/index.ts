@@ -37,3 +37,12 @@ export {
 // Árbitro semântico determinístico (#13).
 export type { RefereeMethod, RefereeResult } from './referee/index.js'
 export { judge, normalize } from './referee/index.js'
+
+// Fallback opcional por LLM do árbitro (#14).
+export type {
+    AmbiguityResolver,
+    AmbiguityResolverInput,
+    AmbiguityResolverResult,
+    JudgeOptions,
+} from './referee/index.js'
+export { judgeWithFallback } from './referee/index.js'
