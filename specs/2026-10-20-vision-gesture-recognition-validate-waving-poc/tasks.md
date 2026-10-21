@@ -51,10 +51,10 @@
 
 ## Fase 8 — Adaptador codex (issue #7)
 
-- [ ] T022 [US-001] [FR-013] Confirmar empiricamente múltiplas imagens, modelo e esforço no Codex CLI e registrar a decisão sobre fallback pela API da OpenAI (issue #7)
-- [ ] T023 [US-001] [FR-012] Escrever teste falhando (executável simulado) para o adaptador `codex` selecionável por configuração (issue #7)
-- [ ] T024 [US-001] [FR-012] Implementar o adaptador `codex` desligado por padrão, com saída validada por schema (issue #7)
-- [ ] T025 [US-002] [FR-014] Garantir diretório temporário vazio somente leitura, uma execução por vez, timeout e limpeza dos temporários (issue #7)
+- [x] T022 [US-001] [FR-013] Confirmar empiricamente múltiplas imagens, modelo e esforço no Codex CLI e registrar a decisão sobre fallback pela API da OpenAI (issue #7)
+- [x] T023 [US-001] [FR-012] Escrever teste falhando (executável simulado) para o adaptador `codex` selecionável por configuração (issue #7)
+- [x] T024 [US-001] [FR-012] Implementar o adaptador `codex` desligado por padrão, com saída validada por schema (issue #7)
+- [x] T025 [US-002] [FR-014] Garantir diretório temporário vazio somente leitura, uma execução por vez, timeout e limpeza dos temporários (issue #7)
 
 ## Fase 9 — Benchmark (issue #10)
 
