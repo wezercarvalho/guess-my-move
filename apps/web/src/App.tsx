@@ -1,5 +1,6 @@
 import { CameraPanel } from './camera/CameraPanel.js'
 import { useCamera } from './camera/useCamera.js'
+import { ExternalProviderNotice } from './capture/ExternalProviderNotice.js'
 import './styles.css'
 
 export function App() {
@@ -11,10 +12,11 @@ export function App() {
                 <h1>Guess My Move</h1>
                 <p>
                     PoC visual: ative a câmera para preparar a captura do gesto.
-                    A captura e o adivinhador chegam nas próximas entregas.
+                    O adivinhador chega na próxima entrega.
                 </p>
             </header>
 
+            <ExternalProviderNotice />
             <CameraPanel camera={camera} />
         </main>
     )
