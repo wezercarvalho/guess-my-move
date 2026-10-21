@@ -21,11 +21,11 @@
 
 ## Fase 2 — Oxlint e TypeScript 7 (issue #45)
 
-- [ ] T010 [US-003] [FR-005] Adicionar Oxlint + `oxlint-tsgolint` (type-aware) e remover ESLint e `typescript-eslint` (issue #45)
-- [ ] T011 [US-003] [FR-005] Documentar a paridade das regras (`recommendedTypeChecked`, react-hooks, react-refresh) e listar regras sem equivalente (issue #45)
-- [ ] T012 [US-004] [FR-006] Executar o spike de decorators do NestJS no build do servidor e registrar a estratégia escolhida na clarificação (issue #45)
-- [ ] T013 [US-004] [FR-006] Comprovar `GET /api/health` 200 no servidor compilado ou acionar o plano B mantendo `typescript` 6.0.3 e registrando o bloqueio (issue #45)
-- [ ] T014 [NFR-003] Medir e registrar o tempo de typecheck+lint antes e depois (SC-005) (issue #45)
+- [x] T010 [US-003] [FR-005] Adicionar Oxlint + `oxlint-tsgolint` (type-aware) e remover ESLint e `typescript-eslint` (issue #45)
+- [x] T011 [US-003] [FR-005] Documentar a paridade das regras (`recommendedTypeChecked`, react-hooks, react-refresh) e listar regras sem equivalente (issue #45)
+- [x] T012 [US-004] [FR-006] Executar o spike de decorators do NestJS no build do servidor e registrar a estratégia escolhida na clarificação (issue #45)
+- [x] T013 [US-004] [FR-006] Comprovar `GET /api/health` 200 no servidor compilado ou acionar o plano B mantendo `typescript` 6.0.3 e registrando o bloqueio (issue #45)
+- [x] T014 [NFR-003] Medir e registrar o tempo de typecheck+lint antes e depois (SC-005) (issue #45)
 
 ## Fase 3 — Node 26 (issue #46)
 

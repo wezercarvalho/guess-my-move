@@ -7,7 +7,7 @@
 | Script              | Propósito                                                                   | Onde roda                             |
 | ------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
 | `yarn typecheck`    | Tipos explícitos em todos os workspaces (`tsc --noEmit`).                   | `pr-gate` (seleção `code`) e hook.    |
-| `yarn lint`         | ESLint flat config com TypeScript estrito em `apps/` e `packages/`.         | `pr-gate` (seleção `code`) e hook.    |
+| `yarn lint`         | Oxlint type-aware (`.oxlintrc.json`) em `apps/` e `packages/`.              | `pr-gate` (seleção `code`) e hook.    |
 | `yarn test`         | Vitest em todos os workspaces (um teste de fumaça real em cada um).         | `pr-gate` (seleção `code`).           |
 | `yarn build`        | Compila frontend (Vite), servidor (Nest) e o pacote `core` (`tsc --build`). | `pr-gate` (seleção `code`).           |
 | `yarn check:static` | Agregado leve: `typecheck` + `lint`.                                        | hook local no modo `static` (padrão). |

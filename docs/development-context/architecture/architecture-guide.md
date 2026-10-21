@@ -21,11 +21,15 @@ Decisão do maintainer em 2026-10-21; as versões exatas são fixadas e registra
 - **Servidor:** NestJS na última versão estável, com a mesma interface `GuesserProvider` injetada como provedor (um módulo por adaptador, selecionado por configuração). Mantenha o servidor mínimo: sem módulos além dos que a PoC usa.
 - **Banco de dados:** não há na PoC (cartas em JSON ou TypeScript versionado; frames transitórios). Se uma fase posterior exigir persistência, a escolha é TypeORM na última versão estável com `@nestjs/typeorm`; a introdução passa por spec própria e não antecipa dependência nem migrations.
 
-### Versões fixadas no scaffold (#3) e desvio do TypeScript
+### Versões fixadas e toolchain (TypeScript 7 com Oxlint)
 
-As versões exatas foram fixadas no scaffold (issue #3): `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@nestjs/*` 12.2.0 (CLI 12.0.10, config 12.0.1), `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `zod` 4.6.7, `vitest` 5.0.5, `eslint` 10.13.0, `typescript-eslint` 8.72.0, e `@swc/core` 1.16.18 + `unplugin-swc` 2.0.0 para preservar os metadados de decorators do NestJS sob o Vitest.
+As versões exatas foram fixadas no scaffold (issue #3) e atualizadas na adoção da toolchain: `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@nestjs/*` 12.2.0 (config 12.0.1), `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `zod` 4.6.7, `vitest` 5.0.5, `typescript` 7.0.2, `oxlint` 1.89.0 com `oxlint-tsgolint` 7.0.2004, e `@swc/core` 1.16.18 + `unplugin-swc` 2.0.0 para preservar os metadados de decorators do NestJS sob o Vitest.
 
-**Desvio registrado:** a issue #3 propunha `typescript` 7.0.2, mas ela é incompatível com o tooling atual — `typescript-eslint` 8.72.0 (a última estável) suporta apenas `typescript >=4.8.4 <6.1.0`, e o próprio `@nestjs/cli` 12.0.10 fixa `typescript ~6.0.2`. Fixamos **`typescript` 6.0.3** (a última estável sob o teto `<6.1.0`), que funciona com NestJS 12 (decorators + `emitDecoratorMetadata`), Vite 8, Vitest 5 (via SWC) e o lint type-aware. Quando `typescript-eslint` publicar suporte estável a TypeScript 7, a atualização entra por mudança própria.
+**TypeScript 7 (compilador nativo).** O 7.0 não expõe a API programática do compilador. Por isso o `typescript-eslint` e o `nest build` não funcionam com ele. O projeto resolve assim:
+
+- **Lint:** `oxlint` com `oxlint-tsgolint` (type-aware, sobre o `typescript-go`) no lugar do ESLint; a configuração fica em `.oxlintrc.json`. A versão do `oxlint-tsgolint` acompanha a do TypeScript (`7.0.2004` é o patch 2004 para o TypeScript 7.0.2).
+- **Build do servidor:** `tsc -p tsconfig.build.json` direto (script `build` do servidor); o `tsc` 7 emite `design:paramtypes` para os decorators do NestJS. O `nest build` e o `nest start` não são usados; `yarn dev:server` roda `apps/server/scripts/dev.mjs` (`tsc --watch` mais `node --watch`). O `@nestjs/cli` foi removido; ele volta quando o TypeScript 7.1 estabilizar a API (prevista para novembro de 2026).
+- **Testes:** o Vitest continua usando SWC para os decorators, independente da versão do TypeScript.
 
 ## Contrato mínimo do adivinhador
 

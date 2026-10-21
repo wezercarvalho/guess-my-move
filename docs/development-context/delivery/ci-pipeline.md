@@ -31,7 +31,7 @@ O `pr-gate` valida o **resultado do merge** (evento `pull_request`), que pode di
 | `sdd`       | `specs/`, `scripts/sdd/`, `test/sdd/`, método SDD, `AGENTS.md`, manifesto e lockfile, `pr-gate.yml`      | `sdd`   |
 | `root-docs` | `AGENTS.md`, `CLAUDE.md`, `README.md`, `.prettierrc`, `docs/`, `specs/`, `pr-gate.yml`                   | `sdd`   |
 | `tooling`   | hook, auditor, `test/gates/`, `test/security/`, todos os workflows, manifesto, lockfile, `.node-version` | `sdd`   |
-| `code`      | `apps/`, `packages/`, manifesto, lockfile, `tsconfig*.json`, `eslint.config.*`, `.env.example`           | `code`  |
+| `code`      | `apps/`, `packages/`, manifesto, lockfile, `tsconfig*.json`, `.oxlintrc.json`, `.env.example`            | `code`  |
 | `audit`     | manifesto, lockfile, auditor, exceções e os workflows `pr-gate` e `dependency-audit`                     | `audit` |
 
 Os padrões exatos ficam no passo "Detectar paths alterados" de `pr-gate.yml` e são espelhados em `scripts/git-hooks/scopes.mjs`; um teste (`test/gates/hook-and-gate.node-test.mjs`) compara os dois.
@@ -55,7 +55,7 @@ O checker estrutural (`yarn sdd:check`) verifica o catálogo e os guias SDD; o w
 
 ### Job de código
 
-A seleção `code` liga o job `code`, que instala as dependências e roda `yarn check:all` (um só comando que executa `typecheck`, `lint`, `test` e `build` em todos os workspaces). O padrão de path cobre `apps/`, `packages/`, o manifesto e o lockfile, `tsconfig*.json`, `eslint.config.*` e `.env.example`, e é espelhado EXATAMENTE em `scripts/git-hooks/scopes.mjs` (um teste em `test/gates/` compara os dois). No hook local o escopo `code` roda `yarn check:static` (typecheck + lint) por padrão e `yarn check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
+A seleção `code` liga o job `code`, que instala as dependências e roda `yarn check:all` (um só comando que executa `typecheck`, `lint`, `test` e `build` em todos os workspaces). O padrão de path cobre `apps/`, `packages/`, o manifesto e o lockfile, `tsconfig*.json`, `.oxlintrc.json` e `.env.example`, e é espelhado EXATAMENTE em `scripts/git-hooks/scopes.mjs` (um teste em `test/gates/` compara os dois). No hook local o escopo `code` roda `yarn check:static` (typecheck + lint) por padrão e `yarn check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
 
 ### Auditoria de dependências
 
