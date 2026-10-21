@@ -40,8 +40,8 @@
 
 ## Fase 6 — Histórico de rejeitados e documentação (issue #15)
 
-- [ ] T017 [US-004] [FR-012] Escrever teste falhando de `rejectedGuesses` contendo só palpites do modelo, sem dado da carta, descartado ao fim da rodada (issue #15)
-- [ ] T018 [US-004] [FR-012] Implementar a montagem de `rejectedGuesses` a partir do histórico em memória (issue #15)
+- [x] T017 [US-004] [FR-012] Escrever teste falhando de `rejectedGuesses` contendo só palpites do modelo, sem dado da carta, descartado ao fim da rodada (issue #15)
+- [x] T018 [US-004] [FR-012] Implementar a montagem de `rejectedGuesses` a partir do histórico em memória (issue #15)
 - [ ] T019 [US-004] [FR-013] Atualizar o README com instalação, modos mock e real, testes e privacidade para execução por terceiros (issue #15)
 
 ## Fase final — Convergência
