@@ -27,9 +27,9 @@
 
 ## Fase 4 — Fallback opcional por LLM (issue #14)
 
-- [ ] T010 [US-003] [FR-010] Escrever teste falhando da interface injetável de fallback desligada por padrão → `undetermined` (issue #14)
-- [ ] T011 [US-003] [FR-010] Implementar a interface injetável e a política conservadora (erro/dúvida → `undetermined`, nunca acerto inventado) (issue #14)
-- [ ] T012 [US-003] [FR-011] Registrar método e motivo resumido do veredito, inclusive quando o fallback é usado (issue #14)
+- [x] T010 [US-003] [FR-010] Escrever teste falhando da interface injetável de fallback desligada por padrão → `undetermined` (issue #14)
+- [x] T011 [US-003] [FR-010] Implementar a interface injetável e a política conservadora (erro/dúvida → `undetermined`, nunca acerto inventado) (issue #14)
+- [x] T012 [US-003] [FR-011] Registrar método e motivo resumido do veredito, inclusive quando o fallback é usado (issue #14)
 
 ## Fase 5 — Máquina de estados da rodada (issue #12)
 
