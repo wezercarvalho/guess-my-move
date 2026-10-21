@@ -3,7 +3,7 @@
 ## Requisitos
 
 - Node.js 24.18 ou superior (`.node-version`) e Yarn 1.22 via Corepack (`corepack enable`).
-- Instalação das dependências de governança: `yarn install --frozen-lockfile`, na raiz.
+- Instalação das dependências na raiz: `yarn install --frozen-lockfile` instala a raiz e todos os workspaces (`apps/web`, `apps/server`, `packages/core`) de uma vez.
 
 ## Verificações locais antes do push
 
@@ -16,15 +16,16 @@ O repositório não tem workflow de CI por `push` em branches de trabalho; quem 
 1. `sdd`: `yarn test:sdd` e `yarn sdd:check` (como os passos do job de governança `sdd`);
 2. `root-docs`: `yarn docs:format:check`, Prettier com o estilo de `/.prettierrc` em `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/` e `specs/`;
 3. `tooling`: `yarn test:gates`, testes do hook, do auditor e dos workflows;
-4. `audit`: `yarn security:dependencies`, se os arquivos casarem o padrão de auditoria do `pr-gate`.
+4. `code`: `yarn check:static` (typecheck + lint) por padrão, ou `yarn check:all` (typecheck + lint + test + build) no `--mode full`, quando o PR toca `apps/`, `packages/`, manifesto/lockfile, `tsconfig*.json`, `eslint.config.*` ou `.env.example`;
+5. `audit`: `yarn security:dependencies`, se os arquivos casarem o padrão de auditoria do `pr-gate`.
 
-Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. Os escopos de código entram com o scaffold da aplicação.
+Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. O gate remoto roda sempre o `yarn check:all` do escopo de código; o hook roda `check:static` por padrão para falhar rápido.
 
 **Auditoria de dependências.** Ela roda na sua máquina, não consome minutos de Actions e usa rede (consulta o registry). Vulnerabilidade High ou Critical barra o push e a saída do auditor aparece. Se o registry ou a rede falhar, o auditor imprime `registry-indisponivel` e diz que o problema não é vulnerabilidade: o hook só avisa, não barra, e informa que o `pr-gate` fará a verificação. A política está em [auditoria de dependências](../security/dependency-audit.md).
 
 **Requisito.** As dependências precisam estar instaladas. Sem `node_modules`, o hook barra o push e informa o comando (`yarn install --frozen-lockfile`).
 
-**Sob demanda.** `node scripts/git-hooks/local-checks.mjs` roda o mesmo núcleo do hook para o que mudou em relação ao merge-base com `origin/main` mais o working tree. Aceita `--mode static|full` (reservado para os escopos de código) e `--files <arquivos>`.
+**Sob demanda.** `node scripts/git-hooks/local-checks.mjs` roda o mesmo núcleo do hook para o que mudou em relação ao merge-base com `origin/main` mais o working tree. Aceita `--mode static|full` (o escopo de código roda `yarn check:static` em `static` e `yarn check:all` em `full`) e `--files <arquivos>`.
 
 **Contorno.** `git push --no-verify` ignora o hook. Ele é opcional por natureza: o `pr-gate` remoto continua valendo e barra o merge se falhar.
 

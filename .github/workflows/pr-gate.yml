@@ -1,7 +1,7 @@
 name: pr-gate
 
-# Único entrypoint de PR: seleciona governança e auditoria de dependências por path. O job final
-# (`gate`) é o required check: consolida seleção e resultados; falha/cancelamento ou job
+# Único entrypoint de PR: seleciona governança, código e auditoria de dependências por path. O job
+# final (`gate`) é o required check: consolida seleção e resultados; falha/cancelamento ou job
 # aplicável ignorado bloqueiam.
 # O job de governança (id sdd) cobre a verificação do SDD, a formatação dos docs da raiz
 # (AGENTS.md, CLAUDE.md, README.md, docs/, specs/) e os testes dos próprios gates com uma única
@@ -9,8 +9,9 @@ name: pr-gate
 # PR em rascunho não roda nada (economiza minutos; o GitHub não mergeia rascunho): o gate roda ao
 # abrir a PR já pronta, a cada push em PR pronta e, automaticamente, quando o rascunho é marcado
 # como pronto (ready_for_review).
-# Ainda não há pacote de código: quando a aplicação existir, o pacote entra como seleção nova no
-# detect-changes, job novo chamado daqui e item em `SELECTED_JOBS` de
+# O job `code` roda `yarn check:all` (typecheck, lint, test, build) nos workspaces quando o PR
+# toca apps/, packages/, manifesto/lockfile, tsconfig*, config do ESLint ou .env.example. O padrão
+# é espelhado EXATAMENTE em scripts/git-hooks/scopes.mjs e o job entra em `SELECTED_JOBS` de
 # scripts/sdd/check-job-results.mjs.
 on:
     pull_request:
@@ -32,6 +33,7 @@ jobs:
             sdd: ${{ steps.filter.outputs.sdd }}
             root-docs: ${{ steps.filter.outputs.root-docs }}
             tooling: ${{ steps.filter.outputs.tooling }}
+            code: ${{ steps.filter.outputs.code }}
             audit: ${{ steps.filter.outputs.audit }}
         steps:
             - uses: actions/checkout@v4
@@ -67,6 +69,16 @@ jobs:
                     echo "tooling=true" >>"$GITHUB_OUTPUT"
                   else
                     echo "tooling=false" >>"$GITHUB_OUTPUT"
+                  fi
+
+                  # Código da aplicação: workspaces (apps/, packages/), manifesto e lockfile,
+                  # tsconfig*, config do ESLint e o .env.example. Espelhado EXATAMENTE em
+                  # scripts/git-hooks/scopes.mjs.
+                  CODE_PATTERN='^apps/|^packages/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^eslint\.config\.[a-z]+$|^\.env\.example$'
+                  if echo "$CHANGED" | grep -qE "$CODE_PATTERN"; then
+                    echo "code=true" >>"$GITHUB_OUTPUT"
+                  else
+                    echo "code=false" >>"$GITHUB_OUTPUT"
                   fi
 
                   # Auditoria de dependências no PR: só quando algo que muda o veredito é tocado
@@ -124,6 +136,27 @@ jobs:
               if: needs.detect-changes.outputs.tooling == 'true'
               run: yarn test:gates
 
+    code:
+        name: 'code: check:all (typecheck, lint, test, build)'
+        needs: detect-changes
+        if: needs.detect-changes.outputs.code == 'true'
+        runs-on: ubuntu-latest
+        env:
+            COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+                  cache: yarn
+                  cache-dependency-path: yarn.lock
+            - name: Habilitar corepack
+              run: corepack enable
+            - name: Instalar dependências
+              run: yarn install --frozen-lockfile
+            - name: Gates de código
+              run: yarn check:all
+
     audit:
         name: 'security:dependencies (auditoria de dependências)'
         needs: detect-changes
@@ -151,7 +184,7 @@ jobs:
         # mesmo se a governança ou a auditoria forem puladas ou falharem — é ele quem decide se o
         # PR pode mergear.
         name: 'gate (required): consolida governança e auditoria'
-        needs: [detect-changes, sdd, audit]
+        needs: [detect-changes, sdd, code, audit]
         # Em rascunho nada roda, então o gate também é pulado (senão falharia por seleção
         # ausente); em PR pronta continua rodando sempre.
         if: always() && github.event.pull_request.draft == false

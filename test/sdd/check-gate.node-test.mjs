@@ -13,19 +13,21 @@ const needs = ({
     sdd = 'false',
     rootDocs = 'false',
     tooling = 'false',
+    code = 'false',
     audit = 'false',
     result = 'skipped',
 } = {}) => ({
     'detect-changes': {
         result: 'success',
-        outputs: { sdd, 'root-docs': rootDocs, tooling, audit },
+        outputs: { sdd, 'root-docs': rootDocs, tooling, code, audit },
     },
     sdd: { result },
+    code: { result: 'skipped' },
     audit: { result: 'skipped' },
 })
 
-test('a auditoria de dependências é o único job condicional do gate por enquanto', () =>
-    assert.deepEqual(SELECTED_JOBS, ['audit']))
+test('os jobs condicionais do gate são code e audit', () =>
+    assert.deepEqual(SELECTED_JOBS, ['code', 'audit']))
 test('required gate aceita governança aprovada', () =>
     assert.deepEqual(checkJobResults(needs({ sdd: 'true', result: 'success' })), []))
 for (const result of ['failure', 'cancelled', 'skipped'])
@@ -95,6 +97,34 @@ test('job condicional: selecionado exige success; não selecionado aceita skippe
     delete jobs['detect-changes'].outputs.audit
     assert.ok(checkJobResults(jobs).some((message) => message.includes('audit: seleção')))
 })
+test('um PR só de código: code selecionado exige success, e o gate falha se code falhar', () => {
+    // code=true + job pulado ou falho bloqueia; só success passa.
+    for (const result of ['failure', 'cancelled', 'skipped']) {
+        const jobs = needs({ code: 'true' })
+        jobs.code.result = result
+        assert.ok(
+            checkJobResults(jobs).some((message) => message.startsWith('code:')),
+            `code=true job=${result} deve bloquear`,
+        )
+    }
+    const ok = needs({ code: 'true' })
+    ok.code.result = 'success'
+    assert.deepEqual(checkJobResults(ok), [])
+})
+test('um PR só de código não exige governança: sdd pode ser pulado', () => {
+    // code=true, governança toda falsa → job sdd pulado é aceitável, code success passa.
+    const jobs = needs({ code: 'true' })
+    jobs.code.result = 'success'
+    jobs.sdd.result = 'skipped'
+    assert.deepEqual(checkJobResults(jobs), [])
+})
+test('code não selecionado aceita skipped; selecionado inválido é erro de seleção', () => {
+    const jobs = needs()
+    jobs.code.result = 'skipped'
+    assert.deepEqual(checkJobResults(jobs), [])
+    delete jobs['detect-changes'].outputs.code
+    assert.ok(checkJobResults(jobs).some((message) => message.includes('code: seleção')))
+})
 test('job de pacote futuro entra pela lista de jobs condicionais', () => {
     const jobs = { ...needs(), app: { result: 'failure' } }
     jobs['detect-changes'].outputs.app = 'true'
@@ -107,6 +137,7 @@ test('workflow liga seleção, comandos oficiais e resultado da governança ao r
     )
     const workflow = parse(source)
     assert.ok(workflow.jobs.gate.needs.includes('sdd'))
+    assert.ok(workflow.jobs.gate.needs.includes('code'))
     assert.ok(workflow.jobs.gate.needs.includes('audit'))
     // Sempre decide em PR pronta; em rascunho nada roda (inclusive o gate).
     assert.equal(workflow.jobs.gate.if, 'always() && github.event.pull_request.draft == false')
@@ -130,4 +161,23 @@ test('workflow liga seleção, comandos oficiais e resultado da governança ao r
     assert.match(commands, /yarn sdd:check/)
     assert.match(source, /scripts\/sdd/)
     assert.match(source, /specs/)
+})
+test('o job code roda yarn check:all, condicionado à seleção code, como os demais jobs', async () => {
+    const source = await readFile(
+        new URL('../../.github/workflows/pr-gate.yml', import.meta.url),
+        'utf8',
+    )
+    const workflow = parse(source)
+    assert.equal(
+        workflow.jobs['detect-changes'].outputs.code,
+        '${{ steps.filter.outputs.code }}',
+    )
+    const code = workflow.jobs.code
+    assert.ok(code, 'o job code deve existir')
+    assert.deepEqual([code.needs].flat(), ['detect-changes'])
+    assert.match(String(code.if), /needs\.detect-changes\.outputs\.code == 'true'/)
+    const runs = code.steps.map((step) => step.run ?? '')
+    assert.ok(runs.includes('corepack enable'), 'o job code habilita corepack como os demais')
+    assert.ok(runs.some((run) => /yarn install --frozen-lockfile/.test(run)))
+    assert.ok(runs.some((run) => /yarn check:all/.test(run)))
 })

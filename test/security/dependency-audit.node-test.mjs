@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- Caminhos criados por mkdtemp nos próprios testes, sem entrada externa. */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
@@ -16,6 +16,7 @@ import {
     executeYarnAudit,
     formatAuditSummary,
     parseYarnAuditJson,
+    readProductionRoots,
     run,
 } from '../../scripts/lib/dependency-audit.mjs'
 import {
@@ -1134,5 +1135,114 @@ describe('registry indisponível', () => {
             assert.equal(run(yarn, output), 1)
             assert.match(err.join(''), /^\[registry-indisponivel\] /u)
         })
+    })
+})
+
+describe('readProductionRoots: união das dependencies dos workspaces', () => {
+    let workDir
+
+    before(() => {
+        workDir = mkdtempSync(join(tmpdir(), 'dependency-audit-roots-'))
+    })
+
+    after(() => {
+        rmSync(workDir, { recursive: true, force: true })
+    })
+
+    function writePackage(relDir, manifest) {
+        const dir = relDir === '.' ? workDir : join(workDir, relDir)
+        mkdirSync(dir, { recursive: true })
+        writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
+    }
+
+    it('une as dependencies da raiz e de cada workspace; devDependencies ficam de fora', () => {
+        writePackage('.', {
+            private: true,
+            workspaces: ['apps/web', 'apps/server', 'packages/core'],
+            dependencies: {},
+            devDependencies: { eslint: '10.13.0', typescript: '6.0.3' },
+        })
+        writePackage('apps/web', {
+            dependencies: { react: '19.3.1', 'react-dom': '19.3.1' },
+            devDependencies: { vite: '8.3.4' },
+        })
+        writePackage('apps/server', {
+            dependencies: { '@nestjs/core': '12.2.0', rxjs: '7.8.2' },
+            devDependencies: { '@nestjs/cli': '12.0.10' },
+        })
+        writePackage('packages/core', {
+            devDependencies: { vitest: '5.0.5' },
+        })
+
+        const roots = readProductionRoots(join(workDir, 'package.json'))
+        assert.deepEqual(
+            [...roots].sort(),
+            ['@nestjs/core', 'react', 'react-dom', 'rxjs'].sort(),
+        )
+        // devDependencies (raiz e workspaces) NÃO entram como produção.
+        for (const dev of ['eslint', 'typescript', 'vite', '@nestjs/cli', 'vitest'])
+            assert.equal(roots.has(dev), false, dev)
+    })
+
+    it('resolve um glob de workspaces de um nível (apps/*)', () => {
+        const root = mkdtempSync(join(tmpdir(), 'dependency-audit-glob-'))
+        try {
+            writeFileSync(
+                join(root, 'package.json'),
+                JSON.stringify({ workspaces: ['apps/*'], dependencies: {} }),
+            )
+            mkdirSync(join(root, 'apps/web'), { recursive: true })
+            writeFileSync(
+                join(root, 'apps/web/package.json'),
+                JSON.stringify({ dependencies: { axios: '1.0.0' } }),
+            )
+            mkdirSync(join(root, 'apps/server'), { recursive: true })
+            writeFileSync(
+                join(root, 'apps/server/package.json'),
+                JSON.stringify({ dependencies: { express: '5.0.0' } }),
+            )
+            const roots = readProductionRoots(join(root, 'package.json'))
+            assert.deepEqual([...roots].sort(), ['axios', 'express'])
+        } finally {
+            rmSync(root, { recursive: true, force: true })
+        }
+    })
+
+    it('exige que a raiz declare o objeto dependencies (mesmo vazio)', () => {
+        const root = mkdtempSync(join(tmpdir(), 'dependency-audit-nodeps-'))
+        try {
+            writeFileSync(
+                join(root, 'package.json'),
+                JSON.stringify({ workspaces: ['apps/web'] }),
+            )
+            assert.throws(
+                () => readProductionRoots(join(root, 'package.json')),
+                /não tem o objeto "dependencies"/u,
+            )
+        } finally {
+            rmSync(root, { recursive: true, force: true })
+        }
+    })
+
+    it('ignora um padrão de workspace sem package.json, sem inventar raízes', () => {
+        const root = mkdtempSync(join(tmpdir(), 'dependency-audit-missing-'))
+        try {
+            writeFileSync(
+                join(root, 'package.json'),
+                JSON.stringify({
+                    workspaces: ['apps/web', 'apps/inexistente'],
+                    dependencies: { lodash: '4.17.21' },
+                }),
+            )
+            mkdirSync(join(root, 'apps/web'), { recursive: true })
+            writeFileSync(
+                join(root, 'apps/web/package.json'),
+                JSON.stringify({ dependencies: { react: '19.3.1' } }),
+            )
+            const roots = readProductionRoots(join(root, 'package.json'))
+            assert.deepEqual([...roots].sort(), ['lodash', 'react'])
+        } finally {
+            rmSync(root, { recursive: true, force: true })
+        }
     })
 })

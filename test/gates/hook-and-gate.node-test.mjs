@@ -39,7 +39,7 @@ test('pr-gate pula a detecção e o gate em PR rascunho, sem label nem disparo m
 })
 
 test('os demais jobs do pr-gate continuam dependendo da detecção (herdam o rascunho)', () => {
-    for (const job of ['sdd', 'audit']) {
+    for (const job of ['sdd', 'code', 'audit']) {
         assert.ok(
             [prGate.jobs[job].needs].flat().includes('detect-changes'),
             `${job} deve depender de detect-changes`,
@@ -67,7 +67,7 @@ test('o job sdd é o de governança e roda quando qualquer das três seleções 
         [selected('sdd'), selected('root-docs'), selected('tooling')].join(' || '),
     )
     const outputs = prGate.jobs['detect-changes'].outputs
-    for (const name of ['sdd', 'root-docs', 'tooling', 'audit']) {
+    for (const name of ['sdd', 'root-docs', 'tooling', 'code', 'audit']) {
         assert.equal(outputs[name], `\${{ steps.filter.outputs.${name} }}`)
     }
 })
@@ -105,8 +105,20 @@ test('a auditoria de dependências é um job condicional e o gate depende de tod
         /yarn security:dependencies/,
     )
     const needs = [prGate.jobs.gate.needs].flat()
-    assert.deepEqual([...needs].sort(), ['audit', 'detect-changes', 'sdd'])
+    assert.deepEqual([...needs].sort(), ['audit', 'code', 'detect-changes', 'sdd'])
     assert.match(JSON.stringify(prGate.jobs.gate.steps), /check-job-results\.mjs/)
+})
+
+test('o escopo code é um job condicional que roda yarn check:all como os demais jobs', () => {
+    assert.equal(normalizeCondition(prGate.jobs.code.if), selected('code'))
+    const runs = prGate.jobs.code.steps.map((item) => item.run ?? '')
+    assert.ok(runs.includes('corepack enable'))
+    assert.ok(runs.some((run) => /yarn install --frozen-lockfile/.test(run)))
+    assert.ok(runs.some((run) => /yarn check:all/.test(run)))
+    assert.deepEqual([prGate.jobs.code.needs].flat(), ['detect-changes'])
+    for (const name of ['typecheck', 'lint', 'test', 'build', 'check:static', 'check:all']) {
+        assert.equal(typeof packageJson.scripts[name], 'string', name)
+    }
 })
 
 // Hook local de pré-push: os escopos, os comandos e a seleção por path vêm de
@@ -182,9 +194,16 @@ test('planChecks do escopo tooling roda test:gates', () => {
     assert.equal(typeof packageJson.scripts['test:gates'], 'string')
 })
 
-test('planChecks ordena sdd, root-docs, tooling e auditoria (leves primeiro)', () => {
+test('planChecks ordena sdd, root-docs, tooling, code e auditoria (leves primeiro)', () => {
     const plan = planChecks(['yarn.lock', 'README.md', 'specs/x/spec.md'], { exists: allExist })
-    assert.deepEqual(ids(plan), ['sdd-test', 'sdd-check', 'root-docs', 'tooling', 'audit'])
+    assert.deepEqual(ids(plan), [
+        'sdd-test',
+        'sdd-check',
+        'root-docs',
+        'tooling',
+        'code',
+        'audit',
+    ])
 })
 
 test('os passos de auditoria só aparecem com kind audit; os demais não têm kind', () => {
@@ -204,13 +223,32 @@ test('planChecks não roda auditor quando nada casa o padrão de auditoria', () 
 
 test('planChecks aceita escopos explícitos e valida o modo', () => {
     const plan = planChecks([], { scopes: scopes.ALL_SCOPES, exists: allExist })
-    assert.deepEqual(ids(plan), ['sdd-test', 'sdd-check', 'root-docs', 'tooling', 'audit'])
+    assert.deepEqual(ids(plan), [
+        'sdd-test',
+        'sdd-check',
+        'root-docs',
+        'tooling',
+        'code',
+        'audit',
+    ])
     assert.deepEqual(ids(planChecks([], { scopes: ['tooling'], exists: allExist })), ['tooling'])
+    // Fora do escopo code, os modos static e full produzem o mesmo plano.
     assert.deepEqual(
-        ids(planChecks(['yarn.lock'], { mode: 'full', exists: allExist })),
-        ids(planChecks(['yarn.lock'], { mode: 'static', exists: allExist })),
+        ids(planChecks(['README.md'], { mode: 'full', exists: allExist })),
+        ids(planChecks(['README.md'], { mode: 'static', exists: allExist })),
     )
     assert.throws(() => planChecks(['README.md'], { mode: 'x' }), /mode inválido/)
+})
+
+test('o escopo code roda check:static em static e check:all em full', () => {
+    const staticPlan = planChecks(['apps/web/src/App.tsx'], { mode: 'static', exists: allExist })
+    const fullPlan = planChecks(['apps/web/src/App.tsx'], { mode: 'full', exists: allExist })
+    const codeStatic = staticPlan.find((step) => step.id === 'code')
+    const codeFull = fullPlan.find((step) => step.id === 'code')
+    assert.deepEqual([codeStatic.cwd, codeStatic.args], ['.', ['check:static']])
+    assert.deepEqual([codeFull.cwd, codeFull.args], ['.', ['check:all']])
+    assert.equal(typeof packageJson.scripts['check:static'], 'string')
+    assert.equal(typeof packageJson.scripts['check:all'], 'string')
 })
 
 test('yarnExecutable usa yarn.cmd só no Windows', () => {
@@ -223,6 +261,7 @@ test('os padrões de path do hook são os mesmos do pr-gate.yml', () => {
     assert.equal(scopes.PATH_PATTERNS.sdd, gatePattern('SDD_PATTERN'))
     assert.equal(scopes.PATH_PATTERNS['root-docs'], gatePattern('ROOT_DOCS_PATTERN'))
     assert.equal(scopes.PATH_PATTERNS.tooling, gatePattern('TOOLING_PATTERN'))
+    assert.equal(scopes.PATH_PATTERNS.code, gatePattern('CODE_PATTERN'))
     assert.equal(scopes.PATH_PATTERNS.audit, gatePattern('AUDIT_PATTERN'))
 })
 
@@ -232,6 +271,7 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
             ['sdd', 'SDD_PATTERN'],
             ['root-docs', 'ROOT_DOCS_PATTERN'],
             ['tooling', 'TOOLING_PATTERN'],
+            ['code', 'CODE_PATTERN'],
             ['audit', 'AUDIT_PATTERN'],
         ].map(([scope, name]) => [scope, new RegExp(gatePattern(name))]),
     )
@@ -246,8 +286,8 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'README.md': ['root-docs'],
         '.prettierrc': ['root-docs', 'tooling'],
         '.node-version': ['tooling'],
-        'package.json': ['sdd', 'tooling', 'audit'],
-        'yarn.lock': ['sdd', 'tooling', 'audit'],
+        'package.json': ['sdd', 'tooling', 'code', 'audit'],
+        'yarn.lock': ['sdd', 'tooling', 'code', 'audit'],
         '.github/workflows/pr-gate.yml': ['sdd', 'root-docs', 'tooling', 'audit'],
         '.github/workflows/dependency-audit.yml': ['tooling', 'audit'],
         '.githooks/pre-push': ['tooling'],
@@ -259,6 +299,12 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'scripts/lib/outro.mjs': ['tooling'],
         'test/gates/hook-and-gate.node-test.mjs': ['tooling'],
         'test/security/dependency-audit.node-test.mjs': ['tooling'],
+        'apps/web/src/App.tsx': ['code'],
+        'apps/server/src/main.ts': ['code'],
+        'packages/core/src/index.ts': ['code'],
+        'tsconfig.base.json': ['code'],
+        'eslint.config.mjs': ['code'],
+        '.env.example': ['code'],
         LICENSE: [],
         'logo.png': [],
     }

@@ -5,9 +5,9 @@ const GOVERNANCE_LABEL = 'governança (SDD, docs da raiz e gates)'
 
 // Jobs condicionais chamados pelo pr-gate, cada um com a seleção de mesmo nome em
 // `detect-changes`: o job é obrigatório quando a seleção é verdadeira e pode ser pulado quando é
-// falsa. Quando o scaffold da aplicação (issue #3) chegar, o job do pacote entra aqui junto com o
-// padrão de path, o job no workflow e o escopo do hook local.
-export const SELECTED_JOBS = ['audit']
+// falsa. O job `code` (gates da aplicação) e o `audit` entram aqui com seus padrões de path, os
+// jobs no workflow e os escopos do hook local.
+export const SELECTED_JOBS = ['code', 'audit']
 
 // O job `sdd` roda as verificações do SDD, a formatação dos docs da raiz e os testes dos gates:
 // é obrigatório quando qualquer das três seleções é verdadeira e pode ser pulado só quando todas
