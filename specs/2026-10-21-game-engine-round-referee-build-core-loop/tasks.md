@@ -33,10 +33,10 @@
 
 ## Fase 5 — Máquina de estados da rodada (issue #12)
 
-- [ ] T013 [US-002] [FR-004] Escrever teste falhando das transições `idle → ... → (correct | retry | finished)` em `packages/core/src/round` (issue #12)
-- [ ] T014 [US-002] [FR-004] Implementar a máquina de estados com transições explícitas (issue #12)
-- [ ] T015 [US-002] [FR-005] Implementar limites configuráveis de tentativas e tempo por rodada (issue #12)
-- [ ] T016 [US-002] [FR-006] Implementar os estados de exceção sem marcar acerto indevido e com estado íntegro após erro de provedor (issue #12)
+- [x] T013 [US-002] [FR-004] Escrever teste falhando das transições `idle → ... → (correct | retry | finished)` em `packages/core/src/round` (issue #12)
+- [x] T014 [US-002] [FR-004] Implementar a máquina de estados com transições explícitas (issue #12)
+- [x] T015 [US-002] [FR-005] Implementar limites configuráveis de tentativas e tempo por rodada (issue #12)
+- [x] T016 [US-002] [FR-006] Implementar os estados de exceção sem marcar acerto indevido e com estado íntegro após erro de provedor (issue #12)
 
 ## Fase 6 — Histórico de rejeitados e documentação (issue #15)
 
