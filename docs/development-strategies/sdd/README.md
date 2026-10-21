@@ -24,15 +24,15 @@ A análise de consistência é um gate obrigatório entre tarefas e implementaç
 
 ## Fontes e responsabilidades
 
-| Artefato | Responsabilidade |
-| --- | --- |
-| [`constitution.md`](constitution.md) | Princípios e restrições não negociáveis. |
-| [`specify.md`](specify.md) | Criar e revisar `spec.md`. |
-| [`clarify.md`](clarify.md) | Resolver ambiguidades e registrar a primeira aprovação. |
-| [`plan.md`](plan.md) | Pesquisar e definir a abordagem técnica. |
-| [`tasks.md`](tasks.md) | Decompor o plano em incrementos test-first. |
-| [`implement.md`](implement.md) | Executar tarefas e reconciliar descobertas. |
-| [`validate.md`](validate.md) | Demonstrar conformidade e convergência. |
+| Artefato                             | Responsabilidade                                        |
+| ------------------------------------ | ------------------------------------------------------- |
+| [`constitution.md`](constitution.md) | Princípios e restrições não negociáveis.                |
+| [`specify.md`](specify.md)           | Criar e revisar `spec.md`.                              |
+| [`clarify.md`](clarify.md)           | Resolver ambiguidades e registrar a primeira aprovação. |
+| [`plan.md`](plan.md)                 | Pesquisar e definir a abordagem técnica.                |
+| [`tasks.md`](tasks.md)               | Decompor o plano em incrementos test-first.             |
+| [`implement.md`](implement.md)       | Executar tarefas e reconciliar descobertas.             |
+| [`validate.md`](validate.md)         | Demonstrar conformidade e convergência.                 |
 
 Em uma spec:
 
@@ -60,17 +60,17 @@ Exemplo: `2026-10-20-vision-gesture-recognition-validate-waving-poc`.
 
 ## Estados
 
-| Estado | Condição mínima |
-| --- | --- |
-| `draft` | Spec em elaboração. |
-| `specified` | Spec completa e checklist de especificação aprovado. |
-| `clarified` | Ambiguidades críticas resolvidas e Gate 1 registrado. |
-| `planned` | Pesquisa, plano, tarefas, análise de consistência e Gate 2 concluídos. |
-| `implementing` | Implementação autorizada e em andamento. |
-| `validating` | Tarefas concluídas; evidências finais em coleta. |
-| `validated` | Requisitos, constituição e gates aplicáveis atendidos (Gate 3). |
-| `superseded` | Outra spec a substitui; exige `related_specs` e seção `## Substituição`. |
-| `abandoned` | Trabalho interrompido; exige seção `## Abandono` com justificativa. |
+| Estado         | Condição mínima                                                          |
+| -------------- | ------------------------------------------------------------------------ |
+| `draft`        | Spec em elaboração.                                                      |
+| `specified`    | Spec completa e checklist de especificação aprovado.                     |
+| `clarified`    | Ambiguidades críticas resolvidas e Gate 1 registrado.                    |
+| `planned`      | Pesquisa, plano, tarefas, análise de consistência e Gate 2 concluídos.   |
+| `implementing` | Implementação autorizada e em andamento.                                 |
+| `validating`   | Tarefas concluídas; evidências finais em coleta.                         |
+| `validated`    | Requisitos, constituição e gates aplicáveis atendidos (Gate 3).          |
+| `superseded`   | Outra spec a substitui; exige `related_specs` e seção `## Substituição`. |
+| `abandoned`    | Trabalho interrompido; exige seção `## Abandono` com justificativa.      |
 
 Mudanças de escopo retornam ao primeiro estado afetado. O Git preserva versões anteriores; não mantenha regras obsoletas no texto atual.
 

@@ -8,25 +8,25 @@ Use o título do GitHub para um resultado específico, com verbo e objeto ("Capt
 
 O [template](../../../.github/ISSUE_TEMPLATE/work-item.md) serve a feature, bug, dívida técnica, refactor e investigação. Preencha as quatro seções obrigatórias:
 
-| Seção | Conteúdo esperado |
-| --- | --- |
-| Contexto / Problema | Situação atual, evidência e consequência. Diferencie fato observado de hipótese. |
-| Objetivo / Resultado esperado | Resultado que torna a issue concluída. |
-| Escopo | Limites concretos e itens incluídos. |
-| Critérios de aceite | Condições independentes, observáveis e verificáveis. |
+| Seção                         | Conteúdo esperado                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| Contexto / Problema           | Situação atual, evidência e consequência. Diferencie fato observado de hipótese. |
+| Objetivo / Resultado esperado | Resultado que torna a issue concluída.                                           |
+| Escopo                        | Limites concretos e itens incluídos.                                             |
+| Critérios de aceite           | Condições independentes, observáveis e verificáveis.                             |
 
 Acrescente **Dependências / Riscos**, **Referências**, **Decisões pendentes** ou **Tarefas técnicas** somente quando houver informação útil. Remova seções vazias, instruções do template e placeholders. Em bugs, registre reprodução, comportamento atual e esperado. Investigações formulam a pergunta, a evidência a coletar e a decisão entregue. Refactors indicam o comportamento preservado e a prova de não regressão.
 
 ## INVEST como filtro
 
-| Princípio | Pergunta de revisão |
-| --- | --- |
+| Princípio   | Pergunta de revisão                                                              |
+| ----------- | -------------------------------------------------------------------------------- |
 | Independent | O resultado pode ser revisado como unidade? Dependências reais estão explícitas? |
-| Negotiable | A intenção está clara sem fixar uma solução não decidida? |
-| Valuable | O benefício para produto, operação, segurança ou manutenção está explicado? |
-| Estimable | Há contexto suficiente para estimar? Se não, é uma investigação delimitada? |
-| Small | Cabe em um incremento revisável? |
-| Testable | Os critérios permitem demonstrar a conclusão sem termos vagos? |
+| Negotiable  | A intenção está clara sem fixar uma solução não decidida?                        |
+| Valuable    | O benefício para produto, operação, segurança ou manutenção está explicado?      |
+| Estimable   | Há contexto suficiente para estimar? Se não, é uma investigação delimitada?      |
+| Small       | Cabe em um incremento revisável?                                                 |
+| Testable    | Os critérios permitem demonstrar a conclusão sem termos vagos?                   |
 
 Para iniciativas maiores, use uma issue pai com resultados filhos próprios. Não transforme cada tarefa técnica da spec em outra issue por padrão.
 
@@ -42,13 +42,13 @@ Para investigação, documentação ou medição, prefira critérios diretos ("R
 
 Use o recurso nativo do GitHub quando ele representar o significado; labels são o fallback.
 
-| Metadado | Convenção de labels |
-| --- | --- |
-| Tipo | `type:feature`, `type:bug`, `type:technical-debt`, `type:refactor`, `type:investigation` |
-| Área | `area:vision`, `area:game-engine`, `area:referee`, `area:frontend`, `area:backend`, `area:privacy`, `area:cost`, `area:docs`, `area:engineering` |
-| Prioridade | `priority:p0` (comprova viabilidade), `priority:p1` (torna jogável), `priority:p2` (evolução orientada por resultados) |
-| Status | Uma única label: `status:triage`, `status:ready`, `status:in-progress`, `status:review` ou `status:done` |
-| Estratégia | `strategy:sdd` quando aplicável pelo [roteador](../../development-strategies/README.md) |
+| Metadado   | Convenção de labels                                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tipo       | `type:feature`, `type:bug`, `type:technical-debt`, `type:refactor`, `type:investigation`                                                         |
+| Área       | `area:vision`, `area:game-engine`, `area:referee`, `area:frontend`, `area:backend`, `area:privacy`, `area:cost`, `area:docs`, `area:engineering` |
+| Prioridade | `priority:p0` (comprova viabilidade), `priority:p1` (torna jogável), `priority:p2` (evolução orientada por resultados)                           |
+| Status     | Uma única label: `status:triage`, `status:ready`, `status:in-progress`, `status:review` ou `status:done`                                         |
+| Estratégia | `strategy:sdd` quando aplicável pelo [roteador](../../development-strategies/README.md)                                                          |
 
 A prioridade acompanha o backlog do [`PROJECT_SPEC.md`](../../product/PROJECT_SPEC.md) (P0/P1/P2). Uma issue tem um tipo, uma prioridade quando decidida e uma área principal. Não crie todas as labels antecipadamente nem renomeie labels alheias. A label `strategy:sdd` não autoriza implementação.
 
@@ -56,13 +56,13 @@ A prioridade acompanha o backlog do [`PROJECT_SPEC.md`](../../product/PROJECT_SP
 
 **Triagem → Ready → In Progress → Review → Done.**
 
-| Estado | Condição |
-| --- | --- |
-| Triagem | Problema registrado, sujeito a confirmação, prioridade ou divisão. |
-| Ready | Contexto, objetivo, limites e aceite claros; dependências e riscos conhecidos; pequeno o bastante. Ready não substitui os gates SDD. |
-| In Progress | Há responsável identificável e branch/spec vinculada. |
-| Review | Resultado e evidências disponíveis; limitações materiais explícitas. |
-| Done | Aceite comprovado e revisão concluída; para código, integrado à `main`. |
+| Estado      | Condição                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Triagem     | Problema registrado, sujeito a confirmação, prioridade ou divisão.                                                                   |
+| Ready       | Contexto, objetivo, limites e aceite claros; dependências e riscos conhecidos; pequeno o bastante. Ready não substitui os gates SDD. |
+| In Progress | Há responsável identificável e branch/spec vinculada.                                                                                |
+| Review      | Resultado e evidências disponíveis; limitações materiais explícitas.                                                                 |
+| Done        | Aceite comprovado e revisão concluída; para código, integrado à `main`.                                                              |
 
 Issues novas começam em Triagem. Substitua a label de status a cada transição. Um bloqueio mantém o estágio real e registra a dependência. Duplicadas, substituídas ou "not planned" fecham com justificativa, sem fingir entrega.
 
@@ -80,10 +80,10 @@ Ao criar ou atualizar uma PR cuja entrega seja de responsabilidade do maintainer
 
 Declare na descrição da PR se ela conclui a issue ou entrega só uma parte. Nome do branch, título e menção à issue não bastam.
 
-| Situação | Vínculo na descrição | Resultado |
-| --- | --- | --- |
-| A PR conclui todos os critérios de aceite | `Closes #123` | A issue fecha ao integrar na `main`. |
-| A PR entrega parte ou há trabalho obrigatório após o merge | `Refs #123` + pendências explícitas | A issue permanece aberta. |
+| Situação                                                   | Vínculo na descrição                | Resultado                            |
+| ---------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
+| A PR conclui todos os critérios de aceite                  | `Closes #123`                       | A issue fecha ao integrar na `main`. |
+| A PR entrega parte ou há trabalho obrigatório após o merge | `Refs #123` + pendências explícitas | A issue permanece aberta.            |
 
 Quando usar `Refs`, registre quais critérios ainda impedem o encerramento, quem acompanha e onde as evidências serão publicadas. `Closes` configura o efeito de um merge futuro e não autoriza o agente a executá-lo. Criar ou atribuir uma PR não autoriza merge. Após o merge, confirme a integração e o aceite antes de encerrar a issue e sincronizar o status.
 

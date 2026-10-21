@@ -10,17 +10,20 @@ Este arquivo é o ponto de entrada compartilhado por pessoas e agentes de IA. El
 4. Carregue no [índice de contexto](docs/development-context/README.md) apenas políticas, guias e runbooks aplicáveis.
 5. Confirme a realidade em `package.json`, ESLint, TypeScript, Vitest e nos arquivos afetados antes de editar. Enquanto o código não existir, a fonte é a spec aprovada.
 6. Implemente e valide com os scripts oficiais de `package.json`; registre limitações reais em vez de presumir sucesso.
+7. Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push: `node scripts/git-hooks/install.mjs`. Ele roda localmente as verificações leves do `pr-gate` (SDD, formatação dos docs, testes dos gates e auditoria de dependências); o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
 
 ## Roteamento de contexto
 
-| Mudança | Fontes mínimas |
-| --- | --- |
-| Produto, regras do jogo, escopo | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md) |
-| Escolha de provedor/modelo multimodal | [Seleção do modelo multimodal](docs/research/multimodal-model-selection.md) |
-| Issues, PRs e fechamento | [Padrão de issues e PRs](docs/development-context/workflow/github-issues.md) |
-| Testes e gates | [Checks de qualidade](docs/development-context/quality/quality-gates.md) |
-| Câmera, frames, chaves de API, logs | [Privacidade e segredos](docs/development-context/security/privacy-and-secrets.md) |
-| Arquitetura e contratos internos | [Guia de arquitetura](docs/development-context/architecture/architecture-guide.md) |
+| Mudança                               | Fontes mínimas                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Produto, regras do jogo, escopo       | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md)                                                                                         |
+| Escolha de provedor/modelo multimodal | [Seleção do modelo multimodal](docs/research/multimodal-model-selection.md)                                                                            |
+| Issues, PRs e fechamento              | [Padrão de issues e PRs](docs/development-context/workflow/github-issues.md)                                                                           |
+| Testes e gates                        | [Checks de qualidade](docs/development-context/quality/quality-gates.md)                                                                               |
+| CI, `pr-gate` e hook local            | [Pipeline de CI](docs/development-context/delivery/ci-pipeline.md) e [Desenvolvimento local](docs/development-context/operations/local-development.md) |
+| Dependências e auditoria              | [Auditoria de dependências](docs/development-context/security/dependency-audit.md)                                                                     |
+| Câmera, frames, chaves de API, logs   | [Privacidade e segredos](docs/development-context/security/privacy-and-secrets.md)                                                                     |
+| Arquitetura e contratos internos      | [Guia de arquitetura](docs/development-context/architecture/architecture-guide.md)                                                                     |
 
 ## Regras não negociáveis
 
@@ -32,7 +35,7 @@ Este arquivo é o ponto de entrada compartilhado por pessoas e agentes de IA. El
 - Frames da webcam são transitórios: não persista imagens nem vídeos por padrão e não registre dados de imagem em logs.
 - Não afirme precisão visual ou latência sem medição registrada; capacidade anunciada não é desempenho comprovado.
 - Use somente scripts oficiais de `package.json` como gates do repositório.
-- Não faça push direto para `main` depois do commit inicial: use branch e PR.
+- Não faça push direto para `main` depois do commit inicial: use branch e PR. Abra a PR como rascunho e marque como pronta uma vez; o `pr-gate / gate` verde é a condição de merge.
 
 ## Adaptadores
 

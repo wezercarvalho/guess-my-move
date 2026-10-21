@@ -1,0 +1,4 @@
+#!/bin/sh
+# Launcher do hook de pré-push: a lógica fica em scripts/git-hooks/pre-push.mjs (Node, portável).
+# Os dados do Git no stdin passam adiante. Contorno: git push --no-verify.
+exec node "$(git rev-parse --show-toplevel)/scripts/git-hooks/pre-push.mjs" "$@"

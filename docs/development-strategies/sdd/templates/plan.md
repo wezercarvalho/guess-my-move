@@ -15,9 +15,9 @@
 
 ## Constitution Check — pré-design
 
-| Princípio/gate | Resultado | Evidência ou exceção |
-| --- | --- | --- |
-| I. Intenção antes da implementação | PASS/FAIL | <evidência> |
+| Princípio/gate                     | Resultado | Evidência ou exceção |
+| ---------------------------------- | --------- | -------------------- |
+| I. Intenção antes da implementação | PASS/FAIL | <evidência>          |
 
 A seção deve conter ao menos um `PASS` e nenhum `FAIL`; exceções aprovadas são descritas na coluna de evidência.
 
@@ -47,9 +47,9 @@ A seção deve conter ao menos um `PASS` e nenhum `FAIL`; exceções aprovadas s
 
 ## Mapeamento de requisitos
 
-| Requisito | Abordagem | Evidência planejada |
-| --- | --- | --- |
-| FR-001 | <decisão> | <teste/demonstração> |
+| Requisito | Abordagem | Evidência planejada  |
+| --------- | --------- | -------------------- |
+| FR-001    | <decisão> | <teste/demonstração> |
 
 ## Estratégia test-first
 
@@ -62,18 +62,18 @@ A seção deve conter ao menos um `PASS` e nenhum `FAIL`; exceções aprovadas s
 
 ## Riscos, rollout e rollback
 
-| Risco | Mitigação | Rollback/contingência |
-| --- | --- | --- |
-| <risco> | <mitigação> | <ação> |
+| Risco   | Mitigação   | Rollback/contingência |
+| ------- | ----------- | --------------------- |
+| <risco> | <mitigação> | <ação>                |
 
 ## Constitution Check — pós-design
 
-| Princípio/gate | Resultado | Evidência ou exceção |
-| --- | --- | --- |
-| I. Intenção antes da implementação | PASS/FAIL | <evidência> |
+| Princípio/gate                     | Resultado | Evidência ou exceção |
+| ---------------------------------- | --------- | -------------------- |
+| I. Intenção antes da implementação | PASS/FAIL | <evidência>          |
 
 ## Complexidade e desvios
 
-| Necessidade | Impacto | Alternativa mais simples rejeitada | Aprovação |
-| --- | --- | --- | --- |
-| Nenhum desvio | — | — | — |
+| Necessidade   | Impacto | Alternativa mais simples rejeitada | Aprovação |
+| ------------- | ------- | ---------------------------------- | --------- |
+| Nenhum desvio | —       | —                                  | —         |

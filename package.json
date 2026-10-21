@@ -1,0 +1,22 @@
+{
+    "name": "guess-my-move",
+    "private": true,
+    "description": "Guess My Move: ferramentas de governança do repositório (SDD, docs e gates). O código da aplicação entra na issue de scaffold.",
+    "packageManager": "yarn@1.22.22",
+    "engines": {
+        "node": ">=24.18.0 <25"
+    },
+    "scripts": {
+        "sdd:check": "node scripts/sdd/check-specs.mjs --root .",
+        "test:sdd": "node --test test/sdd/check-specs.node-test.mjs test/sdd/check-gate.node-test.mjs",
+        "docs:format:check": "prettier --check .prettierrc AGENTS.md CLAUDE.md README.md \"docs/**/*.md\" \"specs/**/*.md\"",
+        "docs:format:fix": "prettier --write .prettierrc AGENTS.md CLAUDE.md README.md \"docs/**/*.md\" \"specs/**/*.md\"",
+        "test:gates": "node --test test/security/dependency-audit.node-test.mjs test/security/dependency-audit-exceptions.node-test.mjs test/security/dependency-audit-workflows.node-test.mjs test/gates/hook-and-gate.node-test.mjs",
+        "security:dependencies": "node scripts/audit-dependencies.mjs"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "prettier": "3.9.10",
+        "yaml": "2.9.0"
+    }
+}

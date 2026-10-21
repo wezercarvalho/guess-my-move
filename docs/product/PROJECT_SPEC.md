@@ -12,7 +12,7 @@
 
 No primeiro experimento, haverá **somente uma carta: “Acenar”**. A IA adivinhadora recebe imagens do movimento, mas **não recebe a palavra da carta, a dica, a sugestão nem os critérios internos**. Um **árbitro semântico** verifica automaticamente se o palpite tem o mesmo significado da resposta esperada. **Não haverá confirmação manual de acerto como fonte de verdade**.
 
-A hipótese técnica a validar é: *um modelo multimodal pré-treinado consegue identificar ações simples a partir de uma sequência curta de imagens com precisão e latência adequadas para uma experiência divertida?*
+A hipótese técnica a validar é: _um modelo multimodal pré-treinado consegue identificar ações simples a partir de uma sequência curta de imagens com precisão e latência adequadas para uma experiência divertida?_
 
 **Escopo da primeira entrega:** testar a interpretação visual e produzir uma demonstração de ponta a ponta. **Não é objetivo inicial** criar um classificador treinado do zero, construir um sistema antifraude completo ou interpretar qualquer mímica de forma confiável.
 
@@ -20,19 +20,19 @@ A hipótese técnica a validar é: *um modelo multimodal pré-treinado consegue 
 
 ### 2.1 Decisões já tomadas na conversa
 
-| Tema | Decisão |
-|---|---|
-| Nome e repositório | **Guess My Move** / `guess-my-move`. |
-| Distribuição | Projeto público/open-source, pensado como vitrine de visão computacional e integração com IA. |
-| Mecânica central | Pessoa faz a mímica; IA adivinha. Modalidade inversa é evolução futura. |
-| Interface de carta | Palavra + dica (*hint*) + sugestão de como representar. |
-| Primeira carta | **Acenar**; começar com apenas uma para fechar o escopo. |
-| Conhecimento da IA adivinhadora | A IA **não conhece** a resposta da carta antes de palpitar. |
-| Verificação de acerto | Automática, por **árbitro semântico**; usuário não decide se o palpite acertou. |
-| Estratégia de IA inicial | Usar um **modelo multimodal pré-treinado**, sem treinamento/fine-tuning próprios. |
-| Estratégia visual inicial | Enviar **sequências curtas de frames**; não depender do MediaPipe na PoC. |
-| Critério visual de execução | Previsto para evolução; **não será árbitro visual na primeira versão**. |
-| Extensibilidade | Carta com metadados privados de avaliação e componentes desacoplados. |
+| Tema                            | Decisão                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| Nome e repositório              | **Guess My Move** / `guess-my-move`.                                                          |
+| Distribuição                    | Projeto público/open-source, pensado como vitrine de visão computacional e integração com IA. |
+| Mecânica central                | Pessoa faz a mímica; IA adivinha. Modalidade inversa é evolução futura.                       |
+| Interface de carta              | Palavra + dica (_hint_) + sugestão de como representar.                                       |
+| Primeira carta                  | **Acenar**; começar com apenas uma para fechar o escopo.                                      |
+| Conhecimento da IA adivinhadora | A IA **não conhece** a resposta da carta antes de palpitar.                                   |
+| Verificação de acerto           | Automática, por **árbitro semântico**; usuário não decide se o palpite acertou.               |
+| Estratégia de IA inicial        | Usar um **modelo multimodal pré-treinado**, sem treinamento/fine-tuning próprios.             |
+| Estratégia visual inicial       | Enviar **sequências curtas de frames**; não depender do MediaPipe na PoC.                     |
+| Critério visual de execução     | Previsto para evolução; **não será árbitro visual na primeira versão**.                       |
+| Extensibilidade                 | Carta com metadados privados de avaliação e componentes desacoplados.                         |
 
 ### 2.2 Recomendações técnicas (ainda não são decisões fechadas)
 
@@ -73,15 +73,15 @@ Treinar modelos; classificar qualquer ação arbitrária; verificar por visão c
 
 ## 4. Atores, responsabilidades e fronteiras de informação
 
-| Ator / componente | Recebe | Faz | Não deve receber / fazer |
-|---|---|---|---|
-| **Jogador** | Carta com palavra, dica e sugestão | Interpreta a ação diante da webcam | Não determina oficialmente se o palpite acertou. |
-| **IA adivinhadora** | Frames, ordem temporal, contexto genérico da mecânica e, depois, palpites rejeitados | Produz hipótese textual sobre a mímica | **Não recebe** palavra, dica, sinônimos, critérios privados nem resposta esperada. |
-| **Árbitro semântico** | Resposta da carta, aliases e palpite da IA | Decide se o palpite é semanticamente equivalente | Não precisa analisar webcam e não comprova que a mímica foi executada. |
-| **Motor do jogo** | Estado da rodada, carta, frames e retornos dos componentes | Orquestra a partida, tentativas e resultados | Não confunde um palpite semanticamente correto com prova visual de execução. |
-| **Baralho** (dados) | Definições de cartas | Oferece informações públicas e metadados privados de avaliação | Não é um agente/ator de IA. |
+| Ator / componente     | Recebe                                                                               | Faz                                                            | Não deve receber / fazer                                                           |
+| --------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Jogador**           | Carta com palavra, dica e sugestão                                                   | Interpreta a ação diante da webcam                             | Não determina oficialmente se o palpite acertou.                                   |
+| **IA adivinhadora**   | Frames, ordem temporal, contexto genérico da mecânica e, depois, palpites rejeitados | Produz hipótese textual sobre a mímica                         | **Não recebe** palavra, dica, sinônimos, critérios privados nem resposta esperada. |
+| **Árbitro semântico** | Resposta da carta, aliases e palpite da IA                                           | Decide se o palpite é semanticamente equivalente               | Não precisa analisar webcam e não comprova que a mímica foi executada.             |
+| **Motor do jogo**     | Estado da rodada, carta, frames e retornos dos componentes                           | Orquestra a partida, tentativas e resultados                   | Não confunde um palpite semanticamente correto com prova visual de execução.       |
+| **Baralho** (dados)   | Definições de cartas                                                                 | Oferece informações públicas e metadados privados de avaliação | Não é um agente/ator de IA.                                                        |
 
-**Nota de segurança do escopo:** a resposta aparecerá na interface do jogador. Separar informações no fluxo de chamadas impede o *vazamento acidental ao adivinhador*, mas **não prova que o próprio jogador seja honesto**. Antifraude competitivo exigirá cuidados adicionais, inclusive validação visual e proteção da integridade da partida.
+**Nota de segurança do escopo:** a resposta aparecerá na interface do jogador. Separar informações no fluxo de chamadas impede o _vazamento acidental ao adivinhador_, mas **não prova que o próprio jogador seja honesto**. Antifraude competitivo exigirá cuidados adicionais, inclusive validação visual e proteção da integridade da partida.
 
 ## 5. Carta inicial e contrato de dados
 
@@ -107,23 +107,28 @@ Os aliases representam política de julgamento — **não devem ser fornecidos a
 
 ```json
 {
-  "id": "wave-001",
-  "locale": "pt-BR",
-  "public": {
-    "word": "Acenar",
-    "hint": "Um gesto usado para cumprimentar ou se despedir de alguém à distância.",
-    "suggestion": "Levante uma das mãos e movimente-a de um lado para o outro.",
-    "difficulty": "easy"
-  },
-  "evaluation": {
-    "canonicalAnswer": "acenar",
-    "acceptedAliases": ["dar tchau", "acenando", "waving", "waving goodbye"],
-    "insufficientGuesses": ["levantar a mão", "mexer os braços"],
-    "visualCriteria": [
-      "Uma das mãos aparece levantada.",
-      "Há deslocamento lateral repetido da mão ao longo do tempo."
-    ]
-  }
+    "id": "wave-001",
+    "locale": "pt-BR",
+    "public": {
+        "word": "Acenar",
+        "hint": "Um gesto usado para cumprimentar ou se despedir de alguém à distância.",
+        "suggestion": "Levante uma das mãos e movimente-a de um lado para o outro.",
+        "difficulty": "easy"
+    },
+    "evaluation": {
+        "canonicalAnswer": "acenar",
+        "acceptedAliases": [
+            "dar tchau",
+            "acenando",
+            "waving",
+            "waving goodbye"
+        ],
+        "insufficientGuesses": ["levantar a mão", "mexer os braços"],
+        "visualCriteria": [
+            "Uma das mãos aparece levantada.",
+            "Há deslocamento lateral repetido da mão ao longo do tempo."
+        ]
+    }
 }
 ```
 
@@ -171,7 +176,7 @@ sequenceDiagram
 
 ### 7.1 Camadas
 
-**Aplicação web:** carta, permissão e preview da câmera, captura temporária de frames, interface de tentativas e resultado. 
+**Aplicação web:** carta, permissão e preview da câmera, captura temporária de frames, interface de tentativas e resultado.
 
 **Motor da partida:** máquina de estados, seleção da carta, limites, histórico de palpites e integração com adivinhador/árbitro.
 
@@ -185,25 +190,25 @@ sequenceDiagram
 
 ```ts
 type GuessInput = {
-  frames: Array<{ data: string; timestampMs: number; mimeType: string }>;
-  rejectedGuesses: string[];
-  language?: string;
-};
+    frames: Array<{ data: string; timestampMs: number; mimeType: string }>
+    rejectedGuesses: string[]
+    language?: string
+}
 
-type GuessResult = { guess: string };
+type GuessResult = { guess: string }
 
 type SemanticJudgeInput = {
-  canonicalAnswer: string;
-  acceptedAliases: string[];
-  insufficientGuesses: string[];
-  guess: string;
-};
+    canonicalAnswer: string
+    acceptedAliases: string[]
+    insufficientGuesses: string[]
+    guess: string
+}
 
 type SemanticJudgeResult = {
-  isCorrect: boolean;
-  method: 'canonical' | 'alias' | 'llm' | 'undetermined';
-  matchedAnswer?: string;
-};
+    isCorrect: boolean
+    method: 'canonical' | 'alias' | 'llm' | 'undetermined'
+    matchedAnswer?: string
+}
 ```
 
 **Cuidados:** `confidence` autodeclarada por LLM não é uma probabilidade calibrada. Não usá-la diretamente como garantia de reconhecimento. Frames devem ter limites de resolução, número, tamanho total e duração. Essas interfaces são exemplos para guiar a implementação, não uma exigência rígida de nomes.
@@ -223,7 +228,7 @@ type SemanticJudgeResult = {
 1. Normalizar texto sem desfigurar significado: minúsculas, espaços, pontuação e variantes triviais.
 2. Comparar com resposta canônica e aliases **por equivalência de expressão**, não pela presença de uma palavra como substring.
 3. Se o palpite for explicitamente genérico/insuficiente, marcar incorreto.
-4. Se permanecer ambíguo, opcionalmente consultar LLM com *canonical answer*, aliases, exemplos aceitos/rejeitados e critérios conservadores.
+4. Se permanecer ambíguo, opcionalmente consultar LLM com _canonical answer_, aliases, exemplos aceitos/rejeitados e critérios conservadores.
 5. Se o LLM falhar ou houver dúvida material, retornar `undetermined` e adotar uma regra de UX explícita (por exemplo, pedir nova tentativa); não inventar decisão.
 6. Registrar método e motivo resumido, quando possível, para auditoria e ajuste de aliases.
 
@@ -231,13 +236,13 @@ type SemanticJudgeResult = {
 
 ## 8. Entregas incrementais
 
-| Fase | Objetivo | Entregáveis | Critério para avançar |
-|---|---|---|---|
-| **Fase 0 — PoC visual** | Validar reconhecimento de “acenar”. | Webcam, frames temporais, integração protegida, palpite, testes manuais, medições iniciais. | Evidência de que o provedor reconhece o gesto com desempenho promissor em condições variadas. |
-| **Fase 1 — MVP jogável** | Fechar um ciclo de rodada sem confirmação humana. | Carta, motor, árbitro semântico, tentativas, estados de erro, documentação e testes. | Rodada reproduzível com acerto, erro e falha de provedor tratados. |
-| **Fase 2 — Expansão de conteúdo** | Escalar baralho e jogo. | Mais cartas, categorias, níveis, cronômetro/pontos, configurações de idioma, telemetria opt-in. | Cartas novas não exigem alterar algoritmos centrais. |
-| **Fase 3 — Arbitragem visual** | Verificar se a mímica foi efetivamente executada. | Critérios visuais por carta, verificação multimodal independente, calibração e contestação. | Menor incidência de acertos por coincidência e falsos positivos mensurados. |
-| **Fase 4 — Modos avançados** | Enriquecer o produto. | IA faz mímica, modo multiplayer, rankings, modelos locais, pose estimation/classificadores temporais conforme evidências. | Justificativa técnica e de custo a partir de resultados reais. |
+| Fase                              | Objetivo                                          | Entregáveis                                                                                                               | Critério para avançar                                                                         |
+| --------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Fase 0 — PoC visual**           | Validar reconhecimento de “acenar”.               | Webcam, frames temporais, integração protegida, palpite, testes manuais, medições iniciais.                               | Evidência de que o provedor reconhece o gesto com desempenho promissor em condições variadas. |
+| **Fase 1 — MVP jogável**          | Fechar um ciclo de rodada sem confirmação humana. | Carta, motor, árbitro semântico, tentativas, estados de erro, documentação e testes.                                      | Rodada reproduzível com acerto, erro e falha de provedor tratados.                            |
+| **Fase 2 — Expansão de conteúdo** | Escalar baralho e jogo.                           | Mais cartas, categorias, níveis, cronômetro/pontos, configurações de idioma, telemetria opt-in.                           | Cartas novas não exigem alterar algoritmos centrais.                                          |
+| **Fase 3 — Arbitragem visual**    | Verificar se a mímica foi efetivamente executada. | Critérios visuais por carta, verificação multimodal independente, calibração e contestação.                               | Menor incidência de acertos por coincidência e falsos positivos mensurados.                   |
+| **Fase 4 — Modos avançados**      | Enriquecer o produto.                             | IA faz mímica, modo multiplayer, rankings, modelos locais, pose estimation/classificadores temporais conforme evidências. | Justificativa técnica e de custo a partir de resultados reais.                                |
 
 Estimativas iniciais discutidas (não compromissos): **4–8 horas** para uma PoC visual mínima; **2–5 dias** para um MVP jogável; **1–3 semanas** para amadurecer robustez, dependendo da qualidade do reconhecimento.
 
@@ -302,16 +307,16 @@ Metas numéricas de lançamento permanecem **em aberto** até um teste piloto co
 
 ## 11. Riscos e mitigação
 
-| Risco | Consequência | Mitigação inicial |
-|---|---|---|
+| Risco                                           | Consequência                       | Mitigação inicial                                                                                |
+| ----------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Modelo não entende movimento em frames esparsos | Palpites errados, experiência ruim | Aumentar/ajustar janelas de frames; comparar modelos; considerar vídeo nativo quando disponível. |
-| Latência alta | Rodadas lentas | Captura sob demanda, imagens reduzidas, feedback visual, limites de timeout. |
-| Adivinhador recebe resposta da carta | Acertos artificiais, PoC inválida | Testar payloads; interfaces públicas/privadas separadas; revisar logs e prompts. |
-| Árbitro aceita resposta vaga | Falsos acertos | Aliases específicos, exemplos negativos, testes semânticos automatizados. |
-| Jogador não representa a carta | Acertos por sorte ou exploração | Aceitar como limite do MVP; avaliar árbitro visual em fase posterior. |
-| Exposição de dados da webcam | Falha de confiança e privacidade | Captura transitória, consentimento, ausência de persistência padrão, documentação. |
-| Consumo excessivo de API | Custo imprevisível | Quotas, resolução limitada, rate limiting, métricas por tentativa. |
-| Dependência de um provedor | Lock-in | Interface `GuesserProvider`, mocks e configuração externa. |
+| Latência alta                                   | Rodadas lentas                     | Captura sob demanda, imagens reduzidas, feedback visual, limites de timeout.                     |
+| Adivinhador recebe resposta da carta            | Acertos artificiais, PoC inválida  | Testar payloads; interfaces públicas/privadas separadas; revisar logs e prompts.                 |
+| Árbitro aceita resposta vaga                    | Falsos acertos                     | Aliases específicos, exemplos negativos, testes semânticos automatizados.                        |
+| Jogador não representa a carta                  | Acertos por sorte ou exploração    | Aceitar como limite do MVP; avaliar árbitro visual em fase posterior.                            |
+| Exposição de dados da webcam                    | Falha de confiança e privacidade   | Captura transitória, consentimento, ausência de persistência padrão, documentação.               |
+| Consumo excessivo de API                        | Custo imprevisível                 | Quotas, resolução limitada, rate limiting, métricas por tentativa.                               |
+| Dependência de um provedor                      | Lock-in                            | Interface `GuesserProvider`, mocks e configuração externa.                                       |
 
 ## 12. Backlog inicial priorizado
 
@@ -355,4 +360,4 @@ O arquivo **`DEVELOPMENT_PROMPT.md`** acompanha esta especificação e pode ser 
 
 ---
 
-*Documento elaborado a partir das decisões discutidas para Guess My Move. Propostas técnicas, estimativas e escolhas em aberto foram identificadas separadamente para evitar que recomendações sejam confundidas com decisões já tomadas.*
+_Documento elaborado a partir das decisões discutidas para Guess My Move. Propostas técnicas, estimativas e escolhas em aberto foram identificadas separadamente para evitar que recomendações sejam confundidas com decisões já tomadas._
