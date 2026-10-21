@@ -7,10 +7,19 @@ Princípio: **abstração mínima e provedor-independente**, sem infraestrutura 
 | Camada                             | Responsabilidade                                                                             | Não deve                                               |
 | ---------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Aplicação web (React + Vite + TS)  | Carta, câmera, captura temporária de frames, tentativas e resultado.                         | Conter chave de provedor.                              |
-| Servidor mínimo (Node.js + TS)     | Proteger credenciais, validar payload, limites, timeout, converter falhas em erros estáveis. | Registrar mídia; expor detalhes internos do provedor.  |
+| Servidor mínimo (NestJS + TS)      | Proteger credenciais, validar payload, limites, timeout, converter falhas em erros estáveis. | Registrar mídia; expor detalhes internos do provedor.  |
 | Adaptador do adivinhador           | Montar a requisição ao provedor e validar uma saída estruturada com um único palpite.        | Receber palavra, dica, sugestão, aliases ou critérios. |
 | Árbitro semântico (fase posterior) | Normalização + canônico/aliases; LLM opcional só para ambiguidade.                           | Analisar a webcam.                                     |
 | Motor da partida (fase posterior)  | Máquina de estados, tentativas e histórico de palpites rejeitados.                           | Tratar palpite correto como prova visual de execução.  |
+
+## Stack decidida
+
+Decisão do maintainer em 2026-10-21; as versões exatas são fixadas e registradas na issue de scaffold (#3), e o `PROJECT_SPEC.md` registra a proposta original.
+
+- **Linguagem:** TypeScript no frontend e no servidor.
+- **Frontend:** React + Vite.
+- **Servidor:** NestJS na última versão estável, com a mesma interface `GuesserProvider` injetada como provedor (um módulo por adaptador, selecionado por configuração). Mantenha o servidor mínimo: sem módulos além dos que a PoC usa.
+- **Banco de dados:** não há na PoC (cartas em JSON ou TypeScript versionado; frames transitórios). Se uma fase posterior exigir persistência, a escolha é TypeORM na última versão estável com `@nestjs/typeorm`; a introdução passa por spec própria e não antecipa dependência nem migrations.
 
 ## Contrato mínimo do adivinhador
 
