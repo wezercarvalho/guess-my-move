@@ -14,7 +14,7 @@ Política do gate `yarn security:dependencies`. O auditor roda `yarn audit --jso
 ## Política
 
 - **Severidade:** High e Critical bloqueiam, tanto em produção quanto em tooling. Info, Low e Moderate são reportados sem bloquear.
-- **Alcance:** o relatório separa `produção` de `tooling`. É `produção` o advisory alcançável a partir de `dependencies` do `package.json` (o primeiro item da cadeia de dependência decide); é `tooling` o que só chega por `devDependencies`. O advisory alcançável pelos dois é `produção`. A flag `dev` do Yarn 1 não é usada, porque vem sempre falsa. O objeto `dependencies` do `package.json` DEVE existir, mesmo vazio.
+- **Alcance:** o relatório separa `produção` de `tooling`. É `produção` o advisory alcançável a partir das `dependencies` da raiz ou de qualquer workspace (o primeiro item da cadeia de dependência decide); é `tooling` o que só chega por `devDependencies`. O advisory alcançável pelos dois é `produção`. A flag `dev` do Yarn 1 não é usada, porque vem sempre falsa. O objeto `dependencies` da raiz DEVE existir, mesmo vazio (ver [Workspaces](#workspaces)).
 - **Exceção:** um High/Critical que não possa ser corrigido de imediato só deixa de bloquear por exceção aprovada pelo maintainer, registrada no arquivo de exceções (raiz `{ "exceptions": [ ... ] }`). Cada entrada traz `advisory` (identificador GHSA), `package`, `owner`, `justification`, `approval` (referência rastreável, como o link da issue ou do PR), `approvedAt` e `expiresAt` (`AAAA-MM-DD`).
     - A exceção vale somente para o par advisory e pacote; não há curinga de pacote nem de severidade.
     - A validade é de no máximo 90 dias a partir de `approvedAt` e vai até o fim do dia de `expiresAt`. Vencida, o advisory volta a bloquear.
@@ -40,6 +40,6 @@ Além das categorias de falha de execução do próprio auditor, o resultado dis
 
 A auditoria depende do endpoint legado `/-/npm/v1/security/audits` do registry. Se ele for aposentado, o gate falha como `registry-indisponivel` até haver outro auditor.
 
-## Pacotes futuros
+## Workspaces
 
-O auditor lê o `package.json` e o arquivo de exceções da raiz. Quando a aplicação ganhar pacotes com `package.json` e lockfile próprios, a spec do scaffold decide se o auditor passa a receber o diretório do pacote ou se cada pacote reaproveita o mesmo padrão de job, arquivo de exceções e rotina. Dependências de produção que tocam frames de webcam ou chaves de provedor seguem também o guia de [privacidade e segredos](privacy-and-secrets.md).
+O auditor lê o `package.json` e o arquivo de exceções da raiz, e roda `yarn audit` a partir dela (um só lockfile cobre todo o monorepo Yarn 1). As raízes de **produção** são a **união das `dependencies` da raiz com as `dependencies` de cada workspace** (`apps/web`, `apps/server`, `packages/core`); as `devDependencies` — da raiz e de qualquer workspace — seguem como **tooling**. Num monorepo a produção vive nos pacotes, não na raiz: ler só a raiz classificaria toda a produção como tooling e enfraqueceria a política. O objeto `dependencies` da raiz DEVE existir, mesmo vazio. Um padrão de `workspaces` sem pacote no disco é ignorado, sem inventar raízes. Dependências de produção que tocam frames de webcam ou chaves de provedor seguem também o guia de [privacidade e segredos](privacy-and-secrets.md).

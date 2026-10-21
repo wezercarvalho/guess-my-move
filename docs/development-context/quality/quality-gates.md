@@ -1,6 +1,19 @@
 # Checks de qualidade
 
-**Estado atual:** o repositório ainda não tem código de aplicação. Hoje existem gates de governança (abaixo), executados pelo [`pr-gate`](../delivery/ci-pipeline.md) e pelo [hook local de pré-push](../operations/local-development.md#verificações-locais-antes-do-push). Os gates de código passam a ser scripts de `package.json` assim que a Fase 0 for implementada, como escopo novo do pipeline, e este documento DEVE ser atualizado na mesma mudança.
+**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `apps/server`, `packages/core`). Além dos gates de governança (abaixo), o escopo de código roda `yarn check:all` (typecheck, lint, test e build) no [`pr-gate`](../delivery/ci-pipeline.md) e no [hook local de pré-push](../operations/local-development.md#verificações-locais-antes-do-push).
+
+## Gates de código (vigentes)
+
+| Script              | Propósito                                                                   | Onde roda                             |
+| ------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
+| `yarn typecheck`    | Tipos explícitos em todos os workspaces (`tsc --noEmit`).                   | `pr-gate` (seleção `code`) e hook.    |
+| `yarn lint`         | ESLint flat config com TypeScript estrito em `apps/` e `packages/`.         | `pr-gate` (seleção `code`) e hook.    |
+| `yarn test`         | Vitest em todos os workspaces (um teste de fumaça real em cada um).         | `pr-gate` (seleção `code`).           |
+| `yarn build`        | Compila frontend (Vite), servidor (Nest) e o pacote `core` (`tsc --build`). | `pr-gate` (seleção `code`).           |
+| `yarn check:static` | Agregado leve: `typecheck` + `lint`.                                        | hook local no modo `static` (padrão). |
+| `yarn check:all`    | Agregado completo: `check:static` + `test` + `build`.                       | `pr-gate` (job `code`) e hook `full`. |
+
+O hook local roda `check:static` por padrão e `check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
 
 ## Gates de governança (vigentes)
 
@@ -14,19 +27,17 @@
 
 Esses gates são somente leitura. `yarn docs:format:fix` escreve arquivos e nunca roda no CI.
 
-## Gates previstos (stack: React + Vite + TypeScript + NestJS)
+## Gates futuros
 
 | Gate               | Propósito                                                                                              | Quando                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| `typecheck`        | Tipos explícitos em frontend e backend.                                                                | Todo PR com código.                              |
-| `lint`             | Estilo e erros estáticos.                                                                              | Todo PR com código.                              |
-| `test`             | Testes unitários e de contrato (motor, árbitro, adaptadores com provedor simulado).                    | Todo PR com código.                              |
-| `build`            | Compilação do frontend e do servidor.                                                                  | Todo PR com código.                              |
 | Teste de fronteira | Prova que o payload ao adivinhador não contém palavra, dica, sugestão, aliases nem critérios da carta. | Qualquer mudança em motor, adaptador ou prompts. |
+
+O teste de fronteira entra quando o motor e o adaptador existirem (issues posteriores); ele roda dentro do agregado `yarn test` do escopo `code`.
 
 ## Regras
 
-- Use somente scripts oficiais de `package.json`; a promoção de um gate previsto para o `pr-gate` segue [Como adicionar um quality gate](../delivery/ci-pipeline.md#como-adicionar-um-quality-gate); registre comando, data e resultado reais em `validation.md`.
+- Use somente scripts oficiais de `package.json`; a promoção de um gate futuro para o `pr-gate` segue [Como adicionar um quality gate](../delivery/ci-pipeline.md#como-adicionar-um-quality-gate); registre comando, data e resultado reais em `validation.md`.
 - Testes automatizados usam o provedor simulado (`MockGuesserProvider`). Chamadas reais a provedores pagos ficam em um comando separado e explícito (benchmark), nunca no gate padrão.
 - Um benchmark com amostra pequena é evidência exploratória: registre o tamanho da amostra e as limitações; não publique taxa de acerto geral.
 - Não declare sucesso de gate não executado; registre `BLOCKED` ou `NOT_APPLICABLE` com justificativa.

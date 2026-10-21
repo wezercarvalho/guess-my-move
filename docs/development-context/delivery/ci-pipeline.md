@@ -2,14 +2,14 @@
 
 O CI executa os mesmos scripts do `package.json` que existem localmente. Nenhuma regra de qualidade é definida dentro dos workflows; a composição dos gates está em [checks de qualidade](../quality/quality-gates.md).
 
-**Estado atual:** o repositório ainda não tem código de aplicação. O pipeline cobre a governança (SDD, documentação e os próprios gates) e a auditoria de dependências. Os gates de código (`typecheck`, `lint`, `test`, `build`) entram com o scaffold da aplicação, como escopo novo (ver [Como adicionar um escopo](#como-adicionar-um-escopo)).
+**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `apps/server`, `packages/core`). O pipeline cobre a governança (SDD, documentação e os próprios gates), o escopo de código (`typecheck`, `lint`, `test`, `build` via `yarn check:all`) e a auditoria de dependências.
 
 ## Workflows
 
-| Workflow           | Gatilho                                                                                       | Roda                                                                | Papel                            |
-| ------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------- |
-| `pr-gate`          | `pull_request` (`opened`, `synchronize`, `reopened`, `ready_for_review`), sem filtro de paths | detecção de paths, governança (job `sdd`), auditoria e o job `gate` | único required status check      |
-| `dependency-audit` | `schedule` nos dias 1 e 15, 08:23 UTC, e `workflow_dispatch`; só na `main`                    | `yarn security:dependencies`                                        | rotina quinzenal de dependências |
+| Workflow           | Gatilho                                                                                       | Roda                                                                                     | Papel                            |
+| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- |
+| `pr-gate`          | `pull_request` (`opened`, `synchronize`, `reopened`, `ready_for_review`), sem filtro de paths | detecção de paths, governança (job `sdd`), código (job `code`), auditoria e o job `gate` | único required status check      |
+| `dependency-audit` | `schedule` nos dias 1 e 15, 08:23 UTC, e `workflow_dispatch`; só na `main`                    | `yarn security:dependencies`                                                             | rotina quinzenal de dependências |
 
 **Nenhum workflow roda por `push` em branch de trabalho.** Um push em branch sem PR não gasta minutos de Actions; a verificação rápida é local, no hook de pré-push (ver [Desenvolvimento local](../operations/local-development.md#verificações-locais-antes-do-push)). Não existe workflow de CI para a `main`: ela recebe apenas PRs, que já passaram pelo gate antes do merge.
 
@@ -31,6 +31,7 @@ O `pr-gate` valida o **resultado do merge** (evento `pull_request`), que pode di
 | `sdd`       | `specs/`, `scripts/sdd/`, `test/sdd/`, método SDD, `AGENTS.md`, manifesto e lockfile, `pr-gate.yml`      | `sdd`   |
 | `root-docs` | `AGENTS.md`, `CLAUDE.md`, `README.md`, `.prettierrc`, `docs/`, `specs/`, `pr-gate.yml`                   | `sdd`   |
 | `tooling`   | hook, auditor, `test/gates/`, `test/security/`, todos os workflows, manifesto, lockfile, `.node-version` | `sdd`   |
+| `code`      | `apps/`, `packages/`, manifesto, lockfile, `tsconfig*.json`, `eslint.config.*`, `.env.example`           | `code`  |
 | `audit`     | manifesto, lockfile, auditor, exceções e os workflows `pr-gate` e `dependency-audit`                     | `audit` |
 
 Os padrões exatos ficam no passo "Detectar paths alterados" de `pr-gate.yml` e são espelhados em `scripts/git-hooks/scopes.mjs`; um teste (`test/gates/hook-and-gate.node-test.mjs`) compara os dois.
@@ -51,6 +52,10 @@ As seleções `sdd`, `root-docs` e `tooling` alimentam **um único job**, de id 
 | `Testar hook, auditor e workflows`      | seleção `tooling`   | `yarn test:gates`        |
 
 O checker estrutural (`yarn sdd:check`) verifica o catálogo e os guias SDD; o workflow passa os documentos Markdown alterados existentes por `--file`, e os templates ficam de fora por terem placeholders intencionais. A ferramenta é somente leitura, sem rede ou Git, e não comprova autorização humana nem integração do código em `main`. O Prettier valida só formatação; links e conteúdo continuam dependendo de revisão.
+
+### Job de código
+
+A seleção `code` liga o job `code`, que instala as dependências e roda `yarn check:all` (um só comando que executa `typecheck`, `lint`, `test` e `build` em todos os workspaces). O padrão de path cobre `apps/`, `packages/`, o manifesto e o lockfile, `tsconfig*.json`, `eslint.config.*` e `.env.example`, e é espelhado EXATAMENTE em `scripts/git-hooks/scopes.mjs` (um teste em `test/gates/` compara os dois). No hook local o escopo `code` roda `yarn check:static` (typecheck + lint) por padrão e `yarn check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
 
 ### Auditoria de dependências
 
@@ -73,11 +78,11 @@ Job condicional `audit` no PR e rotina quinzenal na `main`. A política (severid
 
 ## Como adicionar um escopo
 
-Trade-off aceito: um PR que não toca nenhum dos paths mapeados passa sem gate (um diretório novo, como `apps/`, ainda fora do filtro). Quem criar um diretório relevante é responsável por mapeá-lo na mesma mudança:
+Trade-off aceito: um PR que não toca nenhum dos paths mapeados passa sem gate. Quem criar um diretório relevante é responsável por mapeá-lo na mesma mudança:
 
 1. `pr-gate.yml`: padrão novo no passo "Detectar paths alterados", output no `detect-changes` e job novo (ou chamada de workflow reutilizável) condicionado à seleção.
 2. `scripts/sdd/check-job-results.mjs`: incluir o job em `SELECTED_JOBS` e dar `needs` ao job `gate`.
 3. `scripts/git-hooks/scopes.mjs`: escopo com o mesmo padrão e o mesmo comando que o gate remoto roda; o modo `static` roda a verificação rápida e o `full` a completa.
 4. Testes em `test/gates/` e `test/sdd/check-gate.node-test.mjs`, documentação nesta página e em [checks de qualidade](../quality/quality-gates.md).
 
-A issue de scaffold da aplicação (#3) deve fazer isso, incluindo `typecheck`, `lint`, `test` e `build` como gates do escopo.
+O escopo `code` (issue #3) seguiu exatamente esses passos: padrão `CODE_PATTERN` + output `code` no `pr-gate.yml`, job `code` rodando `yarn check:all`, `code` em `SELECTED_JOBS` com `needs` no `gate`, escopo `code` no hook (`check:static`/`check:all`) e testes nos dois arquivos de gate.
