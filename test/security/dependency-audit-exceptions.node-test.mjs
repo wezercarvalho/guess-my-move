@@ -18,12 +18,10 @@ import {
     advisoryLine,
     assertExcludes,
     assertIncludes,
-    auditLine,
     capture,
     expectFailure,
+    ndjson,
     sameGhsaInTwoPackages,
-    summaryLine,
-    validAdvisory,
     writeFakeYarn,
 } from './dependency-audit-fixtures.mjs'
 
@@ -405,25 +403,21 @@ describe('execução do auditor com exceções', () => {
     before(() => {
         workDir = mkdtempSync(join(tmpdir(), 'dependency-audit-run-exc-'))
         packageJsonPath = join(workDir, 'package.json')
-        writeFileSync(packageJsonPath, JSON.stringify({ dependencies: { react: '^19.0.0' } }))
+        writeFileSync(packageJsonPath, JSON.stringify({ private: true }))
     })
 
     after(() => {
         rmSync(workDir, { recursive: true, force: true })
     })
 
-    const highOutput = [
-        advisoryLine(
-            validAdvisory({
-                id: 10,
-                module_name: 'markdown-it',
-                github_advisory_id: ADVISORY,
-                findings: [{ version: '14.3.0' }],
-            }),
-            'orval>typedoc>markdown-it',
-        ),
-        summaryLine({ low: 0, high: 1 }),
-    ].join('\n')
+    // markdown-it High que só aparece na execução de desenvolvimento (tooling).
+    const highDevelopment = advisoryLine({
+        value: 'markdown-it',
+        ID: 10,
+        Severity: 'high',
+        URL: `https://github.com/advisories/${ADVISORY}`,
+        'Tree Versions': ['14.3.0'],
+    })
 
     function exceptionsFile(text) {
         counter += 1
@@ -432,9 +426,10 @@ describe('execução do auditor com exceções', () => {
         return path
     }
 
-    function runWith(stdout, exceptionsPath, now = new Date('2026-10-20T12:00:00.000Z')) {
+    // `config` descreve a saída de cada ambiente para o Yarn falso (production/development).
+    function runWith(config, exceptionsPath, now = new Date('2026-10-20T12:00:00.000Z')) {
         const { out, err, output } = capture()
-        const code = run(writeFakeYarn(workDir, stdout), output, {
+        const code = run(writeFakeYarn(workDir, config), output, {
             packageJsonPath,
             exceptionsPath,
             now,
@@ -442,10 +437,13 @@ describe('execução do auditor com exceções', () => {
         return { code, out: out.join(''), err: err.join('') }
     }
 
+    const highConfig = { production: '', development: highDevelopment }
+    const cleanConfig = { production: '', development: '' }
+
     it('passa um High coberto por exceção válida e imprime quem a aprovou', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        const { code, out, err } = runWith(highOutput, path)
+        const { code, out, err } = runWith(highConfig, path)
 
         assert.equal(code, 0)
         assert.equal(err, '')
@@ -460,13 +458,13 @@ describe('execução do auditor com exceções', () => {
     it('aplica a exceção a um advisory que só alcança o tooling', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        assert.equal(runWith(highOutput, path).code, 0)
+        assert.equal(runWith(highConfig, path).code, 0)
     })
 
     it('volta a bloquear quando a exceção venceu e informa o vencimento', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        const { code, out, err } = runWith(highOutput, path, new Date('2027-01-01T00:00:00.000Z'))
+        const { code, out, err } = runWith(highConfig, path, new Date('2027-01-01T00:00:00.000Z'))
 
         assert.equal(code, 1)
         assertIncludes(err, `[bloqueante] markdown-it 14.3.0 HIGH tooling ${ADVISORY}`)
@@ -477,36 +475,36 @@ describe('execução do auditor com exceções', () => {
     it('ainda passa no último dia e bloqueia no dia seguinte', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        assert.equal(runWith(highOutput, path, new Date('2026-12-31T23:59:59.999Z')).code, 0)
-        assert.equal(runWith(highOutput, path, new Date('2027-01-01T00:00:00.000Z')).code, 1)
+        assert.equal(runWith(highConfig, path, new Date('2026-12-31T23:59:59.999Z')).code, 0)
+        assert.equal(runWith(highConfig, path, new Date('2027-01-01T00:00:00.000Z')).code, 1)
     })
 
     it('não cobre outro advisory do mesmo pacote', () => {
-        const stdout = [
-            highOutput,
-            advisoryLine(
-                validAdvisory({
-                    id: 11,
-                    module_name: 'markdown-it',
-                    github_advisory_id: 'GHSA-zzzz-zzzz-zzzz',
-                    title: 'Outro defeito',
-                }),
-                'orval>typedoc>markdown-it',
-            ),
-        ].join('\n')
+        const development = ndjson(
+            highDevelopment,
+            advisoryLine({
+                value: 'markdown-it',
+                ID: 11,
+                Severity: 'high',
+                Issue: 'Outro defeito',
+                URL: 'https://github.com/advisories/GHSA-zzzz-zzzz-zzzz',
+                'Tree Versions': ['14.3.0'],
+            }),
+        )
         const path = exceptionsFile(fileText(validEntry()))
 
-        const { code, out, err } = runWith(stdout, path)
+        const { code, out, err } = runWith({ production: '', development }, path)
 
         assert.equal(code, 1)
-        assertIncludes(err, '[bloqueante] markdown-it 1.2.3 HIGH tooling GHSA-zzzz-zzzz-zzzz')
+        assertIncludes(err, '[bloqueante] markdown-it 14.3.0 HIGH tooling GHSA-zzzz-zzzz-zzzz')
         assertExcludes(err, `HIGH tooling ${ADVISORY}`)
         assertIncludes(err, 'Auditoria bloqueada por 1 vulnerabilidade(s)')
         assertIncludes(out, '[exceção aplicada]')
     })
 
     it('cobre só o pacote citado quando o mesmo GHSA High aparece em dois pacotes', () => {
-        const stdout = sameGhsaInTwoPackages('GHSA-82fw-gwwq-j7x9').join('\n')
+        const development = ndjson(...sameGhsaInTwoPackages('GHSA-82fw-gwwq-j7x9'))
+        const config = { production: '', development }
         const vitestOnly = exceptionsFile(
             fileText(validEntry({ advisory: 'GHSA-82fw-gwwq-j7x9', package: 'vitest' })),
         )
@@ -517,8 +515,8 @@ describe('execução do auditor com exceções', () => {
             ),
         )
 
-        const partial = runWith(stdout, vitestOnly)
-        const complete = runWith(stdout, both)
+        const partial = runWith(config, vitestOnly)
+        const complete = runWith(config, both)
 
         assert.equal(partial.code, 1)
         assertIncludes(
@@ -535,7 +533,7 @@ describe('execução do auditor com exceções', () => {
     it('informa uma exceção sem efeito e não bloqueia', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        const { code, out } = runWith(summaryLine(), path)
+        const { code, out } = runWith(cleanConfig, path)
 
         assert.equal(code, 0)
         assertIncludes(
@@ -547,34 +545,22 @@ describe('execução do auditor com exceções', () => {
     it('informa uma exceção vencida sem advisory correspondente e não bloqueia', () => {
         const path = exceptionsFile(fileText(validEntry()))
 
-        const { code, out } = runWith(summaryLine(), path, new Date('2027-02-01T00:00:00.000Z'))
+        const { code, out } = runWith(cleanConfig, path, new Date('2027-02-01T00:00:00.000Z'))
 
         assert.equal(code, 0)
         assertIncludes(out, '[exceção vencida]')
         assertExcludes(out, '[exceção sem efeito]')
     })
 
-    it('não deixa uma exceção cobrir um High do resumo sem advisory que o explique', () => {
-        const path = exceptionsFile(fileText(validEntry()))
-
-        const { code, err } = runWith(
-            auditLine('auditSummary', { vulnerabilities: { high: 1 } }),
-            path,
-        )
-
-        assert.equal(code, 1)
-        assertIncludes(err, 'Auditoria bloqueada por 1 vulnerabilidade(s)')
-    })
-
     it('trata um arquivo de exceções ausente como nenhuma exceção', () => {
-        const { code, err } = runWith(highOutput, exceptionsFile())
+        const { code, err } = runWith(highConfig, exceptionsFile())
 
         assert.equal(code, 1)
         assertIncludes(err, '[bloqueante]')
     })
 
     it('trata uma lista vazia como nenhuma exceção', () => {
-        const { code } = runWith(highOutput, exceptionsFile('{ "exceptions": [] }'))
+        const { code } = runWith(highConfig, exceptionsFile('{ "exceptions": [] }'))
 
         assert.equal(code, 1)
     })
@@ -584,7 +570,7 @@ describe('execução do auditor com exceções', () => {
             fileText(validEntry(), validEntry({ package: '*', advisory: 'npm-9' })),
         )
 
-        const { code, out, err } = runWith(highOutput, path)
+        const { code, out, err } = runWith(highConfig, path)
 
         assert.equal(code, 1)
         assert.match(err, /^\[excecoes-invalidas\] /u)
@@ -596,7 +582,7 @@ describe('execução do auditor com exceções', () => {
     it('não aceita um High com arquivo inválido mesmo que a primeira entrada o cubra', () => {
         const path = exceptionsFile(fileText(validEntry(), validEntry({ expiresAt: 'amanhã' })))
 
-        const { code, err } = runWith(highOutput, path)
+        const { code, err } = runWith(highConfig, path)
 
         assert.equal(code, 1)
         assert.match(err, /^\[excecoes-invalidas\] /u)

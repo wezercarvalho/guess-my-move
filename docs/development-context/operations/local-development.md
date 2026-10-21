@@ -21,7 +21,7 @@ O repositório não tem workflow de CI por `push` em branches de trabalho; quem 
 
 Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. O gate remoto roda sempre o `yarn check:all` do escopo de código; o hook roda `check:static` por padrão para falhar rápido.
 
-**Auditoria de dependências.** Ela roda na sua máquina, não consome minutos de Actions e usa rede (consulta o registry). Vulnerabilidade High ou Critical barra o push e a saída do auditor aparece. Se o registry ou a rede falhar, o auditor imprime `registry-indisponivel` e diz que o problema não é vulnerabilidade: o hook só avisa, não barra, e informa que o `pr-gate` fará a verificação. A política está em [auditoria de dependências](../security/dependency-audit.md).
+**Auditoria de dependências.** Ela roda `yarn npm audit` na sua máquina (uma vez por ambiente, produção e tooling), não consome minutos de Actions e usa rede (consulta o registry). Vulnerabilidade High ou Critical barra o push e a saída do auditor aparece. Se o registry ou a rede falhar, o auditor imprime `registry-indisponivel` e diz que o problema não é vulnerabilidade: o hook só avisa, não barra, e informa que o `pr-gate` fará a verificação. A política está em [auditoria de dependências](../security/dependency-audit.md).
 
 **Requisito.** As dependências precisam estar instaladas. Sem `node_modules`, o hook barra o push e informa o comando (`yarn install --immutable`).
 

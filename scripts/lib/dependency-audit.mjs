@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { AuditFailure } from './dependency-audit-failure.mjs'
@@ -18,11 +17,11 @@ export const BYTES_PER_MIB = 1024 * 1024
 // Unidade: milissegundos por minuto.
 const MS_PER_MINUTE = 60 * 1000
 
-// O `yarn audit --json` excede o limite padrão de 1 MiB do spawnSync.
+// A saída do `yarn npm audit --json` pode passar do limite padrão de 1 MiB do spawnSync.
 // Unidade: bytes de stdout; acima dele o spawnSync encerra o processo (ENOBUFS).
 export const AUDIT_MAX_BUFFER_BYTES = 64 * BYTES_PER_MIB
 
-// Orçamento local para o `yarn audit` terminar, sem medição de cauda.
+// Orçamento local para o `yarn npm audit` terminar, sem medição de cauda.
 // Unidade: milissegundos; ao excedê-lo o spawnSync encerra o processo.
 export const AUDIT_TIMEOUT_MS = 5 * MS_PER_MINUTE
 
@@ -30,9 +29,25 @@ export const AUDIT_TIMEOUT_MS = 5 * MS_PER_MINUTE
 // Unidade: caracteres.
 export const STDERR_EXCERPT_MAX_CHARS = 500
 
-// Endpoint de auditoria que o Yarn 1 consulta; é fixo no código do Yarn, e o erro
-// de rede ou de HTTP o cita na mensagem.
-export const AUDIT_ENDPOINT_PATH = '/-/npm/v1/security/audits'
+// Endpoint de auditoria em lote que o Yarn 4 consulta; a mensagem de registry o cita para o
+// leitor, mas a classificação de falha de rede usa as assinaturas abaixo, não este caminho (o
+// stderr do Yarn 4 traz o stack do Node, sem o endpoint).
+export const AUDIT_ENDPOINT_PATH = '/-/npm/v1/security/advisories/bulk'
+
+// Assinaturas de falha de rede/registry no stderr do Yarn 4: o erro chega como stack do Node
+// (RequestError, HTTPError) ou como código de socket/DNS. Qualquer uma classifica a execução
+// como `registry-indisponivel` (retentável), distinta de `yarn-falhou`.
+const REGISTRY_ERROR_SIGNATURES = [
+    'RequestError',
+    'HTTPError',
+    'ECONNREFUSED',
+    'ENOTFOUND',
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'EAI_AGAIN',
+    'socket hang up',
+    'Response code',
+]
 
 const DEFAULT_PACKAGE_JSON_PATH = fileURLToPath(new URL('../../package.json', import.meta.url))
 const DEFAULT_EXCEPTIONS_PATH = fileURLToPath(
@@ -42,8 +57,8 @@ const DEFAULT_EXCEPTIONS_PATH = fileURLToPath(
 // Texto das versões que o Yarn não informa.
 const UNKNOWN_VERSION = 'desconhecida'
 
-// Separador dos itens da cadeia de dependência em `resolution.path`.
-const CHAIN_SEPARATOR = '>'
+// GHSA no caminho da URL do advisory: `/advisories/GHSA-xxxx-xxxx-xxxx`.
+const GHSA_FROM_URL = /\/advisories\/(GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4})/iu
 
 const severities = ['info', 'low', 'moderate', 'high', 'critical']
 
@@ -59,48 +74,34 @@ function isSeverity(value) {
     return severities.includes(value)
 }
 
-function isCount(value) {
-    return Number.isInteger(value) && value >= 0
-}
-
 function normalizeCounts(counts) {
     return Object.fromEntries(severities.map((severity) => [severity, counts?.[severity] ?? 0]))
 }
 
-// Percorre a saída uma vez: numera as linhas não vazias, valida cada registro e agrupa os
-// advisories. `productionRoots` são as chaves de `dependencies` do package.json; sem elas o
-// alcance não pode ser decidido e todo advisory vale como produção, a classificação mais
-// estrita.
-export function parseYarnAuditJson(output, { productionRoots } = {}) {
+// Percorre a saída NDJSON uma vez: numera as linhas não vazias, valida cada advisory e agrupa
+// por (id, pacote). `scope` ('produção' ou 'tooling') marca de qual execução por ambiente o
+// advisory veio; na deduplicação entre execuções, produção vence (ver `mergeReports`).
+export function parseYarnAuditJson(output, { scope = 'produção' } = {}) {
     const groups = new Map()
-    const errors = []
-    let summary
     let lineNumber = 0
 
     for (const line of output.split(/\r?\n/u)) {
         if (!line.trim()) continue
         lineNumber += 1
-        const entry = parseAuditLine(line, lineNumber)
-
-        if (entry.type === 'error') errors.push(String(entry.data))
-        else if (entry.type === 'auditAdvisory')
-            addToGroup(groups, readAdvisory(entry.data, lineNumber), productionRoots)
-        else if (entry.type === 'auditSummary') summary = readSummary(entry.data, lineNumber)
+        addToGroup(groups, readAdvisory(parseAuditLine(line, lineNumber), lineNumber), scope)
     }
 
     const advisories = [...groups.values()].map(toAuditAdvisory)
-    const counts = summary ?? countsFromAdvisories(advisories)
+    const counts = countsFromAdvisories(advisories)
 
-    if (summary === undefined && advisories.length === 0 && errors.length === 0) {
-        throw new AuditFailure(
-            'sem-dados',
-            'A saída do Yarn não tem resumo, advisory nem erro de auditoria.',
-        )
-    }
+    // Saída vazia é um relatório limpo, não uma falha: o Yarn 4 sai 0 e não imprime nada quando
+    // não há advisory.
+    return buildReport(advisories, counts)
+}
 
+function buildReport(advisories, counts) {
     return {
         counts,
-        errors,
         blockingTotal: counts.high + counts.critical,
         blockingAdvisories: advisories
             .filter((advisory) => isBlocking(advisory.severity))
@@ -109,38 +110,35 @@ export function parseYarnAuditJson(output, { productionRoots } = {}) {
     }
 }
 
-// O mesmo advisory chega uma vez por caminho da cadeia. Agrupa por identificador e pacote:
-// o mesmo GHSA pode valer para pacotes diferentes (como `vitest` e `@vitest/mocker`, com ids
-// numéricos distintos), e cada pacote precisa de um registro próprio. Marca como produção se
-// qualquer caminho nasce em `dependencies`, pois a flag `dev` do Yarn 1 não separa os dois
-// alcances.
-function addToGroup(groups, advisory, productionRoots) {
-    const root = advisory.path.split(CHAIN_SEPARATOR)[0]
-    const production = productionRoots === undefined || productionRoots.has(root)
-    const key = `${advisory.id}\u0000${advisory.details.module}`
-
+// Agrupa por (id, pacote): o mesmo advisory pode chegar por mais de um Dependent e o mesmo id
+// numérico do Yarn pode valer para pacotes diferentes, cada um com registro próprio.
+function addToGroup(groups, advisory, scope) {
+    const key = `${advisory.id}\u0000${advisory.module}`
     const group = groups.get(key) ?? {
         advisory,
         versions: new Set(),
-        paths: new Set(),
-        production: false,
+        dependents: new Set(),
+        scope,
     }
     for (const version of advisory.versions) group.versions.add(version)
-    group.paths.add(advisory.path)
-    group.production ||= production
+    for (const dependent of advisory.dependents) group.dependents.add(dependent)
+    // Produção vence tooling quando o mesmo par aparece nas duas execuções.
+    if (scope === 'produção') group.scope = 'produção'
     groups.set(key, group)
 }
 
-function toAuditAdvisory({ advisory, versions, paths, production }) {
+function toAuditAdvisory({ advisory, versions, dependents, scope }) {
     return {
         id: advisory.id,
-        ...advisory.details,
+        module: advisory.module,
+        title: advisory.title,
+        url: advisory.url,
         severity: advisory.severity,
-        scope: production ? 'produção' : 'tooling',
+        scope,
         installed: versions.size ? [...versions].join(', ') : UNKNOWN_VERSION,
         vulnerable: advisory.vulnerable,
-        patched: advisory.patched,
-        pathCount: paths.size,
+        patched: UNKNOWN_VERSION,
+        pathCount: dependents.size,
     }
 }
 
@@ -159,64 +157,57 @@ function parseAuditLine(line, lineNumber) {
     return entry
 }
 
-function readAdvisory(data, lineNumber) {
-    const advisory = isRecord(data) ? data.advisory : undefined
-    if (!isRecord(advisory)) throw unexpectedFormat(lineNumber, 'auditAdvisory sem data.advisory')
+// Lê uma linha `{"value": "<pacote>", "children": { ... }}` do `yarn npm audit --json`.
+function readAdvisory(entry, lineNumber) {
+    const module = entry.value
+    if (typeof module !== 'string' || !module)
+        throw unexpectedFormat(lineNumber, 'advisory sem value (nome do pacote)')
 
-    const { id, severity } = advisory
-    if (typeof id !== 'number') throw unexpectedFormat(lineNumber, 'advisory sem id numérico')
+    const children = entry.children
+    if (!isRecord(children)) throw unexpectedFormat(lineNumber, 'advisory sem children')
+
+    const id = children.ID
+    if (typeof id !== 'number') throw unexpectedFormat(lineNumber, 'advisory sem ID numérico')
+
+    const severity = children.Severity
     if (!isSeverity(severity))
         throw unexpectedFormat(lineNumber, 'advisory com severidade desconhecida')
 
-    const details = {
-        module: readText(advisory, 'module_name', lineNumber),
-        title: readText(advisory, 'title', lineNumber),
-        url: readText(advisory, 'url', lineNumber),
-    }
-    const path = isRecord(data.resolution) ? data.resolution.path : undefined
-    if (typeof path !== 'string' || !path)
-        throw unexpectedFormat(lineNumber, 'advisory sem resolution.path')
+    const url = readText(children, 'URL', lineNumber)
 
     return {
-        // O GHSA é estável entre execuções; o id numérico muda com a base.
-        id: readGithubId(advisory) ?? `npm-${id}`,
+        // O GHSA é estável entre execuções; o id numérico muda com a base do registry.
+        id: readGhsaFromUrl(url) ?? `npm-${id}`,
+        module,
+        title: readText(children, 'Issue', lineNumber),
+        url,
         severity,
-        details,
-        path,
-        versions: readInstalledVersions(advisory),
-        vulnerable: readOptionalText(advisory, 'vulnerable_versions'),
-        patched: readOptionalText(advisory, 'patched_versions'),
+        versions: readTreeVersions(children),
+        vulnerable: readOptionalText(children, 'Vulnerable Versions'),
+        dependents: readDependents(children),
     }
 }
 
-function readGithubId(advisory) {
-    const value = advisory.github_advisory_id
-    return typeof value === 'string' && value ? value : undefined
+function readGhsaFromUrl(url) {
+    const match = GHSA_FROM_URL.exec(url)
+    return match ? match[1] : undefined
 }
 
-function readInstalledVersions(advisory) {
-    const findings = Array.isArray(advisory.findings) ? advisory.findings : []
-    return findings.flatMap((finding) =>
-        isRecord(finding) && typeof finding.version === 'string' ? [finding.version] : [],
-    )
+function readTreeVersions(children) {
+    const value = children['Tree Versions']
+    if (!Array.isArray(value)) return []
+    return value.filter((version) => typeof version === 'string' && version)
+}
+
+function readDependents(children) {
+    const value = children.Dependents
+    if (!Array.isArray(value)) return []
+    return value.filter((dependent) => typeof dependent === 'string' && dependent)
 }
 
 function readOptionalText(record, field) {
     const value = record[field]
     return typeof value === 'string' && value ? value : UNKNOWN_VERSION
-}
-
-function readSummary(data, lineNumber) {
-    const vulnerabilities = isRecord(data) ? data.vulnerabilities : undefined
-    if (!isRecord(vulnerabilities))
-        throw unexpectedFormat(lineNumber, 'auditSummary sem vulnerabilities')
-
-    for (const severity of severities) {
-        const count = vulnerabilities[severity]
-        if (count !== undefined && !isCount(count))
-            throw unexpectedFormat(lineNumber, `auditSummary com contagem inválida em ${severity}`)
-    }
-    return normalizeCounts(vulnerabilities)
 }
 
 function readText(record, field, lineNumber) {
@@ -243,6 +234,24 @@ export function formatAuditSummary(report) {
     return severities.map((severity) => `${severity}=${counts[severity]}`).join(' ')
 }
 
+// Funde os relatórios das duas execuções por ambiente em um só: deduplica por (id, pacote), com
+// o advisory de produção vencendo o de tooling, e recalcula as contagens dos advisories únicos.
+export function mergeReports(production, tooling) {
+    const groups = new Map()
+    for (const advisory of [...production.advisories, ...tooling.advisories]) {
+        const key = `${advisory.id}\u0000${advisory.module}`
+        const current = groups.get(key)
+        if (current === undefined || (current.scope !== 'produção' && advisory.scope === 'produção'))
+            groups.set(key, advisory)
+    }
+    const advisories = [...groups.values()]
+    return buildReport(advisories, countsFromAdvisories(advisories))
+}
+
+// Executa uma vez o `yarn npm audit`, classifica as falhas de execução e devolve o relatório de
+// um ambiente. A ordem das checagens importa: erro de spawn e sinal antes da saída, falha de
+// rede antes do veredito, e só então o parse. A saída vazia com exit != 0 e sem assinatura de
+// rede é falha do próprio Yarn; a saída vazia com exit 0 é um relatório limpo.
 export function executeYarnAudit({
     command,
     args,
@@ -250,7 +259,7 @@ export function executeYarnAudit({
     env = process.env,
     maxBufferBytes = AUDIT_MAX_BUFFER_BYTES,
     timeoutMs = AUDIT_TIMEOUT_MS,
-    productionRoots,
+    scope = 'produção',
 }) {
     const result = spawnSync(command, args, {
         cwd,
@@ -271,9 +280,9 @@ export function executeYarnAudit({
         )
     }
 
-    // Falha de registry vem antes de classificar a saída: o erro pode chegar só pelo stderr
-    // e, no stdout, não deixa relatório utilizável.
-    const registryError = findRegistryError(result.stdout, result.stderr)
+    // Falha de registry vem antes de classificar a saída: o erro chega só pelo stderr (stack do
+    // Node) e no stdout não deixa relatório utilizável.
+    const registryError = findRegistryError(result.stderr)
     if (registryError !== undefined) {
         throw new AuditFailure(
             'registry-indisponivel',
@@ -281,65 +290,42 @@ export function executeYarnAudit({
         )
     }
 
-    try {
-        return parseYarnAuditJson(result.stdout, { productionRoots })
-    } catch (error) {
-        // O código de saída do Yarn só entra quando não há relatório: com um relatório
-        // válido, o veredito vem dele, pois o Yarn sai com código diferente de zero sempre
-        // que há advisories.
-        const withoutReport = error instanceof AuditFailure && error.category === 'sem-dados'
-        if (withoutReport && result.status !== 0) {
-            throw new AuditFailure(
-                'yarn-falhou',
-                `O Yarn terminou com código de saída ${result.status} sem relatório de auditoria. ${describeStderr(result.stderr)}`,
-            )
-        }
-        throw error
+    // Saída vazia com exit != 0 e sem assinatura de rede: o Yarn falhou sem emitir relatório. O
+    // Yarn sai com código diferente de zero quando há advisories, então uma saída vazia só é
+    // esperada no relatório limpo (exit 0).
+    if (!result.stdout.trim() && result.status !== 0) {
+        throw new AuditFailure(
+            'yarn-falhou',
+            `O Yarn terminou com código de saída ${result.status} sem relatório de auditoria. ${describeStderr(result.stderr)}`,
+        )
     }
+
+    return parseYarnAuditJson(result.stdout, { scope })
 }
 
-// Procura o erro do Yarn que cita o endpoint de auditoria: registro `error` no stdout ou no
-// stderr, ou texto puro no stderr. Um `warning` que cita o endpoint não é falha.
-function findRegistryError(stdout, stderr) {
-    return findEndpointError(stdout, false) ?? findEndpointError(stderr, true)
-}
-
-function findEndpointError(stream, acceptPlainText) {
-    for (const line of stream.split(/\r?\n/u)) {
-        if (!line.includes(AUDIT_ENDPOINT_PATH)) continue
-
-        const entry = parseJsonRecord(line)
-        if (entry === undefined) {
-            if (acceptPlainText) return line.trim()
-            continue
-        }
-        const data = entry.type === 'error' ? entry.data : undefined
-        if (typeof data === 'string' && data.includes(AUDIT_ENDPOINT_PATH))
-            return data.split(/\r?\n/u)[0]
+// Procura, no stderr do Yarn 4, uma das assinaturas de falha de rede/registry. Devolve o trecho
+// da primeira linha que casa, ou `undefined` quando nenhuma assinatura aparece.
+function findRegistryError(stderr) {
+    for (const line of stderr.split(/\r?\n/u)) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        if (REGISTRY_ERROR_SIGNATURES.some((signature) => trimmed.includes(signature)))
+            return trimmed
     }
     return undefined
-}
-
-function parseJsonRecord(line) {
-    try {
-        const entry = JSON.parse(line)
-        return isRecord(entry) ? entry : undefined
-    } catch {
-        return undefined
-    }
 }
 
 function classifySpawnError(error, maxBufferBytes, timeoutMs) {
     if (error.code === 'ENOBUFS') {
         return new AuditFailure(
             'limite-de-saida',
-            `A saída do yarn audit excedeu o limite de ${describeBytes(maxBufferBytes)}.`,
+            `A saída do yarn npm audit excedeu o limite de ${describeBytes(maxBufferBytes)}.`,
         )
     }
     if (error.code === 'ETIMEDOUT') {
         return new AuditFailure(
             'timeout',
-            `O yarn audit excedeu o timeout de ${timeoutMs} ms e foi interrompido.`,
+            `O yarn npm audit excedeu o timeout de ${timeoutMs} ms e foi interrompido.`,
         )
     }
     return new AuditFailure('yarn-nao-iniciou', `Não foi possível iniciar o Yarn: ${error.message}`)
@@ -368,7 +354,9 @@ export function run(yarnCli, output = process, options = {}) {
 }
 
 function runAudit(yarnCli, output, options) {
-    if (!yarnCli || !/yarn(?:\.js)?$/iu.test(yarnCli)) {
+    // O Yarn 4 define npm_execpath apontando para o yarn.js do Corepack (ou um wrapper temporário
+    // que termina em `/yarn`). Aceita `yarn`, `yarn.js` e `yarn.cjs`.
+    if (!yarnCli || !/yarn(?:\.c?js)?$/iu.test(yarnCli)) {
         output.stderr.write('Execute security:dependencies por meio do Yarn.\n')
         return 1
     }
@@ -382,12 +370,30 @@ function runAudit(yarnCli, output, options) {
     // Arquivo de exceções inválido derruba a execução antes de qualquer consulta: nenhuma
     // exceção vale por engano.
     const exceptions = loadExceptions(exceptionsPath)
-    const report = executeYarnAudit({
-        command: process.execPath,
-        args: [yarnCli, 'audit', '--json'],
-        cwd: dirname(packageJsonPath),
-        productionRoots: readProductionRoots(packageJsonPath),
+
+    const cwd = dirname(packageJsonPath)
+    // O Corepack expõe o npm_execpath como um shim executável (um wrapper `sh` que chama o
+    // yarn.js) ou, conforme a instalação, como o próprio `yarn.js`/`yarn.cjs`. Um arquivo JS
+    // roda por `node`; o shim executável roda direto como comando.
+    const isJsEntry = /\.c?js$/iu.test(yarnCli)
+    const command = isJsEntry ? process.execPath : yarnCli
+    const prefix = isJsEntry ? [yarnCli] : []
+    const baseArgs = [...prefix, 'npm', 'audit', '--all', '--recursive', '--json']
+    // Alcance vem do Yarn: produção = dependências de produção; tooling = dependências de
+    // desenvolvimento. Deduplicação entre as duas execuções com produção vencendo.
+    const production = executeYarnAudit({
+        command,
+        args: [...baseArgs, '--environment', 'production'],
+        cwd,
+        scope: 'produção',
     })
+    const tooling = executeYarnAudit({
+        command,
+        args: [...baseArgs, '--environment', 'development'],
+        cwd,
+        scope: 'tooling',
+    })
+    const report = mergeReports(production, tooling)
 
     const blocking = report.advisories.filter(({ severity }) => isBlocking(severity))
     const evaluation = evaluateExceptions(exceptions, blocking, now)
@@ -399,16 +405,7 @@ function runAudit(yarnCli, output, options) {
     writeExceptions(output, evaluation)
     output.stdout.write(`Auditoria de dependências: ${formatAuditSummary(report)}\n`)
 
-    if (report.errors.length) {
-        throw new AuditFailure(
-            'erros-do-yarn',
-            `O Yarn reportou erro(s): ${report.errors.join('; ')}`,
-        )
-    }
-
-    // Um resumo com High/Critical sem advisory que o explique não pode ser coberto por
-    // exceção: segue bloqueando.
-    const blockingTotal = blocking.length ? effective.length : report.blockingTotal
+    const blockingTotal = effective.length
     if (blockingTotal > 0) {
         output.stderr.write(
             `Auditoria bloqueada por ${blockingTotal} vulnerabilidade(s) High/Critical.\n`,
@@ -422,94 +419,6 @@ function runAudit(yarnCli, output, options) {
     return 0
 }
 
-// Raízes de cadeia que contam como produção: a UNIÃO das `dependencies` do manifesto da raiz com
-// as `dependencies` de cada workspace. As `devDependencies` (raiz e workspaces) seguem como
-// tooling. Em um monorepo, as dependências de produção vivem nos pacotes (apps/, packages/), não
-// na raiz; ignorá-las classificaria toda a produção como tooling e enfraqueceria a política.
-export function readProductionRoots(packageJsonPath) {
-    const rootDir = dirname(packageJsonPath)
-    const manifest = readManifest(packageJsonPath)
-
-    // A raiz DEVE declarar o objeto `dependencies`, mesmo vazio (política do auditor).
-    if (!isRecord(manifest.dependencies))
-        throw new Error(`O package.json em ${packageJsonPath} não tem o objeto "dependencies".`)
-
-    const roots = new Set(Object.keys(manifest.dependencies))
-    for (const workspaceDir of resolveWorkspaceDirs(rootDir, manifest.workspaces)) {
-        const workspaceManifest = readOptionalManifest(join(workspaceDir, 'package.json'))
-        if (workspaceManifest && isRecord(workspaceManifest.dependencies)) {
-            for (const name of Object.keys(workspaceManifest.dependencies)) roots.add(name)
-        }
-    }
-    return roots
-}
-
-function readManifest(manifestPath) {
-    try {
-        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-        if (!isRecord(manifest)) throw new Error('o conteúdo não é um objeto JSON')
-        return manifest
-    } catch (error) {
-        throw new Error(
-            `Não foi possível ler o package.json em ${manifestPath}: ${error.message}`,
-        )
-    }
-}
-
-// Lê o package.json de um workspace, tolerando sua ausência: um padrão declarado sem pacote no
-// disco é ignorado (não inventa raízes nem derruba a auditoria). JSON corrompido ainda falha.
-function readOptionalManifest(manifestPath) {
-    let content
-    try {
-        content = readFileSync(manifestPath, 'utf8')
-    } catch {
-        return undefined
-    }
-    try {
-        const manifest = JSON.parse(content)
-        if (!isRecord(manifest)) throw new Error('o conteúdo não é um objeto JSON')
-        return manifest
-    } catch (error) {
-        throw new Error(
-            `Não foi possível ler o package.json em ${manifestPath}: ${error.message}`,
-        )
-    }
-}
-
-// Resolve os padrões de `workspaces` (Yarn 1) em diretórios existentes. Aceita um caminho exato
-// (`apps/web`) e um glob simples de um nível (`apps/*`); normaliza o formato objeto
-// `{ packages: [...] }`. Padrões não resolvidos são ignorados, sem inventar raízes.
-function resolveWorkspaceDirs(rootDir, workspaces) {
-    const patterns = Array.isArray(workspaces)
-        ? workspaces
-        : isRecord(workspaces) && Array.isArray(workspaces.packages)
-          ? workspaces.packages
-          : []
-    const dirs = new Set()
-    for (const pattern of patterns) {
-        if (typeof pattern !== 'string' || !pattern) continue
-        if (pattern.endsWith('/*')) {
-            const parent = join(rootDir, pattern.slice(0, -2))
-            for (const entry of readChildDirectories(parent)) dirs.add(entry)
-        } else {
-            dirs.add(join(rootDir, pattern))
-        }
-    }
-    return [...dirs]
-}
-
-function readChildDirectories(parent) {
-    let entries
-    try {
-        entries = readdirSync(parent, { withFileTypes: true })
-    } catch {
-        return []
-    }
-    return entries
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => join(parent, entry.name))
-}
-
 function writeAdvisories(output, report, effective) {
     for (const advisory of effective) {
         output.stderr.write(
@@ -518,7 +427,7 @@ function writeAdvisories(output, report, effective) {
     }
     for (const advisory of report.advisories) {
         if (isBlocking(advisory.severity)) continue
-        const paths = `${advisory.pathCount} ${advisory.pathCount === 1 ? 'caminho' : 'caminhos'}`
+        const paths = `${advisory.pathCount} ${advisory.pathCount === 1 ? 'dependente' : 'dependentes'}`
         output.stdout.write(
             `[informativo] ${advisory.module} ${advisory.installed} ${advisory.severity} ${advisory.scope} ${advisory.id} — ${advisory.title} (${paths})\n`,
         )
