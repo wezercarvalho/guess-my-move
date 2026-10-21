@@ -5,6 +5,7 @@
  * trata um palpite correto como prova visual de execução.
  */
 import type { CapturedFrame, GuesserInput, GuesserResult } from '../contracts.js'
+import { RejectedGuesses } from '../guesser/index.js'
 import { judgeWithFallback } from '../referee/index.js'
 import type {
     AttemptOutcome,
@@ -14,11 +15,6 @@ import type {
     RoundConfig,
     RoundState,
 } from './types.js'
-
-/** Normaliza um palpite para deduplicar o histórico de rejeitados. */
-function normalizeGuess(guess: string): string {
-    return guess.trim().replace(/\s+/g, ' ').toLowerCase()
-}
 
 /**
  * Executa a promessa do provedor com um timeout opcional. Rejeita com um erro
@@ -54,8 +50,7 @@ class RoundMachine implements Round {
     private readonly clock: Clock
     private readonly startedAt: number
     private readonly attemptLog: RoundAttempt[] = []
-    private readonly rejected: string[] = []
-    private readonly rejectedSeen = new Set<string>()
+    private readonly rejected = new RejectedGuesses()
 
     constructor(config: RoundConfig) {
         if (config.maxAttempts < 1) {
@@ -84,7 +79,7 @@ class RoundMachine implements Round {
     }
 
     get rejectedGuesses(): readonly string[] {
-        return this.rejected
+        return this.rejected.toArray()
     }
 
     revealCard(): void {
@@ -212,16 +207,14 @@ class RoundMachine implements Round {
 
     /** Monta a entrada do adivinhador: frames + rejeitados, nunca a carta. */
     private buildInput(frames: CapturedFrame[]): GuesserInput {
-        return this.rejected.length > 0
-            ? { frames, rejectedGuesses: [...this.rejected] }
+        const rejectedGuesses = this.rejected.toArray()
+        return rejectedGuesses.length > 0
+            ? { frames, rejectedGuesses }
             : { frames }
     }
 
     private recordRejected(guess: string): void {
-        const key = normalizeGuess(guess)
-        if (key === '' || this.rejectedSeen.has(key)) return
-        this.rejectedSeen.add(key)
-        this.rejected.push(guess)
+        this.rejected.add(guess)
     }
 
     private isTimeExhausted(): boolean {
