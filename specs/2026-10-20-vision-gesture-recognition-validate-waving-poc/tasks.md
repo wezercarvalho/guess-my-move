@@ -35,8 +35,8 @@
 
 ## Fase 5 — Câmera (issue #4)
 
-- [ ] T015 [US-001] [FR-001] Escrever teste falhando de consentimento, preview, indicador e parada da câmera em `apps/web` (issue #4)
-- [ ] T016 [US-001] [FR-001] Implementar a câmera com tratamento de permissão negada e nenhuma requisição ao modelo quando negada (issue #4)
+- [x] T015 [US-001] [FR-001] Escrever teste falhando de consentimento, preview, indicador e parada da câmera em `apps/web` (issue #4)
+- [x] T016 [US-001] [FR-001] Implementar a câmera com tratamento de permissão negada e nenhuma requisição ao modelo quando negada (issue #4)
 
 ## Fase 6 — Captura de frames (issue #5)
 
