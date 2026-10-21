@@ -40,9 +40,9 @@
 
 ## Fase 6 — Captura de frames (issue #5)
 
-- [ ] T017 [US-001] [FR-002] Escrever teste falhando de captura de janela ordenada com `timestampMs` e limites (issue #5)
-- [ ] T018 [US-001] [FR-002] Implementar captura com limites de quantidade/resolução/tamanho e descarte após o uso, sem persistir nem logar (issue #5)
-- [ ] T019 [US-001] [FR-011] Avisar o jogador de que os frames são enviados a um provedor externo (issue #5)
+- [x] T017 [US-001] [FR-002] Escrever teste falhando de captura de janela ordenada com `timestampMs` e limites (issue #5)
+- [x] T018 [US-001] [FR-002] Implementar captura com limites de quantidade/resolução/tamanho e descarte após o uso, sem persistir nem logar (issue #5)
+- [x] T019 [US-001] [FR-011] Avisar o jogador de que os frames são enviados a um provedor externo (issue #5)
 
 ## Fase 7 — Interface de estados (issue #9)
 
