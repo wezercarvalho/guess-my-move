@@ -15,9 +15,9 @@
 
 ## Fase 2 — Contrato da carta (issue #11, pré-requisito vindo da Parte B)
 
-- [ ] T004 [US-002] [FR-007] Escrever teste falhando que separa `public` de `evaluation` e impede `evaluation` de cruzar a fronteira do adivinhador em `packages/core` (issue #11)
-- [ ] T005 [US-002] [FR-007] Implementar `Card = { id, locale, public, evaluation }` com validação de schema e a carta Acenar (issue #11)
-- [ ] T006 [US-002] [FR-007] Confirmar teste direcionado passando e adicionar nova carta sem alterar o motor (issue #11)
+- [x] T004 [US-002] [FR-007] Escrever teste falhando que separa `public` de `evaluation` e impede `evaluation` de cruzar a fronteira do adivinhador em `packages/core` (issue #11)
+- [x] T005 [US-002] [FR-007] Implementar `Card = { id, locale, public, evaluation }` com validação de schema e a carta Acenar (issue #11)
+- [x] T006 [US-002] [FR-007] Confirmar teste direcionado passando e adicionar nova carta sem alterar o motor (issue #11)
 
 ## Fase 3 — API e provedor simulado (issue #6)
 

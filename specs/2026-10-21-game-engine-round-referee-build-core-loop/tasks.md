@@ -9,14 +9,14 @@
 
 ## Fase 1 — Setup do pacote
 
-- [ ] T001 [FR-001] Criar o pacote `packages/core` TypeScript puro (sem framework, sem I/O) com Vitest e scripts de build/test (issue #11)
+- [x] T001 [FR-001] Criar o pacote `packages/core` TypeScript puro (sem framework, sem I/O) com Vitest e scripts de build/test (issue #11)
 
 ## Fase 2 — Carta e fronteira (issue #11)
 
-- [ ] T002 [US-001] [FR-001] Escrever teste falhando de `Card = { id, locale, public, evaluation }` com acesso separado em `packages/core/src/card` (issue #11)
-- [ ] T003 [US-001] [FR-002] Implementar o schema da carta, validação e a carta Acenar em JSON/TypeScript (issue #11)
-- [ ] T004 [US-001] [FR-003] Escrever teste de fronteira que falha se `evaluation` cruzar o caminho do adivinhador (issue #11)
-- [ ] T005 [US-001] [FR-003] Implementar a separação que mantém `evaluation` fora do adivinhador e confirmar os testes verdes (issue #11)
+- [x] T002 [US-001] [FR-001] Escrever teste falhando de `Card = { id, locale, public, evaluation }` com acesso separado em `packages/core/src/card` (issue #11)
+- [x] T003 [US-001] [FR-002] Implementar o schema da carta, validação e a carta Acenar em JSON/TypeScript (issue #11)
+- [x] T004 [US-001] [FR-003] Escrever teste de fronteira que falha se `evaluation` cruzar o caminho do adivinhador (issue #11)
+- [x] T005 [US-001] [FR-003] Implementar a separação que mantém `evaluation` fora do adivinhador e confirmar os testes verdes (issue #11)
 
 ## Fase 3 — Árbitro semântico determinístico (issue #13)
 
