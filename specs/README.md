@@ -19,6 +19,7 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Specs
 
-| ID                                                                                                                               | Estado  | Resumo                                                                                                           |
-| -------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| [`2026-10-20-vision-gesture-recognition-validate-waving-poc`](2026-10-20-vision-gesture-recognition-validate-waving-poc/spec.md) | `draft` | PoC visual (Fase 0): validar se um modelo multimodal gerenciado reconhece "acenar" a partir de frames da webcam. |
+| ID                                                                                                                               | Estado         | Resumo                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| [`2026-10-20-vision-gesture-recognition-validate-waving-poc`](2026-10-20-vision-gesture-recognition-validate-waving-poc/spec.md) | `implementing` | PoC visual (Fase 0): validar se um modelo multimodal gerenciado reconhece "acenar" a partir de frames da webcam.  |
+| [`2026-10-21-game-engine-round-referee-build-core-loop`](2026-10-21-game-engine-round-referee-build-core-loop/spec.md)           | `implementing` | Núcleo do jogo: carta pública/privada, máquina de estados da rodada, árbitro semântico e histórico de rejeitados. |
