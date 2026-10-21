@@ -30,8 +30,8 @@
 
 ## Fase 4 — Fronteira de informação (issue #8)
 
-- [ ] T013 [US-002] [FR-007] Escrever teste de fronteira que falha se palavra, dica, sugestão, resposta canônica, aliases ou critérios entrarem no payload/prompt (issue #8)
-- [ ] T014 [US-002] [SC-002] Demonstrar que o teste passa e falha ao adicionar um campo da carta ao payload (issue #8)
+- [x] T013 [US-002] [FR-007] Escrever teste de fronteira que falha se palavra, dica, sugestão, resposta canônica, aliases ou critérios entrarem no payload/prompt (issue #8)
+- [x] T014 [US-002] [SC-002] Demonstrar que o teste passa e falha ao adicionar um campo da carta ao payload (issue #8)
 
 ## Fase 5 — Câmera (issue #4)
 
