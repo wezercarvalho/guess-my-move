@@ -4,6 +4,8 @@
 
 > **Aviso de evidência.** Este documento separa o que está **[DOCUMENTADO]** (página oficial, com URL e data de verificação), o que é **[ESTIMADO]** (cálculo nosso a partir de dados documentados, com premissas explícitas) e o que está **[NÃO VERIFICADO]** (precisa de teste empírico ou leitura de página no momento da implementação). **Não existe nenhuma medição de acurácia ou latência neste documento**: capacidade anunciada não é desempenho comprovado. As notas de 1 a 5 de reconhecimento visual e de latência são **provisórias** até o benchmark da seção 11. IDs de modelo e preços mudam com frequência (vários modelos citados foram lançados há semanas) e DEVEM ser relidos antes de codificar.
 
+> **Atualização de escopo (2026-10-21).** Para a PoC, o primeiro provedor real passa a ser o **Codex CLI com `gpt-6-luna`**, usado só em desenvolvimento local e no benchmark, sem configurar AWS. O Bedrock (Haiku 5.5 e Nova 2 Lite) permanece como candidato de produção e segue válido nas seções abaixo, mas **não é mais pré-requisito da PoC**. O `gpt-6-luna` aceita texto e imagem, sem vídeo nativo, com esforço de raciocínio de `none` a `max` **[DOCUMENTADO, página do modelo na OpenAI, 2026-10-21]**; acurácia, latência, limites de imagens no Codex CLI, política de dados e termos de uso da assinatura continuam **[NÃO VERIFICADOS]**. A latência medida via CLI não representa a produção. Detalhes em [`specs/2026-10-20-vision-gesture-recognition-validate-waving-poc/spec.md`](../../specs/2026-10-20-vision-gesture-recognition-validate-waving-poc/spec.md).
+
 ## 1. Resumo executivo
 
 - **Problema central:** 4 a 8 frames de webcam, ordenados, entram num modelo que devolve **um** palpite curto e estruturado. Isso é um problema de **múltiplas imagens**, não de vídeo: na janela de 2 a 3 s, o vídeo nativo com amostragem padrão de 1 FPS (Nova 2 e Gemini) entregaria só 2 a 3 frames, menos do que enviaríamos como imagens.
@@ -23,14 +25,14 @@
 
 A distinção importa: **imagem única**, **múltiplas imagens** e **vídeo nativo** não são equivalentes.
 
-| Candidato | Entrada | Vídeo nativo | Imagens por requisição | Tokens por imagem |
-| --- | --- | --- | --- | --- |
-| **Claude Haiku 5.5** (Bedrock) | Imagem + texto | **Não** (a página do modelo marca vídeo como não suportado) | 100 por requisição (modelos de 200k) ou 600 nos demais; acima de 20 imagens vale um limite de dimensão mais estrito; imagem de até 5 MB em base64 no Bedrock | **⌈L/28⌉ × ⌈A/28⌉** (patches de 28 px); ex.: 640×480 = 414 tokens |
-| **Nova 2 Lite** (Bedrock) | Imagem + vídeo + texto | **Sim** (1 FPS, sem áudio; bytes até 25 MB ou S3 até 1 GB) | Até 5 embutidas na requisição ou até 1.000 via S3 | **230 tokens fixos** por imagem; redimensiona acima de 896 px |
-| **Qwen3 VL 235B A22B** (Bedrock) | Imagem + texto (vídeo: **[NÃO VERIFICADO]** na Converse) | O fabricante destaca "video dynamics"; vale na Bedrock apenas após leitura do card | **[NÃO VERIFICADO]** | **[NÃO VERIFICADO]** |
-| **Gemini 3.5 Flash-Lite** | Imagem + vídeo + texto | **Sim** (1 FPS padrão; fps e recorte configuráveis) | Até 3.600 (20 MB no total se embutidas) | **258 tokens** se ≤ 384 px; acima disso, tiles de 768 px a 258 tokens cada |
-| **GPT-6 Luna** (OpenAI) | Imagem + texto | **Não documentado** na API de visão (só múltiplas imagens) | Até 1.500, 512 MB por requisição | Patches de 32 px × multiplicador (1,2 para a família); `detail: low` cabe em 512×512 |
-| **SmolVLM2** (open-source) | Imagem + vídeo | Sim | Depende do runtime | Depende do runtime |
+| Candidato                        | Entrada                                                  | Vídeo nativo                                                                       | Imagens por requisição                                                                                                                                       | Tokens por imagem                                                                    |
+| -------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| **Claude Haiku 5.5** (Bedrock)   | Imagem + texto                                           | **Não** (a página do modelo marca vídeo como não suportado)                        | 100 por requisição (modelos de 200k) ou 600 nos demais; acima de 20 imagens vale um limite de dimensão mais estrito; imagem de até 5 MB em base64 no Bedrock | **⌈L/28⌉ × ⌈A/28⌉** (patches de 28 px); ex.: 640×480 = 414 tokens                    |
+| **Nova 2 Lite** (Bedrock)        | Imagem + vídeo + texto                                   | **Sim** (1 FPS, sem áudio; bytes até 25 MB ou S3 até 1 GB)                         | Até 5 embutidas na requisição ou até 1.000 via S3                                                                                                            | **230 tokens fixos** por imagem; redimensiona acima de 896 px                        |
+| **Qwen3 VL 235B A22B** (Bedrock) | Imagem + texto (vídeo: **[NÃO VERIFICADO]** na Converse) | O fabricante destaca "video dynamics"; vale na Bedrock apenas após leitura do card | **[NÃO VERIFICADO]**                                                                                                                                         | **[NÃO VERIFICADO]**                                                                 |
+| **Gemini 3.5 Flash-Lite**        | Imagem + vídeo + texto                                   | **Sim** (1 FPS padrão; fps e recorte configuráveis)                                | Até 3.600 (20 MB no total se embutidas)                                                                                                                      | **258 tokens** se ≤ 384 px; acima disso, tiles de 768 px a 258 tokens cada           |
+| **GPT-6 Luna** (OpenAI)          | Imagem + texto                                           | **Não documentado** na API de visão (só múltiplas imagens)                         | Até 1.500, 512 MB por requisição                                                                                                                             | Patches de 32 px × multiplicador (1,2 para a família); `detail: low` cabe em 512×512 |
+| **SmolVLM2** (open-source)       | Imagem + vídeo                                           | Sim                                                                                | Depende do runtime                                                                                                                                           | Depende do runtime                                                                   |
 
 Fontes: [card do Claude Haiku 5.5](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html), [card do Nova 2 Lite](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-2-lite.html), [guia de visão do Claude](https://platform.claude.com/docs/en/build-with-claude/vision), [multimodal do Nova 2](https://docs.aws.amazon.com/nova/latest/nova2-userguide/using-multimodal-models.html), [imagens do Gemini](https://ai.google.dev/gemini-api/docs/image-understanding), [vídeo do Gemini](https://ai.google.dev/gemini-api/docs/video-understanding), [imagens e visão da OpenAI](https://developers.openai.com/api/docs/guides/images-vision), [SmolVLM2](https://huggingface.co/blog/smolvlm2). Verificado em 2026-10-20.
 
@@ -38,16 +40,16 @@ Fontes: [card do Claude Haiku 5.5](https://docs.aws.amazon.com/bedrock/latest/us
 
 ## 4. Desempenho
 
-| Aspecto | O que está documentado | O que exige teste empírico |
-| --- | --- | --- |
-| Latência / tempo até a primeira resposta | Só posicionamento qualitativo ("mais rápido", "baixa latência"). **Nenhum provedor publica milissegundos para este caso.** | Mediana e p95 por modelo, com 4 x 6 x 8 frames e 512 x 768 px. |
-| Camadas de serviço (Bedrock) | **Nova 2 Lite:** Standard, **Priority** e **Flex**. **Claude Haiku 5.5:** só **Standard**. Nova Lite v1: só Standard. | Ganho real do Priority. |
-| Prêmio do Priority | Na lista de preços, Nova 2.0 Lite e Pro cobram **1,75×** o preço Standard em Priority (ex.: entrada de US$ 0,525 contra US$ 0,30 por 1M tokens) **[ESTIMADO a partir da lista]**. | Se compensa. |
-| Streaming | `ConverseStream` existe; para um JSON de poucas dezenas de tokens traz pouco valor. | Não necessário na PoC. |
-| Raciocínio | **Haiku 5.5:** raciocínio adaptativo **ligado por padrão**, pode ser desligado; **desligue** para latência. **Nova 2 Lite:** desligado por padrão. **Gemini:** use `thinking_level: minimal`. | Efeito na acurácia e no custo de saída. |
-| Limites de taxa | Cotas padrão por conta e região (Bedrock), tiers Build/Launch/Grow (OpenAI: Luna 2M TPM no Build). | Cotas reais da conta do projeto no Service Quotas **[NÃO VERIFICADO]**. |
-| Região | Haiku 5.5 em `sa-east-1` só pelo perfil **global**; **Nova 2 Lite não aparece em `sa-east-1`**. | RTT do Brasil para `us-east-1` / `us-west-2`. |
-| Tempo quase real | Não há promessa de tempo real: a PoC trabalha por janelas de captura e respostas assíncronas, como no `PROJECT_SPEC.md`. | Percepção de espera do jogador. |
+| Aspecto                                  | O que está documentado                                                                                                                                                                        | O que exige teste empírico                                              |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Latência / tempo até a primeira resposta | Só posicionamento qualitativo ("mais rápido", "baixa latência"). **Nenhum provedor publica milissegundos para este caso.**                                                                    | Mediana e p95 por modelo, com 4 x 6 x 8 frames e 512 x 768 px.          |
+| Camadas de serviço (Bedrock)             | **Nova 2 Lite:** Standard, **Priority** e **Flex**. **Claude Haiku 5.5:** só **Standard**. Nova Lite v1: só Standard.                                                                         | Ganho real do Priority.                                                 |
+| Prêmio do Priority                       | Na lista de preços, Nova 2.0 Lite e Pro cobram **1,75×** o preço Standard em Priority (ex.: entrada de US$ 0,525 contra US$ 0,30 por 1M tokens) **[ESTIMADO a partir da lista]**.             | Se compensa.                                                            |
+| Streaming                                | `ConverseStream` existe; para um JSON de poucas dezenas de tokens traz pouco valor.                                                                                                           | Não necessário na PoC.                                                  |
+| Raciocínio                               | **Haiku 5.5:** raciocínio adaptativo **ligado por padrão**, pode ser desligado; **desligue** para latência. **Nova 2 Lite:** desligado por padrão. **Gemini:** use `thinking_level: minimal`. | Efeito na acurácia e no custo de saída.                                 |
+| Limites de taxa                          | Cotas padrão por conta e região (Bedrock), tiers Build/Launch/Grow (OpenAI: Luna 2M TPM no Build).                                                                                            | Cotas reais da conta do projeto no Service Quotas **[NÃO VERIFICADO]**. |
+| Região                                   | Haiku 5.5 em `sa-east-1` só pelo perfil **global**; **Nova 2 Lite não aparece em `sa-east-1`**.                                                                                               | RTT do Brasil para `us-east-1` / `us-west-2`.                           |
+| Tempo quase real                         | Não há promessa de tempo real: a PoC trabalha por janelas de captura e respostas assíncronas, como no `PROJECT_SPEC.md`.                                                                      | Percepção de espera do jogador.                                         |
 
 ## 5. Custo
 
@@ -61,16 +63,16 @@ Fontes: [card do Claude Haiku 5.5](https://docs.aws.amazon.com/bedrock/latest/us
 
 ### 5.2 Resultado
 
-| Modelo | US$/1M entrada / saída | Tokens de entrada | Custo por tentativa | 1 sessão (2 tent.) | 100 sessões | 1.000 sessões | 10.000 sessões |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| GPT-6 Luna | 0,10 / 0,50 | 1.636 | US$ 0,00018 | US$ 0,00037 | US$ 0,04 | US$ 0,37 | US$ 3,67 |
-| **Claude Haiku 5.5** (Bedrock) | 0,10 / 0,50 | 2.734 | **US$ 0,00029** | **US$ 0,00059** | **US$ 0,06** | **US$ 0,59** | **US$ 5,87** |
-| Nova Lite v1 (Bedrock) \* | 0,06 / 0,24 | ~3.250 \* | US$ 0,00021 | US$ 0,00041 | US$ 0,04 | US$ 0,41 | US$ 4,09 |
-| **Nova 2 Lite** (Bedrock) | 0,30 / 2,50 | 1.630 | **US$ 0,00059** | **US$ 0,00118** | **US$ 0,12** | **US$ 1,18** | **US$ 11,78** |
-| Gemini 3.5 Flash-Lite | 0,30 / 2,50 | 1.798 | US$ 0,00064 | US$ 0,00128 | US$ 0,13 | US$ 1,28 | US$ 12,79 |
-| Qwen3 VL 235B (Bedrock) \* | 0,53 / 2,66 | ~2.734 \* | US$ 0,00156 | US$ 0,00311 | US$ 0,31 | US$ 3,11 | US$ 31,11 |
-| Nova 2 Pro (Bedrock) | 1,25 / 10,00 | 1.630 | US$ 0,00244 | US$ 0,00487 | US$ 0,49 | US$ 4,88 | US$ 48,75 |
-| Claude Sonnet 4.6 (Bedrock) | 3,00 / 15,00 | 2.734 | US$ 0,00880 | US$ 0,01760 | US$ 1,76 | US$ 17,60 | US$ 176,04 |
+| Modelo                         | US$/1M entrada / saída | Tokens de entrada | Custo por tentativa | 1 sessão (2 tent.) | 100 sessões  | 1.000 sessões | 10.000 sessões |
+| ------------------------------ | ---------------------- | ----------------- | ------------------- | ------------------ | ------------ | ------------- | -------------- |
+| GPT-6 Luna                     | 0,10 / 0,50            | 1.636             | US$ 0,00018         | US$ 0,00037        | US$ 0,04     | US$ 0,37      | US$ 3,67       |
+| **Claude Haiku 5.5** (Bedrock) | 0,10 / 0,50            | 2.734             | **US$ 0,00029**     | **US$ 0,00059**    | **US$ 0,06** | **US$ 0,59**  | **US$ 5,87**   |
+| Nova Lite v1 (Bedrock) \*      | 0,06 / 0,24            | ~3.250 \*         | US$ 0,00021         | US$ 0,00041        | US$ 0,04     | US$ 0,41      | US$ 4,09       |
+| **Nova 2 Lite** (Bedrock)      | 0,30 / 2,50            | 1.630             | **US$ 0,00059**     | **US$ 0,00118**    | **US$ 0,12** | **US$ 1,18**  | **US$ 11,78**  |
+| Gemini 3.5 Flash-Lite          | 0,30 / 2,50            | 1.798             | US$ 0,00064         | US$ 0,00128        | US$ 0,13     | US$ 1,28      | US$ 12,79      |
+| Qwen3 VL 235B (Bedrock) \*     | 0,53 / 2,66            | ~2.734 \*         | US$ 0,00156         | US$ 0,00311        | US$ 0,31     | US$ 3,11      | US$ 31,11      |
+| Nova 2 Pro (Bedrock)           | 1,25 / 10,00           | 1.630             | US$ 0,00244         | US$ 0,00487        | US$ 0,49     | US$ 4,88      | US$ 48,75      |
+| Claude Sonnet 4.6 (Bedrock)    | 3,00 / 15,00           | 2.734             | US$ 0,00880         | US$ 0,01760        | US$ 1,76     | US$ 17,60     | US$ 176,04     |
 
 \* tokens por imagem estimados. Todas as linhas são **[ESTIMADO]** com preço **[DOCUMENTADO]**: a lista de preços da AWS é de 2026-10-12/16; os demais preços vêm das páginas oficiais em 2026-10-20 (Luna: [preços da OpenAI](https://developers.openai.com/api/docs/pricing); Gemini: [preços do Gemini](https://ai.google.dev/gemini-api/docs/pricing)). O Claude Haiku 5.5 é cobrado via **AWS Marketplace** (a cobrança aparece sob o provedor do modelo, não sob "Bedrock") e prompts acima de 100k tokens têm tarifa maior, irrelevante aqui.
 
@@ -82,15 +84,15 @@ Fontes: [card do Claude Haiku 5.5](https://docs.aws.amazon.com/bedrock/latest/us
 
 ## 6. Experiência do desenvolvedor (React + Vite + TypeScript + Node.js)
 
-| Critério | Bedrock (Claude Haiku 5.5 / Nova 2 Lite) | Gemini | OpenAI |
-| --- | --- | --- | --- |
-| SDK TypeScript | `@aws-sdk/client-bedrock-runtime` (v3), `ConverseCommand`; imagem como bytes. **[DOCUMENTADO]** | `@google/genai` (API de Interações mais recente; muda a forma do código). | Pacote `openai`; imagem como data URL base64. |
-| Saída estruturada | **Haiku 5.5:** recurso "Structured outputs" suportado. **Nova 2 Lite / Nova Lite:** não listado; usar **tool use** com `toolChoice` forçado. | JSON schema (Zod). | Structured Outputs (formato exato **[NÃO VERIFICADO]**). |
-| Autenticação | **IAM** (role, cadeia padrão do SDK) ou **chave de API do Bedrock** (`AWS_BEARER_TOKEN_BEDROCK`); IAM é preferível em produção. | Chave de API. | Chave de API. |
-| Troca de modelo | No Bedrock, trocar `modelId` entre Claude e Nova **na mesma Converse API**; os formatos de saída estruturada diferem (recurso x tool use). | Outro SDK. | Outro SDK. |
-| Estabilidade | Haiku 5.5: ativo, EOL **não antes de 2027-10-07**. Nova 2 Lite: EOL **não antes de 2026-12-02**, com período legado mínimo de 6 meses. | Linhagem muda rápido. | Linhagem muda rápido. |
-| Acesso ao modelo | Acesso a todos os modelos "habilitado por padrão"; para Anthropic, o primeiro uso pode exigir **detalhes de caso de uso**. | Chave. | Chave. |
-| Lock-in | Baixo se o código usar a interface `GuesserProvider` (seção 9). | — | — |
+| Critério          | Bedrock (Claude Haiku 5.5 / Nova 2 Lite)                                                                                                     | Gemini                                                                    | OpenAI                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| SDK TypeScript    | `@aws-sdk/client-bedrock-runtime` (v3), `ConverseCommand`; imagem como bytes. **[DOCUMENTADO]**                                              | `@google/genai` (API de Interações mais recente; muda a forma do código). | Pacote `openai`; imagem como data URL base64.            |
+| Saída estruturada | **Haiku 5.5:** recurso "Structured outputs" suportado. **Nova 2 Lite / Nova Lite:** não listado; usar **tool use** com `toolChoice` forçado. | JSON schema (Zod).                                                        | Structured Outputs (formato exato **[NÃO VERIFICADO]**). |
+| Autenticação      | **IAM** (role, cadeia padrão do SDK) ou **chave de API do Bedrock** (`AWS_BEARER_TOKEN_BEDROCK`); IAM é preferível em produção.              | Chave de API.                                                             | Chave de API.                                            |
+| Troca de modelo   | No Bedrock, trocar `modelId` entre Claude e Nova **na mesma Converse API**; os formatos de saída estruturada diferem (recurso x tool use).   | Outro SDK.                                                                | Outro SDK.                                               |
+| Estabilidade      | Haiku 5.5: ativo, EOL **não antes de 2027-10-07**. Nova 2 Lite: EOL **não antes de 2026-12-02**, com período legado mínimo de 6 meses.       | Linhagem muda rápido.                                                     | Linhagem muda rápido.                                    |
+| Acesso ao modelo  | Acesso a todos os modelos "habilitado por padrão"; para Anthropic, o primeiro uso pode exigir **detalhes de caso de uso**.                   | Chave.                                                                    | Chave.                                                   |
+| Lock-in           | Baixo se o código usar a interface `GuesserProvider` (seção 9).                                                                              | —                                                                         | —                                                        |
 
 Fontes: cards de modelo e [chaves de API do Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html) (seção "Sample Code"), [Converse](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html), documentação do Gemini e da OpenAI listadas em 15.
 
@@ -98,12 +100,12 @@ Fontes: cards de modelo e [chaves de API do Bedrock](https://docs.aws.amazon.com
 
 Os provedores **não** oferecem as mesmas garantias; nenhuma deve ser presumida.
 
-| Tema | Bedrock | Gemini | OpenAI |
-| --- | --- | --- | --- |
-| Uso para treinar modelos | **[DOCUMENTADO]** Os provedores de modelo **não têm acesso** a prompts, respostas nem logs do Bedrock (contas de implantação por provedor). | **[DOCUMENTADO]** Camada **gratuita**: entradas **são** usadas para melhorar produtos. Camada **paga**: **não** são. Use a paga para imagens de webcam. | **[NÃO VERIFICADO]** (página "Your data" não lida). |
-| Retenção | Prazos e opções de retenção **[NÃO VERIFICADOS neste ciclo]**; ler [retenção de dados](https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html) e a política do provedor do modelo antes da implementação. | Duração da retenção paga **[NÃO VERIFICADO]**. | **[NÃO VERIFICADO]**. |
-| Região de processamento | `global.` roteia para **qualquer região**; `us.` / `eu.` mantêm dentro da geografia. Haiku 5.5 em `sa-east-1`: só global. | **[NÃO VERIFICADO]** | Residência regional existe com +10% (Brasil/América do Sul **[NÃO VERIFICADO]**). |
-| Credenciais | IAM role (sem chave estática) preferível. | Chave só no servidor. | Chave só no servidor. |
+| Tema                     | Bedrock                                                                                                                                                                                                                     | Gemini                                                                                                                                                  | OpenAI                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Uso para treinar modelos | **[DOCUMENTADO]** Os provedores de modelo **não têm acesso** a prompts, respostas nem logs do Bedrock (contas de implantação por provedor).                                                                                 | **[DOCUMENTADO]** Camada **gratuita**: entradas **são** usadas para melhorar produtos. Camada **paga**: **não** são. Use a paga para imagens de webcam. | **[NÃO VERIFICADO]** (página "Your data" não lida).                               |
+| Retenção                 | Prazos e opções de retenção **[NÃO VERIFICADOS neste ciclo]**; ler [retenção de dados](https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html) e a política do provedor do modelo antes da implementação. | Duração da retenção paga **[NÃO VERIFICADO]**.                                                                                                          | **[NÃO VERIFICADO]**.                                                             |
+| Região de processamento  | `global.` roteia para **qualquer região**; `us.` / `eu.` mantêm dentro da geografia. Haiku 5.5 em `sa-east-1`: só global.                                                                                                   | **[NÃO VERIFICADO]**                                                                                                                                    | Residência regional existe com +10% (Brasil/América do Sul **[NÃO VERIFICADO]**). |
+| Credenciais              | IAM role (sem chave estática) preferível.                                                                                                                                                                                   | Chave só no servidor.                                                                                                                                   | Chave só no servidor.                                                             |
 
 **Medidas independentes de provedor:** frames transitórios e nunca persistidos; menos frames e menor resolução; aviso claro ao jogador de que os frames vão a um provedor externo; credencial só no servidor; limite de payload, rate limit e teto de custo na rota. Ver [privacidade e segredos](../development-context/security/privacy-and-secrets.md).
 
@@ -113,14 +115,14 @@ Os provedores **não** oferecem as mesmas garantias; nenhuma deve ser presumida.
 
 Pesos: visão 35%, latência 25%, custo 20%, integração 10%, escala e manutenção 10%. Nota 1 a 5. **As notas de visão e latência são provisórias** (sem medição); as de custo, integração e manutenção têm base documentada.
 
-| Candidato | Visão (35%) | Latência (25%) | Custo (20%) | Integração (10%) | Escala/manut. (10%) | **Total** |
-| --- | --- | --- | --- | --- | --- | --- |
-| **Claude Haiku 5.5** (Bedrock) | 4 prov. | 3 prov. | 5 | 5 | 4 | **4,05** |
-| Gemini 3.5 Flash-Lite | 4 prov. | 4 prov. | 4 | 4 | 3 | **3,90** |
-| GPT-6 Luna | 3 prov. | 4 prov. | 5 | 4 | 4 | **3,85** |
-| **Nova 2 Lite** (Bedrock) | 3 prov. | 4 prov. | 4 | 4 | 3 | **3,55** |
-| Qwen3 VL 235B (Bedrock) | 4 prov. | 2 prov. | 3 | 3 prov. | 3 | **3,10** |
-| SmolVLM2 (no navegador) | 2 prov. | 3 prov. | 5 | 2 | 2 | **2,85** |
+| Candidato                      | Visão (35%) | Latência (25%) | Custo (20%) | Integração (10%) | Escala/manut. (10%) | **Total** |
+| ------------------------------ | ----------- | -------------- | ----------- | ---------------- | ------------------- | --------- |
+| **Claude Haiku 5.5** (Bedrock) | 4 prov.     | 3 prov.        | 5           | 5                | 4                   | **4,05**  |
+| Gemini 3.5 Flash-Lite          | 4 prov.     | 4 prov.        | 4           | 4                | 3                   | **3,90**  |
+| GPT-6 Luna                     | 3 prov.     | 4 prov.        | 5           | 4                | 4                   | **3,85**  |
+| **Nova 2 Lite** (Bedrock)      | 3 prov.     | 4 prov.        | 4           | 4                | 3                   | **3,55**  |
+| Qwen3 VL 235B (Bedrock)        | 4 prov.     | 2 prov.        | 3           | 3 prov.          | 3                   | **3,10**  |
+| SmolVLM2 (no navegador)        | 2 prov.     | 3 prov.        | 5           | 2                | 2                   | **2,85**  |
 
 **Evidência por nota**
 
@@ -141,12 +143,12 @@ Pesos: visão 35%, latência 25%, custo 20%, integração 10%, escala e manuten�
 
 ### 9.2 Opções de arquitetura (A a D)
 
-| Opção | Complexidade | Desempenho | Custo | Escala | Veredito |
-| --- | --- | --- | --- | --- | --- |
-| **A. Múltiplas imagens (frames amostrados)** | Baixa | Controlável (frames, resolução) | Previsível | Alta | **Recomendada para a PoC** |
-| B. Vídeo nativo (Nova 2 Lite, Gemini) | Média (codificar clipe no navegador, limites de tamanho) | 1 FPS padrão não traz mais informação temporal; **o Haiku 5.5 não tem vídeo** | Similar | Média | Testar como variante, depois |
-| C. MediaPipe + LLM | Média (pipeline cliente, heurística) | Aceno por oscilação do pulso: zero custo, sem rede; **não generaliza** | Menor | Alta | Otimização futura para ações conhecidas |
-| D. Modelo especializado (VideoMAE / X-CLIP, Kinetics-700 tem "waving hand") | Alta (servidor, GPU, ONNX para o navegador) | Boa para rótulos fixos; Kinetics-400 **não** tem o rótulo | Infra própria | Média | Fora do MVP |
+| Opção                                                                       | Complexidade                                             | Desempenho                                                                    | Custo         | Escala | Veredito                                |
+| --------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------- | ------ | --------------------------------------- |
+| **A. Múltiplas imagens (frames amostrados)**                                | Baixa                                                    | Controlável (frames, resolução)                                               | Previsível    | Alta   | **Recomendada para a PoC**              |
+| B. Vídeo nativo (Nova 2 Lite, Gemini)                                       | Média (codificar clipe no navegador, limites de tamanho) | 1 FPS padrão não traz mais informação temporal; **o Haiku 5.5 não tem vídeo** | Similar       | Média  | Testar como variante, depois            |
+| C. MediaPipe + LLM                                                          | Média (pipeline cliente, heurística)                     | Aceno por oscilação do pulso: zero custo, sem rede; **não generaliza**        | Menor         | Alta   | Otimização futura para ações conhecidas |
+| D. Modelo especializado (VideoMAE / X-CLIP, Kinetics-700 tem "waving hand") | Alta (servidor, GPU, ONNX para o navegador)              | Boa para rótulos fixos; Kinetics-400 **não** tem o rótulo                     | Infra própria | Média  | Fora do MVP                             |
 
 A escolha **A** cumpre "sem treinamento", "sem infraestrutura antecipada" e "provedor intercambiável".
 
@@ -164,51 +166,57 @@ Navegador (React/Vite/TS)            Servidor mínimo (Node/TS)              Bed
 - Trecho de referência (a validar na implementação: ID do perfil, suporte a `toolChoice` no modelo escolhido e à opção `performanceConfig`):
 
 ```ts
-import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
+import {
+    BedrockRuntimeClient,
+    ConverseCommand,
+} from '@aws-sdk/client-bedrock-runtime'
 
-const client = new BedrockRuntimeClient({ region: "us-east-1" });
+const client = new BedrockRuntimeClient({ region: 'us-east-1' })
 
 // frames: Buffer[] com JPEGs em ordem temporal
 const imageBlocks = frames.map((bytes) => ({
-  image: { format: "jpeg" as const, source: { bytes } },
-}));
+    image: { format: 'jpeg' as const, source: { bytes } },
+}))
 
 const res = await client.send(
-  new ConverseCommand({
-    modelId: process.env.GUESSER_MODEL_ID!, // ex.: global.anthropic.claude-haiku-5-5
-    messages: [
-      {
-        role: "user",
-        content: [
-          ...imageBlocks,
-          { text: "These are consecutive webcam frames, in chronological order. Call guess_action." },
-        ],
-      },
-    ],
-    toolConfig: {
-      tools: [
-        {
-          toolSpec: {
-            name: "guess_action",
-            description: "Return the predominant human action observed, in a few words.",
-            inputSchema: {
-              json: {
-                type: "object",
-                properties: {
-                  action: { type: "string" },
-                  insufficient_evidence: { type: "boolean" },
-                },
-                required: ["action", "insufficient_evidence"],
-              },
+    new ConverseCommand({
+        modelId: process.env.GUESSER_MODEL_ID!, // ex.: global.anthropic.claude-haiku-5-5
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    ...imageBlocks,
+                    {
+                        text: 'These are consecutive webcam frames, in chronological order. Call guess_action.',
+                    },
+                ],
             },
-          },
+        ],
+        toolConfig: {
+            tools: [
+                {
+                    toolSpec: {
+                        name: 'guess_action',
+                        description:
+                            'Return the predominant human action observed, in a few words.',
+                        inputSchema: {
+                            json: {
+                                type: 'object',
+                                properties: {
+                                    action: { type: 'string' },
+                                    insufficient_evidence: { type: 'boolean' },
+                                },
+                                required: ['action', 'insufficient_evidence'],
+                            },
+                        },
+                    },
+                },
+            ],
+            toolChoice: { tool: { name: 'guess_action' } },
         },
-      ],
-      toolChoice: { tool: { name: "guess_action" } },
-    },
-    inferenceConfig: { maxTokens: 64, temperature: 0.2 },
-  }),
-);
+        inferenceConfig: { maxTokens: 64, temperature: 0.2 },
+    }),
+)
 // Resultado em res.output?.message?.content[].toolUse?.input
 ```
 
@@ -224,10 +232,10 @@ Objetivo: decidir entre os candidatos com evidência reproduzível, **sem inferi
 
 **Cenários (carta "Acenar")**
 
-| Tipo | Cenários |
-| --- | --- |
+| Tipo      | Cenários                                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Positivos | P1 aceno com a mão direita; P2 com a esquerda; P3 aceno lento; P4 aceno rápido; P5 aceno de perfil parcial; P6 fundo e iluminação diferentes |
-| Negativos | N1 parado; N2 mão levantada sem acenar; N3 coçando a cabeça; N4 movendo os dois braços aleatoriamente; N5 sem pessoa no quadro |
+| Negativos | N1 parado; N2 mão levantada sem acenar; N3 coçando a cabeça; N4 movendo os dois braços aleatoriamente; N5 sem pessoa no quadro               |
 
 **Amostragem e execução**
 
@@ -270,10 +278,10 @@ Objetivo: decidir entre os candidatos com evidência reproduzível, **sem inferi
 - **Limitações esperadas:** sem vídeo nativo no Haiku 5.5; latência sem medição; sem Priority; acurácia temporal desconhecida; aceno de perfil ou com mão pequena no quadro pode falhar.
 - **Riscos técnicos:** (1) raciocínio ligado por padrão no Haiku 5.5 aumenta latência e custo de saída se não for desligado; (2) EOL do Nova 2 Lite a partir de 2026-12-02; (3) cobrança do Haiku via Marketplace e possível formulário de caso de uso da Anthropic no primeiro acesso; (4) cotas padrão e acesso ao modelo na conta **[NÃO VERIFICADO]**; (5) `global.` processa fora do país; (6) modelos e preços recentes podem mudar.
 - **Quando trocar de provedor ou arquitetura:**
-  - recall abaixo da meta ou falsos positivos acima da meta nos dois modelos Bedrock → testar os controles Gemini e Luna e, depois, vídeo nativo;
-  - latência mediana ou p95 acima da meta mesmo com raciocínio desligado e menos frames → Nova 2 Lite com Priority, depois pré-filtro MediaPipe (opção C);
-  - exigência de residência de dados que o Bedrock não atenda para o modelo escolhido → outro provedor/região;
-  - custos subirem por ordem de grandeza (muitas tentativas por rodada) → reavaliar frames e resolução antes de trocar de modelo.
+    - recall abaixo da meta ou falsos positivos acima da meta nos dois modelos Bedrock → testar os controles Gemini e Luna e, depois, vídeo nativo;
+    - latência mediana ou p95 acima da meta mesmo com raciocínio desligado e menos frames → Nova 2 Lite com Priority, depois pré-filtro MediaPipe (opção C);
+    - exigência de residência de dados que o Bedrock não atenda para o modelo escolhido → outro provedor/região;
+    - custos subirem por ordem de grandeza (muitas tentativas por rodada) → reavaliar frames e resolução antes de trocar de modelo.
 
 ## 13. Decisões e pendências para o maintainer
 

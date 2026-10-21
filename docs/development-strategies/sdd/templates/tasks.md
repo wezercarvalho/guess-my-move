@@ -28,9 +28,9 @@
 
 ## Cobertura
 
-| Requisito | Tarefas | Evidência esperada |
-| --- | --- | --- |
-| FR-001 | T001, T009 | <evidência> |
+| Requisito | Tarefas    | Evidência esperada |
+| --------- | ---------- | ------------------ |
+| FR-001    | T001, T009 | <evidência>        |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 

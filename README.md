@@ -10,15 +10,17 @@ Planejamento e pesquisa. Ainda não há código. A primeira entrega é a **Fase 
 
 ## Documentação
 
-| Assunto | Documento |
-| --- | --- |
-| Especificação do produto e arquitetura | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md) |
-| Prompt de desenvolvimento da Fase 0 | [`docs/product/DEVELOPMENT_PROMPT.md`](docs/product/DEVELOPMENT_PROMPT.md) |
-| Seleção do modelo multimodal | [`docs/research/multimodal-model-selection.md`](docs/research/multimodal-model-selection.md) |
-| Estratégia de desenvolvimento (SDD) | [`docs/development-strategies/`](docs/development-strategies/README.md) |
-| Contexto técnico (issues, qualidade, privacidade, arquitetura) | [`docs/development-context/`](docs/development-context/README.md) |
-| Specs | [`specs/`](specs/README.md) |
-| Guia para agentes e colaboradores | [`AGENTS.md`](AGENTS.md) |
+| Assunto                                                        | Documento                                                                                                              |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Especificação do produto e arquitetura                         | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md)                                                         |
+| Prompt de desenvolvimento da Fase 0                            | [`docs/product/DEVELOPMENT_PROMPT.md`](docs/product/DEVELOPMENT_PROMPT.md)                                             |
+| Seleção do modelo multimodal                                   | [`docs/research/multimodal-model-selection.md`](docs/research/multimodal-model-selection.md)                           |
+| Estratégia de desenvolvimento (SDD)                            | [`docs/development-strategies/`](docs/development-strategies/README.md)                                                |
+| Contexto técnico (issues, qualidade, privacidade, arquitetura) | [`docs/development-context/`](docs/development-context/README.md)                                                      |
+| Specs                                                          | [`specs/`](specs/README.md)                                                                                            |
+| Pipeline de CI e gates                                         | [`docs/development-context/delivery/ci-pipeline.md`](docs/development-context/delivery/ci-pipeline.md)                 |
+| Desenvolvimento local e hook de pré-push                       | [`docs/development-context/operations/local-development.md`](docs/development-context/operations/local-development.md) |
+| Guia para agentes e colaboradores                              | [`AGENTS.md`](AGENTS.md)                                                                                               |
 
 ## Princípios
 
@@ -29,4 +31,4 @@ Planejamento e pesquisa. Ainda não há código. A primeira entrega é a **Fase 
 
 ## Contribuição
 
-Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). A licença será definida antes de divulgar o projeto como reutilizável por terceiros.
+Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push com `node scripts/git-hooks/install.mjs`: a verificação rápida roda na sua máquina e o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push). A licença será definida antes de divulgar o projeto como reutilizável por terceiros.

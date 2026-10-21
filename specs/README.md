@@ -19,6 +19,6 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Specs
 
-| ID | Estado | Resumo |
-| --- | --- | --- |
+| ID                                                                                                                               | Estado  | Resumo                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
 | [`2026-10-20-vision-gesture-recognition-validate-waving-poc`](2026-10-20-vision-gesture-recognition-validate-waving-poc/spec.md) | `draft` | PoC visual (Fase 0): validar se um modelo multimodal gerenciado reconhece "acenar" a partir de frames da webcam. |

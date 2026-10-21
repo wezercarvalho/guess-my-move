@@ -21,23 +21,23 @@
 
 ## Evidências por requisito
 
-| Requisito | Tarefas | Evidência | Resultado |
-| --- | --- | --- | --- |
-| FR-001 | T001 | <teste, arquivo, demonstração> | PASS/FAIL/BLOCKED/NOT_APPLICABLE |
+| Requisito | Tarefas | Evidência                      | Resultado                        |
+| --------- | ------- | ------------------------------ | -------------------------------- |
+| FR-001    | T001    | <teste, arquivo, demonstração> | PASS/FAIL/BLOCKED/NOT_APPLICABLE |
 
 Para promoção a `validated`, cada FR deve ter exatamente uma linha nesta matriz com resultado final `PASS`.
 
 ## Histórias e critérios de aceitação
 
-| História/cenário | Demonstração | Resultado |
-| --- | --- | --- |
+| História/cenário   | Demonstração                   | Resultado |
+| ------------------ | ------------------------------ | --------- |
 | US-001 / cenário 1 | <passos e resultado observado> | PASS/FAIL |
 
 ## Comandos executados
 
-| Comando exato | Data | Resultado | Evidência/observação |
-| --- | --- | --- | --- |
-| `<script oficial>` | AAAA-MM-DD | PASS/FAIL/BLOCKED/NOT_APPLICABLE | <saída relevante> |
+| Comando exato      | Data       | Resultado                        | Evidência/observação |
+| ------------------ | ---------- | -------------------------------- | -------------------- |
+| `<script oficial>` | AAAA-MM-DD | PASS/FAIL/BLOCKED/NOT_APPLICABLE | <saída relevante>    |
 
 ## Medições e benchmark (quando aplicável)
 
@@ -56,9 +56,9 @@ Para promoção a `validated`, cada FR deve ter exatamente uma linha nesta matri
 
 ## Constitution Check final
 
-| Princípio/gate | Resultado | Evidência ou desvio aprovado |
-| --- | --- | --- |
-| I. Intenção antes da implementação | PASS/FAIL | <evidência> |
+| Princípio/gate                     | Resultado | Evidência ou desvio aprovado |
+| ---------------------------------- | --------- | ---------------------------- |
+| I. Intenção antes da implementação | PASS/FAIL | <evidência>                  |
 
 ## Convergência
 
@@ -69,8 +69,8 @@ Para promoção a `validated`, cada FR deve ter exatamente uma linha nesta matri
 ## Limitações e riscos residuais
 
 | Limitação/risco | Impacto | Responsável | Aceite |
-| --- | --- | --- | --- |
-| Nenhum | — | — | — |
+| --------------- | ------- | ----------- | ------ |
+| Nenhum          | —       | —           | —      |
 
 ## Gate 3 — Convergência validada
 

@@ -4,24 +4,24 @@ Princípio: **abstração mínima e provedor-independente**, sem infraestrutura 
 
 ## Camadas
 
-| Camada | Responsabilidade | Não deve |
-| --- | --- | --- |
-| Aplicação web (React + Vite + TS) | Carta, câmera, captura temporária de frames, tentativas e resultado. | Conter chave de provedor. |
-| Servidor mínimo (Node.js + TS) | Proteger credenciais, validar payload, limites, timeout, converter falhas em erros estáveis. | Registrar mídia; expor detalhes internos do provedor. |
-| Adaptador do adivinhador | Montar a requisição ao provedor e validar uma saída estruturada com um único palpite. | Receber palavra, dica, sugestão, aliases ou critérios. |
-| Árbitro semântico (fase posterior) | Normalização + canônico/aliases; LLM opcional só para ambiguidade. | Analisar a webcam. |
-| Motor da partida (fase posterior) | Máquina de estados, tentativas e histórico de palpites rejeitados. | Tratar palpite correto como prova visual de execução. |
+| Camada                             | Responsabilidade                                                                             | Não deve                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Aplicação web (React + Vite + TS)  | Carta, câmera, captura temporária de frames, tentativas e resultado.                         | Conter chave de provedor.                              |
+| Servidor mínimo (Node.js + TS)     | Proteger credenciais, validar payload, limites, timeout, converter falhas em erros estáveis. | Registrar mídia; expor detalhes internos do provedor.  |
+| Adaptador do adivinhador           | Montar a requisição ao provedor e validar uma saída estruturada com um único palpite.        | Receber palavra, dica, sugestão, aliases ou critérios. |
+| Árbitro semântico (fase posterior) | Normalização + canônico/aliases; LLM opcional só para ambiguidade.                           | Analisar a webcam.                                     |
+| Motor da partida (fase posterior)  | Máquina de estados, tentativas e histórico de palpites rejeitados.                           | Tratar palpite correto como prova visual de execução.  |
 
 ## Contrato mínimo do adivinhador
 
 ```ts
-type CapturedFrame = { timestampMs: number; mimeType: string; data: string };
-type GuesserInput = { frames: CapturedFrame[]; rejectedGuesses?: string[] };
-type GuesserResult = { guess: string; insufficientEvidence?: boolean };
+type CapturedFrame = { timestampMs: number; mimeType: string; data: string }
+type GuesserInput = { frames: CapturedFrame[]; rejectedGuesses?: string[] }
+type GuesserResult = { guess: string; insufficientEvidence?: boolean }
 
 interface GuesserProvider {
-  readonly id: string;
-  guess(input: GuesserInput, signal?: AbortSignal): Promise<GuesserResult>;
+    readonly id: string
+    guess(input: GuesserInput, signal?: AbortSignal): Promise<GuesserResult>
 }
 ```
 

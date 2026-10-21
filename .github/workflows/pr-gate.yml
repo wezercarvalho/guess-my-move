@@ -1,0 +1,167 @@
+name: pr-gate
+
+# Único entrypoint de PR: seleciona governança e auditoria de dependências por path. O job final
+# (`gate`) é o required check: consolida seleção e resultados; falha/cancelamento ou job
+# aplicável ignorado bloqueiam.
+# O job de governança (id sdd) cobre a verificação do SDD, a formatação dos docs da raiz
+# (AGENTS.md, CLAUDE.md, README.md, docs/, specs/) e os testes dos próprios gates com uma única
+# instalação de dependências; cada verificação é um passo com condição própria.
+# PR em rascunho não roda nada (economiza minutos; o GitHub não mergeia rascunho): o gate roda ao
+# abrir a PR já pronta, a cada push em PR pronta e, automaticamente, quando o rascunho é marcado
+# como pronto (ready_for_review).
+# Ainda não há pacote de código: quando a aplicação existir, o pacote entra como seleção nova no
+# detect-changes, job novo chamado daqui e item em `SELECTED_JOBS` de
+# scripts/sdd/check-job-results.mjs.
+on:
+    pull_request:
+        types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: pr-gate-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    detect-changes:
+        name: detectar paths alterados
+        if: github.event.pull_request.draft == false
+        runs-on: ubuntu-latest
+        outputs:
+            sdd: ${{ steps.filter.outputs.sdd }}
+            root-docs: ${{ steps.filter.outputs.root-docs }}
+            tooling: ${{ steps.filter.outputs.tooling }}
+            audit: ${{ steps.filter.outputs.audit }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            # Os padrões abaixo são espelhados em scripts/git-hooks/scopes.mjs (hook local);
+            # um teste em test/gates/ compara os dois.
+            - name: Detectar paths alterados
+              id: filter
+              run: |
+                  CHANGED=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+                  echo "Arquivos alterados neste PR:"
+                  echo "$CHANGED"
+
+                  SDD_PATTERN='^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\.md$|^(package\.json|yarn\.lock)$|^\.github/workflows/pr-gate\.yml$'
+                  if echo "$CHANGED" | grep -qE "$SDD_PATTERN"; then
+                    echo "sdd=true" >>"$GITHUB_OUTPUT"
+                  else
+                    echo "sdd=false" >>"$GITHUB_OUTPUT"
+                  fi
+
+                  ROOT_DOCS_PATTERN='^(AGENTS\.md|CLAUDE\.md|README\.md|\.prettierrc|docs/|specs/|\.github/workflows/pr-gate\.yml$)'
+                  if echo "$CHANGED" | grep -qE "$ROOT_DOCS_PATTERN"; then
+                    echo "root-docs=true" >>"$GITHUB_OUTPUT"
+                  else
+                    echo "root-docs=false" >>"$GITHUB_OUTPUT"
+                  fi
+
+                  # Testes dos próprios gates: hook local, auditor de dependências e workflows.
+                  TOOLING_PATTERN='^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\.mjs|dependency-audit-exceptions\.json)$|^test/(gates|security)/|^\.githooks/|^\.github/workflows/|^(package\.json|yarn\.lock|\.prettierrc|\.node-version)$'
+                  if echo "$CHANGED" | grep -qE "$TOOLING_PATTERN"; then
+                    echo "tooling=true" >>"$GITHUB_OUTPUT"
+                  else
+                    echo "tooling=false" >>"$GITHUB_OUTPUT"
+                  fi
+
+                  # Auditoria de dependências no PR: só quando algo que muda o veredito é tocado
+                  # (manifesto, lockfile, auditor, exceções ou os workflows que a executam).
+                  AUDIT_PATTERN='^(package\.json|yarn\.lock|scripts/audit-dependencies\.mjs|scripts/dependency-audit-exceptions\.json|scripts/lib/dependency-audit[a-z-]*\.mjs)$|^\.github/workflows/(pr-gate|dependency-audit)\.yml$'
+                  if echo "$CHANGED" | grep -qE "$AUDIT_PATTERN"; then
+                    echo "audit=true" >>"$GITHUB_OUTPUT"
+                  else
+                    echo "audit=false" >>"$GITHUB_OUTPUT"
+                  fi
+
+    sdd:
+        # Governança num job só: verificação do SDD, formatação dos docs da raiz e testes dos
+        # gates usam a mesma instalação de dependências. Cada verificação tem condição própria
+        # por passo.
+        name: 'governança: SDD, docs da raiz e gates'
+        needs: detect-changes
+        if: needs.detect-changes.outputs.sdd == 'true' || needs.detect-changes.outputs.root-docs == 'true' || needs.detect-changes.outputs.tooling == 'true'
+        runs-on: ubuntu-latest
+        env:
+            COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+                  cache: yarn
+                  cache-dependency-path: yarn.lock
+            - name: Habilitar corepack
+              run: corepack enable
+            - name: Instalar dependências
+              run: yarn install --frozen-lockfile
+            - name: Testar checker e consolidação
+              if: needs.detect-changes.outputs.sdd == 'true'
+              run: yarn test:sdd
+            - name: Verificar catálogo e links
+              if: needs.detect-changes.outputs.sdd == 'true'
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: |
+                  ARGS=()
+                  while IFS= read -r -d '' FILE; do
+                    if [[ "$FILE" != docs/development-strategies/sdd/templates/* ]] && [ -f "$FILE" ]; then
+                      ARGS+=(--file "$FILE")
+                    fi
+                  done < <(git diff --name-only -z "$BASE_SHA" "$HEAD_SHA" -- '*.md')
+                  yarn sdd:check "${ARGS[@]}"
+            - name: Verificar formatação dos docs da raiz
+              if: needs.detect-changes.outputs.root-docs == 'true'
+              run: yarn docs:format:check
+            - name: Testar hook, auditor e workflows
+              if: needs.detect-changes.outputs.tooling == 'true'
+              run: yarn test:gates
+
+    audit:
+        name: 'security:dependencies (auditoria de dependências)'
+        needs: detect-changes
+        if: needs.detect-changes.outputs.audit == 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+                  cache: yarn
+                  cache-dependency-path: yarn.lock
+            - name: Habilitar corepack
+              run: corepack enable
+            - name: Instalar dependências
+              run: yarn install --frozen-lockfile
+            - name: Auditoria de dependências
+              run: yarn security:dependencies
+
+    gate:
+        # Único job a marcar como "Required" na proteção de branch. Sempre roda (if: always()),
+        # mesmo se a governança ou a auditoria forem puladas ou falharem — é ele quem decide se o
+        # PR pode mergear.
+        name: 'gate (required): consolida governança e auditoria'
+        needs: [detect-changes, sdd, audit]
+        # Em rascunho nada roda, então o gate também é pulado (senão falharia por seleção
+        # ausente); em PR pronta continua rodando sempre.
+        if: always() && github.event.pull_request.draft == false
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+            - name: Verificar resultado dos jobs condicionais
+              env:
+                  GATE_NEEDS: ${{ toJSON(needs) }}
+              run: node scripts/sdd/check-job-results.mjs

@@ -8,12 +8,12 @@ capability: <capacidade>
 objective: <objetivo>
 status: draft
 owners:
-  - <pessoa-ou-função>
+    - <pessoa-ou-função>
 reviewers: []
 aliases:
-  - <termo de descoberta>
+    - <termo de descoberta>
 code_paths:
-  - <caminho afetado>/
+    - <caminho afetado>/
 related_specs: []
 supersedes: []
 branch: null

@@ -1,0 +1,2 @@
+# O launcher do hook de pré-push roda via sh: com CRLF o shebang quebra no Git for Windows.
+.githooks/* text eol=lf

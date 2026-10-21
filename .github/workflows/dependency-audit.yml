@@ -1,0 +1,43 @@
+name: dependency-audit
+
+# Rotina quinzenal (dias 1 e 15) de auditoria de dependências. Um advisory novo pode reprovar uma
+# árvore que não mudou, e nenhum PR dispara nesse caso; esta rotina é o que o detecta. Falha =
+# execução vermelha neste workflow.
+# Agendamentos só rodam na branch padrão (main). O disparo manual (workflow_dispatch) só fica
+# disponível depois que o arquivo existir na main.
+# Política de auditoria: docs/development-context/security/dependency-audit.md.
+on:
+    schedule:
+        - cron: '23 8 1,15 * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+env:
+    # Sem isto o corepack pede confirmação para baixar a versão do packageManager e pendura num
+    # runner não-interativo.
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+jobs:
+    audit:
+        name: 'security:dependencies (auditoria quinzenal de dependências)'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version-file: .node-version
+                  cache: yarn
+                  cache-dependency-path: yarn.lock
+
+            - name: Habilitar corepack
+              run: corepack enable
+
+            - name: Instalar dependências
+              run: yarn install --frozen-lockfile
+
+            - name: Auditoria de dependências
+              run: yarn security:dependencies

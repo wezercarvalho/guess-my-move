@@ -73,20 +73,20 @@ Defina contratos simples e tipados, similares aos exemplos abaixo, adaptando-os 
 
 ```ts
 type CapturedFrame = {
-  timestampMs: number;
-  mimeType: string;
-  data: string;
-};
+    timestampMs: number
+    mimeType: string
+    data: string
+}
 
 type GuesserInput = {
-  frames: CapturedFrame[];
-  rejectedGuesses?: string[];
-};
+    frames: CapturedFrame[]
+    rejectedGuesses?: string[]
+}
 
-type GuesserResult = { guess: string };
+type GuesserResult = { guess: string }
 
 interface GuesserProvider {
-  guess(input: GuesserInput): Promise<GuesserResult>;
+    guess(input: GuesserInput): Promise<GuesserResult>
 }
 ```
 
@@ -147,4 +147,4 @@ Ao finalizar, apresente objetivamente:
 4. **Limitações conhecidas**, principalmente latência, comportamento com movimento e dependência de provedor.
 5. **Próximas 3–5 tarefas**, priorizadas para transformar a PoC no MVP jogável.
 
-**Princípio orientador:** primeiro demonstrar de forma honesta que a IA consegue *tentar* reconhecer o gesto; depois construir a mecânica completa em cima da evidência. Não sacrificar privacidade, separação de responsabilidades ou segurança das credenciais para acelerar uma demo.
+**Princípio orientador:** primeiro demonstrar de forma honesta que a IA consegue _tentar_ reconhecer o gesto; depois construir a mecânica completa em cima da evidência. Não sacrificar privacidade, separação de responsabilidades ou segurança das credenciais para acelerar uma demo.

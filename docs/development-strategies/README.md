@@ -4,9 +4,9 @@ Este diretório centraliza as estratégias consumidas por pessoas e agentes de I
 
 ## Estratégias disponíveis
 
-| Estratégia | Estado | Uso |
-| --- | --- | --- |
-| [Spec-Driven Development (SDD)](sdd/README.md) | Ativa | Mudanças relevantes, ambíguas, transversais ou críticas. |
+| Estratégia                                     | Estado | Uso                                                      |
+| ---------------------------------------------- | ------ | -------------------------------------------------------- |
+| [Spec-Driven Development (SDD)](sdd/README.md) | Ativa  | Mudanças relevantes, ambíguas, transversais ou críticas. |
 
 Não antecipe um fluxo ainda não documentado.
 
