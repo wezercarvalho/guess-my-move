@@ -27,6 +27,8 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - name: Instalar corepack (o Node 26 não o distribui)
+              run: npm install --global corepack@0.36.0
             - name: Habilitar corepack
               run: corepack enable
 

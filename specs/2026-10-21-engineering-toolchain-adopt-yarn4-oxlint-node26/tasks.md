@@ -29,13 +29,13 @@
 
 ## Fase 3 — Node 26 (issue #46)
 
-- [ ] T015 [US-004] [FR-007] Definir Node 26 em `.node-version` e `engines` e atualizar a documentação (issue #46)
-- [ ] T016 [FR-007] Ajustar o CI para instalar a versão de `.node-version` e instalar o Corepack explicitamente se o Node 26 não o distribuir (issue #46)
+- [x] T015 [US-004] [FR-007] Definir Node 26 em `.node-version` e `engines` e atualizar a documentação (issue #46)
+- [x] T016 [FR-007] Ajustar o CI para instalar a versão de `.node-version` e instalar o Corepack explicitamente se o Node 26 não o distribuir (issue #46)
 
 ## Fase final — Convergência
 
-- [ ] T017 [NFR-003] Executar os gates oficiais (`check:all`, `test:gates`, `test:sdd`, `sdd:check`, `docs:format:check`) e registrar os resultados (issue #46)
-- [ ] T018 [NFR-002] Reconciliar spec, plano, tarefas, implementação e evidências sem alterar o comportamento da aplicação (issue #46)
+- [x] T017 [NFR-003] Executar os gates oficiais (`check:all`, `test:gates`, `test:sdd`, `sdd:check`, `docs:format:check`) e registrar os resultados (issue #46)
+- [x] T018 [NFR-002] Reconciliar spec, plano, tarefas, implementação e evidências sem alterar o comportamento da aplicação (issue #46)
 
 ## Cobertura
 

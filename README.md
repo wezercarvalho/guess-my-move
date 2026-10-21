@@ -12,13 +12,14 @@ O que a PoC prova depende do benchmark (`packages/benchmark`), que só pode ser 
 
 ## Requisitos
 
-- Node.js 24.18 ou superior (ver `.node-version`).
-- Yarn 4.18 via Corepack (`corepack enable`).
+- Node.js 26.12.1 ou superior da linha 26 (ver `.node-version`).
+- Yarn 4.18 via Corepack. O Node 26 não distribui o Corepack: instale-o antes com `npm install --global corepack@0.36.0`.
 - Modo `codex` (opcional): Codex CLI instalado e autenticado.
 
 ## Instalação
 
 ```sh
+npm install --global corepack@0.36.0
 corepack enable
 yarn install --immutable
 ```
