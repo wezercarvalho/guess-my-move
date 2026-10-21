@@ -33,3 +33,7 @@ export {
     toPublicCard,
     validateCard,
 } from './card/index.js'
+
+// Árbitro semântico determinístico (#13).
+export type { RefereeMethod, RefereeResult } from './referee/index.js'
+export { judge, normalize } from './referee/index.js'
