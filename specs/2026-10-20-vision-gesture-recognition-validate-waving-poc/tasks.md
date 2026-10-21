@@ -21,12 +21,12 @@
 
 ## Fase 3 — API e provedor simulado (issue #6)
 
-- [ ] T007 [US-001] [FR-009] Escrever teste falhando de validação de payload, limites e erro estável em `apps/server` (issue #6)
-- [ ] T008 [US-001] [FR-003] Implementar a rota `POST /api/guess` que mantém a credencial fora do navegador (issue #6)
-- [ ] T009 [US-001] [FR-005] Implementar o `MockGuesserProvider` que roda sem credencial (issue #6)
-- [ ] T010 [US-001] [FR-004] Validar a saída por schema permitindo "evidência insuficiente" (issue #6)
-- [ ] T011 [US-001] [FR-006] Isolar o provedor atrás de `GuesserProvider`, selecionável por configuração (issue #6)
-- [ ] T012 [US-001] [FR-010] Registrar métricas técnicas sem mídia (duração, sucesso/erro, nº de frames, provedor) (issue #6)
+- [x] T007 [US-001] [FR-009] Escrever teste falhando de validação de payload, limites e erro estável em `apps/server` (issue #6)
+- [x] T008 [US-001] [FR-003] Implementar a rota `POST /api/guess` que mantém a credencial fora do navegador (issue #6)
+- [x] T009 [US-001] [FR-005] Implementar o `MockGuesserProvider` que roda sem credencial (issue #6)
+- [x] T010 [US-001] [FR-004] Validar a saída por schema permitindo "evidência insuficiente" (issue #6)
+- [x] T011 [US-001] [FR-006] Isolar o provedor atrás de `GuesserProvider`, selecionável por configuração (issue #6)
+- [x] T012 [US-001] [FR-010] Registrar métricas técnicas sem mídia (duração, sucesso/erro, nº de frames, provedor) (issue #6)
 
 ## Fase 4 — Fronteira de informação (issue #8)
 
