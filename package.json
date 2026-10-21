@@ -1,6 +1,7 @@
 {
     "name": "guess-my-move",
     "private": true,
+    "license": "MIT",
     "description": "Guess My Move: monorepo da PoC (web React+Vite, servidor NestJS, pacote core de contratos) e ferramentas de governança do repositório (SDD, docs e gates).",
     "packageManager": "yarn@1.22.22",
     "engines": {

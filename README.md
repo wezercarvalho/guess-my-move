@@ -97,7 +97,6 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 - O motor da rodada, o árbitro e o histórico de rejeitados existem no `core`, mas a tela da PoC ainda não os usa.
 - O benchmark não foi executado com dados reais.
 - O adaptador Bedrock (Claude Haiku 5.5 e Nova 2 Lite) e o acesso à AWS ainda não existem.
-- A licença será definida antes de divulgar o projeto como reutilizável por terceiros.
 
 ## Documentação
 
@@ -115,4 +114,8 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 
 ## Contribuição
 
-Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push com `node scripts/git-hooks/install.mjs`: a verificação rápida roda na sua máquina e o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push). A licença será definida antes de divulgar o projeto como reutilizável por terceiros.
+Leia o [`AGENTS.md`](AGENTS.md) e o [padrão de issues e PRs](docs/development-context/workflow/github-issues.md). Antes do primeiro push, instale as dependências (`yarn install --frozen-lockfile`) e o hook de pré-push com `node scripts/git-hooks/install.mjs`: a verificação rápida roda na sua máquina e o `pr-gate` remoto continua valendo. Detalhes em [Verificações locais antes do push](docs/development-context/operations/local-development.md#verificações-locais-antes-do-push).
+
+## Licença
+
+Distribuído sob a [licença MIT](LICENSE). Copyright (c) 2026 Wezer Carvalho.
