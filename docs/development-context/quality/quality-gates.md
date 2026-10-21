@@ -14,7 +14,7 @@
 
 Esses gates são somente leitura. `yarn docs:format:fix` escreve arquivos e nunca roda no CI.
 
-## Gates previstos (stack proposta: React + Vite + TypeScript + Node.js)
+## Gates previstos (stack: React + Vite + TypeScript + NestJS)
 
 | Gate               | Propósito                                                                                              | Quando                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
