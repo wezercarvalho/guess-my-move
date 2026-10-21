@@ -20,10 +20,10 @@
 
 ## Fase 3 — Árbitro semântico determinístico (issue #13)
 
-- [ ] T006 [US-003] [FR-007] Escrever teste falhando de normalização (minúsculas, acentos, pontuação, variantes triviais) em `packages/core/src/referee` (issue #13)
-- [ ] T007 [US-003] [FR-008] Escrever teste falhando dos casos `dar tchau` (alias), `acenar`/`waving` (aceitos) e ausência de substring (issue #13)
-- [ ] T008 [US-003] [FR-008] Implementar a comparação por equivalência devolvendo `{ isCorrect, method, matchedAnswer? }` (issue #13)
-- [ ] T009 [US-003] [FR-009] Implementar rejeição de insuficientes (`levantar a mão`) e `undetermined` em dúvida material (issue #13)
+- [x] T006 [US-003] [FR-007] Escrever teste falhando de normalização (minúsculas, acentos, pontuação, variantes triviais) em `packages/core/src/referee` (issue #13)
+- [x] T007 [US-003] [FR-008] Escrever teste falhando dos casos `dar tchau` (alias), `acenar`/`waving` (aceitos) e ausência de substring (issue #13)
+- [x] T008 [US-003] [FR-008] Implementar a comparação por equivalência devolvendo `{ isCorrect, method, matchedAnswer? }` (issue #13)
+- [x] T009 [US-003] [FR-009] Implementar rejeição de insuficientes (`levantar a mão`) e `undetermined` em dúvida material (issue #13)
 
 ## Fase 4 — Fallback opcional por LLM (issue #14)
 
