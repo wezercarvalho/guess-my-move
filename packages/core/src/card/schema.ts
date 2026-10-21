@@ -1,142 +1,37 @@
 /**
- * Validação de schema da carta em código próprio (sem dependência de banco nem
- * de biblioteca externa). Mantém o núcleo sem I/O e determinístico.
+ * Validação da carta sobre o schema Zod (`schemas/card.ts`), a fonte única do
+ * contrato. Mantém a API pública (`validateCard`, `isCard`, `parseCard`) com
+ * mensagens de erro legíveis em português, sem dependência de banco.
  *
  * A carta separa `public` (o que o jogador vê) de `evaluation` (resposta
- * canônica, aliases e palpites insuficientes), e a validação garante que ambas
- * as partes estejam bem formadas antes de a carta entrar no jogo.
+ * canônica, aliases e palpites insuficientes). O schema é estrito: um campo
+ * inesperado invalida a carta, o que protege a fronteira de informação.
  */
-import type { Card, CardEvaluation, CardPublic } from '../contracts.js'
+import { cardSchema } from '../schemas/card.js'
+import type { Card } from '../schemas/card.js'
 
 /** Resultado de validação: sucesso tipado ou lista de erros legíveis. */
 export type ValidationResult =
     | { ok: true; card: Card }
     | { ok: false; errors: string[] }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isNonEmptyString(value: unknown): value is string {
-    return typeof value === 'string' && value.trim().length > 0
-}
-
-function isStringArray(value: unknown): value is string[] {
-    return Array.isArray(value) && value.every((v) => typeof v === 'string')
-}
-
-function validatePublic(value: unknown, errors: string[]): void {
-    if (!isObject(value)) {
-        errors.push('public: deve ser um objeto')
-        return
-    }
-    if (!isNonEmptyString(value['word'])) {
-        errors.push('public.word: string não vazia obrigatória')
-    }
-    if (!isNonEmptyString(value['hint'])) {
-        errors.push('public.hint: string não vazia obrigatória')
-    }
-    if (!isNonEmptyString(value['suggestion'])) {
-        errors.push('public.suggestion: string não vazia obrigatória')
-    }
-    if (
-        value['difficulty'] !== undefined &&
-        typeof value['difficulty'] !== 'string'
-    ) {
-        errors.push('public.difficulty: string quando presente')
-    }
-}
-
-function validateEvaluation(value: unknown, errors: string[]): void {
-    if (!isObject(value)) {
-        errors.push('evaluation: deve ser um objeto')
-        return
-    }
-    if (!isNonEmptyString(value['canonicalAnswer'])) {
-        errors.push('evaluation.canonicalAnswer: string não vazia obrigatória')
-    }
-    if (!isStringArray(value['acceptedAliases'])) {
-        errors.push('evaluation.acceptedAliases: array de strings obrigatório')
-    }
-    if (!isStringArray(value['insufficientGuesses'])) {
-        errors.push(
-            'evaluation.insufficientGuesses: array de strings obrigatório',
-        )
-    }
-    if (
-        value['visualCriteria'] !== undefined &&
-        !isStringArray(value['visualCriteria'])
-    ) {
-        errors.push('evaluation.visualCriteria: array de strings quando presente')
-    }
-    if (
-        value['ambiguousGuesses'] !== undefined &&
-        !isStringArray(value['ambiguousGuesses'])
-    ) {
-        errors.push(
-            'evaluation.ambiguousGuesses: array de strings quando presente',
-        )
-    }
-}
-
 /**
  * Valida uma carta arbitrária contra o schema. Nunca lança: devolve o
- * resultado tipado para o chamador decidir o que fazer.
+ * resultado tipado para o chamador decidir o que fazer. A carta devolvida é uma
+ * cópia, independente do objeto de entrada.
  */
 export function validateCard(value: unknown): ValidationResult {
-    const errors: string[] = []
-
-    if (!isObject(value)) {
-        return { ok: false, errors: ['carta: deve ser um objeto'] }
+    const result = cardSchema.safeParse(value)
+    if (result.success) {
+        return { ok: true, card: result.data }
     }
-    if (!isNonEmptyString(value['id'])) {
-        errors.push('id: string não vazia obrigatória')
+    return {
+        ok: false,
+        errors: result.error.issues.map((issue) => {
+            const path = issue.path.map(String).join('.')
+            return path ? `${path}: ${issue.message}` : `carta: ${issue.message}`
+        }),
     }
-    if (!isNonEmptyString(value['locale'])) {
-        errors.push('locale: string não vazia obrigatória')
-    }
-    validatePublic(value['public'], errors)
-    validateEvaluation(value['evaluation'], errors)
-
-    if (errors.length > 0) {
-        return { ok: false, errors }
-    }
-
-    const obj = value
-    const pub = obj['public'] as Record<string, unknown>
-    const evaluation = obj['evaluation'] as Record<string, unknown>
-
-    const cardPublic: CardPublic = {
-        word: pub['word'] as string,
-        hint: pub['hint'] as string,
-        suggestion: pub['suggestion'] as string,
-        ...(typeof pub['difficulty'] === 'string'
-            ? { difficulty: pub['difficulty'] }
-            : {}),
-    }
-
-    const cardEvaluation: CardEvaluation = {
-        canonicalAnswer: evaluation['canonicalAnswer'] as string,
-        acceptedAliases: [...(evaluation['acceptedAliases'] as string[])],
-        insufficientGuesses: [
-            ...(evaluation['insufficientGuesses'] as string[]),
-        ],
-        ...(isStringArray(evaluation['ambiguousGuesses'])
-            ? { ambiguousGuesses: [...evaluation['ambiguousGuesses']] }
-            : {}),
-        ...(isStringArray(evaluation['visualCriteria'])
-            ? { visualCriteria: [...evaluation['visualCriteria']] }
-            : {}),
-    }
-
-    const card: Card = {
-        id: obj['id'] as string,
-        locale: obj['locale'] as string,
-        public: cardPublic,
-        evaluation: cardEvaluation,
-    }
-
-    return { ok: true, card }
 }
 
 /** Type guard: verdadeiro quando o valor é uma carta válida. */

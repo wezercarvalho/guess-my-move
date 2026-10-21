@@ -1,4 +1,4 @@
-import type { GuesserInput, GuesserResult } from '@guess-my-move/core'
+import type { GuessResponse, GuesserInput } from '@guess-my-move/core'
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
@@ -10,17 +10,12 @@ import {
 import { ApiException } from './api-error.js'
 import type { EnvironmentVariables } from '../config/environment.js'
 import { GuessMetricsLogger } from './metrics.js'
-import { DEFAULT_ALLOWED_MIME_TYPES, type GuessLimits } from './payload.js'
 import { SlidingWindowCounter } from './rate-limit.js'
 
 /** Token de injeção do registro de provedores. */
 export const GUESSER_REGISTRY = Symbol('GUESSER_REGISTRY')
 
-/** Resposta de sucesso da rota `POST /api/guess`. */
-export interface GuessResponse extends GuesserResult {
-    durationMs: number
-    providerId: string
-}
+export type { GuessResponse }
 
 const MINUTE_MS = 60_000
 const HOUR_MS = 3_600_000
@@ -50,17 +45,6 @@ export class GuessService {
             this.config.get('COST_CEILING_ATTEMPTS_PER_HOUR', { infer: true }),
             HOUR_MS,
         )
-    }
-
-    /** Limites de payload derivados da configuração. */
-    get limits(): GuessLimits {
-        return {
-            maxFrames: this.config.get('MAX_FRAMES', { infer: true }),
-            maxFrameBytes: this.config.get('MAX_FRAME_BYTES', { infer: true }),
-            maxTotalBytes: this.config.get('MAX_TOTAL_BYTES', { infer: true }),
-            allowedMimeTypes: DEFAULT_ALLOWED_MIME_TYPES,
-            maxRejectedGuesses: this.config.get('MAX_FRAMES', { infer: true }),
-        }
     }
 
     async guess(input: GuesserInput): Promise<GuessResponse> {

@@ -9,18 +9,35 @@
  * Mantenha esta API compatível com os contratos já exportados: apenas adicione.
  */
 
-// Contratos compartilhados (tipos, sem lógica).
+// Contratos compartilhados: tipos derivados dos schemas e interfaces de comportamento.
 export type {
     ApiError,
     ApiErrorCode,
+    CapturedFrame,
     Card,
     CardEvaluation,
     CardPublic,
-    CapturedFrame,
+    GuessResponse,
     GuesserInput,
     GuesserProvider,
     GuesserResult,
 } from './contracts.js'
+
+// Schemas Zod: fonte única dos contratos de dados (carta e rota de palpite).
+export type { GuessLimitViolation, GuessLimits } from './schemas/index.js'
+export {
+    ALLOWED_FRAME_MIME_TYPES,
+    apiErrorCodeSchema,
+    apiErrorSchema,
+    base64ByteLength,
+    capturedFrameSchema,
+    cardEvaluationSchema,
+    cardPublicSchema,
+    cardSchema,
+    checkGuessLimits,
+    guessRequestSchema,
+    guessResponseSchema,
+} from './schemas/index.js'
 
 // Carta: schema/validação, projeção pública e baralho versionado (#11).
 export type { CardPublicProjection, ValidationResult } from './card/index.js'

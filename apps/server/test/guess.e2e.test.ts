@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing'
 import { createDefaultRegistry } from '@guess-my-move/providers'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { ApiException } from '../src/guess/api-error.js'
 import { GuessController } from '../src/guess/guess.controller.js'
 import { GUESSER_REGISTRY, GuessService } from '../src/guess/guess.service.js'
 import { GuessMetricsLogger } from '../src/guess/metrics.js'
@@ -46,11 +45,5 @@ describe('GuessController (fluxo completo, modo mock, sem credencial)', () => {
         })
         expect(response.providerId).toBe('mock')
         expect(response.guess.length).toBeGreaterThan(0)
-    })
-
-    it('rejeita payload inválido com ApiException estável', async () => {
-        await expect(controller.guess({ frames: [] })).rejects.toBeInstanceOf(
-            ApiException,
-        )
     })
 })

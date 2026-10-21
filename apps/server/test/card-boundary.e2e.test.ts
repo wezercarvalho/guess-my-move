@@ -99,7 +99,7 @@ async function buildController(spy: RouteSpyProvider): Promise<GuessController> 
 
 const terms = forbiddenTerms(wavingCard)
 
-const payload = {
+const payload: GuesserInput = {
     frames: [
         { timestampMs: 0, mimeType: 'image/jpeg', data: 'AAAA' },
         { timestampMs: 400, mimeType: 'image/jpeg', data: 'BBBB' },

@@ -1,10 +1,10 @@
 import { createDefaultRegistry } from '@guess-my-move/providers'
-import type { INestApplication } from '@nestjs/common'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import { ConfigService } from '@nestjs/config'
 import { Test } from '@nestjs/testing'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { ApiExceptionFilter } from '../src/guess/api-error.js'
+import { configureHttp } from '../src/app.setup.js'
 import { GuessController } from '../src/guess/guess.controller.js'
 import { GUESSER_REGISTRY, GuessService } from '../src/guess/guess.service.js'
 import { GuessMetricsLogger } from '../src/guess/metrics.js'
@@ -26,7 +26,7 @@ const frame = (index: number) => ({
 })
 
 describe('POST /api/guess pela camada HTTP (loopback, modo mock)', () => {
-    let app: INestApplication
+    let app: NestExpressApplication
     let base: string
 
     beforeAll(async () => {
@@ -42,8 +42,10 @@ describe('POST /api/guess pela camada HTTP (loopback, modo mock)', () => {
                 { provide: GUESSER_REGISTRY, useFactory: createDefaultRegistry },
             ],
         }).compile()
-        app = moduleRef.createNestApplication()
-        app.useGlobalFilters(new ApiExceptionFilter())
+        app = moduleRef.createNestApplication<NestExpressApplication>({
+            bodyParser: false,
+        })
+        configureHttp(app)
         await app.listen(0, '127.0.0.1')
         base = await app.getUrl()
     })
@@ -70,6 +72,36 @@ describe('POST /api/guess pela camada HTTP (loopback, modo mock)', () => {
         expect(typeof result.body['guess']).toBe('string')
         expect(typeof result.body['durationMs']).toBe('number')
         expect(result.body['providerId']).toBe('mock')
+    })
+
+    it('aceita frames reais acima de 100 kB (limite padrão do Express)', async () => {
+        const big = Buffer.alloc(200_000, 1).toString('base64')
+        const result = await post(
+            JSON.stringify({ frames: [frame(0), { ...frame(1), data: big }] }),
+        )
+        expect(result.status).toBe(200)
+    })
+
+    it('corpo acima do limite do parser vira payload_too_large 413', async () => {
+        const huge = 'A'.repeat(3_000_000)
+        const result = await post(JSON.stringify({ frames: [{ ...frame(0), data: huge }] }))
+        expect(result.status).toBe(413)
+        expect((result.body['error'] as { code: string }).code).toBe('payload_too_large')
+    })
+
+    it('frames demais vira payload_too_large 413 pela validação', async () => {
+        const frames = Array.from({ length: 7 }, (_, i) => frame(i))
+        const result = await post(JSON.stringify({ frames }))
+        expect(result.status).toBe(413)
+        expect((result.body['error'] as { code: string }).code).toBe('payload_too_large')
+    })
+
+    it('campo extra no corpo (dado da carta) vira invalid_payload 400', async () => {
+        const result = await post(
+            JSON.stringify({ frames: [frame(0)], card: { word: 'acenar' } }),
+        )
+        expect(result.status).toBe(400)
+        expect((result.body['error'] as { code: string }).code).toBe('invalid_payload')
     })
 
     it('JSON malformado vira invalid_payload 400, sem detalhe interno', async () => {

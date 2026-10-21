@@ -23,7 +23,7 @@ Decisão do maintainer em 2026-10-21; as versões exatas são fixadas e registra
 
 ### Versões fixadas no scaffold (#3) e desvio do TypeScript
 
-As versões exatas foram fixadas no scaffold (issue #3): `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@nestjs/*` 12.2.0 (CLI 12.0.10, config 12.0.1), `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `class-validator` 0.15.1, `class-transformer` 0.5.1, `vitest` 5.0.5, `eslint` 10.13.0, `typescript-eslint` 8.72.0, e `@swc/core` 1.16.18 + `unplugin-swc` 2.0.0 para preservar os metadados de decorators do NestJS sob o Vitest.
+As versões exatas foram fixadas no scaffold (issue #3): `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@nestjs/*` 12.2.0 (CLI 12.0.10, config 12.0.1), `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `zod` 4.6.7, `vitest` 5.0.5, `eslint` 10.13.0, `typescript-eslint` 8.72.0, e `@swc/core` 1.16.18 + `unplugin-swc` 2.0.0 para preservar os metadados de decorators do NestJS sob o Vitest.
 
 **Desvio registrado:** a issue #3 propunha `typescript` 7.0.2, mas ela é incompatível com o tooling atual — `typescript-eslint` 8.72.0 (a última estável) suporta apenas `typescript >=4.8.4 <6.1.0`, e o próprio `@nestjs/cli` 12.0.10 fixa `typescript ~6.0.2`. Fixamos **`typescript` 6.0.3** (a última estável sob o teto `<6.1.0`), que funciona com NestJS 12 (decorators + `emitDecoratorMetadata`), Vite 8, Vitest 5 (via SWC) e o lint type-aware. Quando `typescript-eslint` publicar suporte estável a TypeScript 7, a atualização entra por mudança própria.
 
@@ -48,3 +48,12 @@ Trocar de modelo (por exemplo, entre provedores de IA) significa adicionar um `G
 - `confidence` autodeclarada por LLM não é probabilidade calibrada e não é garantia de reconhecimento.
 - Prompt do adivinhador é genérico: pede uma hipótese curta da ação predominante nos frames em ordem cronológica e não contém a palavra-alvo nem sinônimos.
 - Configuração do provedor (modelo, região, limites) vem do ambiente, não do código.
+
+## Validação e contratos de dados
+
+- **Fonte única:** os schemas do contrato (frame, requisição e resposta de `POST /api/guess`, erro estável e carta) vivem em `packages/core/src/schemas/` e usam Zod Mini (`zod/mini`), a API funcional e tree-shakable do Zod, por causa do bundle do navegador. Os tipos TypeScript são derivados dos schemas (`z.infer`); não duplique tipos à mão.
+- **Objetos estritos:** campo não declarado invalida a requisição e a carta. Dado da carta no corpo de `/api/guess` é recusado com `invalid_payload`, o que reforça a fronteira de informação.
+- **Servidor (NestJS 12):** a rota usa o `GuessRequestPipe`, que estende o `StandardSchemaValidationPipe` nativo: valida a estrutura com `guessRequestSchema` e depois confere os limites vindos da configuração com `checkGuessLimits` (função pura, em `core`). Estrutura inválida vira `invalid_payload` 400; excesso de frames ou bytes vira `payload_too_large` 413. O parser JSON usa um limite derivado de `MAX_TOTAL_BYTES`, e não o padrão de 100 kB do Express.
+- **Ambiente:** as variáveis são validadas por um schema Zod passado ao `validationSchema` do `@nestjs/config`; valor inválido derruba o boot. O servidor usa o Zod clássico só nesse schema (coerção e padrões).
+- **Cliente web:** valida a resposta 200 com `guessResponseSchema` e o erro com `apiErrorSchema`; resposta fora do contrato vira `invalid_model_response`.
+- **Decisão pendente:** autenticação e limite por cliente do endpoint não fazem parte desta mudança.

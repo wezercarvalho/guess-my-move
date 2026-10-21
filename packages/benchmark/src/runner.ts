@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, resolve } from 'node:path'
 
-import type { GuesserInput, GuesserProvider } from '@guess-my-move/core'
+import type {
+    CapturedFrame,
+    GuesserInput,
+    GuesserProvider,
+} from '@guess-my-move/core'
 
 import {
     type BenchmarkManifest,
@@ -97,14 +101,14 @@ export async function loadManifest(
     return { manifest: parseManifest(text), baseDir: dirname(manifestPath) }
 }
 
-const EXT_MIME: Record<string, string> = {
+const EXT_MIME: Record<string, CapturedFrame['mimeType']> = {
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',
     webp: 'image/webp',
 }
 
-function mimeFor(path: string): string {
+function mimeFor(path: string): CapturedFrame['mimeType'] {
     const ext = path.split('.').pop()?.toLowerCase() ?? ''
     return EXT_MIME[ext] ?? 'image/jpeg'
 }

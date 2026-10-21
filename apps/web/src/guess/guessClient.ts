@@ -1,4 +1,10 @@
-import { type ApiError, type CapturedFrame } from '@guess-my-move/core'
+import {
+    type ApiError,
+    type GuessResponse as CoreGuessResponse,
+    type GuesserInput,
+    apiErrorSchema,
+    guessResponseSchema,
+} from '@guess-my-move/core'
 
 /**
  * Cliente HTTP da rota `POST /api/guess`.
@@ -9,19 +15,11 @@ import { type ApiError, type CapturedFrame } from '@guess-my-move/core'
  * conhece a carta nesta rota.
  */
 
-/** Corpo da requisição ao servidor. Sem nenhum dado da carta. */
-export interface GuessRequest {
-    frames: CapturedFrame[]
-    rejectedGuesses?: string[]
-}
+/** Corpo da requisição ao servidor (contrato do `core`). Sem nenhum dado da carta. */
+export type GuessRequest = GuesserInput
 
-/** Resposta de sucesso do servidor (200). */
-export interface GuessResponse {
-    guess: string
-    insufficientEvidence?: boolean
-    durationMs: number
-    providerId: string
-}
+/** Resposta de sucesso do servidor (200), validada pelo schema do `core`. */
+export type GuessResponse = CoreGuessResponse
 
 /**
  * Erro estável do cliente: embrulha o `ApiError` do servidor, ou sintetiza um
@@ -80,15 +78,6 @@ function isRetryable(code: string): boolean {
 
 function readableMessage(code: string, fallback: string): string {
     return MESSAGES[code] ?? fallback
-}
-
-/** Type guard do formato `ApiError`. */
-function isApiError(value: unknown): value is ApiError {
-    if (typeof value !== 'object' || value === null) return false
-    const error = (value as { error?: unknown }).error
-    if (typeof error !== 'object' || error === null) return false
-    const code = (error as { code?: unknown }).code
-    return typeof code === 'string'
 }
 
 /**
@@ -152,8 +141,19 @@ export async function requestGuess(
     externalSignal?.removeEventListener('abort', onExternalAbort)
 
     if (response.ok) {
-        const body = (await response.json()) as GuessResponse
-        return body
+        // A resposta é validada pelo contrato compartilhado: um corpo fora do
+        // formato vira `invalid_model_response` em vez de dados soltos na UI.
+        const parsed = guessResponseSchema.safeParse(
+            await response.json().catch(() => null),
+        )
+        if (!parsed.success) {
+            throw new GuessApiError(
+                'invalid_model_response',
+                MESSAGES.invalid_model_response,
+                true,
+            )
+        }
+        return parsed.data
     }
 
     // Erro estável: lê o corpo ApiError quando possível.
@@ -161,11 +161,11 @@ export async function requestGuess(
     let message: string | null = null
     let retryable: boolean | null = null
     try {
-        const body: unknown = await response.json()
-        if (isApiError(body)) {
-            code = body.error.code
-            message = body.error.message
-            retryable = body.error.retryable
+        const parsed = apiErrorSchema.safeParse(await response.json())
+        if (parsed.success) {
+            code = parsed.data.error.code
+            message = parsed.data.error.message
+            retryable = parsed.data.error.retryable
         }
     } catch {
         // Corpo ilegível: mantém o código genérico.
