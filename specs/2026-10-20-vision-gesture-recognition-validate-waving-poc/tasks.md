@@ -82,6 +82,11 @@
 - [x] T038 [US-001] [FR-018] Escrever testes falhando do caminho dos `.env`, da precedência e da linha de provedor ativo (issue #59)
 - [x] T039 [US-001] [FR-018] Implementar `ENV_FILE_PATHS` no `ConfigModule` e a linha de boot do provedor ativo (issue #59)
 
+## Fase 14 — Prompt e aliases alinhados ao árbitro (issue #61)
+
+- [x] T040 [US-001] [FR-019] Escrever testes falhando dos aliases do aceno e do conteúdo do prompt (issue #61)
+- [x] T041 [US-001] [FR-019] Ajustar o prompt do adaptador `codex` e os aliases da carta; verificar com o Codex real em clipes de aceno e de pessoa parada (issue #61)
+
 ## Fase final — Convergência
 
 - [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
@@ -90,27 +95,28 @@
 
 ## Cobertura
 
-| Requisito | Tarefas                | Evidência esperada                                 |
-| --------- | ---------------------- | -------------------------------------------------- |
-| FR-001    | T015, T016             | Teste de câmera + demonstração                     |
-| FR-002    | T017, T018             | Teste de captura; verificação de não persistência  |
-| FR-003    | T002, T008, T029       | Teste de integração da rota                        |
-| FR-004    | T010                   | Teste de validação de schema                       |
-| FR-005    | T009                   | Suíte sem custo (SC-003)                           |
-| FR-006    | T001, T011             | Teste de contrato; troca por configuração          |
-| FR-007    | T004, T005, T006, T013 | Teste de fronteira (SC-002)                        |
-| FR-008    | T020, T021             | Teste de UI + demonstração                         |
-| FR-009    | T007                   | Testes de erro estável e limites                   |
-| FR-010    | T012                   | Teste de logging sem conteúdo                      |
-| FR-011    | T019                   | Teste de UI                                        |
-| FR-012    | T023, T024             | Teste de seleção por configuração                  |
-| FR-013    | T022                   | Teste de configuração do adaptador                 |
-| FR-014    | T025                   | Teste com executável simulado                      |
-| FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)          |
-| FR-016    | T034, T035             | Teste de UI do fluxo + teste de fronteira (FR-007) |
-| FR-017    | T036, T037             | Teste do sanitizador e do serviço                  |
-| FR-018    | T038, T039             | Teste do carregamento e da linha de boot           |
-| FR-017    | T036                   | Teste do mock e da configuração                    |
+| Requisito | Tarefas                | Evidência esperada                                  |
+| --------- | ---------------------- | --------------------------------------------------- |
+| FR-001    | T015, T016             | Teste de câmera + demonstração                      |
+| FR-002    | T017, T018             | Teste de captura; verificação de não persistência   |
+| FR-003    | T002, T008, T029       | Teste de integração da rota                         |
+| FR-004    | T010                   | Teste de validação de schema                        |
+| FR-005    | T009                   | Suíte sem custo (SC-003)                            |
+| FR-006    | T001, T011             | Teste de contrato; troca por configuração           |
+| FR-007    | T004, T005, T006, T013 | Teste de fronteira (SC-002)                         |
+| FR-008    | T020, T021             | Teste de UI + demonstração                          |
+| FR-009    | T007                   | Testes de erro estável e limites                    |
+| FR-010    | T012                   | Teste de logging sem conteúdo                       |
+| FR-011    | T019                   | Teste de UI                                         |
+| FR-012    | T023, T024             | Teste de seleção por configuração                   |
+| FR-013    | T022                   | Teste de configuração do adaptador                  |
+| FR-014    | T025                   | Teste com executável simulado                       |
+| FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)           |
+| FR-016    | T034, T035             | Teste de UI do fluxo + teste de fronteira (FR-007)  |
+| FR-017    | T036, T037             | Teste do sanitizador e do serviço                   |
+| FR-018    | T038, T039             | Teste do carregamento e da linha de boot            |
+| FR-019    | T040, T041             | Teste do prompt e do árbitro; verificação com Codex |
+| FR-017    | T036                   | Teste do mock e da configuração                     |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 

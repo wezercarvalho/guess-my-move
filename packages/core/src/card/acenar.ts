@@ -23,7 +23,21 @@ export const acenarCard: Card = parseCard({
     },
     evaluation: {
         canonicalAnswer: 'acenar',
-        acceptedAliases: ['dar tchau', 'acenando', 'waving', 'waving goodbye'],
+        // Formas curtas equivalentes à ação-alvo, comparadas por igualdade
+        // exata após normalizar (nunca por substring). As flexões `acena` e
+        // `acenou` e as variantes de despedida (#61) existem porque o modelo
+        // responde com o verbo, não necessariamente no infinitivo.
+        acceptedAliases: [
+            'dar tchau',
+            'dar um tchau',
+            'dar adeus',
+            'tchau',
+            'acena',
+            'acenou',
+            'acenando',
+            'waving',
+            'waving goodbye',
+        ],
         insufficientGuesses: [
             'levantar a mão',
             'mexer o braço',

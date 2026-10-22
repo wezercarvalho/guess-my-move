@@ -123,6 +123,7 @@ Como mantenedor, quero um benchmark reproduzível para decidir sobre o provedor 
 - **FR-016:** A interface DEVE conduzir uma rodada completa com o motor e o árbitro do núcleo: exibir o palpite da IA, o veredito, a contagem de tentativas e os palpites já rejeitados, reenviar os rejeitados ao adivinhador, encerrar ao acertar ou esgotar as tentativas e permitir iniciar uma nova rodada que zera o histórico e a revelação de dica e sugestão. Erros recuperáveis e evidência insuficiente NÃO DEVEM consumir tentativa. O servidor NÃO recebe dado da carta (FR-007).
 - **FR-017:** Em erro do provedor, o log técnico DEVE incluir uma descrição curta da causa, sanitizada (sem mídia, sem credenciais, com tamanho limitado e preservando o final da mensagem). A resposta HTTP ao cliente NÃO DEVE mudar nem expor a causa.
 - **FR-018:** O servidor DEVE carregar a configuração do `.env` da raiz (e de `apps/server/.env`, que tem prioridade) independentemente do diretório de execução, com o ambiente do processo vencendo os arquivos, e DEVE informar no boot o provedor ativo (e o modelo no `codex`) sem expor credenciais.
+- **FR-019:** O prompt do adaptador `codex` DEVE pedir a ação predominante como um verbo no infinitivo, em uma ou duas palavras, e tratar pessoa parada como evidência insuficiente, sem conter palavra-alvo, dica, sugestão nem aliases (FR-007). Os aliases da carta DEVEM incluir as flexões e formas curtas equivalentes da ação-alvo, comparadas por igualdade exata, nunca por substring.
 
 ## Requisitos não funcionais
 

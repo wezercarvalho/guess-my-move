@@ -17,7 +17,7 @@ import { forbiddenCardTerms, wavingCardFixture } from './support/card-boundary.j
 // árvore lintada/tipada). Nunca contata rede nem o Codex real. Lê `-o <arquivo>`
 // e grava ali a "última mensagem do agente". Comportamento por env:
 //   FAKE_CODEX_MODE = success | invalid | exit-nonzero | slow | empty
-//   FAKE_CODEX_DELAY_MS, FAKE_CODEX_LOG
+//   FAKE_CODEX_DELAY_MS, FAKE_CODEX_LOG, FAKE_CODEX_STDIN (grava o prompt)
 const FAKE_CODEX_SOURCE = `#!/usr/bin/env node
 import { writeFileSync, appendFileSync } from 'node:fs'
 const argv = process.argv.slice(2)
@@ -27,7 +27,12 @@ function flagValue(name){ const i = argv.indexOf(name); return i>=0?argv[i+1]:un
 function variadicImages(){ const i = argv.indexOf('-i'); if(i<0) return []; const out=[]; for(let k=i+1;k<argv.length;k++){ if(argv[k].startsWith('-')) break; out.push(argv[k]) } return out }
 const outputPath = flagValue('-o') || flagValue('--output-last-message')
 const images = variadicImages()
-process.stdin.resume(); process.stdin.on('data', () => {})
+let stdinText = ''
+const stdinDone = new Promise((resolve) => {
+  process.stdin.on('data', (c) => { stdinText += c })
+  process.stdin.on('end', () => { if (process.env.FAKE_CODEX_STDIN) writeFileSync(process.env.FAKE_CODEX_STDIN, stdinText); resolve() })
+})
+process.stdin.resume()
 function emit(b){ if(outputPath) writeFileSync(outputPath, b) }
 function finish(){
   if(mode==='exit-nonzero') process.exit(3)
@@ -37,7 +42,7 @@ function finish(){
   emit(JSON.stringify({ guess: insufficient ? '' : 'acenar', insufficientEvidence: insufficient }))
   process.exit(0)
 }
-if(mode==='slow'){ setTimeout(finish, Number(process.env.FAKE_CODEX_DELAY_MS||'10000')) } else { finish() }
+if(mode==='slow'){ setTimeout(finish, Number(process.env.FAKE_CODEX_DELAY_MS||'10000')) } else { stdinDone.then(finish) }
 `
 
 let fakeDir: string
@@ -81,12 +86,14 @@ describe('CodexGuesserProvider (executável simulado)', () => {
         delete process.env.FAKE_CODEX_MODE
         delete process.env.FAKE_CODEX_DELAY_MS
         delete process.env.FAKE_CODEX_LOG
+        delete process.env.FAKE_CODEX_STDIN
     })
 
     afterEach(() => {
         delete process.env.FAKE_CODEX_MODE
         delete process.env.FAKE_CODEX_DELAY_MS
         delete process.env.FAKE_CODEX_LOG
+        delete process.env.FAKE_CODEX_STDIN
     })
 
     it('devolve um palpite validado no caminho feliz', async () => {
@@ -160,6 +167,22 @@ describe('CodexGuesserProvider (executável simulado)', () => {
                 continue
             }
             expect(logged).not.toContain(term.toLowerCase())
+        }
+    })
+
+    it('o prompt pede o verbo no infinitivo e trata pessoa parada como insuficiente (#61)', async () => {
+        process.env.FAKE_CODEX_MODE = 'success'
+        const stdinPath = join(fakeDir, `stdin-${Date.now()}.txt`)
+        process.env.FAKE_CODEX_STDIN = stdinPath
+        await makeProvider().guess(input)
+        const prompt = readFileSync(stdinPath, 'utf8')
+        expect(prompt).toContain('infinitivo')
+        expect(prompt).toContain('insufficientEvidence')
+        expect(prompt.toLowerCase()).toContain('parada')
+        // O prompt é genérico: nenhum termo da carta (nem a palavra-alvo).
+        const lowered = prompt.toLowerCase()
+        for (const term of forbiddenCardTerms(wavingCardFixture)) {
+            expect(lowered, term).not.toContain(term.toLowerCase())
         }
     })
 })

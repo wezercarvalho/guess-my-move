@@ -64,26 +64,27 @@ Câmera autorizada → captura N frames → cliente valida limites → `POST /ap
 
 ## Mapeamento de requisitos
 
-| Requisito | Abordagem                                                       | Evidência planejada                                |
-| --------- | --------------------------------------------------------------- | -------------------------------------------------- |
-| FR-001    | Câmera com consentimento, preview e parada (apps/web)           | Teste de componente + demonstração manual          |
-| FR-002    | Captura de janela com timestamps e limites, descarte após uso   | Teste unitário de captura; verificação de não log  |
-| FR-003    | API server-side com credencial fora do browser                  | Teste de integração da rota                        |
-| FR-004    | Saída validada por schema, com "evidência insuficiente"         | Teste de validação de schema                       |
-| FR-005    | `MockGuesserProvider` sem credencial                            | Suíte de testes roda sem custo (SC-003)            |
-| FR-006    | Interface `GuesserProvider` isolando o provedor                 | Teste de contrato; troca por configuração          |
-| FR-007    | Teste de fronteira que falha se dado da carta entrar no payload | Teste de fronteira (SC-002)                        |
-| FR-008    | Estados `capturing`/`processing`/`success`/`error` na UI        | Teste de UI + demonstração                         |
-| FR-009    | Validação, limites, timeout e erros estáveis no servidor        | Testes de erro estável e limites                   |
-| FR-010    | Métricas técnicas sem mídia                                     | Teste de logging sem conteúdo                      |
-| FR-011    | Aviso de envio a provedor externo                               | Teste de UI                                        |
-| FR-012    | Somente `mock` e `codex` por configuração                       | Teste de seleção por configuração                  |
-| FR-013    | `codex` desligado por padrão; modelo e esforço configuráveis    | Teste de configuração do adaptador                 |
-| FR-014    | Timeout, execução única e limpeza de temporários no `codex`     | Teste com executável simulado                      |
-| FR-015    | Dica e sugestão ocultas por padrão, reveladas sob ação          | Teste de UI + teste de fronteira (FR-007)          |
-| FR-016    | Rodada completa na tela com o motor e o árbitro do núcleo       | Teste de UI do fluxo + teste de fronteira (FR-007) |
-| FR-017    | Causa sanitizada do erro do provedor no log técnico             | Teste do sanitizador e do serviço                  |
-| FR-018    | `.env` da raiz e provedor ativo no boot                         | Teste do carregamento e da linha de boot           |
+| Requisito | Abordagem                                                       | Evidência planejada                                 |
+| --------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| FR-001    | Câmera com consentimento, preview e parada (apps/web)           | Teste de componente + demonstração manual           |
+| FR-002    | Captura de janela com timestamps e limites, descarte após uso   | Teste unitário de captura; verificação de não log   |
+| FR-003    | API server-side com credencial fora do browser                  | Teste de integração da rota                         |
+| FR-004    | Saída validada por schema, com "evidência insuficiente"         | Teste de validação de schema                        |
+| FR-005    | `MockGuesserProvider` sem credencial                            | Suíte de testes roda sem custo (SC-003)             |
+| FR-006    | Interface `GuesserProvider` isolando o provedor                 | Teste de contrato; troca por configuração           |
+| FR-007    | Teste de fronteira que falha se dado da carta entrar no payload | Teste de fronteira (SC-002)                         |
+| FR-008    | Estados `capturing`/`processing`/`success`/`error` na UI        | Teste de UI + demonstração                          |
+| FR-009    | Validação, limites, timeout e erros estáveis no servidor        | Testes de erro estável e limites                    |
+| FR-010    | Métricas técnicas sem mídia                                     | Teste de logging sem conteúdo                       |
+| FR-011    | Aviso de envio a provedor externo                               | Teste de UI                                         |
+| FR-012    | Somente `mock` e `codex` por configuração                       | Teste de seleção por configuração                   |
+| FR-013    | `codex` desligado por padrão; modelo e esforço configuráveis    | Teste de configuração do adaptador                  |
+| FR-014    | Timeout, execução única e limpeza de temporários no `codex`     | Teste com executável simulado                       |
+| FR-015    | Dica e sugestão ocultas por padrão, reveladas sob ação          | Teste de UI + teste de fronteira (FR-007)           |
+| FR-016    | Rodada completa na tela com o motor e o árbitro do núcleo       | Teste de UI do fluxo + teste de fronteira (FR-007)  |
+| FR-017    | Causa sanitizada do erro do provedor no log técnico             | Teste do sanitizador e do serviço                   |
+| FR-018    | `.env` da raiz e provedor ativo no boot                         | Teste do carregamento e da linha de boot            |
+| FR-019    | Prompt de verbo no infinitivo e aliases do aceno                | Teste do prompt, do árbitro e verificação com Codex |
 
 ## Estratégia test-first
 

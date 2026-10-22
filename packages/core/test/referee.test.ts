@@ -46,6 +46,26 @@ describe('árbitro — veredito determinístico (#13)', () => {
         expect(judge(evaluation, '  DAR TCHAU  ').isCorrect).toBe(true)
     })
 
+    it('formas verbais curtas do aceno acertam por alias (#61)', () => {
+        for (const guess of ['acena', 'acenou', 'Dar adeus', 'dar um tchau']) {
+            const r = judge(evaluation, guess)
+            expect(r.isCorrect, guess).toBe(true)
+            expect(r.method, guess).toBe('alias')
+        }
+    })
+
+    it('descrição longa de cena continua sem acertar (#61)', () => {
+        // Observado com o Codex real: frases não são equivalentes a um alias.
+        expect(
+            judge(evaluation, 'Levanta a mão e a acena em cumprimento.')
+                .isCorrect,
+        ).toBe(false)
+        expect(
+            judge(evaluation, 'Sentado diante do computador, olhando para a tela.')
+                .isCorrect,
+        ).toBe(false)
+    })
+
     it('"levantar a mão" é incorreto (insuficiente)', () => {
         const r = judge(evaluation, 'levantar a mão')
         expect(r.isCorrect).toBe(false)

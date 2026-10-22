@@ -40,12 +40,15 @@ export interface CodexProviderOptions {
 const GENERIC_PROMPT = [
     'Você recebe uma sequência de quadros (frames) de uma webcam, em ordem',
     'cronológica, espaçados por cerca de 400 ms. Observe o movimento da pessoa',
-    'ao longo dos quadros e descreva, em poucas palavras, a ação humana',
-    'predominante que ela está executando. Não liste rótulos possíveis nem',
-    'adivinhe palavras de um jogo; apenas descreva o que vê. Se não houver',
-    'evidência suficiente de uma ação clara, responda com evidência',
-    'insuficiente. Responda SOMENTE no formato JSON exigido pelo schema:',
-    '{ "guess": "<ação em poucas palavras>", "insufficientEvidence": <bool> }.',
+    'ao longo dos quadros e responda com a ação humana predominante como UM',
+    'verbo no infinitivo, em uma ou duas palavras, sem artigos, sem',
+    'complementos e sem descrever o cenário (formato, por exemplo: "correr").',
+    'Não liste rótulos possíveis nem adivinhe palavras de um jogo. Pessoa',
+    'parada, sentada ou apenas olhando para a tela NÃO é uma ação: nesse caso,',
+    'e sempre que não houver evidência suficiente de uma ação clara, responda',
+    'com guess "nenhuma" e insufficientEvidence true. Responda SOMENTE no',
+    'formato JSON exigido pelo schema:',
+    '{ "guess": "<verbo no infinitivo>", "insufficientEvidence": <bool> }.',
 ].join(' ')
 
 const DEFAULT_TIMEOUT_MS = 60_000
