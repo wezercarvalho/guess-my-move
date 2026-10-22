@@ -140,6 +140,41 @@ describe('GuessService', () => {
         expect(serialized).not.toContain('image/jpeg')
     })
 
+    it('registra a causa sanitizada na métrica de erro, sem expô-la ao cliente', async () => {
+        const registry = new GuesserProviderRegistry().register(
+            'mock',
+            () =>
+                new MockGuesserProvider({
+                    error: new Error(
+                        "ERROR: You've hit your usage limit QUJD".padEnd(10) +
+                            'QUJD'.repeat(40),
+                    ),
+                }),
+        )
+        const { service, metrics } = makeService(registry)
+        const failure = await service.guess(input).catch((e: unknown) => e)
+        expect(failure).toBeInstanceOf(ApiException)
+        expect(JSON.stringify((failure as ApiException).getResponse())).not.toContain(
+            'usage limit',
+        )
+        expect(metrics[0]).toMatchObject({
+            outcome: 'error',
+            errorCode: 'provider_error',
+        })
+        expect(metrics[0]?.cause).toContain("You've hit your usage limit")
+        expect(metrics[0]?.cause).not.toContain('QUJD'.repeat(40))
+    })
+
+    it('a métrica de sucesso não tem causa', async () => {
+        const registry = new GuesserProviderRegistry().register(
+            'mock',
+            () => new MockGuesserProvider(),
+        )
+        const { service, metrics } = makeService(registry)
+        await service.guess(input)
+        expect(metrics[0]).not.toHaveProperty('cause')
+    })
+
     it('a ApiException nunca é construída com código fora do contrato', () => {
         expect(() => new ApiException('rate_limited', 'x').code).not.toThrow()
     })

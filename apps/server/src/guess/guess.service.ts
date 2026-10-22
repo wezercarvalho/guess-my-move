@@ -8,6 +8,7 @@ import {
 } from '@guess-my-move/providers'
 
 import { ApiException } from './api-error.js'
+import { describeCause } from './error-cause.js'
 import type { EnvironmentVariables } from '../config/environment.js'
 import { GuessMetricsLogger } from './metrics.js'
 import { SlidingWindowCounter } from './rate-limit.js'
@@ -99,6 +100,7 @@ export class GuessService {
                 frameCount: input.frames.length,
                 durationMs,
                 errorCode: apiError.code,
+                cause: describeCause(apiError.internalCause ?? cause),
             })
             throw apiError
         } finally {

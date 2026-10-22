@@ -72,6 +72,11 @@
 - [x] T034 [US-001] [FR-016] Escrever teste falhando do fluxo de rodada na tela: erro e nova tentativa com rejeitados, acerto, fim por tentativas, erro recuperável sem consumo e nova rodada (issue #55)
 - [x] T035 [US-001] [FR-016] Implementar `useRoundFlow` e a tela da rodada sobre `createRound` com o cliente HTTP como adivinhador, sem enviar dado da carta (issue #55)
 
+## Fase 12 — Causa do erro do provedor no log (issue #57)
+
+- [x] T036 [US-001] [FR-017] Escrever testes falhando do sanitizador da causa e da métrica de erro com causa, sem expô-la ao cliente (issue #57)
+- [x] T037 [US-001] [FR-017] Implementar `describeCause` e registrar `cause` na métrica de erro (issue #57)
+
 ## Fase final — Convergência
 
 - [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
@@ -98,6 +103,7 @@
 | FR-014    | T025                   | Teste com executável simulado                      |
 | FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)          |
 | FR-016    | T034, T035             | Teste de UI do fluxo + teste de fronteira (FR-007) |
+| FR-017    | T036, T037             | Teste do sanitizador e do serviço                  |
 | FR-017    | T036                   | Teste do mock e da configuração                    |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.

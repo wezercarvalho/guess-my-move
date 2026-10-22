@@ -3,6 +3,8 @@ import { Injectable, Logger } from '@nestjs/common'
 /**
  * Métrica técnica de uma tentativa. Contém APENAS metadados: nunca conteúdo de
  * frame (base64/bytes/miniatura), nunca chave de provedor, nunca dado de carta.
+ * `cause` só existe em erro e passa por `describeCause` (sem mídia nem
+ * credenciais, com tamanho limitado).
  */
 export interface GuessMetric {
     event: 'guess_attempt'
@@ -11,6 +13,7 @@ export interface GuessMetric {
     frameCount: number
     durationMs: number
     errorCode?: string
+    cause?: string
 }
 
 /**

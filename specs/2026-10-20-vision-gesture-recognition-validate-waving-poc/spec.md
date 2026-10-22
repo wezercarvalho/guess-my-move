@@ -121,6 +121,7 @@ Como mantenedor, quero um benchmark reproduzível para decidir sobre o provedor 
 - **FR-014:** O provedor `codex` DEVE aplicar timeout, limitar a uma execução simultânea por padrão e descartar os arquivos temporários dos frames ao final de cada tentativa.
 - **FR-015:** A interface DEVE exibir a palavra da carta e manter a dica e a sugestão ocultas por padrão, revelando cada uma sob ação explícita do jogador (acessível por teclado) e permitindo ocultá-las de novo. A revelação NÃO altera o payload do adivinhador.
 - **FR-016:** A interface DEVE conduzir uma rodada completa com o motor e o árbitro do núcleo: exibir o palpite da IA, o veredito, a contagem de tentativas e os palpites já rejeitados, reenviar os rejeitados ao adivinhador, encerrar ao acertar ou esgotar as tentativas e permitir iniciar uma nova rodada que zera o histórico e a revelação de dica e sugestão. Erros recuperáveis e evidência insuficiente NÃO DEVEM consumir tentativa. O servidor NÃO recebe dado da carta (FR-007).
+- **FR-017:** Em erro do provedor, o log técnico DEVE incluir uma descrição curta da causa, sanitizada (sem mídia, sem credenciais, com tamanho limitado e preservando o final da mensagem). A resposta HTTP ao cliente NÃO DEVE mudar nem expor a causa.
 
 ## Requisitos não funcionais
 
