@@ -93,7 +93,7 @@ test('cada verificação de governança tem passo e condição próprios', () =>
 test('o job de governança instala as dependências uma única vez e com histórico completo', () => {
     const installs = prGate.jobs.sdd.steps.filter((item) => /yarn install/.test(item.run ?? ''))
     assert.equal(installs.length, 1, 'uma única instalação de dependências')
-    assert.match(installs[0].run, /--frozen-lockfile/)
+    assert.match(installs[0].run, /--immutable/)
     const checkout = prGate.jobs.sdd.steps.find((item) => /actions\/checkout/.test(item.uses ?? ''))
     assert.equal(checkout.with['fetch-depth'], 0, 'o sdd:check precisa do diff contra a base')
 })
@@ -113,7 +113,7 @@ test('o escopo code é um job condicional que roda yarn check:all como os demais
     assert.equal(normalizeCondition(prGate.jobs.code.if), selected('code'))
     const runs = prGate.jobs.code.steps.map((item) => item.run ?? '')
     assert.ok(runs.includes('corepack enable'))
-    assert.ok(runs.some((run) => /yarn install --frozen-lockfile/.test(run)))
+    assert.ok(runs.some((run) => /yarn install --immutable/.test(run)))
     assert.ok(runs.some((run) => /yarn check:all/.test(run)))
     assert.deepEqual([prGate.jobs.code.needs].flat(), ['detect-changes'])
     for (const name of ['typecheck', 'lint', 'test', 'build', 'check:static', 'check:all']) {
@@ -514,7 +514,7 @@ test('runPlan barra com o comando de instalação quando falta node_modules, sem
     assert.deepEqual(run.executed, [])
     assert.deepEqual(result.missing, ['.'])
     assert.deepEqual(checked, ['./node_modules'], 'a raiz é o único pacote consultado')
-    assert.match(log.text(), /Instale com: yarn install --frozen-lockfile/)
+    assert.match(log.text(), /Instale com: yarn install --immutable/)
     assert.doesNotMatch(log.text(), /cd \. &&/)
     assert.match(log.text(), /git push --no-verify/)
 })

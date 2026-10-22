@@ -178,6 +178,6 @@ test('o job code roda yarn check:all, condicionado à seleção code, como os de
     assert.match(String(code.if), /needs\.detect-changes\.outputs\.code == 'true'/)
     const runs = code.steps.map((step) => step.run ?? '')
     assert.ok(runs.includes('corepack enable'), 'o job code habilita corepack como os demais')
-    assert.ok(runs.some((run) => /yarn install --frozen-lockfile/.test(run)))
+    assert.ok(runs.some((run) => /yarn install --immutable/.test(run)))
     assert.ok(runs.some((run) => /yarn check:all/.test(run)))
 })
