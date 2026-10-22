@@ -36,8 +36,6 @@ yarn dev:web           # em outro terminal: Vite com proxy de /api para o servid
 
 Abra o endereço do Vite, ative a câmera, acione **Capturar e adivinhar** e veja o palpite e o veredito. O `mock` devolve um palpite determinístico e serve apenas para exercitar o fluxo; por padrão sempre responde "acenar", então a rodada termina no primeiro palpite.
 
-Para exercitar erro e nova tentativa, defina uma sequência no `.env` do servidor, por exemplo `MOCK_GUESSES=dançar,pular,acenar`: o n-ésimo palpite é o item de índice igual ao número de palpites rejeitados já enviados (o último se a lista acabar).
-
 Servidor compilado: `yarn build` e depois `node apps/server/dist/main.js`.
 
 ### API

@@ -82,7 +82,6 @@ Câmera autorizada → captura N frames → cliente valida limites → `POST /ap
 | FR-014    | Timeout, execução única e limpeza de temporários no `codex`     | Teste com executável simulado                      |
 | FR-015    | Dica e sugestão ocultas por padrão, reveladas sob ação          | Teste de UI + teste de fronteira (FR-007)          |
 | FR-016    | Rodada completa na tela com o motor e o árbitro do núcleo       | Teste de UI do fluxo + teste de fronteira (FR-007) |
-| FR-017    | Sequência de palpites do mock por `MOCK_GUESSES`                | Teste do mock e da configuração                    |
 
 ## Estratégia test-first
 

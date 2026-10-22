@@ -71,7 +71,6 @@
 
 - [x] T034 [US-001] [FR-016] Escrever teste falhando do fluxo de rodada na tela: erro e nova tentativa com rejeitados, acerto, fim por tentativas, erro recuperável sem consumo e nova rodada (issue #55)
 - [x] T035 [US-001] [FR-016] Implementar `useRoundFlow` e a tela da rodada sobre `createRound` com o cliente HTTP como adivinhador, sem enviar dado da carta (issue #55)
-- [x] T036 [US-001] [FR-017] Implementar a sequência de palpites do mock e `MOCK_GUESSES`, com testes (issue #55)
 
 ## Fase final — Convergência
 

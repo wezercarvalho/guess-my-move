@@ -19,12 +19,6 @@ export class MockProviderError extends Error {
 export interface MockGuesserOptions {
     /** Palpite fixo devolvido quando não há erro nem evidência insuficiente. */
     guess?: string
-    /**
-     * Sequência de palpites: o item de índice igual ao número de
-     * `rejectedGuesses` recebidos (o último se a lista acabar). Sem estado,
-     * então o resultado depende só da entrada. Vence `guess` quando presente.
-     */
-    guesses?: readonly string[]
     /** Quando true, devolve `insufficientEvidence: true`. */
     insufficientEvidence?: boolean
     /** Quando definido, a chamada rejeita com este erro. */
@@ -61,16 +55,9 @@ export class MockGuesserProvider implements GuesserProvider {
         }
         // Palpite determinístico: nunca depende do conteúdo dos frames nem de
         // qualquer dado de carta (que a entrada não contém, por contrato).
+        void input
         if (this.options.insufficientEvidence) {
             return { guess: this.options.guess ?? '', insufficientEvidence: true }
-        }
-        const sequence = this.options.guesses
-        if (sequence !== undefined && sequence.length > 0) {
-            const index = Math.min(
-                input.rejectedGuesses?.length ?? 0,
-                sequence.length - 1,
-            )
-            return { guess: sequence[index] ?? DEFAULT_GUESS }
         }
         return { guess: this.options.guess ?? DEFAULT_GUESS }
     }

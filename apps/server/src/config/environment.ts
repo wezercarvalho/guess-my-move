@@ -34,8 +34,6 @@ export const environmentSchema = z.object({
     CODEX_MODEL: z.string().optional(),
     CODEX_REASONING_EFFORT: z.string().optional(),
     CODEX_BIN: z.string().optional(),
-    /** Lista de palpites do mock, separada por vírgula (só para desenvolvimento). */
-    MOCK_GUESSES: z.string().optional(),
 })
 
 export type EnvironmentVariables = z.infer<typeof environmentSchema>

@@ -25,17 +25,6 @@ function parseReasoningEffort(
 }
 
 /**
- * Lê `MOCK_GUESSES` (lista separada por vírgula). Itens vazios são ignorados;
- * sem a variável, o mock mantém o palpite padrão.
- */
-export function parseMockGuesses(value: string | undefined): string[] {
-    return (value ?? '')
-        .split(',')
-        .map((item) => item.trim())
-        .filter((item) => item !== '')
-}
-
-/**
  * Monta o registro de provedores a partir da configuração. Exportado para
  * teste direto: o `mock` está sempre disponível; o `codex` só é registrado
  * quando `GUESSER_PROVIDER=codex`, mantendo-o desligado por padrão.
@@ -43,12 +32,7 @@ export function parseMockGuesses(value: string | undefined): string[] {
 export function buildGuesserRegistry(
     config: ConfigService<EnvironmentVariables, true>,
 ): GuesserProviderRegistry {
-    const mockGuesses = parseMockGuesses(
-        config.get('MOCK_GUESSES', { infer: true }),
-    )
-    const registry = createDefaultRegistry(
-        mockGuesses.length > 0 ? { mock: { guesses: mockGuesses } } : {},
-    )
+    const registry = createDefaultRegistry()
     const selected = config.get('GUESSER_PROVIDER', { infer: true })
     if (selected === GuesserProviderName.Codex) {
         const model = config.get('CODEX_MODEL', { infer: true })
