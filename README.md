@@ -29,10 +29,12 @@ Um único `yarn install` na raiz instala todos os workspaces. Antes do primeiro 
 ## Como rodar em modo mock (sem credencial e sem custo)
 
 ```sh
-cp .env.example .env   # opcional; os padrões já usam GUESSER_PROVIDER=mock
+cp .env.example .env   # na raiz; opcional, os padrões já usam GUESSER_PROVIDER=mock
 yarn dev:server        # compila core/providers e sobe o NestJS (PORT, padrão 3000)
 yarn dev:web           # em outro terminal: Vite com proxy de /api para o servidor
 ```
+
+O servidor lê o `.env` da raiz (ou `apps/server/.env`, que tem prioridade; variáveis do ambiente vencem os dois) e imprime no boot o provedor ativo, por exemplo `Provedor ativo: codex (modelo gpt-6-luna)`. Confira essa linha: com `mock`, o palpite é sempre "acenar", com tempo de 0,0 s.
 
 Abra o endereço do Vite, ative a câmera, acione **Capturar e adivinhar** e veja o palpite e o veredito. O `mock` devolve um palpite determinístico e serve apenas para exercitar o fluxo; por padrão sempre responde "acenar", então a rodada termina no primeiro palpite.
 

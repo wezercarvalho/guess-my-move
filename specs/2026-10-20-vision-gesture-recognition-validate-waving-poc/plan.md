@@ -83,6 +83,7 @@ Câmera autorizada → captura N frames → cliente valida limites → `POST /ap
 | FR-015    | Dica e sugestão ocultas por padrão, reveladas sob ação          | Teste de UI + teste de fronteira (FR-007)          |
 | FR-016    | Rodada completa na tela com o motor e o árbitro do núcleo       | Teste de UI do fluxo + teste de fronteira (FR-007) |
 | FR-017    | Causa sanitizada do erro do provedor no log técnico             | Teste do sanitizador e do serviço                  |
+| FR-018    | `.env` da raiz e provedor ativo no boot                         | Teste do carregamento e da linha de boot           |
 
 ## Estratégia test-first
 
