@@ -303,7 +303,7 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'apps/server/src/main.ts': ['code'],
         'packages/core/src/index.ts': ['code'],
         'tsconfig.base.json': ['code'],
-        'eslint.config.mjs': ['code'],
+        '.oxlintrc.json': ['code'],
         '.env.example': ['code'],
         LICENSE: [],
         'logo.png': [],

@@ -69,17 +69,17 @@ O harness offline fica em `packages/benchmark` (protocolo, formato do manifesto 
 
 ## Scripts
 
-| Script                       | O que faz                                                             |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `yarn dev:web`               | Sobe o frontend (Vite).                                               |
-| `yarn dev:server`            | Compila `core`/`providers` e sobe o servidor (NestJS, em watch).      |
-| `yarn typecheck`             | `tsc --noEmit` em todos os workspaces.                                |
-| `yarn lint`                  | ESLint (flat config) com TypeScript estrito em `apps/` e `packages/`. |
-| `yarn test`                  | Vitest em todos os workspaces (resolve pelo código-fonte).            |
-| `yarn build`                 | Build de todos os workspaces.                                         |
-| `yarn check:static`          | `typecheck` + `lint`.                                                 |
-| `yarn check:all`             | `check:static` + `test` + `build` (o que o `pr-gate` roda).           |
-| `yarn security:dependencies` | Auditoria de dependências (High/Critical bloqueiam).                  |
+| Script                       | O que faz                                                        |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `yarn dev:web`               | Sobe o frontend (Vite).                                          |
+| `yarn dev:server`            | Compila `core`/`providers` e sobe o servidor (NestJS, em watch). |
+| `yarn typecheck`             | `tsc --noEmit` em todos os workspaces.                           |
+| `yarn lint`                  | Oxlint type-aware (`.oxlintrc.json`) em `apps/` e `packages/`.   |
+| `yarn test`                  | Vitest em todos os workspaces (resolve pelo código-fonte).       |
+| `yarn build`                 | Build de todos os workspaces.                                    |
+| `yarn check:static`          | `typecheck` + `lint`.                                            |
+| `yarn check:all`             | `check:static` + `test` + `build` (o que o `pr-gate` roda).      |
+| `yarn security:dependencies` | Auditoria de dependências (High/Critical bloqueiam).             |
 
 Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gates`) estão em [Checks de qualidade](docs/development-context/quality/quality-gates.md).
 

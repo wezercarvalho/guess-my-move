@@ -10,7 +10,7 @@ name: pr-gate
 # abrir a PR já pronta, a cada push em PR pronta e, automaticamente, quando o rascunho é marcado
 # como pronto (ready_for_review).
 # O job `code` roda `yarn check:all` (typecheck, lint, test, build) nos workspaces quando o PR
-# toca apps/, packages/, manifesto/lockfile, tsconfig*, config do ESLint ou .env.example. O padrão
+# toca apps/, packages/, manifesto/lockfile, tsconfig*, config do Oxlint ou .env.example. O padrão
 # é espelhado EXATAMENTE em scripts/git-hooks/scopes.mjs e o job entra em `SELECTED_JOBS` de
 # scripts/sdd/check-job-results.mjs.
 on:
@@ -72,9 +72,9 @@ jobs:
                   fi
 
                   # Código da aplicação: workspaces (apps/, packages/), manifesto e lockfile,
-                  # tsconfig*, config do ESLint e o .env.example. Espelhado EXATAMENTE em
+                  # tsconfig*, config do Oxlint e o .env.example. Espelhado EXATAMENTE em
                   # scripts/git-hooks/scopes.mjs.
-                  CODE_PATTERN='^apps/|^packages/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^eslint\.config\.[a-z]+$|^\.env\.example$'
+                  CODE_PATTERN='^apps/|^packages/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$'
                   if echo "$CHANGED" | grep -qE "$CODE_PATTERN"; then
                     echo "code=true" >>"$GITHUB_OUTPUT"
                   else

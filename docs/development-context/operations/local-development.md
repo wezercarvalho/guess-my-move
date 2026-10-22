@@ -16,7 +16,7 @@ O repositório não tem workflow de CI por `push` em branches de trabalho; quem 
 1. `sdd`: `yarn test:sdd` e `yarn sdd:check` (como os passos do job de governança `sdd`);
 2. `root-docs`: `yarn docs:format:check`, Prettier com o estilo de `/.prettierrc` em `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/` e `specs/`;
 3. `tooling`: `yarn test:gates`, testes do hook, do auditor e dos workflows;
-4. `code`: `yarn check:static` (typecheck + lint) por padrão, ou `yarn check:all` (typecheck + lint + test + build) no `--mode full`, quando o PR toca `apps/`, `packages/`, manifesto/lockfile, `tsconfig*.json`, `eslint.config.*` ou `.env.example`;
+4. `code`: `yarn check:static` (typecheck + lint) por padrão, ou `yarn check:all` (typecheck + lint + test + build) no `--mode full`, quando o PR toca `apps/`, `packages/`, manifesto/lockfile, `tsconfig*.json`, `.oxlintrc.json` ou `.env.example`;
 5. `audit`: `yarn security:dependencies`, se os arquivos casarem o padrão de auditoria do `pr-gate`.
 
 Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. O gate remoto roda sempre o `yarn check:all` do escopo de código; o hook roda `check:static` por padrão para falhar rápido.

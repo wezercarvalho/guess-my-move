@@ -71,12 +71,21 @@ As decisões abaixo foram **definidas em 2026-10-21 pelo mantenedor e são revis
 - **Alternativas rejeitadas:** Adotar antes do LTS — runtime sem suporte de longo prazo.
 - **Seções atualizadas em `spec.md`:** FR-007, US-004.
 
+## Resultados do spike de Oxlint e TypeScript 7 (2026-10-21)
+
+- **Decisão:** adotar `typescript` 7.0.2 com `oxlint` 1.89.0 e `oxlint-tsgolint` 7.0.2004 (patch 2004 para o TypeScript 7.0.2). Plano B não acionado.
+- **Typecheck:** `tsc` 7 passa nos cinco workspaces sem mudança de código, com `experimentalDecorators` e `emitDecoratorMetadata`.
+- **Build do servidor:** o `nest build` recusa o TypeScript 7 (sem API programática). Estratégia escolhida: `tsc -p tsconfig.build.json` direto, precedido de `scripts/clean.mjs`; o `tsc` 7 emite `design:paramtypes` e o servidor compilado sobe e responde (`GET /api/health` 200, `POST /api/guess` 200 e 400 conforme o payload). SWC como emissor ficou como alternativa não usada. O `@nestjs/cli` e o `nest-cli.json` foram removidos; `yarn dev:server` usa `apps/server/scripts/dev.mjs` (`tsc --watch` mais `node --watch`).
+- **Paridade de regras:** `.oxlintrc.json` liga a categoria `correctness` mais as regras type-aware e de `recommended` do `typescript-eslint` que o projeto usava (`no-floating-promises`, `no-misused-promises`, `no-unsafe-*`, `require-await`, `restrict-template-expressions`, `unbound-method`, `no-unnecessary-type-assertion`, `only-throw-error` e outras; 136 regras no total) e `react/rules-of-hooks`, `react/exhaustive-deps` e `react/only-export-components` no web. Um arquivo-sonda com violações confirmou que `no-floating-promises`, `no-unsafe-*`, `unbound-method`, `restrict-template-expressions`, `require-await`, `no-explicit-any` e `rules-of-hooks` disparam.
+- **Sem equivalente verificado:** as regras de React Compiler do `eslint-plugin-react-hooks` 7 (por exemplo as de pureza e de refs) não foram confirmadas no Oxlint; `react/only-export-components` está configurada mas não foi exercida pela sonda; as regras `no-extraneous-class` e outras do conjunto `strict` do `typescript-eslint` não eram usadas no projeto.
+- **Medição (SC-005, uma execução cada, nesta máquina):** `yarn check:static` (typecheck + lint) passou de 18,8 s (Yarn 1, TypeScript 6.0.3, ESLint) para 4,2 a 4,4 s (Yarn 4, TypeScript 7.0.2, Oxlint). `yarn check:all` passou de cerca de 50 s para 27,6 s. A mudança de gerenciador de pacotes também entra nesses números; não houve isolamento por ferramenta.
+
 ## Questões abertas
 
-- Paridade da regra react-hooks no Oxlint ainda a confirmar caso a caso.
-- Estratégia de build do servidor com TypeScript 7 (tsc 7, SWC ou nest build) a definir no spike; plano B mantém `typescript` 6.0.3.
+- Paridade das regras de React Compiler do `react-hooks` 7 e de `only-export-components`, a confirmar caso a caso.
 - Disponibilidade do Corepack no Node 26 a verificar antes do merge.
 - Runtime de hospedagem em produção ainda indefinido.
+- Reavaliar o `@nestjs/cli` e o `nest build` quando o TypeScript 7.1 estabilizar a API (prevista para novembro de 2026).
 
 ## Hipóteses remanescentes
 
