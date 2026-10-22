@@ -62,6 +62,11 @@
 - [x] T027 [US-003] [SC-001] Produzir o modelo de relatório com métricas por provedor/variante, amostra declarada e limitações, sem taxa de acerto geral (issue #10)
 - [x] T028 [US-003] [SC-004] Registrar a latência via `codex` como não representativa e separar visão de semântica (aliases determinísticos) (issue #10)
 
+## Fase 10 — Dica e sugestão sob demanda (issue #53)
+
+- [x] T032 [US-001] [FR-015] Escrever teste falhando: dica e sugestão ocultas por padrão, reveladas e ocultadas de forma independente, com `aria-expanded` e uso por teclado (issue #53)
+- [x] T033 [US-001] [FR-015] Implementar a revelação sob demanda no `CardView`, com `onReveal` opcional como ponto de extensão para pontuação futura (issue #53)
+
 ## Fase final — Convergência
 
 - [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
@@ -86,6 +91,7 @@
 | FR-012    | T023, T024             | Teste de seleção por configuração                 |
 | FR-013    | T022                   | Teste de configuração do adaptador                |
 | FR-014    | T025                   | Teste com executável simulado                     |
+| FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)         |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 

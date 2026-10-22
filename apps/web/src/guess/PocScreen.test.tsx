@@ -53,9 +53,13 @@ async function activateCamera() {
 }
 
 describe('PocScreen', () => {
-    it('mostra a carta pública (palavra, dica, sugestão) e nunca a avaliação', () => {
+    it('mostra a carta pública (palavra, dica, sugestão sob demanda) e nunca a avaliação', () => {
         render(<PocScreen card={card} cameraGetUserMedia={vi.fn()} />)
         expect(screen.getByText('Acenar')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /mostrar dica/i }))
+        fireEvent.click(
+            screen.getByRole('button', { name: /mostrar sugestão/i }),
+        )
         expect(screen.getByText(/cumprimentar ou se despedir/i)).toBeInTheDocument()
         expect(screen.getByText(/movimente-a de um lado/i)).toBeInTheDocument()
         // A resposta canônica/aliases NÃO aparecem na tela.
