@@ -163,6 +163,25 @@ describe('requestGuess', () => {
         })
     })
 
+    it('resposta 200 fora do contrato vira invalid_model_response', async () => {
+        const fetchImpl = vi
+            .fn()
+            .mockResolvedValue(jsonResponse({ guess: 42, providerId: 'mock' }))
+        await expect(requestGuess({ frames }, { fetchImpl })).rejects.toMatchObject({
+            code: 'invalid_model_response',
+            retryable: true,
+        })
+    })
+
+    it('resposta 200 que não é JSON vira invalid_model_response', async () => {
+        const fetchImpl = vi
+            .fn()
+            .mockResolvedValue(new Response('<html>', { status: 200 }))
+        await expect(requestGuess({ frames }, { fetchImpl })).rejects.toMatchObject({
+            code: 'invalid_model_response',
+        })
+    })
+
     it('GuessApiError expõe code, message e retryable', () => {
         const err = new GuessApiError('provider_error', 'falhou', true)
         expect(err.code).toBe('provider_error')
