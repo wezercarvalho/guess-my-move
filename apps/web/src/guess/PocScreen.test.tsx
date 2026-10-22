@@ -1,4 +1,4 @@
-import { acenarCard, toPublicCard } from '@guess-my-move/core'
+import { acenarCard } from '@guess-my-move/core'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -21,7 +21,7 @@ beforeAll(() => {
     })
 })
 
-const card = toPublicCard(acenarCard)
+const card = acenarCard
 
 /** Deps de captura simuladas: canvas falso, relógio e sleep instantâneos. */
 function fakeCaptureDeps(): CaptureDeps {
@@ -229,5 +229,195 @@ describe('PocScreen', () => {
         const result = await screen.findByTestId('guess-result')
         expect(result).toHaveTextContent(/evidência suficiente/i)
         expect(result).not.toHaveTextContent(/palpite da ia/i)
+    })
+})
+
+/** Respostas do servidor para os testes do fluxo de rodada. */
+function guessResponse(guess: string, extra: Record<string, unknown> = {}) {
+    return jsonResponse({
+        guess,
+        durationMs: 1000,
+        providerId: 'mock',
+        ...extra,
+    })
+}
+
+/** Renderiza a tela com a câmera já ativa e um `fetch` simulado em fila. */
+async function renderActive(
+    responses: Response[],
+    extraProps: { maxAttempts?: number } = {},
+) {
+    const { stream } = createFakeStream()
+    const fetchImpl = vi.fn()
+    for (const response of responses) {
+        fetchImpl.mockResolvedValueOnce(response)
+    }
+    render(
+        <PocScreen
+            card={card}
+            cameraGetUserMedia={vi.fn().mockResolvedValue(stream)}
+            flowDeps={{
+                captureDeps: fakeCaptureDeps(),
+                clientOptions: { fetchImpl },
+            }}
+            {...extraProps}
+        />,
+    )
+    await activateCamera()
+    return fetchImpl
+}
+
+function captureOnce() {
+    fireEvent.click(screen.getByRole('button', { name: /capturar e adivinhar/i }))
+}
+
+function sentBody(fetchImpl: ReturnType<typeof vi.fn>, call: number) {
+    const init = fetchImpl.mock.calls[call]?.[1] as RequestInit
+    return JSON.parse(init.body as string) as Record<string, unknown>
+}
+
+describe('PocScreen — rodada com motor e árbitro (#55)', () => {
+    it('mostra 0 de N tentativas antes de qualquer captura', async () => {
+        await renderActive([])
+        expect(screen.getByTestId('round-status')).toHaveTextContent(
+            /0 de 3/,
+        )
+        expect(screen.queryByTestId('round-verdict')).not.toBeInTheDocument()
+    })
+
+    it('palpite errado: tente de novo, mostra o rejeitado e o reenvia', async () => {
+        const fetchImpl = await renderActive([
+            guessResponse('dançar'),
+            guessResponse('acenar'),
+        ])
+
+        captureOnce()
+        const verdict = await screen.findByTestId('round-verdict')
+        expect(verdict).toHaveTextContent(/não foi dessa vez/i)
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/1 de 3/)
+        expect(screen.getByTestId('rejected-guesses')).toHaveTextContent(
+            /dançar/,
+        )
+        // Pode capturar de novo, sem precisar de outro botão.
+        const again = screen.getByRole('button', {
+            name: /capturar e adivinhar/i,
+        })
+        expect(again).toBeEnabled()
+
+        fireEvent.click(again)
+        await waitFor(() =>
+            expect(screen.getByTestId('round-verdict')).toHaveTextContent(
+                /acertou/i,
+            ),
+        )
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/2 de 3/)
+
+        // O 1º envio não leva rejeitados; o 2º leva só o palpite da IA.
+        expect(sentBody(fetchImpl, 0)).not.toHaveProperty('rejectedGuesses')
+        expect(sentBody(fetchImpl, 1).rejectedGuesses).toEqual(['dançar'])
+        // Nenhum dado da carta cruza a fronteira.
+        for (const call of [0, 1]) {
+            expect(Object.keys(sentBody(fetchImpl, call)).sort()).toEqual(
+                call === 0 ? ['frames'] : ['frames', 'rejectedGuesses'],
+            )
+        }
+    })
+
+    it('ao acertar, encerra a rodada: sem nova captura e com "Nova rodada"', async () => {
+        await renderActive([guessResponse('dar tchau')])
+        captureOnce()
+        expect(await screen.findByTestId('round-verdict')).toHaveTextContent(
+            /acertou/i,
+        )
+        expect(
+            screen.getByRole('button', { name: /capturar e adivinhar/i }),
+        ).toBeDisabled()
+        expect(
+            screen.getByRole('button', { name: /nova rodada/i }),
+        ).toBeEnabled()
+    })
+
+    it('esgotar as tentativas encerra sem acerto', async () => {
+        await renderActive(
+            [guessResponse('dançar'), guessResponse('pular')],
+            { maxAttempts: 2 },
+        )
+        captureOnce()
+        await screen.findByTestId('round-verdict')
+        await waitFor(() =>
+            expect(
+                screen.getByRole('button', { name: /capturar e adivinhar/i }),
+            ).toBeEnabled(),
+        )
+        captureOnce()
+        await waitFor(() =>
+            expect(screen.getByTestId('round-verdict')).toHaveTextContent(
+                /fim da rodada/i,
+            ),
+        )
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/2 de 2/)
+        expect(
+            screen.getByRole('button', { name: /capturar e adivinhar/i }),
+        ).toBeDisabled()
+        expect(
+            screen.getByRole('button', { name: /nova rodada/i }),
+        ).toBeEnabled()
+    })
+
+    it('erro recuperável não consome tentativa', async () => {
+        await renderActive([
+            jsonResponse(
+                {
+                    error: {
+                        code: 'provider_error',
+                        message: 'falhou',
+                        retryable: true,
+                    },
+                },
+                502,
+            ),
+            guessResponse('dançar'),
+        ])
+        captureOnce()
+        await screen.findByRole('alert')
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/0 de 3/)
+
+        fireEvent.click(
+            screen.getByRole('button', { name: /tentar novamente/i }),
+        )
+        captureOnce()
+        await screen.findByTestId('round-verdict')
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/1 de 3/)
+    })
+
+    it('evidência insuficiente não consome tentativa', async () => {
+        await renderActive([
+            guessResponse('', { insufficientEvidence: true }),
+        ])
+        captureOnce()
+        await screen.findByTestId('guess-result')
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/0 de 3/)
+        expect(
+            screen.getByRole('button', { name: /capturar e adivinhar/i }),
+        ).toBeEnabled()
+    })
+
+    it('"Nova rodada" zera tentativas, rejeitados e a revelação de dica e sugestão', async () => {
+        await renderActive([guessResponse('dançar')])
+        fireEvent.click(screen.getByRole('button', { name: /mostrar dica/i }))
+        captureOnce()
+        await screen.findByTestId('round-verdict')
+        expect(screen.getByTestId('rejected-guesses')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: /nova rodada/i }))
+
+        expect(screen.getByTestId('round-status')).toHaveTextContent(/0 de 3/)
+        expect(screen.queryByTestId('round-verdict')).not.toBeInTheDocument()
+        expect(
+            screen.queryByTestId('rejected-guesses'),
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(/cumprimentar ou se despedir/i),
+        ).not.toBeInTheDocument()
     })
 })

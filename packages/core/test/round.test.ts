@@ -235,6 +235,69 @@ describe('motor da rodada — estados de exceção (#12)', () => {
         })
         await expect(round.attempt(frames)).rejects.toThrow()
     })
+
+    it.each([
+        ['erro do provedor', () => new Error('falha de rede'), 'provider_error'],
+        ['evidência insuficiente', () => ({ guess: '', insufficientEvidence: true }), 'invalid_model_response'],
+    ])(
+        'erro recuperável (%s): permite nova tentativa sem consumi-la',
+        async (_name, makeFailure, expectedState) => {
+            const provider = queueProvider([
+                makeFailure(),
+                { guess: 'levantar a mão' },
+                { guess: 'acenar' },
+            ])
+            const round = createRound({
+                card: acenarCard,
+                provider,
+                maxAttempts: 2,
+            })
+            round.revealCard()
+            round.cameraReady()
+
+            await round.attempt(frames)
+            expect(round.state).toBe(expectedState)
+            expect(round.attempts).toBe(0)
+
+            // Repete após o erro: 1ª tentativa válida, errada; ainda resta uma.
+            const retried = await round.attempt(frames)
+            expect(retried.state).toBe('retry')
+            expect(round.attempts).toBe(1)
+
+            const final = await round.attempt(frames)
+            expect(final.isCorrect).toBe(true)
+            expect(round.state).toBe('correct')
+        },
+    )
+
+    it('timeout do provedor também permite nova tentativa sem consumi-la', async () => {
+        let calls = 0
+        const provider: GuesserProvider = {
+            id: 'lento-depois-rapido',
+            guess: () => {
+                calls += 1
+                if (calls === 1) {
+                    return new Promise((_resolve, reject) =>
+                        setTimeout(() => reject(new Error('timeout')), 50),
+                    )
+                }
+                return Promise.resolve({ guess: 'acenar' })
+            },
+        }
+        const round = createRound({
+            card: acenarCard,
+            provider,
+            maxAttempts: 3,
+            requestTimeoutMs: 5,
+        })
+        round.revealCard()
+        round.cameraReady()
+        await round.attempt(frames)
+        expect(round.state).toBe('request_timeout')
+        expect(round.attempts).toBe(0)
+        const outcome = await round.attempt(frames)
+        expect(outcome.isCorrect).toBe(true)
+    })
 })
 
 describe('motor da rodada — histórico e provedor (#12)', () => {

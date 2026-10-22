@@ -44,6 +44,10 @@
 - [x] T018 [US-004] [FR-012] Implementar a montagem de `rejectedGuesses` a partir do histórico em memória (issue #15)
 - [x] T019 [US-004] [FR-013] Atualizar o README com instalação, modos mock e real, testes e privacidade para execução por terceiros (issue #15)
 
+## Fase 7 — Erros recuperáveis (issue #55)
+
+- [x] T021 [US-002] [FR-006] Permitir nova tentativa após `request_timeout`, `provider_error` e `invalid_model_response` sem consumir tentativa, com teste (issue #55)
+
 ## Fase final — Convergência
 
 - [x] T020 [FR-003] Revisar o tratamento de erros ponta a ponta e reconciliar com a spec da PoC (issue #15)
@@ -59,7 +63,7 @@
 | FR-003    | T004, T005, T020 | Teste de fronteira (SC-002)      |
 | FR-004    | T013, T014       | Teste de transições (SC-003)     |
 | FR-005    | T015             | Teste de limites                 |
-| FR-006    | T016             | Teste de erro de provedor        |
+| FR-006    | T016, T021       | Teste de erro de provedor        |
 | FR-007    | T006             | Teste de normalização            |
 | FR-008    | T007, T008       | Teste de alias/canônico (SC-001) |
 | FR-009    | T009             | Teste de insuficiente/dúvida     |

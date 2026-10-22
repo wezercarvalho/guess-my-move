@@ -6,7 +6,7 @@
 
 ## Estado
 
-PoC visual (Fase 0) implementada e **ainda não validada com dados reais**. Existe uma tela com a carta **Acenar**, câmera com consentimento, captura de frames, rota `POST /api/guess` no servidor com provedor `mock` (padrão) ou `codex` (Codex CLI, só local) e um harness de benchmark. O núcleo do jogo (carta, árbitro determinístico, fallback opcional, motor da rodada e histórico de palpites rejeitados) está pronto em `packages/core` com testes, mas **ainda não está ligado à interface**.
+PoC visual (Fase 0) implementada e **ainda não validada com dados reais**. Existe uma tela com a carta **Acenar** que conduz uma rodada completa (câmera com consentimento, captura de frames, palpite da IA, veredito do árbitro, até 3 tentativas com os palpites rejeitados reenviados e nova rodada), a rota `POST /api/guess` no servidor com provedor `mock` (padrão) ou `codex` (Codex CLI, só local) e um harness de benchmark. Dica e sugestão ficam ocultas até o jogador pedir.
 
 O que a PoC prova depende do benchmark (`packages/benchmark`), que só pode ser executado com clipes gravados pelo mantenedor. Até lá, não há nenhuma medição de acurácia ou latência.
 
@@ -34,7 +34,7 @@ yarn dev:server        # compila core/providers e sobe o NestJS (PORT, padrão 3
 yarn dev:web           # em outro terminal: Vite com proxy de /api para o servidor
 ```
 
-Abra o endereço do Vite, ative a câmera, acione **Capturar e adivinhar** e veja o palpite. O `mock` devolve um palpite determinístico e serve apenas para exercitar o fluxo.
+Abra o endereço do Vite, ative a câmera, acione **Capturar e adivinhar** e veja o palpite e o veredito. O `mock` devolve um palpite determinístico e serve apenas para exercitar o fluxo; por padrão sempre responde "acenar", então a rodada termina no primeiro palpite.
 
 Servidor compilado: `yarn build` e depois `node apps/server/dist/main.js`.
 
@@ -95,7 +95,7 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 ## Limites conhecidos
 
 - A câmera real, a captura de um `<video>` ao vivo e a aparência da interface foram testadas só com simulações (jsdom); falta verificar em navegador real.
-- O motor da rodada, o árbitro e o histórico de rejeitados existem no `core`, mas a tela da PoC ainda não os usa.
+- O árbitro e o motor da rodada rodam no navegador: a avaliação da carta (resposta canônica e aliases) está no bundle do cliente. Isso é aceitável na PoC e não é proteção antifraude; uma versão com pontuação competitiva precisa mover o julgamento para o servidor.
 - O benchmark não foi executado com dados reais.
 - O adaptador Bedrock (Claude Haiku 5.5 e Nova 2 Lite) e o acesso à AWS ainda não existem.
 
