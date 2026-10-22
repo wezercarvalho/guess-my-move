@@ -80,6 +80,7 @@ Câmera autorizada → captura N frames → cliente valida limites → `POST /ap
 | FR-012    | Somente `mock` e `codex` por configuração                       | Teste de seleção por configuração                 |
 | FR-013    | `codex` desligado por padrão; modelo e esforço configuráveis    | Teste de configuração do adaptador                |
 | FR-014    | Timeout, execução única e limpeza de temporários no `codex`     | Teste com executável simulado                     |
+| FR-015    | Dica e sugestão ocultas por padrão, reveladas sob ação          | Teste de UI + teste de fronteira (FR-007)         |
 
 ## Estratégia test-first
 

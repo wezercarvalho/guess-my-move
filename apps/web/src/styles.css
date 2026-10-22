@@ -212,21 +212,24 @@ a:focus-visible {
     gap: 0.5rem;
 }
 
-.card-details div {
+.card-detail {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+}
+
+.card-detail-text {
+    margin: 0;
     display: grid;
     gap: 0.1rem;
 }
 
-.card-details dt {
+.card-detail-label {
     font-weight: 600;
     color: var(--cor-texto-suave);
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-}
-
-.card-details dd {
-    margin: 0;
 }
 
 .attempt-actions {

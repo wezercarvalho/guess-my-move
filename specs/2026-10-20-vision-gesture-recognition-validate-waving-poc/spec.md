@@ -119,6 +119,7 @@ Como mantenedor, quero um benchmark reproduzível para decidir sobre o provedor 
 - **FR-012:** O sistema DEVE implementar na PoC somente os provedores `mock` e `codex`, selecionados por configuração, sem alterar UI, captura nem núcleo ao trocar de provedor.
 - **FR-013:** O provedor `codex` DEVE ficar desabilitado por padrão e só ativar com flag explícita de desenvolvimento local; o modelo e o esforço de raciocínio DEVEM ser configuráveis para o benchmark (por exemplo `none`, `low` e `high`).
 - **FR-014:** O provedor `codex` DEVE aplicar timeout, limitar a uma execução simultânea por padrão e descartar os arquivos temporários dos frames ao final de cada tentativa.
+- **FR-015:** A interface DEVE exibir a palavra da carta e manter a dica e a sugestão ocultas por padrão, revelando cada uma sob ação explícita do jogador (acessível por teclado) e permitindo ocultá-las de novo. A revelação NÃO altera o payload do adivinhador.
 
 ## Requisitos não funcionais
 
