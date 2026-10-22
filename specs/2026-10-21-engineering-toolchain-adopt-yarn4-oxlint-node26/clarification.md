@@ -71,6 +71,13 @@ As decisões abaixo foram **definidas em 2026-10-21 pelo mantenedor e são revis
 - **Alternativas rejeitadas:** Adotar antes do LTS — runtime sem suporte de longo prazo.
 - **Seções atualizadas em `spec.md`:** FR-007, US-004.
 
+## Resultados da verificação do Node 26 (2026-10-21)
+
+- **Corepack:** o tarball oficial do Node 26.12.1 (SHA-256 conferido) traz só `node`, `npm` e `npx`; o Corepack não é distribuído. O CI passa a rodar `npm install --global corepack@0.36.0` antes de `corepack enable`, e o README e o guia de desenvolvimento local dizem o mesmo. O Corepack 0.36.0 rodou sob o Node 26.12.1 nesta máquina.
+- **Compatibilidade:** com o Node 26.12.1, `yarn check:all` (typecheck, lint, testes e build; inclui o addon nativo do `@swc/core` sob o Vitest), `yarn test:gates`, `yarn test:sdd`, `yarn security:dependencies` e o servidor compilado (`GET /api/health` 200) passaram.
+- **Versão fixada:** `.node-version` em `26.12.1` e `engines` em `>=26.12.1 <27`. O Node 26 entra em LTS em 2026-10-28; o merge desta PR fica para essa data. O runtime de hospedagem continua indefinido.
+- **Não verificado:** a instalação global do Corepack no passo de CI em runners hospedados do GitHub (só confirmada quando o `pr-gate` desta PR rodar).
+
 ## Resultados do spike de Oxlint e TypeScript 7 (2026-10-21)
 
 - **Decisão:** adotar `typescript` 7.0.2 com `oxlint` 1.89.0 e `oxlint-tsgolint` 7.0.2004 (patch 2004 para o TypeScript 7.0.2). Plano B não acionado.
@@ -83,7 +90,6 @@ As decisões abaixo foram **definidas em 2026-10-21 pelo mantenedor e são revis
 ## Questões abertas
 
 - Paridade das regras de React Compiler do `react-hooks` 7 e de `only-export-components`, a confirmar caso a caso.
-- Disponibilidade do Corepack no Node 26 a verificar antes do merge.
 - Runtime de hospedagem em produção ainda indefinido.
 - Reavaliar o `@nestjs/cli` e o `nest build` quando o TypeScript 7.1 estabilizar a API (prevista para novembro de 2026).
 
