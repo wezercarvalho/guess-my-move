@@ -87,7 +87,7 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 ## Privacidade
 
 - A IA adivinhadora não recebe a carta, a dica, a sugestão nem os aliases. Há teste automatizado que falha se qualquer dado da carta entrar no payload.
-- Frames da webcam são transitórios: ficam em memória, não são persistidos nem registrados em logs e são descartados após o envio. No modo `codex`, os frames passam por arquivos temporários que são removidos ao fim da tentativa.
+- Frames da webcam são transitórios: ficam em memória, não são persistidos nem registrados em logs e são descartados após o envio. No modo `codex`, os frames passam por arquivos temporários que são removidos ao fim da tentativa. Em erro do provedor, o log do servidor registra a causa sanitizada (sem mídia nem credenciais, limitada a 400 caracteres) no campo `cause`; o cliente continua recebendo só o código estável.
 - Os frames são enviados a um provedor externo; a interface avisa o jogador.
 - Chaves de provedor ficam somente no servidor, em variáveis de ambiente (`.env`, nunca versionado); nunca no bundle do navegador, em logs ou no repositório.
 - Nenhuma afirmação de precisão ou latência sem medição registrada.
