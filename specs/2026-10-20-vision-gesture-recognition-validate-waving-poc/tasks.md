@@ -77,6 +77,11 @@
 - [x] T036 [US-001] [FR-017] Escrever testes falhando do sanitizador da causa e da métrica de erro com causa, sem expô-la ao cliente (issue #57)
 - [x] T037 [US-001] [FR-017] Implementar `describeCause` e registrar `cause` na métrica de erro (issue #57)
 
+## Fase 13 — Carregamento do `.env` e provedor ativo (issue #59)
+
+- [x] T038 [US-001] [FR-018] Escrever testes falhando do caminho dos `.env`, da precedência e da linha de provedor ativo (issue #59)
+- [x] T039 [US-001] [FR-018] Implementar `ENV_FILE_PATHS` no `ConfigModule` e a linha de boot do provedor ativo (issue #59)
+
 ## Fase final — Convergência
 
 - [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
@@ -104,6 +109,7 @@
 | FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)          |
 | FR-016    | T034, T035             | Teste de UI do fluxo + teste de fronteira (FR-007) |
 | FR-017    | T036, T037             | Teste do sanitizador e do serviço                  |
+| FR-018    | T038, T039             | Teste do carregamento e da linha de boot           |
 | FR-017    | T036                   | Teste do mock e da configuração                    |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
