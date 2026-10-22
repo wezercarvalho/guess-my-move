@@ -1,3 +1,4 @@
+import type { GuesserInput } from '@guess-my-move/core'
 import type { ConfigService } from '@nestjs/config'
 import {
     CodexGuesserProvider,
@@ -44,6 +45,34 @@ describe('buildGuesserRegistry — seleção de provedor por configuração', ()
         )
         expect(registry.has('codex')).toBe(true)
         expect(registry.create('codex')).toBeInstanceOf(CodexGuesserProvider)
+    })
+
+    it('MOCK_GUESSES configura a sequência de palpites do mock', async () => {
+        const registry = buildGuesserRegistry(
+            config({
+                ...base,
+                GUESSER_PROVIDER: 'mock',
+                MOCK_GUESSES: ' dançar, pular ,, acenar ',
+            }),
+        )
+        const input: GuesserInput = {
+            frames: [{ timestampMs: 0, mimeType: 'image/jpeg', data: 'AAAA' }],
+        }
+        const mock = registry.create('mock')
+        expect(await mock.guess(input)).toEqual({ guess: 'dançar' })
+        expect(
+            await mock.guess({ ...input, rejectedGuesses: ['dançar', 'pular'] }),
+        ).toEqual({ guess: 'acenar' })
+    })
+
+    it('sem MOCK_GUESSES o mock mantém o palpite padrão', async () => {
+        const registry = buildGuesserRegistry(
+            config({ ...base, GUESSER_PROVIDER: 'mock', MOCK_GUESSES: '  ' }),
+        )
+        const result = await registry.create('mock').guess({
+            frames: [{ timestampMs: 0, mimeType: 'image/jpeg', data: 'AAAA' }],
+        })
+        expect(result).toEqual({ guess: 'acenar' })
     })
 
     it('codex sem CODEX_MODEL falha de forma explícita', () => {

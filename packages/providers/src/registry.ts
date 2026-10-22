@@ -1,6 +1,6 @@
 import type { GuesserProvider } from '@guess-my-move/core'
 
-import { MockGuesserProvider } from './mock-provider.js'
+import { type MockGuesserOptions, MockGuesserProvider } from './mock-provider.js'
 
 /** Nomes de provedor suportados pela PoC, selecionados por configuração. */
 export type GuesserProviderName = 'mock' | 'codex'
@@ -46,9 +46,11 @@ export class GuesserProviderRegistry {
  * `codex` é adicionado pelo chamador via `register('codex', ...)` apenas quando
  * `GUESSER_PROVIDER=codex`, preservando o padrão desligado.
  */
-export function createDefaultRegistry(): GuesserProviderRegistry {
+export function createDefaultRegistry(
+    options: { mock?: MockGuesserOptions } = {},
+): GuesserProviderRegistry {
     return new GuesserProviderRegistry().register(
         'mock',
-        () => new MockGuesserProvider(),
+        () => new MockGuesserProvider(options.mock),
     )
 }

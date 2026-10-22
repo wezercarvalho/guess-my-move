@@ -67,6 +67,12 @@
 - [x] T032 [US-001] [FR-015] Escrever teste falhando: dica e sugestão ocultas por padrão, reveladas e ocultadas de forma independente, com `aria-expanded` e uso por teclado (issue #53)
 - [x] T033 [US-001] [FR-015] Implementar a revelação sob demanda no `CardView`, com `onReveal` opcional como ponto de extensão para pontuação futura (issue #53)
 
+## Fase 11 — Rodada completa na tela (issue #55)
+
+- [x] T034 [US-001] [FR-016] Escrever teste falhando do fluxo de rodada na tela: erro e nova tentativa com rejeitados, acerto, fim por tentativas, erro recuperável sem consumo e nova rodada (issue #55)
+- [x] T035 [US-001] [FR-016] Implementar `useRoundFlow` e a tela da rodada sobre `createRound` com o cliente HTTP como adivinhador, sem enviar dado da carta (issue #55)
+- [x] T036 [US-001] [FR-017] Implementar a sequência de palpites do mock e `MOCK_GUESSES`, com testes (issue #55)
+
 ## Fase final — Convergência
 
 - [x] T029 [FR-003] Atualizar README, `quality-gates.md` (comandos reais) e o catálogo de specs afetados (issue #3)
@@ -75,23 +81,25 @@
 
 ## Cobertura
 
-| Requisito | Tarefas                | Evidência esperada                                |
-| --------- | ---------------------- | ------------------------------------------------- |
-| FR-001    | T015, T016             | Teste de câmera + demonstração                    |
-| FR-002    | T017, T018             | Teste de captura; verificação de não persistência |
-| FR-003    | T002, T008, T029       | Teste de integração da rota                       |
-| FR-004    | T010                   | Teste de validação de schema                      |
-| FR-005    | T009                   | Suíte sem custo (SC-003)                          |
-| FR-006    | T001, T011             | Teste de contrato; troca por configuração         |
-| FR-007    | T004, T005, T006, T013 | Teste de fronteira (SC-002)                       |
-| FR-008    | T020, T021             | Teste de UI + demonstração                        |
-| FR-009    | T007                   | Testes de erro estável e limites                  |
-| FR-010    | T012                   | Teste de logging sem conteúdo                     |
-| FR-011    | T019                   | Teste de UI                                       |
-| FR-012    | T023, T024             | Teste de seleção por configuração                 |
-| FR-013    | T022                   | Teste de configuração do adaptador                |
-| FR-014    | T025                   | Teste com executável simulado                     |
-| FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)         |
+| Requisito | Tarefas                | Evidência esperada                                 |
+| --------- | ---------------------- | -------------------------------------------------- |
+| FR-001    | T015, T016             | Teste de câmera + demonstração                     |
+| FR-002    | T017, T018             | Teste de captura; verificação de não persistência  |
+| FR-003    | T002, T008, T029       | Teste de integração da rota                        |
+| FR-004    | T010                   | Teste de validação de schema                       |
+| FR-005    | T009                   | Suíte sem custo (SC-003)                           |
+| FR-006    | T001, T011             | Teste de contrato; troca por configuração          |
+| FR-007    | T004, T005, T006, T013 | Teste de fronteira (SC-002)                        |
+| FR-008    | T020, T021             | Teste de UI + demonstração                         |
+| FR-009    | T007                   | Testes de erro estável e limites                   |
+| FR-010    | T012                   | Teste de logging sem conteúdo                      |
+| FR-011    | T019                   | Teste de UI                                        |
+| FR-012    | T023, T024             | Teste de seleção por configuração                  |
+| FR-013    | T022                   | Teste de configuração do adaptador                 |
+| FR-014    | T025                   | Teste com executável simulado                      |
+| FR-015    | T032, T033             | Teste de UI + teste de fronteira (FR-007)          |
+| FR-016    | T034, T035             | Teste de UI do fluxo + teste de fronteira (FR-007) |
+| FR-017    | T036                   | Teste do mock e da configuração                    |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 

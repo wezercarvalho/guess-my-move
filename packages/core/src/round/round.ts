@@ -111,8 +111,18 @@ class RoundMachine implements Round {
 
     async attempt(frames: CapturedFrame[]): Promise<AttemptOutcome> {
         // Só é possível tentar a partir de um estado pronto para capturar.
+        // Os estados de exceção recuperáveis (timeout, falha do provedor e
+        // resposta inválida) não consomem tentativa e permitem repetir.
         this.transitionGuard(
-            ['camera_ready', 'retry', 'capturing', 'guessing'],
+            [
+                'camera_ready',
+                'retry',
+                'capturing',
+                'guessing',
+                'request_timeout',
+                'provider_error',
+                'invalid_model_response',
+            ],
             'attempt',
         )
 

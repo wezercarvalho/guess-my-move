@@ -114,7 +114,7 @@ Como jogador, quero que novas tentativas não repitam palpites já recusados par
 - **FR-003:** O núcleo NÃO DEVE expor `evaluation` ao adivinhador em nenhum caminho de código, com teste automatizado.
 - **FR-004:** O motor DEVE implementar a máquina de estados `idle → card_revealed → camera_ready → capturing → guessing → judging → (correct | retry | finished)` com transições explícitas.
 - **FR-005:** O motor DEVE impor limites configuráveis de tentativas e de tempo por rodada.
-- **FR-006:** O motor DEVE tratar os estados de exceção `camera_denied`, `request_timeout`, `provider_error`, `invalid_model_response` e `user_cancelled` sem marcar acerto indevido.
+- **FR-006:** O motor DEVE tratar os estados de exceção `camera_denied`, `request_timeout`, `provider_error`, `invalid_model_response` e `user_cancelled` sem marcar acerto indevido. Os estados `request_timeout`, `provider_error` e `invalid_model_response` são recuperáveis: não consomem tentativa e permitem repetir a captura.
 - **FR-007:** O árbitro DEVE normalizar o texto (minúsculas, acentos, pontuação, variantes triviais) antes de comparar.
 - **FR-008:** O árbitro DEVE comparar o palpite com a resposta canônica e os aliases por equivalência de expressão, sem correspondência por substring, devolvendo `{ isCorrect, method, matchedAnswer? }`.
 - **FR-009:** O árbitro DEVE rejeitar palpites insuficientes e devolver `undetermined` quando houver dúvida material.

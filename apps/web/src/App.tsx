@@ -1,12 +1,11 @@
-import { acenarCard, toPublicCard } from '@guess-my-move/core'
+import { acenarCard } from '@guess-my-move/core'
 
 import { PocScreen } from './guess/PocScreen.js'
 import './styles.css'
 
-// A carta vem do pacote core (issue #11); a tela recebe apenas a projeção
-// pública — a avaliação nunca chega ao cliente de exibição nem ao adivinhador.
-const acenarPublic = toPublicCard(acenarCard)
-
+// A carta vem do pacote core (issue #11). A tela entrega a carta completa só ao
+// motor da rodada, que julga o palpite; a exibição usa a projeção pública e o
+// adivinhador nunca recebe nada da carta.
 export function App() {
     return (
         <main className="app">
@@ -19,7 +18,7 @@ export function App() {
                 </p>
             </header>
 
-            <PocScreen card={acenarPublic} />
+            <PocScreen card={acenarCard} />
         </main>
     )
 }

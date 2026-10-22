@@ -20,6 +20,35 @@ describe('MockGuesserProvider', () => {
         expect(await provider.guess(input)).toEqual({ guess: 'dar tchau' })
     })
 
+    it('segue a sequência de palpites pelo número de rejeitados recebidos', async () => {
+        const provider = new MockGuesserProvider({
+            guesses: ['dançar', 'pular', 'acenar'],
+        })
+        expect(await provider.guess(input)).toEqual({ guess: 'dançar' })
+        expect(
+            await provider.guess({ ...input, rejectedGuesses: ['dançar'] }),
+        ).toEqual({ guess: 'pular' })
+        expect(
+            await provider.guess({
+                ...input,
+                rejectedGuesses: ['dançar', 'pular'],
+            }),
+        ).toEqual({ guess: 'acenar' })
+        // Além do fim da lista, repete o último palpite.
+        expect(
+            await provider.guess({
+                ...input,
+                rejectedGuesses: ['a', 'b', 'c', 'd'],
+            }),
+        ).toEqual({ guess: 'acenar' })
+    })
+
+    it('a sequência não depende de estado: a mesma entrada dá o mesmo palpite', async () => {
+        const provider = new MockGuesserProvider({ guesses: ['x', 'y'] })
+        expect(await provider.guess(input)).toEqual({ guess: 'x' })
+        expect(await provider.guess(input)).toEqual({ guess: 'x' })
+    })
+
     it('pode sinalizar evidência insuficiente', async () => {
         const provider = new MockGuesserProvider({
             insufficientEvidence: true,
