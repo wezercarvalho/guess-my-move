@@ -7,7 +7,7 @@ domain: backend
 capability: api-validation
 objective: centralize-zod-nestjs12
 summary: Centralizar a validação do contrato da API em schemas Zod compartilhados entre servidor e front, aplicados via StandardSchemaValidationPipe e validationSchema do NestJS 12, removendo class-validator e os parsers manuais.
-status: implementing
+status: superseded
 owners:
     - wezercarvalho
 reviewers: []
@@ -29,11 +29,12 @@ related_specs:
     - 2026-10-20-vision-gesture-recognition-validate-waving-poc
     - 2026-10-21-game-engine-round-referee-build-core-loop
     - 2026-10-21-engineering-toolchain-adopt-yarn4-oxlint-node26
+    - 2026-10-26-vision-hand-gesture-referee-replace-llm-guesser
 supersedes: []
 branch: chore/44-zod-validation
 constitution_version: 1.0.0
 created_at: 2026-10-21
-updated_at: 2026-10-21
+updated_at: 2026-10-26
 ---
 
 # Validação centralizada da API com Zod e recursos nativos do NestJS 12
@@ -141,3 +142,7 @@ Como operador, quero que uma variável de ambiente inválida derrube o boot com 
 - **SC-003:** Um corpo com o campo `card` retorna 400 `invalid_payload`.
 - **SC-004:** `PORT=abc` derruba o boot com "Config validation error".
 - **SC-005:** `class-validator` e `class-transformer` estão ausentes do lockfile.
+
+## Substituição
+
+A API HTTP de palpite e o servidor NestJS que ela validava foram removidos junto com o fluxo por LLM; não há mais backend a validar. O comportamento vigente está na spec [`2026-10-26-vision-hand-gesture-referee-replace-llm-guesser`](../2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/spec.md); o histórico do Git preserva esta spec como referência.
