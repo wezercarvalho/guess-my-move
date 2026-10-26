@@ -1,5 +1,7 @@
 # Seleção do modelo multimodal para o adivinhador (Fase 0)
 
+> **Escopo (2026-10-26).** Esta pesquisa serve ao **futuro modo de IA jogadora** (uma IA que adivinha o gesto sem conhecer a carta), não ao fluxo principal. O árbitro do fluxo principal passou a ser a visão computacional local (MediaPipe Hand Landmarker no navegador), sem servidor nem provedor de IA; ver [`PROJECT_SPEC.md`](../product/PROJECT_SPEC.md) e a spec vigente `specs/2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/`. O conteúdo abaixo é mantido como referência para a IA jogadora.
+
 **Tipo:** investigação técnica (sem implementação) · **Foco:** Amazon Bedrock para o MVP · **Verificado em:** 2026-10-20 · **Estado:** proposta para aprovação do maintainer
 
 > **Aviso de evidência.** Este documento separa o que está **[DOCUMENTADO]** (página oficial, com URL e data de verificação), o que é **[ESTIMADO]** (cálculo nosso a partir de dados documentados, com premissas explícitas) e o que está **[NÃO VERIFICADO]** (precisa de teste empírico ou leitura de página no momento da implementação). **Não existe nenhuma medição de acurácia ou latência neste documento**: capacidade anunciada não é desempenho comprovado. As notas de 1 a 5 de reconhecimento visual e de latência são **provisórias** até o benchmark da seção 11. IDs de modelo e preços mudam com frequência (vários modelos citados foram lançados há semanas) e DEVEM ser relidos antes de codificar.

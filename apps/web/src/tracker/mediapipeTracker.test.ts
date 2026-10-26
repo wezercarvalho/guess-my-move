@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
     createMediaPipeHandTracker,
+    delegatePreferenceFromSearch,
     type HandLandmarkerLike,
     type MediaPipeLoader,
 } from './mediapipeTracker.js'
@@ -89,5 +90,31 @@ describe('createMediaPipeHandTracker', () => {
         )
         tracker.close()
         expect(mp.close).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('delegate forçado', () => {
+    it('CPU forçado não tenta o GPU', async () => {
+        const mp = landmarker()
+        const { loader, createSpy } = loaderWith(() => Promise.resolve(mp.instance))
+        const tracker = await createMediaPipeHandTracker(loader, 'CPU')
+        expect(tracker.delegate).toBe('CPU')
+        expect(createSpy).toHaveBeenCalledTimes(1)
+        expect(createSpy).toHaveBeenCalledWith({ fileset: true }, 'CPU')
+    })
+
+    it('GPU forçado não recua para o CPU e falha com mensagem', async () => {
+        const { loader, createSpy } = loaderWith(() => Promise.reject(new Error('sem WebGL')))
+        await expect(createMediaPipeHandTracker(loader, 'GPU')).rejects.toThrow(
+            /não foi possível iniciar o detector de mão.*GPU/i,
+        )
+        expect(createSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('lê a preferência do parâmetro delegate da URL', () => {
+        expect(delegatePreferenceFromSearch('?delegate=cpu')).toBe('CPU')
+        expect(delegatePreferenceFromSearch('?x=1&delegate=GPU')).toBe('GPU')
+        expect(delegatePreferenceFromSearch('')).toBe('auto')
+        expect(delegatePreferenceFromSearch('?delegate=outro')).toBe('auto')
     })
 })

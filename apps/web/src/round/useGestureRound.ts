@@ -1,7 +1,11 @@
 import { type Card } from '@guess-my-move/core'
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
-import { createMediaPipeHandTracker } from '../tracker/mediapipeTracker.js'
+import {
+    createMediaPipeHandTracker,
+    delegatePreferenceFromSearch,
+    realMediaPipeLoader,
+} from '../tracker/mediapipeTracker.js'
 import {
     type GestureEnv,
     GestureController,
@@ -31,7 +35,13 @@ export interface GestureRoundView extends GestureSnapshot {
 /** Resolve as dependências, usando o navegador e o MediaPipe quando não injetadas. */
 function resolveEnv(deps: GestureRoundDeps | undefined): GestureEnv {
     return {
-        createTracker: deps?.createTracker ?? createMediaPipeHandTracker,
+        createTracker:
+            deps?.createTracker ??
+            (() =>
+                createMediaPipeHandTracker(
+                    realMediaPipeLoader,
+                    delegatePreferenceFromSearch(window.location.search),
+                )),
         requestFrame:
             deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),
         cancelFrame: deps?.cancelFrame ?? ((handle: number) => cancelAnimationFrame(handle)),

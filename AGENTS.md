@@ -14,23 +14,23 @@ Este arquivo é o ponto de entrada compartilhado por pessoas e agentes de IA. El
 
 ## Roteamento de contexto
 
-| Mudança                               | Fontes mínimas                                                                                                                                         |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Produto, regras do jogo, escopo       | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md)                                                                                         |
-| Escolha de provedor/modelo multimodal | [Seleção do modelo multimodal](docs/research/multimodal-model-selection.md)                                                                            |
-| Issues, PRs e fechamento              | [Padrão de issues e PRs](docs/development-context/workflow/github-issues.md)                                                                           |
-| Testes e gates                        | [Checks de qualidade](docs/development-context/quality/quality-gates.md)                                                                               |
-| CI, `pr-gate` e hook local            | [Pipeline de CI](docs/development-context/delivery/ci-pipeline.md) e [Desenvolvimento local](docs/development-context/operations/local-development.md) |
-| Dependências e auditoria              | [Auditoria de dependências](docs/development-context/security/dependency-audit.md)                                                                     |
-| Câmera, frames, chaves de API, logs   | [Privacidade e segredos](docs/development-context/security/privacy-and-secrets.md)                                                                     |
-| Arquitetura e contratos internos      | [Guia de arquitetura](docs/development-context/architecture/architecture-guide.md)                                                                     |
+| Mudança                                         | Fontes mínimas                                                                                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Produto, regras do jogo, escopo                 | [`docs/product/PROJECT_SPEC.md`](docs/product/PROJECT_SPEC.md)                                                                                         |
+| Provedor/modelo multimodal (futura IA jogadora) | [Seleção do modelo multimodal](docs/research/multimodal-model-selection.md)                                                                            |
+| Issues, PRs e fechamento                        | [Padrão de issues e PRs](docs/development-context/workflow/github-issues.md)                                                                           |
+| Testes e gates                                  | [Checks de qualidade](docs/development-context/quality/quality-gates.md)                                                                               |
+| CI, `pr-gate` e hook local                      | [Pipeline de CI](docs/development-context/delivery/ci-pipeline.md) e [Desenvolvimento local](docs/development-context/operations/local-development.md) |
+| Dependências e auditoria                        | [Auditoria de dependências](docs/development-context/security/dependency-audit.md)                                                                     |
+| Câmera, frames, chaves de API, logs             | [Privacidade e segredos](docs/development-context/security/privacy-and-secrets.md)                                                                     |
+| Arquitetura e contratos internos                | [Guia de arquitetura](docs/development-context/architecture/architecture-guide.md)                                                                     |
 
 ## Regras não negociáveis
 
 - Leia e grave texto em UTF-8. Preserve a acentuação em português e não introduza mojibake.
 - Não descarte nem sobrescreva mudanças preexistentes sem autorização.
 - Faça alterações pequenas, rastreáveis e testáveis.
-- **A IA adivinhadora nunca recebe a carta**: palavra, dica, sugestão, aliases ou critérios de avaliação não entram no payload enviado ao modelo. Há teste automatizado para isso quando o código existir.
+- **A IA jogadora nunca recebe a carta**: a avaliação da carta (o critério do gesto) nunca é exposta ao jogador nem a uma IA jogadora futura. A projeção pública `toPublicCard` devolve só a parte pública; teste automatizado em `packages/core/test/card.test.ts` falha se a avaliação vazar.
 - Nunca coloque chave de provedor de IA no bundle do navegador, em logs ou no repositório. Use `.env.example` com placeholders.
 - Frames da webcam são transitórios: não persista imagens nem vídeos por padrão e não registre dados de imagem em logs.
 - Não afirme precisão visual ou latência sem medição registrada; capacidade anunciada não é desempenho comprovado.

@@ -39,12 +39,23 @@ export const realMediaPipeLoader: MediaPipeLoader = {
         ),
 }
 
+/** Preferência de delegate: automática (GPU com recuo para CPU) ou forçada. */
+export type DelegatePreference = 'auto' | TrackerDelegate
+
+/** Lê `?delegate=cpu|gpu` da URL; qualquer outro valor mantém o modo automático. */
+export function delegatePreferenceFromSearch(search: string): DelegatePreference {
+    const value = new URLSearchParams(search).get('delegate')?.toUpperCase()
+    return value === 'CPU' || value === 'GPU' ? value : 'auto'
+}
+
 /**
- * Cria o detector de mão com o MediaPipe. Tenta o delegate GPU e recua para o
- * CPU quando a criação falha; o delegate efetivo fica em `delegate`.
+ * Cria o detector de mão com o MediaPipe. No modo automático tenta o delegate
+ * GPU e recua para o CPU quando a criação falha; com um delegate forçado não há
+ * recuo. O delegate efetivo fica em `delegate`.
  */
 export async function createMediaPipeHandTracker(
     loader: MediaPipeLoader = realMediaPipeLoader,
+    preference: DelegatePreference = 'auto',
 ): Promise<HandTracker> {
     let fileset: unknown
     try {
@@ -55,19 +66,24 @@ export async function createMediaPipeHandTracker(
         )
     }
 
+    const attempts: TrackerDelegate[] = preference === 'auto' ? ['GPU', 'CPU'] : [preference]
     let landmarker: HandLandmarkerLike | undefined
-    let delegate: TrackerDelegate = 'GPU'
-    try {
-        landmarker = await loader.create(fileset, 'GPU')
-    } catch {
-        delegate = 'CPU'
+    let delegate: TrackerDelegate = attempts[0] ?? 'GPU'
+    for (const candidate of attempts) {
         try {
-            landmarker = await loader.create(fileset, 'CPU')
+            landmarker = await loader.create(fileset, candidate)
+            delegate = candidate
+            break
         } catch {
-            throw new Error(
-                'Não foi possível iniciar o detector de mão neste navegador (GPU e CPU falharam).',
-            )
+            // tenta o próximo delegate, se houver
         }
+    }
+    if (!landmarker) {
+        throw new Error(
+            `Não foi possível iniciar o detector de mão neste navegador (${
+                attempts.length > 1 ? 'GPU e CPU falharam' : `${preference} falhou`
+            }).`,
+        )
     }
 
     const active = landmarker

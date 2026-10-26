@@ -50,14 +50,14 @@
 
 ## Fase 7 — Documentação e catálogo
 
-- [ ] T025 [FR-013] Reescrever `docs/product/PROJECT_SPEC.md` para o fluxo por visão computacional e remover as regras do fluxo por LLM
-- [ ] T026 [FR-013] Atualizar `README.md`, `AGENTS.md`, `docs/development-context/` (arquitetura, qualidade, CI, desenvolvimento local, privacidade) e a configuração de lint e do hook para o novo desenho
-- [ ] T027 [FR-013] Marcar as três specs substituídas como `superseded` com a seção `## Substituição`, atualizar `specs/README.md` e confirmar `yarn sdd:check`, `yarn test:sdd` e `yarn docs:format:check`
+- [x] T025 [FR-013] Reescrever `docs/product/PROJECT_SPEC.md` para o fluxo por visão computacional e remover as regras do fluxo por LLM
+- [x] T026 [FR-013] Atualizar `README.md`, `AGENTS.md`, `docs/development-context/` (arquitetura, qualidade, CI, desenvolvimento local, privacidade) e a configuração de lint e do hook para o novo desenho
+- [x] T027 [FR-013] Marcar as três specs substituídas como `superseded` com a seção `## Substituição`, atualizar `specs/README.md` e confirmar `yarn sdd:check`, `yarn test:sdd` e `yarn docs:format:check`
 
 ## Fase final — Convergência
 
-- [ ] T028 [SC-004] [NFR-004] Executar no Chromium o app real com os 12 clipes como câmera simulada, inspecionar as requisições e registrar reconhecimento, falsos positivos, latência e delegate
-- [ ] T029 [SC-005] [NFR-006] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check` e `yarn test:gates` e registrar `validation.md`
+- [x] T028 [SC-004] [NFR-004] Executar no Chromium o app real com os 12 clipes como câmera simulada, inspecionar as requisições e registrar reconhecimento, falsos positivos, latência e delegate
+- [x] T029 [SC-005] [NFR-006] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check` e `yarn test:gates` e registrar `validation.md`
 - [ ] T030 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (tentativas, reconhecimentos, falsos positivos, latência) e reconciliar spec, plano, tarefas, implementação e evidências
 
 ## Cobertura

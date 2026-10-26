@@ -1,63 +1,92 @@
 # Guia de arquitetura
 
-Princípio: **abstração mínima e provedor-independente**, sem infraestrutura antecipada. Este guia complementa a seção 7 do [`PROJECT_SPEC.md`](../../product/PROJECT_SPEC.md); em divergência, a spec aprovada prevalece.
+Princípio: **núcleo puro e determinístico, processamento local no navegador**, sem servidor nem infraestrutura antecipada. Este guia complementa a seção 7 do [`PROJECT_SPEC.md`](../../product/PROJECT_SPEC.md); em divergência, a spec aprovada prevalece.
 
 ## Camadas
 
-| Camada                             | Responsabilidade                                                                             | Não deve                                               |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Aplicação web (React + Vite + TS)  | Carta, câmera, captura temporária de frames, tentativas e resultado.                         | Conter chave de provedor.                              |
-| Servidor mínimo (NestJS + TS)      | Proteger credenciais, validar payload, limites, timeout, converter falhas em erros estáveis. | Registrar mídia; expor detalhes internos do provedor.  |
-| Adaptador do adivinhador           | Montar a requisição ao provedor e validar uma saída estruturada com um único palpite.        | Receber palavra, dica, sugestão, aliases ou critérios. |
-| Árbitro semântico (fase posterior) | Normalização + canônico/aliases; LLM opcional só para ambiguidade.                           | Analisar a webcam.                                     |
-| Motor da partida (fase posterior)  | Máquina de estados, tentativas e histórico de palpites rejeitados.                           | Tratar palpite correto como prova visual de execução.  |
+| Camada                            | Responsabilidade                                                                                                 | Não deve                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Núcleo (`packages/core`)          | Schema e carta, ângulo da mão, avaliador da oscilação e máquina de estados da rodada. Puro e determinístico.     | Acessar DOM, câmera, rede ou MediaPipe.                         |
+| Aplicação web (React + Vite + TS) | Carta pública, câmera, detector de mão, laço por quadro, desenho do esqueleto e painel de depuração.             | Persistir, logar ou enviar quadros; expor a avaliação da carta. |
+| Detector (`src/tracker`)          | Carregar e executar o MediaPipe Hand Landmarker atrás da interface `HandTracker`; devolver landmarks por quadro. | Conter lógica de critério; sair do navegador.                   |
+
+Não há servidor nem adaptador de provedor de IA: o fluxo principal roda inteiro no navegador.
 
 ## Stack decidida
 
-Decisão do maintainer em 2026-10-21; as versões exatas são fixadas e registradas na issue de scaffold (#3), e o `PROJECT_SPEC.md` registra a proposta original.
+Decisão do maintainer; as versões exatas são fixadas no `package.json` de cada workspace.
 
-- **Linguagem:** TypeScript no frontend e no servidor.
+- **Linguagem:** TypeScript no núcleo e no web.
 - **Frontend:** React + Vite.
-- **Servidor:** NestJS na última versão estável, com a mesma interface `GuesserProvider` injetada como provedor (um módulo por adaptador, selecionado por configuração). Mantenha o servidor mínimo: sem módulos além dos que a PoC usa.
-- **Banco de dados:** não há na PoC (cartas em JSON ou TypeScript versionado; frames transitórios). Se uma fase posterior exigir persistência, a escolha é TypeORM na última versão estável com `@nestjs/typeorm`; a introdução passa por spec própria e não antecipa dependência nem migrations.
+- **Detector:** `@mediapipe/tasks-vision` 1.1.1 (Apache-2.0), `HandLandmarker` em modo de vídeo, uma mão.
+- **Núcleo:** TypeScript puro, sem dependência de runtime além do Zod para os schemas.
+- **Banco de dados:** não há (cartas em TypeScript versionado; nenhuma persistência de quadros).
 
 ### Versões fixadas e toolchain (TypeScript 7 com Oxlint)
 
-As versões exatas foram fixadas no scaffold (issue #3) e atualizadas na adoção da toolchain: `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@nestjs/*` 12.2.0 (config 12.0.1), `reflect-metadata` 0.2.2, `rxjs` 7.8.2, `zod` 4.6.7, `vitest` 5.0.5, `typescript` 7.0.2, `oxlint` 1.89.0 com `oxlint-tsgolint` 7.0.2004, e `@swc/core` 1.16.18 + `unplugin-swc` 2.0.0 para preservar os metadados de decorators do NestJS sob o Vitest.
+As versões exatas estão nos manifestos: `react`/`react-dom` 19.3.1, `vite` 8.3.4, `@vitejs/plugin-react` 6.1.2, `@mediapipe/tasks-vision` 1.1.1, `zod` 4, `vitest` 5.0.5, `typescript` 7.0.2, `oxlint` 1.89.0 com `oxlint-tsgolint` 7.0.2004.
 
-**TypeScript 7 (compilador nativo).** O 7.0 não expõe a API programática do compilador. Por isso o `typescript-eslint` e o `nest build` não funcionam com ele. O projeto resolve assim:
+**TypeScript 7 (compilador nativo).** O 7.0 não expõe a API programática do compilador, então o `typescript-eslint` não funciona com ele. O projeto resolve assim:
 
 - **Lint:** `oxlint` com `oxlint-tsgolint` (type-aware, sobre o `typescript-go`) no lugar do ESLint; a configuração fica em `.oxlintrc.json`. A versão do `oxlint-tsgolint` acompanha a do TypeScript (`7.0.2004` é o patch 2004 para o TypeScript 7.0.2).
-- **Build do servidor:** `tsc -p tsconfig.build.json` direto (script `build` do servidor); o `tsc` 7 emite `design:paramtypes` para os decorators do NestJS. O `nest build` e o `nest start` não são usados; `yarn dev:server` roda `apps/server/scripts/dev.mjs` (`tsc --watch` mais `node --watch`). O `@nestjs/cli` foi removido; ele volta quando o TypeScript 7.1 estabilizar a API (prevista para novembro de 2026).
-- **Testes:** o Vitest continua usando SWC para os decorators, independente da versão do TypeScript.
+- **Build:** `tsc --build` mais `vite build` em `apps/web`; `tsc` no `packages/core`.
+- **Testes:** Vitest nos dois workspaces, resolvendo pelo código-fonte.
 
-## Contrato mínimo do adivinhador
+## Núcleo: contratos e funções puras
 
 ```ts
-type CapturedFrame = { timestampMs: number; mimeType: string; data: string }
-type GuesserInput = { frames: CapturedFrame[]; rejectedGuesses?: string[] }
-type GuesserResult = { guess: string; insufficientEvidence?: boolean }
+// Ângulo da mão a partir dos 21 landmarks do MediaPipe.
+function handAngleDeg(
+    landmarks: readonly HandLandmark[],
+    aspect: number,
+): number | null
 
-interface GuesserProvider {
-    readonly id: string
-    guess(input: GuesserInput, signal?: AbortSignal): Promise<GuesserResult>
+// Amostra de ângulo no instante t (ms do relógio da rodada).
+type HandSample = { t: number; angleDeg: number }
+
+// Avaliador puro da oscilação, por janela de tempo.
+function evaluateOscillation(
+    criterion: HandAngleOscillationCriterion,
+    samples: readonly HandSample[],
+    nowMs: number,
+): { recognized: boolean; reversals: number; windowSamples: number }
+
+// Máquina de estados da rodada, com relógio injetável.
+function createRound(config: {
+    card: Card
+    maxDurationMs?: number
+    clock?: () => number
+}): Round
+```
+
+- `handAngleDeg` usa o vetor do pulso (ponto 0) ao início do dedo médio (ponto 9), com o deslocamento horizontal corrigido por `aspect` (largura/altura). Devolve `null` em vetor degenerado.
+- `evaluateOscillation` considera só as amostras da janela `(nowMs - windowMs, nowMs]`, conta inversões com histerese de `amplitudeDeg` e reconhece quando há `>= minSamples` amostras e `>= minReversals` inversões.
+- `createRound` expõe `revealCard`, `cameraReady`, `denyCamera`, `trackerFailed`, `start`, `observe(angleDeg)`, `tick`, `cancel`; o limite padrão de `detecting` é `DEFAULT_MAX_DURATION_MS` (10 000 ms).
+
+## Aplicação web: detector atrás da interface
+
+```ts
+type TrackerDelegate = 'CPU' | 'GPU'
+type TrackedHand = { landmarks: readonly { x: number; y: number }[] }
+
+interface HandTracker {
+    readonly delegate: TrackerDelegate
+    detect(video: HTMLVideoElement, timestampMs: number): TrackedHand | null
+    close(): void
 }
 ```
 
-Trocar de modelo (por exemplo, entre provedores de IA) significa adicionar um `GuesserProvider` e mudar configuração, sem tocar na UI, na captura nem no motor. O `MockGuesserProvider` é obrigatório. O contrato é um exemplo: ajuste nomes na spec, não a fronteira de informação.
+A implementação do MediaPipe (`src/tracker/mediapipeTracker.ts`) tenta o delegate GPU e recua para CPU; `?delegate=cpu|gpu` força um delegate sem recuo, para comparação. O duplo de teste devolve landmarks roteirizados, o que permite testar a tela sem MediaPipe. O laço por quadro (`src/round/gestureController.ts`, `useGestureRound.ts`) mede a latência de cada inferência e alimenta `observe`.
 
 ## Regras
 
-- Saída do modelo sempre validada por schema; respostas vazias, fora de formato ou sem evidência viram erro controlado ou "sem evidência suficiente".
-- `confidence` autodeclarada por LLM não é probabilidade calibrada e não é garantia de reconhecimento.
-- Prompt do adivinhador é genérico: pede uma hipótese curta da ação predominante nos frames em ordem cronológica e não contém a palavra-alvo nem sinônimos.
-- Configuração do provedor (modelo, região, limites) vem do ambiente, não do código.
+- O critério de avaliação da carta é privado: `toPublicCard` devolve só `public`, e o schema estrito recusa campos desconhecidos. O jogador e uma IA jogadora futura nunca recebem `evaluation`.
+- O núcleo é puro: sem DOM, câmera, rede ou MediaPipe; o relógio da rodada é injetado.
+- Quadros, vídeo e landmarks são transitórios: não são persistidos, logados nem enviados.
+- Os arquivos do detector (`.wasm` e modelo `.task`) são servidos pelo próprio app, sem CDN, e preparados por `prepare:assets`; o modelo não é versionado.
 
 ## Validação e contratos de dados
 
-- **Fonte única:** os schemas do contrato (frame, requisição e resposta de `POST /api/guess`, erro estável e carta) vivem em `packages/core/src/schemas/` e usam Zod Mini (`zod/mini`), a API funcional e tree-shakable do Zod, por causa do bundle do navegador. Os tipos TypeScript são derivados dos schemas (`z.infer`); não duplique tipos à mão.
-- **Objetos estritos:** campo não declarado invalida a requisição e a carta. Dado da carta no corpo de `/api/guess` é recusado com `invalid_payload`, o que reforça a fronteira de informação.
-- **Servidor (NestJS 12):** a rota usa o `GuessRequestPipe`, que estende o `StandardSchemaValidationPipe` nativo: valida a estrutura com `guessRequestSchema` e depois confere os limites vindos da configuração com `checkGuessLimits` (função pura, em `core`). Estrutura inválida vira `invalid_payload` 400; excesso de frames ou bytes vira `payload_too_large` 413. O parser JSON usa um limite derivado de `MAX_TOTAL_BYTES`, e não o padrão de 100 kB do Express.
-- **Ambiente:** as variáveis são validadas por um schema Zod passado ao `validationSchema` do `@nestjs/config`; valor inválido derruba o boot. O servidor usa o Zod clássico só nesse schema (coerção e padrões).
-- **Cliente web:** valida a resposta 200 com `guessResponseSchema` e o erro com `apiErrorSchema`; resposta fora do contrato vira `invalid_model_response`.
-- **Decisão pendente:** autenticação e limite por cliente do endpoint não fazem parte desta mudança.
+- **Fonte única:** os schemas da carta vivem em `packages/core/src/schemas/` e usam Zod Mini (`zod/mini`), a API funcional e tree-shakable do Zod, por causa do bundle do navegador. Os tipos TypeScript são derivados dos schemas (`z.infer`); não duplique tipos à mão.
+- **Objetos estritos:** um campo não declarado invalida a carta, o que reforça a fronteira de informação entre `public` e `evaluation`.
+- **Critério do Acenar:** `hand-angle-oscillation` com `amplitudeDeg`, `minReversals`, `windowMs` e `minSamples` positivos; o schema rejeita valores não positivos.

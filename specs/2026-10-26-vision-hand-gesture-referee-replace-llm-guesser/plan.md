@@ -64,7 +64,7 @@ apps/web/
 - **`handAngleDeg(landmarks)`** (core): entrada com 21 pontos normalizados; saída em graus ou `null`.
 - **`evaluateOscillation(criterion, samples, nowMs)`** (core): considera as amostras com `nowMs - windowMs < t <= nowMs`, conta inversões por zigue-zague com histerese de `amplitudeDeg` e devolve `{ recognized, reversals, windowSamples }`.
 - **`createRound({ card, maxDurationMs, clock })`** (core): máquina de estados com `revealCard`, `cameraReady`, `denyCamera`, `trackerFailed`, `start`, `observe(sample)`, `tick`, `cancel`; guarda só as amostras da janela e descarta tudo ao terminar.
-- **`HandTracker`** (web): `{ delegate, detect(video, timestampMs) → landmarks | null, close() }`; a implementação do MediaPipe tenta GPU e cai para CPU; o duplo de teste devolve landmarks roteirizados.
+- **`HandTracker`** (web): `{ delegate, detect(video, timestampMs) → landmarks | null, close() }`; a implementação do MediaPipe tenta GPU e cai para CPU, ou usa só o delegate forçado por `?delegate=cpu|gpu`; o duplo de teste devolve landmarks roteirizados.
 - **`useGestureRound`** (web): carrega o detector quando a câmera fica ativa, executa o laço por quadro durante `detecting`, mede a latência de cada inferência, atualiza o desenho e o painel, e chama `observe`.
 - **Ativos:** `prepare-assets.mjs` copia o `wasm` do pacote para `apps/web/public/mediapipe/wasm/` e baixa o modelo para `public/mediapipe/hand_landmarker.task` verificando o SHA-256 fixado; um arquivo existente com hash correto não é baixado de novo.
 
