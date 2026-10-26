@@ -6,13 +6,13 @@ export type RevealableItem = 'hint' | 'suggestion'
 
 /**
  * Exibe SOMENTE a parte pública da carta (`CardPublicProjection`): palavra,
- * dica e sugestão. A avaliação (resposta canônica, aliases, critérios) nunca é
+ * dica e sugestão. A avaliação (o critério do gesto) nunca é
  * recebida por este componente — o tipo `CardPublicProjection` não a contém.
  *
  * A dica e a sugestão ficam ocultas (fora do DOM) por padrão e são reveladas
  * de forma independente, sob ação explícita. `onReveal` é chamado só ao
  * revelar e serve de ponto de extensão para a pontuação futura; a revelação é
- * estado local da tela e nunca entra no payload do adivinhador.
+ * estado local da tela.
  */
 export interface CardViewProps {
     card: CardPublicProjection

@@ -159,6 +159,7 @@ __metadata:
   resolution: "@guess-my-move/web@workspace:apps/web"
   dependencies:
     "@guess-my-move/core": "npm:0.0.0"
+    "@mediapipe/tasks-vision": "npm:1.1.1"
     "@testing-library/dom": "npm:10.4.2"
     "@testing-library/jest-dom": "npm:7.0.1"
     "@testing-library/react": "npm:16.3.3"
@@ -204,6 +205,13 @@ __metadata:
     "@jridgewell/resolve-uri": "npm:^3.1.0"
     "@jridgewell/sourcemap-codec": "npm:^1.4.14"
   checksum: 10c0/4b30ec8cd56c5fd9a661f088230af01e0c1a3888d11ffb6b47639700f71225be21d1f7e168048d6d4f9449207b978a235c07c8f15c07705685d16dc06280e9d9
+  languageName: node
+  linkType: hard
+
+"@mediapipe/tasks-vision@npm:1.1.1":
+  version: 1.1.1
+  resolution: "@mediapipe/tasks-vision@npm:1.1.1"
+  checksum: 10c0/373f3eae87de6d87f7060e8b50c7700c70ce025d167f6e85d0a7fa4042c97f267e53e568b4d1d9e0db79329803de57da20716d5be42a5bf2a49cd99e3d707155
   languageName: node
   linkType: hard
 

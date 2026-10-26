@@ -15,6 +15,9 @@ captures/
 *.webm
 *.mp4
 
+# Arquivos do MediaPipe obtidos por `yarn prepare:assets` (wasm do pacote e modelo baixado)
+apps/web/public/mediapipe/
+
 # Editor e sistema
 .DS_Store
 .idea/

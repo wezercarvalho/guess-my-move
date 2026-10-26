@@ -34,19 +34,19 @@
 
 ## Fase 5 — Detector e ativos
 
-- [ ] T015 [FR-009] Escrever testes falhando de `prepare-assets` (hash correto reaproveita, hash errado falha, destino ausente baixa) em `apps/web/scripts/prepare-assets.test.mjs`
-- [ ] T016 [FR-009] Implementar `apps/web/scripts/prepare-assets.mjs`, ligar a `dev` e `build`, ignorar `public/mediapipe/` no Git, adicionar `@mediapipe/tasks-vision` 1.1.1 e confirmar verde
-- [ ] T017 [FR-007] Escrever testes falhando da fábrica do MediaPipe (GPU, recuo para CPU, `close`) com o módulo simulado em `apps/web/src/tracker`
-- [ ] T018 [FR-007] Implementar `HandTracker` e `createMediaPipeHandTracker` e confirmar verde
+- [x] T015 [FR-009] Escrever testes falhando de `prepare-assets` (hash correto reaproveita, hash errado falha, destino ausente baixa) em `apps/web/scripts/prepare-assets.test.mjs`
+- [x] T016 [FR-009] Implementar `apps/web/scripts/prepare-assets.mjs`, ligar a `dev` e `build`, ignorar `public/mediapipe/` no Git, adicionar `@mediapipe/tasks-vision` 1.1.1 e confirmar verde
+- [x] T017 [FR-007] Escrever testes falhando da fábrica do MediaPipe (GPU, recuo para CPU, `close`) com o módulo simulado em `apps/web/src/tracker`
+- [x] T018 [FR-007] Implementar `HandTracker` e `createMediaPipeHandTracker` e confirmar verde
 
 ## Fase 6 — Tela da rodada
 
-- [ ] T019 [US-001] [FR-006] [FR-012] Escrever testes falhando de `GestureScreen` com `HandTracker` simulado (Começar habilitado só com câmera e detector, reconhecido, tempo esgotado, câmera negada, erro do detector, cancelar, nova rodada)
-- [ ] T020 [US-001] [FR-006] [FR-012] Implementar `useGestureRound` e `GestureScreen`, mover `CardView` e remover `guess/` e `capture/` do web, e confirmar verde
-- [ ] T021 [US-003] [FR-008] Escrever testes falhando de `HandOverlay` e `DebugPanel` (21 pontos desenhados, ângulo, inversões, amostras, latência mediana e p95, delegate)
-- [ ] T022 [US-003] [FR-008] Implementar `HandOverlay` e `DebugPanel` e confirmar verde
-- [ ] T023 [US-004] [FR-010] [NFR-005] Atualizar `App.tsx` e os textos de privacidade (processamento local), garantir regiões `aria-live` e rótulos, e confirmar verde
-- [ ] T024 [US-004] [FR-010] Buscar no código `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.` e persistência de imagem ou landmarks, e registrar o resultado
+- [x] T019 [US-001] [FR-006] [FR-012] Escrever testes falhando de `GestureScreen` com `HandTracker` simulado (Começar habilitado só com câmera e detector, reconhecido, tempo esgotado, câmera negada, erro do detector, cancelar, nova rodada)
+- [x] T020 [US-001] [FR-006] [FR-012] Implementar `useGestureRound` e `GestureScreen`, mover `CardView` e remover `guess/` e `capture/` do web, e confirmar verde
+- [x] T021 [US-003] [FR-008] Escrever testes falhando de `HandOverlay` e `DebugPanel` (21 pontos desenhados, ângulo, inversões, amostras, latência mediana e p95, delegate)
+- [x] T022 [US-003] [FR-008] Implementar `HandOverlay` e `DebugPanel` e confirmar verde
+- [x] T023 [US-004] [FR-010] [NFR-005] Atualizar `App.tsx` e os textos de privacidade (processamento local), garantir regiões `aria-live` e rótulos, e confirmar verde
+- [x] T024 [US-004] [FR-010] Buscar no código `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.` e persistência de imagem ou landmarks, e registrar o resultado
 
 ## Fase 7 — Documentação e catálogo
 

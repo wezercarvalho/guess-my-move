@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from 'react'
+import { type ReactNode, type RefObject, useEffect, useRef } from 'react'
 
 import { type UseCameraResult } from './useCamera.js'
 
@@ -7,9 +7,11 @@ export interface CameraPanelProps {
     camera: UseCameraResult
     /**
      * Ref externa opcional para o `<video>`, de modo que o componente pai
-     * (ex.: o fluxo de captura) possa ler frames do mesmo elemento.
+     * (ex.: a rodada) possa ler frames do mesmo elemento.
      */
     videoRef?: RefObject<HTMLVideoElement | null>
+    /** Conteúdo sobreposto ao vídeo (ex.: o esqueleto da mão), dentro do mesmo quadro. */
+    overlay?: ReactNode
 }
 
 /**
@@ -17,7 +19,7 @@ export interface CameraPanelProps {
  * visível de câmera ativa e instruções quando a permissão é negada ou a câmera
  * está indisponível. Nenhuma requisição ao modelo/servidor acontece aqui.
  */
-export function CameraPanel({ camera, videoRef: externalRef }: CameraPanelProps) {
+export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPanelProps) {
     const { status, errorMessage, stream, isActive, start, stop } = camera
     const internalRef = useRef<HTMLVideoElement>(null)
     const videoRef = externalRef ?? internalRef
@@ -50,6 +52,7 @@ export function CameraPanel({ camera, videoRef: externalRef }: CameraPanelProps)
                     data-testid="camera-preview"
                     hidden={!isActive}
                 />
+                {overlay}
                 {isActive && (
                     <span
                         className="camera-indicator"
