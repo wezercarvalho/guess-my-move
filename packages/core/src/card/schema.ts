@@ -3,8 +3,8 @@
  * contrato. Mantém a API pública (`validateCard`, `isCard`, `parseCard`) com
  * mensagens de erro legíveis em português, sem dependência de banco.
  *
- * A carta separa `public` (o que o jogador vê) de `evaluation` (resposta
- * canônica, aliases e palpites insuficientes). O schema é estrito: um campo
+ * A carta separa `public` (o que o jogador vê) de `evaluation` (o critério do
+ * gesto). O schema é estrito: um campo
  * inesperado invalida a carta, o que protege a fronteira de informação.
  */
 import { cardSchema } from '../schemas/card.js'

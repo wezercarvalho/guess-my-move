@@ -1,16 +1,17 @@
 /**
  * Carta inicial do jogo: "Acenar". Versionada no Git como dado TypeScript
- * (sem banco). Os textos seguem a seção 5 do `PROJECT_SPEC.md`.
+ * (sem banco). Os textos públicos seguem o `PROJECT_SPEC.md`; a avaliação é o
+ * critério de oscilação do ângulo da mão aplicado pelo árbitro por visão.
  *
- * Adicionar uma nova carta é só acrescentar outro objeto `Card` ao baralho —
- * o motor, o árbitro e a validação funcionam sem nenhuma alteração.
+ * Adicionar uma nova carta é só acrescentar outro objeto `Card` ao baralho; um
+ * novo tipo de critério exige ampliar o schema.
  */
 import type { Card } from '../contracts.js'
 import { parseCard } from './schema.js'
 
 /**
  * Carta "Acenar". `public` é o que o jogador vê; `evaluation` é privado do
- * servidor/motor e NUNCA vai ao adivinhador.
+ * motor e NUNCA vai ao jogador nem a uma IA jogadora.
  */
 export const acenarCard: Card = parseCard({
     id: 'wave-001',
@@ -22,17 +23,14 @@ export const acenarCard: Card = parseCard({
         difficulty: 'easy',
     },
     evaluation: {
-        canonicalAnswer: 'acenar',
-        acceptedAliases: ['dar tchau', 'acenando', 'waving', 'waving goodbye'],
-        insufficientGuesses: [
-            'levantar a mão',
-            'mexer o braço',
-            'mexer os braços',
-            'cumprimentar alguém',
-        ],
-        visualCriteria: [
-            'Uma das mãos aparece levantada.',
-            'Há deslocamento lateral repetido da mão ao longo do tempo.',
-        ],
+        criterion: {
+            kind: 'hand-angle-oscillation',
+            // Valores iniciais confirmados no spike com 12 clipes (ver research.md
+            // da spec): ajustar aqui, na carta, sem mudar o código do avaliador.
+            amplitudeDeg: 15,
+            minReversals: 3,
+            windowMs: 2500,
+            minSamples: 5,
+        },
     },
 })

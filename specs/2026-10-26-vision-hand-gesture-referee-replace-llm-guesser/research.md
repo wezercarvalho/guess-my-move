@@ -44,6 +44,8 @@ Regra: amplitude 15 graus, 3 inversões, janela de 2,5 s, ao menos 5 amostras co
 
 Sensibilidade (mesmos clipes): com 3 inversões, as amplitudes de 15 e 20 graus dão 5 de 5 acenos e 0 de 7 confusores; 10 graus dá 5 de 5 com 1 falso positivo, que 4 inversões elimina (5 inversões já perde 1 aceno); 25 graus perde 1 aceno. Janelas de 1,5 s, 2 s e 3 s mantêm 5 de 5 e 0 de 7 com 15 graus e 3 inversões.
 
+Correção de proporção: os landmarks são normalizados por largura e altura da imagem, então o ângulo bruto depende da proporção. O ângulo foi recalculado em espaço de pixels (deslocamento horizontal multiplicado por largura/altura, 1360 por 1020 nos clipes) e o resultado se manteve (5 de 5 e 0 de 7 com 15 graus e 3 inversões; 2 inversões passa a ter 1 falso positivo). O núcleo adota o ângulo corrigido e as fixtures são geradas com ele.
+
 ### Latência medida (não representa o desktop do maintainer)
 
 Mediana de 90 a 145 ms por quadro no recorte pequeno e de 170 a 190 ms no recorte grande, com p95 de 205 a 250 ms, em CPU, Chromium headless, VPS compartilhada. O número só indica ordem de grandeza do custo do modelo; a medida que vale é a do Chrome desktop do maintainer (NFR-002).

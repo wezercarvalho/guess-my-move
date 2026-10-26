@@ -12,25 +12,25 @@
 
 ## Fase 2 — Critério tipado da carta
 
-- [ ] T002 [US-002] [FR-001] [FR-002] Escrever testes falhando do schema da carta com `evaluation.criterion` (estrito, valores positivos, Acenar válido) e da fronteira de `toPublicCard` em `packages/core/test`
-- [ ] T003 [US-002] [FR-001] [FR-002] Confirmar a falha esperada com `yarn workspace @guess-my-move/core test`
-- [ ] T004 [US-002] [FR-001] [FR-002] Implementar o critério `hand-angle-oscillation` no schema, na carta Acenar e nos contratos
-- [ ] T005 [US-002] [FR-001] [FR-002] Confirmar os testes da carta passando
+- [x] T002 [US-002] [FR-001] [FR-002] Escrever testes falhando do schema da carta com `evaluation.criterion` (estrito, valores positivos, Acenar válido) e da fronteira de `toPublicCard` em `packages/core/test`
+- [x] T003 [US-002] [FR-001] [FR-002] Confirmar a falha esperada com `yarn workspace @guess-my-move/core test`
+- [x] T004 [US-002] [FR-001] [FR-002] Implementar o critério `hand-angle-oscillation` no schema, na carta Acenar e nos contratos
+- [x] T005 [US-002] [FR-001] [FR-002] Confirmar os testes da carta passando
 
 ## Fase 3 — Ângulo e avaliador do gesto
 
-- [ ] T006 [US-002] [FR-003] Escrever testes falhando de `handAngleDeg` (cima, direita, esquerda, vetor degenerado) em `packages/core/test/gesture-angle.test.ts`
-- [ ] T007 [US-002] [FR-003] Implementar `handAngleDeg` em `packages/core/src/gesture/angle.ts` e confirmar verde
-- [ ] T008 [US-002] [FR-004] Escrever testes falhando de `evaluateOscillation` (janela, mínimo de amostras, histerese, lacunas, ruído abaixo da amplitude) em `packages/core/test/gesture-oscillation.test.ts`
-- [ ] T009 [US-002] [FR-004] Implementar `evaluateOscillation` em `packages/core/src/gesture/oscillation.ts` e confirmar verde
-- [ ] T010 [US-002] [FR-014] [SC-001] Gerar `packages/core/test/fixtures/clip-angles.json` com tempo e ângulo dos 12 clipes (apenas números) e escrever o teste de regressão 5 de 5 e 0 de 7 em `gesture-clips.test.ts`
-- [ ] T011 [US-002] [FR-004] [SC-001] Confirmar o teste dos clipes passando e refatorar mantendo verde
+- [x] T006 [US-002] [FR-003] Escrever testes falhando de `handAngleDeg` (cima, direita, esquerda, vetor degenerado) em `packages/core/test/gesture-angle.test.ts`
+- [x] T007 [US-002] [FR-003] Implementar `handAngleDeg` em `packages/core/src/gesture/angle.ts` e confirmar verde
+- [x] T008 [US-002] [FR-004] Escrever testes falhando de `evaluateOscillation` (janela, mínimo de amostras, histerese, lacunas, ruído abaixo da amplitude) em `packages/core/test/gesture-oscillation.test.ts`
+- [x] T009 [US-002] [FR-004] Implementar `evaluateOscillation` em `packages/core/src/gesture/oscillation.ts` e confirmar verde
+- [x] T010 [US-002] [FR-014] [SC-001] Gerar `packages/core/test/fixtures/clip-angles.json` com tempo e ângulo dos 12 clipes (apenas números) e escrever o teste de regressão 5 de 5 e 0 de 7 em `gesture-clips.test.ts`
+- [x] T011 [US-002] [FR-004] [SC-001] Confirmar o teste dos clipes passando e refatorar mantendo verde
 
 ## Fase 4 — Máquina de estados da rodada
 
-- [ ] T012 [US-001] [FR-005] Escrever testes falhando da rodada (fluxo feliz, câmera negada, falha do detector, cancelamento, limite de 10 s, reconhecimento no primeiro instante, descarte de amostras) em `packages/core/test/round.test.ts`
-- [ ] T013 [US-001] [FR-005] Reescrever `packages/core/src/round` com `start`, `observe`, `tick`, `trackerFailed` e confirmar verde
-- [ ] T014 [US-004] [FR-011] Remover do core o árbitro semântico, o adivinhador, os schemas de palpite, os contratos de provedor e seus testes, e ajustar a API pública
+- [x] T012 [US-001] [FR-005] Escrever testes falhando da rodada (fluxo feliz, câmera negada, falha do detector, cancelamento, limite de 10 s, reconhecimento no primeiro instante, descarte de amostras) em `packages/core/test/round.test.ts`
+- [x] T013 [US-001] [FR-005] Reescrever `packages/core/src/round` com `start`, `observe`, `tick`, `trackerFailed` e confirmar verde
+- [x] T014 [US-004] [FR-011] Remover do core o árbitro semântico, o adivinhador, os schemas de palpite, os contratos de provedor e seus testes, e ajustar a API pública
 
 ## Fase 5 — Detector e ativos
 

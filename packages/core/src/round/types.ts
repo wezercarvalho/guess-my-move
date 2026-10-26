@@ -1,46 +1,25 @@
 /**
- * Tipos da máquina de estados da rodada. Puro e sem I/O: o relógio e o
- * provedor de adivinhação são injetados.
+ * Tipos da máquina de estados da rodada. Puro e sem I/O: o relógio é injetado e
+ * o detector de mão vive fora do núcleo; a rodada só recebe o ângulo da mão.
  */
-import type { Card, CapturedFrame, GuesserProvider } from '../contracts.js'
-import type { AmbiguityResolver, RefereeResult } from '../referee/index.js'
+import type { Card } from '../contracts.js'
+import type { OscillationVerdict } from '../gesture/index.js'
 
 /**
  * Estados da rodada. Fluxo feliz:
- * `idle → card_revealed → camera_ready → capturing → guessing → judging →
- * (correct | retry | finished)`. Estados de exceção são terminais ou
- * recuperáveis conforme a natureza do erro.
+ * `idle → card_revealed → camera_ready → detecting → (recognized | timed_out)`.
+ * Estados de exceção encerram a rodada; uma nova rodada começa em `idle`.
  */
 export type RoundState =
     | 'idle'
     | 'card_revealed'
     | 'camera_ready'
-    | 'capturing'
-    | 'guessing'
-    | 'judging'
-    | 'correct'
-    | 'retry'
-    | 'finished'
+    | 'detecting'
+    | 'recognized'
+    | 'timed_out'
     | 'camera_denied'
-    | 'request_timeout'
-    | 'provider_error'
-    | 'invalid_model_response'
+    | 'tracker_error'
     | 'user_cancelled'
-
-/** Uma entrada do histórico de tentativas, só em memória. */
-export interface RoundAttempt {
-    guess: string
-    result: RefereeResult
-    at: number
-}
-
-/** Resultado de uma tentativa de palpite. */
-export interface AttemptOutcome {
-    isCorrect: boolean
-    result: RefereeResult
-    state: RoundState
-    reason?: string
-}
 
 /** Relógio injetável; devolve o tempo em milissegundos. */
 export type Clock = () => number
@@ -48,29 +27,30 @@ export type Clock = () => number
 /** Configuração e dependências de uma rodada. */
 export interface RoundConfig {
     card: Card
-    provider: GuesserProvider
-    /** Máximo de tentativas de palpite na rodada (>= 1). */
-    maxAttempts: number
-    /** Duração máxima da rodada em ms (opcional; sem limite quando ausente). */
+    /** Duração máxima de `detecting` em ms (padrão: 10 000). */
     maxDurationMs?: number
-    /** Timeout por chamada ao provedor em ms (opcional). */
-    requestTimeoutMs?: number
     /** Relógio injetável (padrão: Date.now). */
     clock?: Clock
-    /** Fallback opcional por LLM do árbitro (desligado por padrão). */
-    resolver?: AmbiguityResolver
 }
 
 /** API pública da rodada. */
 export interface Round {
     readonly state: RoundState
     readonly finished: boolean
-    readonly attempts: number
-    readonly history: readonly RoundAttempt[]
-    readonly rejectedGuesses: readonly string[]
+    /** Última avaliação do critério; `null` enquanto não houve amostra. */
+    readonly verdict: OscillationVerdict | null
+    /** Tempo desde o Começar, em ms; congela ao terminar; `null` antes de começar. */
+    readonly elapsedMs: number | null
+    /** Motivo da falha do detector, quando o estado é `tracker_error`. */
+    readonly failureReason: string | null
     revealCard(): void
     cameraReady(): void
     denyCamera(): void
+    trackerFailed(reason: string): void
+    start(): void
+    /** Registra o ângulo atual da mão; devolve a avaliação ou `null` se ignorado. */
+    observe(angleDeg: number): OscillationVerdict | null
+    /** Confere o limite de tempo sem nova amostra. */
+    tick(): void
     cancel(): void
-    attempt(frames: CapturedFrame[]): Promise<AttemptOutcome>
 }
