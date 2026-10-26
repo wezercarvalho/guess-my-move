@@ -8,7 +8,7 @@
 
 ## Fase 1 — Remoção do caminho do LLM (issue 63)
 
-- [ ] T001 [US-004] [FR-011] Remover `apps/server`, `packages/providers` e `packages/benchmark`, os workspaces e scripts correspondentes, o proxy do Vite e o `.env.example`, atualizar o lockfile e confirmar `yarn check:all` verde
+- [x] T001 [US-004] [FR-011] Remover `apps/server`, `packages/providers` e `packages/benchmark`, os workspaces e scripts correspondentes, o proxy do Vite e o `.env.example`, atualizar o lockfile e confirmar `yarn check:all` verde
 
 ## Fase 2 — Critério tipado da carta
 

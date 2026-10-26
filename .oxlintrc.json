@@ -69,7 +69,7 @@
         },
         {
             "files": [
-                "apps/server/**/*.ts",
+                "apps/web/scripts/**/*.mjs",
                 "**/*.config.{ts,mts}"
             ],
             "env": {

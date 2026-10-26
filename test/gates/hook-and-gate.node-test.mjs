@@ -300,7 +300,7 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'test/gates/hook-and-gate.node-test.mjs': ['tooling'],
         'test/security/dependency-audit.node-test.mjs': ['tooling'],
         'apps/web/src/App.tsx': ['code'],
-        'apps/server/src/main.ts': ['code'],
+        'apps/web/src/main.tsx': ['code'],
         'packages/core/src/index.ts': ['code'],
         'tsconfig.base.json': ['code'],
         '.oxlintrc.json': ['code'],
