@@ -32,14 +32,16 @@ function statusText(
                 : 'Ative a câmera para jogar.'
         case 'ready':
             if (handVisible && mode === 'flick') {
-                return 'Estalo (alpha): feche a pinça (polegar contra o indicador) com a mão apontada para o alvo e abra rápido, como um estalo.'
+                return 'Estalo (alpha): feche a pinça, arraste a mão para longe do alvo e abra os dedos rápido para atirar.'
             }
             return handVisible
                 ? 'Mão à vista! Faça a pinça em qualquer ponto, arraste a mão para longe do alvo e abra os dedos para atirar.'
                 : 'Não estou vendo a sua mão. Mostre-a inteira para a câmera, com a palma voltada para ela, na altura do peito e com boa luz.'
         case 'aiming':
             if (mode === 'flick') {
-                return 'Armado! Aponte a mão para o alvo e abra a pinça rápido, como um estalo.'
+                return round.aim?.shot
+                    ? 'Armado! Abra os dedos rápido para atirar; abrir devagar cancela o tiro.'
+                    : 'Arraste a mão mais para longe do alvo: com esse arrasto curto o tiro será cancelado.'
             }
             return round.aim?.shot
                 ? 'Arraste para trás e abra a pinça para atirar.'
@@ -95,8 +97,8 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                     Ative a câmera e atire a bolinha azul no alvo vermelho com a mão, no menor
                     número de tiros. No modo Pinça (padrão), feche polegar e indicador em qualquer
                     ponto, com a mão que preferir, arraste para longe do alvo, como um
-                    estilingue, e abra os dedos. O modo Estalo (alpha) imita o tiro real: aponte a
-                    mão para o alvo e abra a pinça rápido.
+                    estilingue, e abra os dedos. O modo Estalo (alpha) mira do mesmo jeito, mas só
+                    atira se você abrir os dedos rápido, como o estalo do polegar.
                 </p>
             </header>
 

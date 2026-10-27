@@ -53,6 +53,15 @@ export function MarblesDebugPanel({
                 <dd>{yesNo(debug.handVisible)}</dd>
                 <dt>Quadros processados</dt>
                 <dd>{debug.frames}</dd>
+                <dt>Quadros novos da câmera/s</dt>
+                <dd>
+                    {debug.cameraFps === null
+                        ? DASH
+                        : debug.cameraFps.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                          })}
+                </dd>
                 <dt>Latência mediana</dt>
                 <dd>{millis(debug.medianMs)}</dd>
                 <dt>Latência p95</dt>
@@ -73,7 +82,7 @@ export function MarblesDebugPanel({
                         <dt>Duração da subida</dt>
                         <dd>{millis(debug.flick.lastRiseMs)}</dd>
                         <dt>Resultado do último estalo</dt>
-                        <dd>{debug.flick.lastResult ?? DASH}</dd>
+                        <dd aria-live="polite">{debug.flick.lastResult ?? DASH}</dd>
                     </>
                 )}
             </dl>
