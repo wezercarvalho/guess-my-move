@@ -9,7 +9,7 @@
 ## Fase 0 — Fundações
 
 - [x] T001 [FR-010] Criar o pacote `packages/marbles` (`package.json` com `@guess-my-move/marbles`, `tsconfig.json`, `vitest.config.ts`), registrar o workspace em `package.json` e atualizar o `yarn.lock`
-- [ ] T002 [FR-010] Adicionar a segunda entrada do Vite `apps/web/marbles.html` em `build.rollupOptions.input`, sem alterar `index.html`
+- [x] T002 [FR-010] Adicionar a segunda entrada do Vite `apps/web/marbles.html` em `build.rollupOptions.input`, sem alterar `index.html`
 
 ## Fase 1 — Física e contato
 
@@ -30,17 +30,17 @@
 
 ## Fase 4 — Web
 
-- [ ] T011 [US-001] [FR-007] Escrever testes falhando do controlador com relógio, quadros e rastreador injetados em `apps/web/src/marbles`
-- [ ] T012 [US-001] [FR-007] Implementar o controlador e o hook `useMarblesGame` reaproveitando `useCamera`, `HandTracker` e o espelhamento, e confirmar verde
-- [ ] T013 [US-003] [FR-006] [FR-008] Escrever testes falhando da tela e do painel (canvas, elástico, seta, contador, mensagens `aria-live`, razão da pinça, estado, latências) em `apps/web/src/marbles`
-- [ ] T014 [US-003] [FR-006] [FR-008] Implementar `MarblesScreen` (canvas 2D e `drawHand`) e `DebugPanel`, e confirmar verde
-- [ ] T015 [US-004] [FR-009] Verificar a privacidade por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
-- [ ] T016 [FR-010] Confirmar que o jogo de cartas continua passando sem alteração de código (testes do Acenar verdes, `index.html` e `src/round/` intactos)
-- [ ] T017 [FR-011] Atualizar `docs/product/PROJECT_SPEC.md`, `README.md` e o guia de arquitetura em `docs/development-context/` com o modo bete, o pacote `packages/marbles` e a segunda entrada
+- [x] T011 [US-001] [FR-007] Escrever testes falhando do controlador com relógio, quadros e rastreador injetados em `apps/web/src/marbles`
+- [x] T012 [US-001] [FR-007] Implementar o controlador e o hook `useMarblesGame` reaproveitando `useCamera`, `HandTracker` e o espelhamento, e confirmar verde
+- [x] T013 [US-003] [FR-006] [FR-008] Escrever testes falhando da tela e do painel (canvas, elástico, seta, contador, mensagens `aria-live`, razão da pinça, estado, latências) em `apps/web/src/marbles`
+- [x] T014 [US-003] [FR-006] [FR-008] Implementar `MarblesScreen` (canvas 2D e `drawHand`) e `DebugPanel`, e confirmar verde
+- [x] T015 [US-004] [FR-009] Verificar a privacidade por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
+- [x] T016 [FR-010] Confirmar que o jogo de cartas continua passando sem alteração de código (testes do Acenar verdes, `index.html` e `src/round/` intactos)
+- [x] T017 [FR-011] Atualizar `docs/product/PROJECT_SPEC.md`, `README.md` e o guia de arquitetura em `docs/development-context/` com o modo bete, o pacote `packages/marbles` e a segunda entrada
 
 ## Fase final — Convergência
 
-- [ ] T018 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
+- [x] T018 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
 - [ ] T019 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (acerto com a pinça, reconhecimento e latência) e fechar o Gate 3
 
 ## Cobertura

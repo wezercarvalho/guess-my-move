@@ -14,6 +14,7 @@
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",
+        "@guess-my-move/marbles": "0.0.0",
         "@mediapipe/tasks-vision": "1.1.1",
         "react": "19.3.1",
         "react-dom": "19.3.1"

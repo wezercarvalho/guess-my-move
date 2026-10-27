@@ -6,6 +6,15 @@ import { defineConfig } from 'vite'
 export default defineConfig({
     plugins: [react()],
     resolve: { conditions: ['source'] },
+    // Duas entradas: o jogo de cartas (index.html) e o bete (marbles.html).
+    build: {
+        rollupOptions: {
+            input: {
+                main: 'index.html',
+                marbles: 'marbles.html',
+            },
+        },
+    },
     test: {
         environment: 'jsdom',
         globals: true,
