@@ -154,6 +154,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@guess-my-move/marbles@workspace:packages/marbles":
+  version: 0.0.0-use.local
+  resolution: "@guess-my-move/marbles@workspace:packages/marbles"
+  dependencies:
+    typescript: "npm:7.0.2"
+    vite: "npm:8.3.4"
+    vitest: "npm:5.0.5"
+  languageName: unknown
+  linkType: soft
+
 "@guess-my-move/web@workspace:apps/web":
   version: 0.0.0-use.local
   resolution: "@guess-my-move/web@workspace:apps/web"

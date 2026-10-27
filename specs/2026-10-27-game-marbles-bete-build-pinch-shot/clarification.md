@@ -46,7 +46,7 @@ As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete 
 - **Data:** `2026-10-27`
 - **Impacto:** alto
 - **Pergunta:** Qual modelo de física?
-- **Decisão:** Arcade determinística com passo fixo de 1/120 s: círculos, atrito constante 700, parada abaixo de 8, restituição 0,8 nas paredes e 1,0 elástica entre bolinhas de massas iguais.
+- **Decisão:** Arcade determinística com passo fixo de 1/120 s: círculos, atrito constante 400, parada abaixo de 8, restituição 0,8 nas paredes e 1,0 elástica entre bolinhas de massas iguais.
 - **Razão:** Determinismo permite teste automático sem câmera; arcade basta para a mecânica.
 - **Alternativas rejeitadas:** Física contínua não determinística (difícil de testar); 3D (fora de escopo).
 - **Seções atualizadas em `spec.md`:** FR-001, FR-002, Edge cases.

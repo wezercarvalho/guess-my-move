@@ -63,7 +63,7 @@ specs/README.md                                                       nova linha
 
 ### Componentes e responsabilidades
 
-- **`physics`** (pacote): `stepWorld(world, dt)` com passo fixo de 1/120 s; aplica atrito 700, para abaixo de 8 unid/s, ricocheteia nas paredes do campo 800 x 600 com restituição 0,8 e resolve colisão elástica (restituição 1,0, massas iguais) entre a bolinha de tiro e o alvo; saída determinística.
+- **`physics`** (pacote): `stepWorld(world, dt)` com passo fixo de 1/120 s; aplica atrito 400, para abaixo de 8 unid/s, ricocheteia nas paredes do campo 800 x 600 com restituição 0,8 e resolve colisão elástica (restituição 1,0, massas iguais) entre a bolinha de tiro e o alvo; saída determinística.
 - **`pinch`** (pacote): `readPinch(landmarks, aspect)` devolve `{ ratio, closed, point } | ausente`; usa landmarks 4, 8, 0, 9, corrige x pela proporção, aplica histerese (0,35/0,55) e espelha o ponto em x; mão ausente é pinça aberta sem ponto.
 - **`shot`** (pacote): `computeShot(pinchPoint, ballPos)` devolve `{ fired, direction, speed }`; direção da pinça para a bolinha, velocidade 5x o arrasto limitada a 220 unidades (máximo 1100 unid/s), cancelada abaixo de 30 unidades.
 - **`round`** (pacote): `createBeteRound()` com estados `idle | ready | aiming | rolling | hit | camera_denied | tracker_error`; eventos `cameraReady`, `denyCamera`, `trackerFailed`, `observePinch`, `advance`, `newRound`; guarda tiros, mira e resultado; `snapshot()` expõe o estado.

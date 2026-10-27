@@ -8,25 +8,25 @@
 
 ## Fase 0 — Fundações
 
-- [ ] T001 [FR-010] Criar o pacote `packages/marbles` (`package.json` com `@guess-my-move/marbles`, `tsconfig.json`, `vitest.config.ts`), registrar o workspace em `package.json` e atualizar o `yarn.lock`
+- [x] T001 [FR-010] Criar o pacote `packages/marbles` (`package.json` com `@guess-my-move/marbles`, `tsconfig.json`, `vitest.config.ts`), registrar o workspace em `package.json` e atualizar o `yarn.lock`
 - [ ] T002 [FR-010] Adicionar a segunda entrada do Vite `apps/web/marbles.html` em `build.rollupOptions.input`, sem alterar `index.html`
 
 ## Fase 1 — Física e contato
 
-- [ ] T003 [US-001] [FR-001] [FR-002] Escrever testes falhando de física e contato (passo fixo, atrito, parada, paredes, colisão elástica, determinismo e primeiro contato) em `packages/marbles/test/physics.test.ts`
-- [ ] T004 [US-001] [FR-001] [FR-002] Implementar `packages/marbles/src/physics.ts` e o contato, e confirmar verde
+- [x] T003 [US-001] [FR-001] [FR-002] Escrever testes falhando de física e contato (passo fixo, atrito, parada, paredes, colisão elástica, determinismo e primeiro contato) em `packages/marbles/test/physics.test.ts`
+- [x] T004 [US-001] [FR-001] [FR-002] Implementar `packages/marbles/src/physics.ts` e o contato, e confirmar verde
 
 ## Fase 2 — Pinça e tiro
 
-- [ ] T005 [US-001] [FR-003] Escrever testes falhando do detector de pinça (razão, histerese, ponto espelhado, correção de proporção, mão ausente) em `packages/marbles/test/pinch.test.ts`
-- [ ] T006 [US-001] [FR-003] Implementar `packages/marbles/src/pinch.ts` e confirmar verde
-- [ ] T007 [US-001] [FR-004] Escrever testes falhando do tiro (direção, velocidade limitada a 220/1100, cancelamento abaixo de 30) em `packages/marbles/test/shot.test.ts`
-- [ ] T008 [US-001] [FR-004] Implementar `packages/marbles/src/shot.ts` e confirmar verde
+- [x] T005 [US-001] [FR-003] Escrever testes falhando do detector de pinça (razão, histerese, ponto espelhado, correção de proporção, mão ausente) em `packages/marbles/test/pinch.test.ts`
+- [x] T006 [US-001] [FR-003] Implementar `packages/marbles/src/pinch.ts` e confirmar verde
+- [x] T007 [US-001] [FR-004] Escrever testes falhando do tiro (direção, velocidade limitada a 220/1100, cancelamento abaixo de 30) em `packages/marbles/test/shot.test.ts`
+- [x] T008 [US-001] [FR-004] Implementar `packages/marbles/src/shot.ts` e confirmar verde
 
 ## Fase 3 — Rodada
 
-- [ ] T009 [US-002] [FR-005] Escrever testes falhando da rodada (pega até 70 unidades, mira, perda de mão > 300 ms, erro volta ao início, acerto, nova rodada, `camera_denied`, `tracker_error`, `snapshot`) em `packages/marbles/test/round.test.ts`
-- [ ] T010 [US-002] [FR-005] Implementar `packages/marbles/src/round.ts` (`createBeteRound`) e `index.ts`, e confirmar verde
+- [x] T009 [US-002] [FR-005] Escrever testes falhando da rodada (pega até 70 unidades, mira, perda de mão > 300 ms, erro volta ao início, acerto, nova rodada, `camera_denied`, `tracker_error`, `snapshot`) em `packages/marbles/test/round.test.ts`
+- [x] T010 [US-002] [FR-005] Implementar `packages/marbles/src/round.ts` (`createBeteRound`) e `index.ts`, e confirmar verde
 
 ## Fase 4 — Web
 

@@ -35,7 +35,7 @@ A lógica de física, pinça, tiro e rodada fica em `@guess-my-move/marbles`, se
 | Posição inicial do tiro    | (150, 300)    | Volta a esta posição ao errar                  |
 | Posição do alvo            | (550, 300)    | Distância fixa de 400                          |
 | Passo da física            | 1/120 s       | Determinístico                                 |
-| Atrito                     | 700 unid/s²   | Constante                                      |
+| Atrito                     | 400 unid/s²   | Constante                                      |
 | Limiar de parada           | 8 unid/s      | Abaixo disso, a bolinha para                   |
 | Restituição nas paredes    | 0,8           | —                                              |
 | Restituição entre bolinhas | 1,0           | Colisão elástica, massas iguais                |
@@ -46,6 +46,8 @@ A lógica de física, pinça, tiro e rodada fica em `@guess-my-move/marbles`, se
 | Limite de arrasto          | 220 unidades  | Velocidade máxima 1100 unid/s                  |
 | Cancelamento de arrasto    | < 30 unidades | Tiro cancelado                                 |
 | Perda de mão na mira       | > 300 ms      | Cancela o tiro em preparação                   |
+
+Alcance (cálculo, não medição): para o contato com o alvo (centros a 372 unidades da posição inicial até a distância de colisão), o atrito de 400 unid/s² exige velocidade de cerca de 545 unid/s, ou seja, arrasto de cerca de 109 unidades. A bolinha de tiro em x = 150 permite arrastar até 150 unidades para a esquerda, o que dá folga. Com atrito de 700 o mínimo seria de cerca de 144 unidades, quase sem folga; por isso o valor inicial é 400. Todos os valores seguem sendo palpites a calibrar com uso real.
 
 Todos os valores são anteriores a qualquer calibração (H-01) e serão ajustados pelo painel de depuração e pelo teste do maintainer.
 
