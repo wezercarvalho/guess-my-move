@@ -101,6 +101,7 @@ specs/README.md                                                       nova linha
 | FR-009    | Sem rede para imagem; aviso de privacidade                       | busca no código e inspeção de rede no Chromium    |
 | FR-010    | Pacote puro independente; segunda entrada; cartas intacto        | `yarn check:all`, testes do jogo de cartas verdes |
 | FR-011    | Atualização de PROJECT_SPEC, README e guia de arquitetura        | `yarn docs:format:check`, `yarn sdd:check`        |
+| FR-012    | Menu em `index.html`; jogo de cartas movido para `cards.html`    | `HomePage.test.tsx`, build com três páginas       |
 
 ## Estratégia test-first
 

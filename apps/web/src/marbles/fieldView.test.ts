@@ -93,6 +93,33 @@ describe('drawField', () => {
         expect((context.lineTo.mock.calls as unknown as number[][]).length).toBeGreaterThanOrEqual(2)
     })
 
+    it('desenha o cursor da mão na posição da pinça, mesmo sem mira', () => {
+        const { canvas, context } = stubCanvas()
+        drawField(canvas, base, { point: { x: 320, y: 210 }, closed: false })
+        const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y]) => [x, y])
+        expect(arcs).toContainEqual([320, 210])
+    })
+
+    it('sem mão visível, não desenha cursor', () => {
+        const withHand = stubCanvas()
+        const without = stubCanvas()
+        drawField(withHand.canvas, base, { point: { x: 320, y: 210 }, closed: false })
+        drawField(without.canvas, base, null)
+        expect(without.context.arc.mock.calls.length).toBeLessThan(
+            withHand.context.arc.mock.calls.length,
+        )
+    })
+
+    it('a pinça fechada é preenchida e a aberta é só um anel', () => {
+        const opened = stubCanvas()
+        const closedHand = stubCanvas()
+        drawField(opened.canvas, base, { point: { x: 320, y: 210 }, closed: false })
+        drawField(closedHand.canvas, base, { point: { x: 320, y: 210 }, closed: true })
+        expect(closedHand.context.fill.mock.calls.length).toBe(
+            opened.context.fill.mock.calls.length + 1,
+        )
+    })
+
     it('com arrasto curto, mostra o elástico mas não a seta de previsão', () => {
         const withShot = stubCanvas()
         const withoutShot = stubCanvas()

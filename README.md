@@ -32,7 +32,7 @@ Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packa
 yarn dev:web
 ```
 
-`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa o modelo `hand_landmarker.task`, verificando o SHA-256 fixado) e sobe o Vite. Abra o endereço do Vite no Chrome desktop, autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
+`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa o modelo `hand_landmarker.task`, verificando o SHA-256 fixado) e sobe o Vite. Abra o endereço do Vite no Chrome desktop: a página inicial (`/`) é um menu com um card por jogo. O jogo de cartas fica em `cards.html`: autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
 
 O modelo não é versionado no repositório; `apps/web/public/mediapipe/` fica fora do Git e é preparado pelo script. O primeiro `prepare:assets` precisa de rede para baixar o modelo; depois ele reaproveita o arquivo em cache.
 

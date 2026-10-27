@@ -170,6 +170,23 @@ describe('MarblesController: laço por quadro', () => {
         expect(h.controller.getSnapshot().debug.pinchClosed).toBe(false)
     })
 
+    it('publica a posição da mão no campo a cada quadro, aberta ou fechada', async () => {
+        const h = harness()
+        await h.ready()
+        expect(h.controller.getSnapshot().hand).toBeNull()
+        h.run(open(300, 200))
+        const openHand = h.controller.getSnapshot().hand
+        expect(openHand?.closed).toBe(false)
+        expect(openHand?.point.x).toBeCloseTo(300, 3)
+        expect(openHand?.point.y).toBeCloseTo(200, 3)
+        h.run(closed(420, 260))
+        const closedHand = h.controller.getSnapshot().hand
+        expect(closedHand?.closed).toBe(true)
+        expect(closedHand?.point.x).toBeCloseTo(420, 3)
+        h.run(null)
+        expect(h.controller.getSnapshot().hand).toBeNull()
+    })
+
     it('pinça aberta, fechada perto da bolinha e arrastada leva a aiming com a previsão', async () => {
         const h = harness()
         await h.ready()

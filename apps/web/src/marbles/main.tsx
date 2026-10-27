@@ -12,7 +12,7 @@ if (!container) {
 
 createRoot(container).render(
     <StrictMode>
-        <main className="app">
+        <main className="app app-wide">
             <MarblesScreen />
         </main>
     </StrictMode>,

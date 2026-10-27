@@ -18,7 +18,7 @@ Segundo jogo, isolado do jogo de cartas (spec `2026-10-27-game-marbles-bete-buil
 
 - **`packages/marbles`** (`@guess-my-move/marbles`): lógica pura, sem DOM, câmera ou MediaPipe, e sem depender de `packages/core`. Expõe `stepBodies` e `isAtRest` (física de círculos em passo fixo de 1/120 s, atrito, paredes e colisão elástica), `createPinchDetector` e `pinchRatio` (razão entre a distância das pontas do polegar e do indicador e a escala da mão, com histerese e ponto espelhado), `computeShot` (arrasto vira direção e velocidade) e `createBeteRound` (estados `idle`, `ready`, `aiming`, `rolling`, `hit`, `camera_denied` e `tracker_error`). Os parâmetros padrão (campo 800 x 600, atrito 400, limiares da pinça 0,35 e 0,55, ganho 5) são palpites a calibrar com uso real.
 - **`apps/web/marbles.html`** e **`src/marbles/`**: segunda entrada do Vite. O `MarblesController` liga câmera, `HandTracker`, detector de pinça e rodada, e o campo é desenhado em canvas 2D. Reaproveita sem alterar `useCamera`, `CameraPanel`, `HandTracker`, `createMediaPipeHandTracker` e `drawHand`.
-- O jogo de cartas (`index.html`, `src/round/`, `packages/core`) não foi alterado.
+- O jogo de cartas (`src/round/`, `src/card/`, `packages/core`) não teve código alterado. A única mudança é de página: `index.html` virou o menu com um card por jogo e o jogo de cartas passou a ser servido em `cards.html`, com a mesma entrada `src/main.tsx`.
 
 ## Stack decidida
 

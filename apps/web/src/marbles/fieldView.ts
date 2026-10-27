@@ -41,14 +41,22 @@ function arrow(context: Context, from: BeteSnapshot['shooter'], velocity: { x: n
     context.setLineDash([])
 }
 
+/** Cursor da mão no campo: posição da pinça e se está fechada. */
+export interface HandCursor {
+    point: { x: number; y: number }
+    closed: boolean
+}
+
 /**
  * Desenha o campo 2D visto de cima: terreno, marca do ponto de partida, bolinha
- * de tiro, alvo e, durante a mira, o elástico, o cursor da pinça e a seta de
- * previsão. As coordenadas são as do campo; o CSS escala o canvas.
+ * de tiro, alvo, o cursor da mão (quando visível) e, durante a mira, o elástico,
+ * o cursor da pinça e a seta de previsão. As coordenadas são as do campo; o CSS
+ * escala o canvas.
  */
 export function drawField(
     canvas: HTMLCanvasElement,
     snapshot: BeteSnapshot,
+    hand: HandCursor | null = null,
     config: BeteConfig = DEFAULT_BETE,
 ): void {
     const context = canvas.getContext('2d')
@@ -74,6 +82,20 @@ export function drawField(
     marble(context, snapshot.shooter.x, snapshot.shooter.y, radius, '#3b82f6')
 
     const { aim } = snapshot
+    if (hand && !aim) {
+        context.lineWidth = 3
+        if (hand.closed) {
+            context.beginPath()
+            context.arc(hand.point.x, hand.point.y, 9, 0, Math.PI * 2)
+            context.fillStyle = '#2f855a'
+            context.fill()
+        } else {
+            context.strokeStyle = '#ffffff'
+            context.beginPath()
+            context.arc(hand.point.x, hand.point.y, 11, 0, Math.PI * 2)
+            context.stroke()
+        }
+    }
     if (aim) {
         context.lineCap = 'round'
         context.lineWidth = 3

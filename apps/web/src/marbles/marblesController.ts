@@ -1,8 +1,10 @@
 import {
     type BeteRound,
     type BeteSnapshot,
+    DEFAULT_PHYSICS,
     type PinchDetector,
     type PinchReading,
+    type Vec,
     createBeteRound,
     createPinchDetector,
 } from '@guess-my-move/marbles'
@@ -49,6 +51,8 @@ export interface MarblesDebug {
 export interface MarblesSnapshot {
     round: BeteSnapshot
     trackerStatus: MarblesTrackerStatus
+    /** Posição da pinça no campo e se está fechada; `null` quando a mão não é vista. */
+    hand: { point: Vec; closed: boolean } | null
     debug: MarblesDebug
 }
 
@@ -220,6 +224,7 @@ export class MarblesController {
         const now = env.now()
         const dt = this.lastNow === null ? 0 : now - this.lastNow
         this.lastNow = now
+        let processedFrame = false
 
         if (
             video.readyState >= 2 &&
@@ -227,6 +232,7 @@ export class MarblesController {
             video.currentTime !== this.lastVideoTime
         ) {
             this.lastVideoTime = video.currentTime
+            processedFrame = true
             try {
                 const hand = tracker.detect(video, now)
                 this.latencies.push(env.now() - now)
@@ -249,7 +255,11 @@ export class MarblesController {
         }
 
         this.round.advance(dt)
-        if (ANIMATING.includes(this.round.state) || now - this.lastEmitAt >= PUBLISH_INTERVAL_MS) {
+        if (
+            processedFrame ||
+            ANIMATING.includes(this.round.state) ||
+            now - this.lastEmitAt >= PUBLISH_INTERVAL_MS
+        ) {
             this.emit()
         }
         this.loop = env.requestFrame(this.step)
@@ -266,6 +276,18 @@ export class MarblesController {
         if (canvas && video) drawHand(canvas, video, null)
     }
 
+    private handOnField(): MarblesSnapshot['hand'] {
+        const reading = this.reading
+        if (!reading?.handVisible || !reading.point) return null
+        return {
+            point: {
+                x: reading.point.x * DEFAULT_PHYSICS.width,
+                y: reading.point.y * DEFAULT_PHYSICS.height,
+            },
+            closed: reading.closed,
+        }
+    }
+
     private buildSnapshot(): MarblesSnapshot {
         const now = this.env.now()
         if (
@@ -278,6 +300,7 @@ export class MarblesController {
         return {
             round: this.round.snapshot(),
             trackerStatus: this.trackerStatus,
+            hand: this.handOnField(),
             debug: {
                 delegate: this.delegate,
                 ratio: this.reading?.ratio ?? null,

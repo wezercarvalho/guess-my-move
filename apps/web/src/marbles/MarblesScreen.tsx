@@ -18,14 +18,16 @@ export interface MarblesScreenProps {
 type Round = ReturnType<typeof useMarblesGame>['round']
 type TrackerStatus = ReturnType<typeof useMarblesGame>['trackerStatus']
 
-function statusText(round: Round, tracker: TrackerStatus): string {
+function statusText(round: Round, tracker: TrackerStatus, handVisible: boolean): string {
     switch (round.state) {
         case 'idle':
             return tracker === 'loading'
                 ? 'Carregando o detector de mão…'
                 : 'Ative a câmera para jogar.'
         case 'ready':
-            return 'Pronto! Faça a pinça perto da bolinha azul, arraste para trás e abra os dedos para atirar.'
+            return handVisible
+                ? 'Mão à vista! Faça a pinça perto da bolinha azul, arraste para trás e abra os dedos para atirar.'
+                : 'Não estou vendo a sua mão. Mostre-a inteira para a câmera, com a palma voltada para ela, na altura do peito e com boa luz.'
         case 'aiming':
             return round.aim?.shot
                 ? 'Arraste para trás e abra a pinça para atirar.'
@@ -67,8 +69,8 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
     })
 
     useEffect(() => {
-        if (fieldRef.current) drawField(fieldRef.current, game.round)
-    }, [game.round])
+        if (fieldRef.current) drawField(fieldRef.current, game.round, game.hand)
+    }, [game.round, game.hand])
 
     const { round } = game
     const canRestart = round.state !== 'idle' && round.state !== 'camera_denied'
@@ -89,41 +91,45 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                 Nenhuma imagem da câmera é enviada, gravada ou registrada.
             </p>
 
-            <section aria-labelledby="field-heading" className="marbles-field-panel">
-                <h2 id="field-heading">Campo</h2>
-                <canvas
-                    ref={fieldRef}
-                    className="marbles-field"
-                    width={DEFAULT_PHYSICS.width}
-                    height={DEFAULT_PHYSICS.height}
-                    role="img"
-                    aria-label="Campo do jogo, visto de cima"
-                />
-                <p className="shot-counter" data-testid="shot-counter">
-                    Tiros: {round.shots}
-                </p>
-                <p aria-live="polite" className="round-status" data-testid="game-status">
-                    {statusText(round, game.trackerStatus)}
-                </p>
-                {round.state === 'tracker_error' && (
-                    <p className="round-error" role="alert">
-                        O detector de mão falhou: {round.failureReason}
+            <div className="marbles-layout">
+                <section aria-labelledby="field-heading" className="marbles-field-panel">
+                    <h2 id="field-heading">Campo</h2>
+                    <canvas
+                        ref={fieldRef}
+                        className="marbles-field"
+                        width={DEFAULT_PHYSICS.width}
+                        height={DEFAULT_PHYSICS.height}
+                        role="img"
+                        aria-label="Campo do jogo, visto de cima"
+                    />
+                    <p className="shot-counter" data-testid="shot-counter">
+                        Tiros: {round.shots}
                     </p>
-                )}
-                <div className="round-actions">
-                    <button type="button" onClick={game.newRound} disabled={!canRestart}>
-                        Nova rodada
-                    </button>
+                    <p aria-live="polite" className="round-status" data-testid="game-status">
+                        {statusText(round, game.trackerStatus, game.debug.handVisible)}
+                    </p>
+                    {round.state === 'tracker_error' && (
+                        <p className="round-error" role="alert">
+                            O detector de mão falhou: {round.failureReason}
+                        </p>
+                    )}
+                    <div className="round-actions">
+                        <button type="button" onClick={game.newRound} disabled={!canRestart}>
+                            Nova rodada
+                        </button>
+                    </div>
+                </section>
+
+                <div className="marbles-side">
+                    <CameraPanel
+                        camera={camera}
+                        videoRef={videoRef}
+                        overlay={<HandOverlay canvasRef={overlayRef} />}
+                    />
+
+                    <MarblesDebugPanel debug={game.debug} state={round.state} />
                 </div>
-            </section>
-
-            <CameraPanel
-                camera={camera}
-                videoRef={videoRef}
-                overlay={<HandOverlay canvasRef={overlayRef} />}
-            />
-
-            <MarblesDebugPanel debug={game.debug} state={round.state} />
+            </div>
         </div>
     )
 }

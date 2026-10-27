@@ -40,24 +40,32 @@
 
 ## Fase final — Convergência
 
+- [x] T020 [FR-012] Escrever testes falhando do menu inicial (um card por jogo, links relativos para `cards.html` e `marbles.html`, link de volta ao menu) em `apps/web/src/home`
+- [x] T021 [FR-012] Implementar o menu em `index.html` e `src/home`, mover a página do jogo de cartas para `cards.html` sem alterar `src/main.tsx` nem o código do jogo, e adicionar o link de volta nas duas páginas
+- [x] T022 [FR-006] Escrever testes falhando do guia visual da mão (cursor no campo com a pinça aberta e fechada, mensagem quando a mão não é vista, câmera ao lado do campo)
+- [x] T023 [FR-006] [FR-007] Implementar o cursor da mão no campo, as mensagens de orientação e o layout em duas colunas, publicando a posição da mão no snapshot do controlador a cada quadro
+
+## Fase final — Convergência
+
 - [x] T018 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
 - [ ] T019 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (acerto com a pinça, reconhecimento e latência) e fechar o Gate 3
 
 ## Cobertura
 
-| Requisito | Tarefas          | Evidência esperada                                |
-| --------- | ---------------- | ------------------------------------------------- |
-| FR-001    | T003, T004       | `physics.test.ts`                                 |
-| FR-002    | T003, T004       | `physics.test.ts`                                 |
-| FR-003    | T005, T006       | `pinch.test.ts`                                   |
-| FR-004    | T007, T008       | `shot.test.ts`                                    |
-| FR-005    | T009, T010       | `round.test.ts`                                   |
-| FR-006    | T013, T014       | `MarblesScreen.test.tsx`                          |
-| FR-007    | T011, T012       | controlador com rastreador simulado, Chromium     |
-| FR-008    | T013, T014       | `DebugPanel.test.tsx`                             |
-| FR-009    | T015             | busca no código e inspeção de rede                |
-| FR-010    | T001, T002, T016 | `yarn check:all`, testes do jogo de cartas verdes |
-| FR-011    | T017             | `yarn docs:format:check`, `yarn sdd:check`        |
+| Requisito | Tarefas                | Evidência esperada                                |
+| --------- | ---------------------- | ------------------------------------------------- |
+| FR-001    | T003, T004             | `physics.test.ts`                                 |
+| FR-002    | T003, T004             | `physics.test.ts`                                 |
+| FR-003    | T005, T006             | `pinch.test.ts`                                   |
+| FR-004    | T007, T008             | `shot.test.ts`                                    |
+| FR-005    | T009, T010             | `round.test.ts`                                   |
+| FR-006    | T013, T014, T022, T023 | `MarblesScreen.test.tsx`                          |
+| FR-007    | T011, T012             | controlador com rastreador simulado, Chromium     |
+| FR-008    | T013, T014             | `DebugPanel.test.tsx`                             |
+| FR-009    | T015                   | busca no código e inspeção de rede                |
+| FR-010    | T001, T002, T016       | `yarn check:all`, testes do jogo de cartas verdes |
+| FR-011    | T017                   | `yarn docs:format:check`, `yarn sdd:check`        |
+| FR-012    | T020, T021             | `HomePage.test.tsx`, build com três páginas       |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 

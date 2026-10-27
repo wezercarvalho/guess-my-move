@@ -91,6 +91,16 @@ As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete 
 - **Alternativas rejeitadas:** Colocar a lógica em `@guess-my-move/core` (acopla ao jogo de cartas); misturar no app web (perde o teste puro).
 - **Seções atualizadas em `spec.md`:** FR-010, NFR-001.
 
+## CQ-009 — Emenda após o primeiro teste (menu inicial e guia da mão)
+
+- **Data:** `2026-10-27`
+- **Impacto:** médio
+- **Pergunta:** Como o jogador chega a cada jogo e como sabe que a mão foi vista?
+- **Decisão:** Pedido do maintainer após o primeiro teste: `index.html` vira um menu com um card por jogo (FR-012), e o jogo de cartas passa a `cards.html` sem mudar seu código. No primeiro teste do maintainer a mão não foi vista em nenhum momento (painel com "Razão da pinça: —" por 19 s, mão só na borda inferior do quadro) e a tela não dizia isso; a FR-006 passa a exigir o cursor da mão no campo, mensagens de orientação e a câmera ao lado do campo.
+- **Razão:** O menu evita decorar URLs; o guia da mão corrige uma falha de interface, sem alterar os limiares nem o ganho.
+- **Alternativas rejeitadas:** Roteamento no cliente dentro de uma entrada só (mexeria no `App.tsx` do jogo de cartas).
+- **Seções atualizadas em `spec.md`:** FR-006, FR-010, FR-012.
+
 ## Hipóteses remanescentes
 
 - Limiares da pinça, raio de pega, ganho e limites são placeholders até a calibração com uso real (H-01); mitigado pelo painel de depuração e pelo teste do maintainer.

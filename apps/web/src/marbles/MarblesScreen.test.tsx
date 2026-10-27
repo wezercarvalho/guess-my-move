@@ -106,7 +106,7 @@ function renderScreen(h: ReturnType<typeof harness>, getUserMedia?: () => Promis
 async function readyToPlay() {
     fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
     await waitFor(() => {
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/pinça/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/não estou vendo a sua mão/i)
     })
 }
 
@@ -134,10 +134,41 @@ describe('MarblesScreen', () => {
         expect(screen.getByTestId('game-status')).toHaveAttribute('aria-live', 'polite')
     })
 
-    it('com a câmera e o detector prontos, explica como atirar', async () => {
+    it('com a mão à vista, explica como atirar', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        h.run(open(400, 300))
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste para trás/i)
+    })
+
+    it('sem a mão à vista, orienta a mostrá-la inteira, com a palma para a câmera', async () => {
         renderScreen(harness())
         await readyToPlay()
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste para trás/i)
+        const status = screen.getByTestId('game-status')
+        expect(status).toHaveTextContent(/palma/i)
+        expect(status).toHaveTextContent(/altura do peito/i)
+    })
+
+    it('mostra o campo e a câmera lado a lado no mesmo layout', () => {
+        const { container } = renderScreen(harness())
+        const layout = container.querySelector('.marbles-layout')
+        expect(layout).not.toBeNull()
+        expect(layout?.querySelector('.marbles-field')).not.toBeNull()
+        expect(layout?.querySelector('.camera-panel')).not.toBeNull()
+    })
+
+    it('desenha o cursor da mão no campo quando a mão aparece', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        arcSpy.mockClear()
+        h.run(open(400, 300))
+        const centers = (arcSpy.mock.calls as unknown as number[][]).map(([x, y]) => [
+            Math.round(x),
+            Math.round(y),
+        ])
+        expect(centers).toContainEqual([400, 300])
     })
 
     it('câmera negada explica que o jogo não começa sem câmera', async () => {
@@ -200,6 +231,7 @@ describe('MarblesScreen', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /nova rodada/i }))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
+        h.run(open(400, 300))
         expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste para trás/i)
     })
 })

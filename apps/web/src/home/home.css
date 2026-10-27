@@ -1,0 +1,41 @@
+/* Estilos exclusivos do menu; o restante vem de ../styles.css. */
+.game-cards {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.game-card {
+    background: var(--cor-superficie);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.game-card h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.game-card p {
+    margin: 0;
+    color: var(--cor-texto-suave);
+    flex: 1;
+}
+
+.game-card-link {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    border-radius: var(--raio);
+    background: var(--cor-acento);
+    color: var(--cor-acento-texto);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.game-card-link:hover,
+.game-card-link:focus-visible {
+    filter: brightness(1.1);
+}
