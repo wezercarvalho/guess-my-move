@@ -39,6 +39,7 @@ const base: BeteSnapshot = {
     target: { x: 550, y: 300 },
     shots: 0,
     aim: null,
+    flick: null,
     hitShots: null,
     failureReason: null,
 }
@@ -120,7 +121,23 @@ describe('drawField', () => {
         )
     })
 
-    it('com arrasto curto, mostra o elástico mas não a seta de previsão', () => {
+    it('no modo estalo armado, desenha a seta de direção da mão, sem elástico da pinça', () => {
+        const { canvas, context } = stubCanvas()
+        drawField(canvas, {
+            ...base,
+            state: 'aiming',
+            flick: { direction: { x: 0, y: -1 } },
+        })
+        const lines = context.lineTo.mock.calls as unknown as number[][]
+        // Haste e as duas pontas da seta.
+        expect(lines.length).toBe(3)
+        // A seta sai da bolinha de tiro e sobe (y diminui).
+        const tip = lines[1]
+        expect(tip[0]).toBeCloseTo(150, 6)
+        expect(tip[1]).toBeLessThan(300)
+    })
+
+        it('com arrasto curto, mostra o elástico mas não a seta de previsão', () => {
         const withShot = stubCanvas()
         const withoutShot = stubCanvas()
         const pinch = { x: 130, y: 300 }

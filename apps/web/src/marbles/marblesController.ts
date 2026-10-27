@@ -1,12 +1,17 @@
 import {
     type BeteRound,
     type BeteSnapshot,
+    DEFAULT_FLICK,
     DEFAULT_PHYSICS,
+    type FlickDetector,
+    type FlickRelease,
     type PinchDetector,
     type PinchReading,
     type Vec,
     createBeteRound,
+    createFlickDetector,
     createPinchDetector,
+    flickShot,
 } from '@guess-my-move/marbles'
 
 import { drawHand } from '../round/handOverlay.js'
@@ -18,6 +23,24 @@ import {
 } from '../tracker/handTracker.js'
 
 export type MarblesTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+/** Modo de tiro: a pinça com arrasto (padrão) ou o estalo do polegar (beta). */
+export type MarblesMode = 'pinch' | 'flick'
+
+/** Lê `?mode=estalo` da URL; qualquer outro valor mantém a pinça. */
+export function modeFromSearch(search: string): MarblesMode {
+    return new URLSearchParams(search).get('mode')?.toLowerCase() === 'estalo' ? 'flick' : 'pinch'
+}
+
+/** O que aconteceu no último estalo, para a depuração. */
+export type FlickOutcome = 'disparado' | 'lento demais' | 'fraco demais' | 'sem direção'
+
+function flickOutcome(release: FlickRelease): FlickOutcome {
+    if (flickShot(release)) return 'disparado'
+    if (!release.direction) return 'sem direção'
+    if (release.riseMs > DEFAULT_FLICK.slowMs) return 'lento demais'
+    return 'fraco demais'
+}
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
 export interface MarblesEnv {
@@ -45,10 +68,19 @@ export interface MarblesDebug {
     frames: number
     medianMs: number | null
     p95Ms: number | null
+    /** Números do estalo (só têm sentido no modo estalo). */
+    flick: {
+        armed: boolean
+        /** Pico da velocidade de abertura do último estalo, em razão por segundo. */
+        lastOpenSpeed: number | null
+        lastRiseMs: number | null
+        lastResult: FlickOutcome | null
+    }
 }
 
 /** Foto imutável do jogo, entregue à interface a cada mudança. */
 export interface MarblesSnapshot {
+    mode: MarblesMode
     round: BeteSnapshot
     trackerStatus: MarblesTrackerStatus
     /** Posição da pinça no campo e se está fechada; `null` quando a mão não é vista. */
@@ -75,6 +107,9 @@ export class MarblesController {
     private readonly env: MarblesEnv
     private readonly listeners = new Set<() => void>()
     private readonly pinch: PinchDetector = createPinchDetector()
+    private readonly flick: FlickDetector = createFlickDetector()
+    private mode: MarblesMode
+    private lastFlick: { openSpeed: number; riseMs: number; result: FlickOutcome } | null = null
     private round: BeteRound = createBeteRound()
     private tracker: HandTracker | null = null
     private trackerStatus: MarblesTrackerStatus = 'idle'
@@ -95,8 +130,9 @@ export class MarblesController {
     private lastEmitAt = 0
     private snapshot: MarblesSnapshot
 
-    constructor(env: MarblesEnv) {
+    constructor(env: MarblesEnv, mode: MarblesMode = 'pinch') {
         this.env = env
+        this.mode = mode
         this.snapshot = this.buildSnapshot()
     }
 
@@ -140,8 +176,17 @@ export class MarblesController {
         } else {
             this.round.newRound()
             this.pinch.reset()
+            this.flick.reset()
+            this.lastFlick = null
         }
         this.sync()
+    }
+
+    /** Troca o modo de tiro e reinicia a rodada (tiros zerados). */
+    readonly setMode = (mode: MarblesMode): void => {
+        if (mode === this.mode) return
+        this.mode = mode
+        this.newRound()
     }
 
     private resetAll(): void {
@@ -149,6 +194,8 @@ export class MarblesController {
         this.clearOverlay()
         this.round = createBeteRound()
         this.pinch.reset()
+        this.flick.reset()
+        this.lastFlick = null
         this.reading = null
         this.frames = 0
         this.latencies = []
@@ -238,11 +285,22 @@ export class MarblesController {
                 this.latencies.push(env.now() - now)
                 if (this.latencies.length > LATENCY_WINDOW) this.latencies.shift()
                 this.frames++
-                this.reading = this.pinch.update(
-                    hand?.landmarks ?? null,
-                    video.videoWidth / video.videoHeight,
-                )
-                this.round.observePinch(this.reading, now)
+                const aspect = video.videoWidth / video.videoHeight
+                if (this.mode === 'flick') {
+                    const reading = this.flick.update(hand?.landmarks ?? null, aspect, now)
+                    this.reading = reading
+                    if (reading.release) {
+                        this.lastFlick = {
+                            openSpeed: reading.release.openSpeed,
+                            riseMs: reading.release.riseMs,
+                            result: flickOutcome(reading.release),
+                        }
+                    }
+                    this.round.observeFlick(reading, now)
+                } else {
+                    this.reading = this.pinch.update(hand?.landmarks ?? null, aspect)
+                    this.round.observePinch(this.reading, now)
+                }
                 const canvas = this.surfaces.getOverlay()
                 if (canvas) drawHand(canvas, video, hand?.landmarks ?? null)
             } catch (error) {
@@ -298,6 +356,7 @@ export class MarblesController {
             this.lastSummaryAt = now
         }
         return {
+            mode: this.mode,
             round: this.round.snapshot(),
             trackerStatus: this.trackerStatus,
             hand: this.handOnField(),
@@ -306,6 +365,12 @@ export class MarblesController {
                 ratio: this.reading?.ratio ?? null,
                 pinchClosed: this.reading?.closed ?? false,
                 handVisible: this.reading?.handVisible ?? false,
+                flick: {
+                    armed: this.mode === 'flick' && (this.reading?.closed ?? false),
+                    lastOpenSpeed: this.lastFlick?.openSpeed ?? null,
+                    lastRiseMs: this.lastFlick?.riseMs ?? null,
+                    lastResult: this.lastFlick?.result ?? null,
+                },
                 frames: this.frames,
                 ...this.summary,
             },

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
 import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
-import { MarblesController } from './marblesController.js'
+import { MarblesController, modeFromSearch } from './marblesController.js'
 
 /** Relógio, quadros de vídeo e detector controlados pelo teste. */
 function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
@@ -252,5 +252,99 @@ describe('MarblesController: laço por quadro', () => {
             expect(h.controller.getSnapshot().round.state).toBe('ready')
         })
         expect(h.controller.getSnapshot().debug.delegate).toBe('CPU')
+    })
+})
+
+describe('modeFromSearch', () => {
+    it('?mode=estalo escolhe o modo estalo; qualquer outro valor mantém a pinça', () => {
+        expect(modeFromSearch('?mode=estalo')).toBe('flick')
+        expect(modeFromSearch('?mode=ESTALO')).toBe('flick')
+        expect(modeFromSearch('')).toBe('pinch')
+        expect(modeFromSearch('?mode=pinca')).toBe('pinch')
+        expect(modeFromSearch('?mode=outro')).toBe('pinch')
+        expect(modeFromSearch('?delegate=cpu')).toBe('pinch')
+    })
+})
+
+describe('MarblesController: modo estalo (beta)', () => {
+    const STEP = 16
+
+    /** Pinça aberta, fechada (armada) por alguns quadros e a razão final dada, com a mão apontando para cima. */
+    function arm(h: ReturnType<typeof harness>) {
+        h.run(open(300, 300), 2, STEP)
+        h.run(closed(300, 300), 3, STEP)
+    }
+
+    it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
+        const h = harness()
+        await h.ready()
+        expect(h.controller.getSnapshot().mode).toBe('pinch')
+        h.controller.setMode('flick')
+        expect(h.controller.getSnapshot().mode).toBe('flick')
+    })
+
+    it('fechar a pinça arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.state).toBe('aiming')
+        expect(round.flick?.direction.y).toBeCloseTo(-1, 6)
+        expect(debug.flick.armed).toBe(true)
+    })
+
+    it('abrir rápido dispara; a velocidade de abertura e o resultado aparecem na depuração', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.state).toBe('rolling')
+        expect(round.shots).toBe(1)
+        expect(debug.flick.lastResult).toBe('disparado')
+        expect(debug.flick.lastOpenSpeed).toBeCloseTo((0.9 - 0.2) / 0.016, 1)
+        expect(debug.flick.armed).toBe(false)
+        h.run(null, 4, STEP)
+        expect(h.controller.getSnapshot().round.shooter.y).toBeLessThan(300)
+    })
+
+    it('abrir devagar cancela, sem contar tiro, e registra "fraco demais"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        for (let ratio = 0.215; ratio < 0.75; ratio += 0.015) {
+            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
+        }
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.state).toBe('ready')
+        expect(round.shots).toBe(0)
+        expect(debug.flick.lastResult).toBe('fraco demais')
+    })
+
+    it('trocar de modo reinicia a rodada e zera o armado', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        expect(h.controller.getSnapshot().round.shots).toBe(1)
+        h.controller.setMode('pinch')
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(round.state).toBe('ready')
+        expect(debug.flick.armed).toBe(false)
+        expect(debug.flick.lastResult).toBeNull()
+    })
+
+    it('no modo estalo a pinça comum não faz nada além de armar; no modo pinça o estalo não existe', async () => {
+        const h = harness()
+        await h.ready()
+        h.run(open(300, 300), 2, STEP)
+        h.run(closed(300, 300), 3, STEP)
+        expect(h.controller.getSnapshot().round.flick).toBeNull()
+        expect(h.controller.getSnapshot().round.aim).not.toBeNull()
     })
 })

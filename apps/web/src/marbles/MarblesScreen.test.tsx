@@ -235,3 +235,67 @@ describe('MarblesScreen', () => {
         expect(screen.getByTestId('game-status')).toHaveTextContent(/em qualquer ponto/i)
     })
 })
+
+describe('MarblesScreen: modo de tiro', () => {
+    it('mostra o seletor com a pinça marcada e o estalo como beta', () => {
+        renderScreen(harness())
+        const group = screen.getByRole('group', { name: /modo de tiro/i })
+        expect(within(group).getByRole('radio', { name: /pinça/i })).toBeChecked()
+        const flickRadio = within(group).getByRole('radio', { name: /estalo/i })
+        expect(flickRadio).not.toBeChecked()
+        expect(flickRadio.closest('label')).toHaveTextContent(/beta/i)
+    })
+
+    it('?mode=estalo na URL começa no modo estalo', () => {
+        window.history.pushState({}, '', '/marbles.html?mode=estalo')
+        try {
+            renderScreen(harness())
+            expect(screen.getByRole('radio', { name: /estalo/i })).toBeChecked()
+        } finally {
+            window.history.pushState({}, '', '/')
+        }
+    })
+
+    it('trocar para o estalo muda as mensagens e mostra as linhas do estalo na depuração', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        h.run(open(400, 300))
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(beta\)/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/pinça.*abra.*rápido/i)
+        expect(screen.getByText('Armado')).toBeInTheDocument()
+        expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()
+        expect(screen.getByText('Duração da subida')).toBeInTheDocument()
+        expect(screen.getByText('Resultado do último estalo')).toBeInTheDocument()
+    })
+
+    it('armado, orienta a apontar a mão e abrir a pinça rápido; o estalo rápido dispara', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        h.run(open(400, 300), 2, 16)
+        h.run(closed(400, 300), 3, 16)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/aponte.*abra a pinça rápido/i)
+        h.run(pinchHand({ ratio: 0.9, x: 400, y: 300 }), 1, 16)
+        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
+        expect(screen.getByText('disparado')).toBeInTheDocument()
+    })
+
+    it('voltar para a pinça reinicia a rodada', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        h.run(open(400, 300), 2, 16)
+        h.run(closed(400, 300), 3, 16)
+        h.run(pinchHand({ ratio: 0.9, x: 400, y: 300 }), 1, 16)
+        fireEvent.click(screen.getByRole('radio', { name: /pinça/i }))
+        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
+        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
+    })
+})
+

@@ -20,20 +20,20 @@
 
 ## Fase 3 — Web
 
-- [ ] T007 [US-002] [FR-005] [FR-007] Escrever testes falhando do controlador (modo inicial por `?mode=estalo`, roteamento por modo, troca reinicia a rodada e os detectores, `mode` e debug do estalo no snapshot) em `apps/web/src/marbles`
-- [ ] T008 [US-002] [FR-005] [FR-007] Implementar `mode`/`setMode(mode)` e o roteamento por modo no `MarblesController`, publicando `mode` e as linhas do estalo no snapshot, e confirmar verde
-- [ ] T009 [US-002] [US-003] [FR-005] [FR-006] [FR-007] Escrever testes falhando da tela e do desenho (seletor "Modo de tiro" com rádio Pinça/Estalo beta, mensagens por estado, seta de direção em `drawField`, rótulo beta, `aria-live`, linhas de depuração do estalo) em `apps/web/src/marbles`
-- [ ] T010 [US-001] [US-003] [FR-005] [FR-006] [FR-007] Implementar o seletor e as mensagens em `MarblesScreen`, a seta de direção em `fieldView.drawField` e as linhas do estalo no `DebugPanel`, e confirmar verde
-- [ ] T011 [US-004] [FR-008] Verificar a privacidade no modo estalo por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
-- [ ] T012 [FR-009] Confirmar que os testes do modo pinça (`packages/marbles`) e do jogo de cartas passam sem alteração de código e sem mudança de comportamento
+- [x] T007 [US-002] [FR-005] [FR-007] Escrever testes falhando do controlador (modo inicial por `?mode=estalo`, roteamento por modo, troca reinicia a rodada e os detectores, `mode` e debug do estalo no snapshot) em `apps/web/src/marbles`
+- [x] T008 [US-002] [FR-005] [FR-007] Implementar `mode`/`setMode(mode)` e o roteamento por modo no `MarblesController`, publicando `mode` e as linhas do estalo no snapshot, e confirmar verde
+- [x] T009 [US-002] [US-003] [FR-005] [FR-006] [FR-007] Escrever testes falhando da tela e do desenho (seletor "Modo de tiro" com rádio Pinça/Estalo beta, mensagens por estado, seta de direção em `drawField`, rótulo beta, `aria-live`, linhas de depuração do estalo) em `apps/web/src/marbles`
+- [x] T010 [US-001] [US-003] [FR-005] [FR-006] [FR-007] Implementar o seletor e as mensagens em `MarblesScreen`, a seta de direção em `fieldView.drawField` e as linhas do estalo no `DebugPanel`, e confirmar verde
+- [x] T011 [US-004] [FR-008] Verificar a privacidade no modo estalo por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
+- [x] T012 [FR-009] Confirmar que os testes do modo pinça (`packages/marbles`) e do jogo de cartas passam sem alteração de código e sem mudança de comportamento
 
 ## Fase 4 — Documentação
 
-- [ ] T013 [FR-010] Atualizar `README.md` da raiz, `docs/development-context/README.md`, `docs/development-strategies/README.md`, `docs/development-strategies/sdd/README.md` (somente se algo ali ficar desatualizado), `specs/README.md`, o guia de arquitetura e o `PROJECT_SPEC` para descrever os dois modos de tiro do bete (pinça e estalo beta)
+- [x] T013 [FR-010] Atualizar `README.md` da raiz, `docs/development-context/README.md`, `docs/development-strategies/README.md`, `docs/development-strategies/sdd/README.md` (somente se algo ali ficar desatualizado), `specs/README.md`, o guia de arquitetura e o `PROJECT_SPEC` para descrever os dois modos de tiro do bete (pinça e estalo beta)
 
 ## Fase final — Convergência
 
-- [ ] T014 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
+- [x] T014 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
 - [ ] T015 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop com os números do estalo (disparou, em quantas tentativas, disparo falso, velocidade de abertura, duração, quadros por estalo) e fechar o Gate 3 com a decisão da issue #68
 
 ## Cobertura

@@ -7,7 +7,7 @@ domain: game
 capability: marbles-bete
 objective: build-flick-beta
 summary: Segundo modo de tiro no bete solo, selecionável na tela ao lado da pinça, que imita o estalo real do polegar — para a câmera, uma pinça que abre rápido —, mede velocidade de abertura, duração e direção do estalo, cancela estalos lentos ou fracos e mostra os números do detector para o maintainer decidir a viabilidade (issue #68); rotulado beta porque o estalo dura poucos quadros e sua detecção ainda não foi medida.
-status: planned
+status: implementing
 owners:
     - wezercarvalho
 reviewers: []

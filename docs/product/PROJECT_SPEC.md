@@ -36,6 +36,7 @@ A hipótese técnica validada em spike é: _um detector de landmarks executado n
 | Alvo de navegador            | Chrome desktop apenas.                                                                                 |
 | IA jogadora                  | Fora do escopo atual; spec futura, sem receber a carta.                                                |
 | Segundo jogo (2026-10-27)    | Bolinhas de gude, bete solo: tiro com a mão pela câmera (pinça), alvo parado, tiros ilimitados.        |
+| Modos de tiro do bete        | **Pinça** (padrão, mira relativa) e **Estalo (beta)**, que imita o tiro real e depende de medição.     |
 
 ### 2.2 Decisões técnicas do agente (a partir do spike, revisáveis)
 
@@ -186,13 +187,13 @@ sequenceDiagram
 
 ## 8. Entregas
 
-| Fase                           | Objetivo                                                          | Critério para avançar                                                                                       |
-| ------------------------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Núcleo determinístico**      | Ângulo, avaliador, rodada e carta como funções puras testadas.    | Testes verdes, incluindo as fixtures dos 12 clipes de referência.                                           |
-| **Aplicação web**              | Câmera, detector, laço por quadro, desenho e depuração.           | Rodada completa no Chrome desktop do maintainer; latência registrada.                                       |
-| **Remoção do caminho por LLM** | Sem `apps/server`, `packages/providers`, `packages/benchmark`.    | `yarn check:all` verde, sem código órfão.                                                                   |
-| **IA jogadora (futura)**       | IA adivinha sem conhecer a carta.                                 | Spec própria; fora do escopo atual.                                                                         |
-| **Bete solo (segundo jogo)**   | Tiro com a pinça da mão contra um alvo parado, em `marbles.html`. | Spec `2026-10-27-game-marbles-bete-build-pinch-shot`; teste manual do maintainer; estalo real na issue #68. |
+| Fase                           | Objetivo                                                          | Critério para avançar                                                                                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Núcleo determinístico**      | Ângulo, avaliador, rodada e carta como funções puras testadas.    | Testes verdes, incluindo as fixtures dos 12 clipes de referência.                                                                                                         |
+| **Aplicação web**              | Câmera, detector, laço por quadro, desenho e depuração.           | Rodada completa no Chrome desktop do maintainer; latência registrada.                                                                                                     |
+| **Remoção do caminho por LLM** | Sem `apps/server`, `packages/providers`, `packages/benchmark`.    | `yarn check:all` verde, sem código órfão.                                                                                                                                 |
+| **IA jogadora (futura)**       | IA adivinha sem conhecer a carta.                                 | Spec própria; fora do escopo atual.                                                                                                                                       |
+| **Bete solo (segundo jogo)**   | Tiro com a pinça da mão contra um alvo parado, em `marbles.html`. | Specs `2026-10-27-game-marbles-bete-build-pinch-shot` e `2026-10-27-game-marbles-bete-build-flick-beta`; teste manual do maintainer; decisão sobre o estalo na issue #68. |
 
 ## 9. Critérios de aceite e metas
 
