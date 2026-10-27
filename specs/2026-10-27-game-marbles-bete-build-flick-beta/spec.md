@@ -6,8 +6,8 @@ strategy: sdd
 domain: game
 capability: marbles-bete
 objective: build-flick-beta
-summary: Segundo modo de tiro no bete solo, selecionável na tela ao lado da pinça, que imita o estalo real do polegar — para a câmera, uma pinça que abre rápido —, mede velocidade de abertura, duração e direção do estalo, cancela estalos lentos ou fracos e mostra os números do detector para o maintainer decidir a viabilidade (issue #68); rotulado alpha porque o estalo dura poucos quadros e sua detecção ainda não foi medida.
-status: validated
+summary: Segundo modo de tiro no bete solo, selecionável na tela ao lado da pinça, que imita o estalo real do polegar — para a câmera, uma pinça que abre rápido —, mede velocidade de abertura, duração e direção do estalo, cancela estalos lentos ou fracos e mostra os números do detector para o maintainer decidir a viabilidade (issue #68); rotulado alpha porque o estalo dura poucos quadros e sua detecção ainda não foi medida. Substituída em parte pela spec de refino 2026-10-27-game-marbles-bete-refine-flick-relative-aim, que troca a direção e a força do estalo pela mira relativa do arrasto.
+status: superseded
 owners:
     - wezercarvalho
 reviewers: []
@@ -24,6 +24,7 @@ code_paths:
     - packages/marbles/
     - apps/web/
 related_specs:
+    - 2026-10-27-game-marbles-bete-refine-flick-relative-aim
     - 2026-10-27-game-marbles-bete-build-pinch-shot
 supersedes: []
 branch: feat/68-estalo-beta
@@ -160,3 +161,7 @@ Como jogador, quero que nenhuma imagem minha saia do navegador no modo estalo, p
 - **SC-003:** Os números do estalo (velocidade de abertura, duração, quadros por estalo) são registrados ou a lacuna é declarada explicitamente, e a decisão da issue #68 (viável, viável com limitações, inviável) é do maintainer.
 - **SC-004:** O modo pinça e o jogo de cartas (Acenar) continuam passando sem regressão, comprovado pelos seus testes e pela ausência de mudança no comportamento do modo pinça.
 - **SC-005:** `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies` passam.
+
+## Substituição
+
+O comportamento de direção e força do modo estalo descrito nesta spec foi substituído em parte pela spec de refino [`2026-10-27-game-marbles-bete-refine-flick-relative-aim`](../2026-10-27-game-marbles-bete-refine-flick-relative-aim/spec.md) (issue #72). No primeiro teste com a mão real, a força saía sempre no máximo, aberturas lentas disparavam e a direção pela orientação da mão não acompanhava a intenção, e nenhum tiro acertou o alvo. O refino passa a mirar pelo arrasto relativo da mão (a mesma pinça virtual do modo pinça), reduz a abertura rápida ao papel de gatilho, endurece o limite de abertura lenta de 300 para 80 ms e remove a orientação da mão (`handDirection`), a seta de direção do estalo, `flickShot` e os parâmetros `maxOpenSpeed`, `minShotSpeed` e `maxShotSpeed`. O que permanece válido desta spec (o modo estalo como uma pinça que abre rápido, o rótulo alpha, a seleção de modo na tela, a privacidade local e a honestidade de evidência) continua descrito e vigente na spec de refino. O comportamento vigente do estalo é o da spec de refino; o histórico do Git preserva esta spec de criação. O modo pinça segue descrito na spec `2026-10-27-game-marbles-bete-build-pinch-shot`, sem mudança de comportamento.
