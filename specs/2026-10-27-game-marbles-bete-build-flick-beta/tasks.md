@@ -8,15 +8,15 @@
 
 ## Fase 1 — Detector de estalo
 
-- [ ] T001 [US-001] [FR-001] [FR-002] Escrever testes falhando de `handDirection` (pulso→base do médio, x corrigido e espelhado, normalizado, `null` degenerado) e do detector de estalo (histerese herdada, histórico de 400 ms, soltura rápido/lento, pico de velocidade, duração, direção no início da abertura, perda zera o armado) em `packages/marbles/test/flick.test.ts`
-- [ ] T002 [US-001] [FR-001] [FR-002] Implementar `packages/marbles/src/flick.ts` (`handDirection`, `createFlickDetector`, `DEFAULT_FLICK`) compondo `createPinchDetector`, e confirmar verde
-- [ ] T003 [US-001] [FR-003] Escrever testes falhando de `flickShot` (mapeamento linear 2–8 razão/s para 300–1100 unid/s, limites nos extremos, `null` para lento e para fraco) em `packages/marbles/test/flick.test.ts`
-- [ ] T004 [US-001] [FR-003] Implementar `flickShot` em `packages/marbles/src/flick.ts`, e confirmar verde
+- [x] T001 [US-001] [FR-001] [FR-002] Escrever testes falhando de `handDirection` (pulso→base do médio, x corrigido e espelhado, normalizado, `null` degenerado) e do detector de estalo (histerese herdada, histórico de 400 ms, soltura rápido/lento, pico de velocidade, duração, direção no início da abertura, perda zera o armado) em `packages/marbles/test/flick.test.ts`
+- [x] T002 [US-001] [FR-001] [FR-002] Implementar `packages/marbles/src/flick.ts` (`handDirection`, `createFlickDetector`, `DEFAULT_FLICK`) compondo `createPinchDetector`, e confirmar verde
+- [x] T003 [US-001] [FR-003] Escrever testes falhando de `flickShot` (mapeamento linear 2–8 razão/s para 300–1100 unid/s, limites nos extremos, `null` para lento e para fraco) em `packages/marbles/test/flick.test.ts`
+- [x] T004 [US-001] [FR-003] Implementar `flickShot` em `packages/marbles/src/flick.ts`, e confirmar verde
 
 ## Fase 2 — Rodada
 
-- [ ] T005 [US-001] [FR-004] Escrever testes falhando de `observeFlick` e do snapshot (arma só ao fechar depois de vista aberta, direção de pré-visualização, dispara no estalo rápido, cancela no lento, no fraco e na perda > 300 ms, `fire` recebe a velocidade) em `packages/marbles/test/round.test.ts`, sem alterar os casos do modo pinça
-- [ ] T006 [US-001] [FR-004] Implementar `observeFlick` e `snapshot().flick` em `packages/marbles/src/round.ts`, fazer `fire` receber a velocidade e exportar a API do estalo em `index.ts`, e confirmar verde
+- [x] T005 [US-001] [FR-004] Escrever testes falhando de `observeFlick` e do snapshot (arma só ao fechar depois de vista aberta, direção de pré-visualização, dispara no estalo rápido, cancela no lento, no fraco e na perda > 300 ms, `fire` recebe a velocidade) em `packages/marbles/test/round.test.ts`, sem alterar os casos do modo pinça
+- [x] T006 [US-001] [FR-004] Implementar `observeFlick` e `snapshot().flick` em `packages/marbles/src/round.ts`, fazer `fire` receber a velocidade e exportar a API do estalo em `index.ts`, e confirmar verde
 
 ## Fase 3 — Web
 

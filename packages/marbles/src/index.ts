@@ -1,4 +1,15 @@
 export {
+    DEFAULT_FLICK,
+    type FlickConfig,
+    type FlickDetector,
+    type FlickReading,
+    type FlickRelease,
+    type FlickShot,
+    createFlickDetector,
+    flickShot,
+    handDirection,
+} from './flick.js'
+export {
     type Body,
     DEFAULT_PHYSICS,
     type PhysicsConfig,
