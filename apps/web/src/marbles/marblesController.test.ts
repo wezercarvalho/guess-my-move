@@ -301,17 +301,10 @@ describe('modeFromSearch', () => {
 describe('MarblesController: modo estalo (alpha)', () => {
     const STEP = 16
 
-    /** Pinça aberta e depois fechada (armada) em (300, 300) por alguns quadros. */
+    /** Pinça aberta, fechada (armada) por alguns quadros e a razão final dada, com a mão apontando para cima. */
     function arm(h: ReturnType<typeof harness>) {
         h.run(open(300, 300), 2, STEP)
         h.run(closed(300, 300), 3, STEP)
-    }
-
-    /** Arma, arrasta a mão 100 unidades para a esquerda (tiro direto no alvo, com a escala 1,5) e dá a razão final da abertura. */
-    function dragAndOpen(h: ReturnType<typeof harness>, ratio = 0.9) {
-        arm(h)
-        h.run(closed(200, 300), 2, STEP)
-        h.run(pinchHand({ ratio, x: 200, y: 300 }), 1, STEP)
     }
 
     it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
@@ -322,47 +315,33 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(h.controller.getSnapshot().mode).toBe('flick')
     })
 
-    it('fechar a pinça arma e publica a mira relativa, como no modo pinça', async () => {
+    it('fechar a pinça arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        let { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('aiming')
-        expect(round.aim?.pinch).toEqual({ x: 150, y: 300 })
-        expect(debug.flick.armed).toBe(true)
-        h.run(closed(200, 300), 2, STEP)
-        ;({ round, debug } = h.controller.getSnapshot())
-        expect(round.aim?.pinch.x).toBeCloseTo(0, 6)
-        expect(round.aim?.shot).not.toBeNull()
-        expect(round).not.toHaveProperty('flick')
-    })
-
-    it('abrir rápido dispara o tiro do arrasto; a velocidade de abertura e o resultado aparecem na depuração', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        dragAndOpen(h)
         const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('rolling')
-        expect(round.shots).toBe(1)
-        expect(debug.flick.lastResult).toBe('disparado')
-        expect(debug.flick.lastOpenSpeed).toBeCloseTo((0.9 - 0.2) / 0.016, 1)
-        expect(debug.flick.armed).toBe(false)
-        h.run(null, 4, STEP)
-        expect(h.controller.getSnapshot().round.shooter.x).toBeGreaterThan(150)
+        expect(round.state).toBe('aiming')
+        expect(round.flick?.direction.y).toBeCloseTo(-1, 6)
+        expect(debug.flick.armed).toBe(true)
     })
 
-    it('abrir rápido sem arrasto cancela, sem contar tiro, e registra "sem tiro"', async () => {
+    it('abrir rápido dispara; a velocidade de abertura e o resultado aparecem na depuração', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
         h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
         const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('ready')
-        expect(round.shots).toBe(0)
-        expect(debug.flick.lastResult).toBe('sem tiro')
+        expect(round.state).toBe('rolling')
+        expect(round.shots).toBe(1)
+        expect(debug.flick.lastResult).toBe('disparado')
+        expect(debug.flick.lastOpenSpeed).toBeCloseTo((0.9 - 0.2) / 0.016, 1)
+        // Força na escala logarítmica de 10 a 200 razão/s: ln(43,75 / 10) / ln(20), cerca de 49%.
+        expect(debug.flick.lastPower).toBeCloseTo(Math.log(43.75 / 10) / Math.log(20), 3)
+        expect(debug.flick.armed).toBe(false)
+        h.run(null, 4, STEP)
+        expect(h.controller.getSnapshot().round.shooter.y).toBeLessThan(300)
     })
 
     it('abrir devagar cancela, sem contar tiro, e registra "lento demais"', async () => {
@@ -370,14 +349,14 @@ describe('MarblesController: modo estalo (alpha)', () => {
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(closed(200, 300), 2, STEP)
         for (let ratio = 0.215; ratio < 0.75; ratio += 0.015) {
-            h.run(pinchHand({ ratio, x: 200, y: 300 }), 1, STEP)
+            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
         }
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('ready')
         expect(round.shots).toBe(0)
         expect(debug.flick.lastResult).toBe('lento demais')
+        expect(debug.flick.lastPower).toBeNull()
     })
 
     it('abertura dentro do prazo mas devagar demais registra "fraco demais"', async () => {
@@ -385,10 +364,9 @@ describe('MarblesController: modo estalo (alpha)', () => {
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(closed(200, 300), 2, STEP)
         // Cinco passos de 16 ms (80 ms) com inclinações abaixo de 2 razão/s.
         for (const ratio of [0.399, 0.429, 0.459, 0.489, 0.519, 0.5501]) {
-            h.run(pinchHand({ ratio, x: 200, y: 300 }), 1, STEP)
+            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
         }
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('ready')
@@ -396,19 +374,31 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.lastResult).toBe('fraco demais')
     })
 
-    it('nunca registra "sem direção": esse resultado deixou de existir', async () => {
+    it('estalos de velocidades diferentes dão forças diferentes na depuração', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
-        dragAndOpen(h)
-        expect(h.controller.getSnapshot().debug.flick.lastResult).not.toBe('sem direção')
+        arm(h)
+        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        const strong = h.controller.getSnapshot().debug.flick.lastPower
+        h.controller.newRound()
+        h.run(open(300, 300), 2, STEP)
+        h.run(closed(300, 300), 3, STEP)
+        // Subida em dois passos de 16 ms: o pico fica bem abaixo do salto de um quadro só.
+        h.run(pinchHand({ ratio: 0.45, x: 300, y: 300 }), 1, STEP)
+        h.run(pinchHand({ ratio: 0.6, x: 300, y: 300 }), 1, STEP)
+        const weaker = h.controller.getSnapshot().debug.flick.lastPower
+        expect(strong).not.toBeNull()
+        expect(weaker).not.toBeNull()
+        expect(weaker ?? 0).toBeLessThan(strong ?? 0)
     })
 
     it('trocar de modo reinicia a rodada e zera o armado', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
-        dragAndOpen(h)
+        arm(h)
+        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
         expect(h.controller.getSnapshot().round.shots).toBe(1)
         h.controller.setMode('pinch')
         const { round, debug } = h.controller.getSnapshot()
@@ -418,13 +408,13 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.lastResult).toBeNull()
     })
 
-    it('no modo pinça o estalo não existe: fechar a pinça só inicia a mira', async () => {
+    it('no modo estalo a pinça comum não faz nada além de armar; no modo pinça o estalo não existe', async () => {
         const h = harness()
         await h.ready()
         h.run(open(300, 300), 2, STEP)
         h.run(closed(300, 300), 3, STEP)
+        expect(h.controller.getSnapshot().round.flick).toBeNull()
         expect(h.controller.getSnapshot().round.aim).not.toBeNull()
-        expect(h.controller.getSnapshot().debug.flick.armed).toBe(false)
     })
 })
 

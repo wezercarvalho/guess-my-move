@@ -294,83 +294,54 @@ describe('createBeteRound: tiro, erro e acerto', () => {
     })
 })
 
-describe('createBeteRound: modo estalo (alpha), mira relativa e gatilho rápido', () => {
-    /** Leitura do estalo: `closed` significa armado; `release` só no quadro da soltura; o ponto está em coordenadas do campo. */
+describe('createBeteRound: modo estalo (alpha)', () => {
+    const RIGHT = { x: 1, y: 0 }
+
+    /** Leitura do estalo: `closed` significa armado; `release` só no quadro da soltura. */
     const flick = (opts: {
         armed?: boolean
         visible?: boolean
-        x?: number
-        y?: number
+        direction?: { x: number; y: number } | null
         release?: FlickRelease | null
     }): FlickReading => {
         const visible = opts.visible ?? true
-        const armed = visible && (opts.armed ?? false)
         return {
             handVisible: visible,
-            closed: armed,
-            ratio: visible ? (armed ? 0.2 : 0.8) : null,
-            point: visible ? { x: (opts.x ?? 100) / W, y: (opts.y ?? 300) / H } : null,
+            closed: visible && (opts.armed ?? false),
+            ratio: visible ? ((opts.armed ?? false) ? 0.2 : 0.8) : null,
+            point: visible ? { x: 0.5, y: 0.5 } : null,
+            direction: visible ? (opts.direction === undefined ? RIGHT : opts.direction) : null,
             release: opts.release ?? null,
         }
     }
     const release = (overrides: Partial<FlickRelease> = {}): FlickRelease => ({
         fast: true,
-        openSpeed: 40,
-        riseMs: 12,
+        openSpeed: 5,
+        riseMs: 40,
+        direction: RIGHT,
         ...overrides,
     })
 
-    /** Rodada com a pinça aberta vista e armada em (100, 300); escala 1 mantém as contas em unidades do campo. */
-    function armedRound(aimScale = 1) {
-        const round = createBeteRound({ aimScale })
+    function armedRound() {
+        const round = createBeteRound()
         round.cameraReady()
         round.observeFlick(flick({ armed: false }), 0)
         round.observeFlick(flick({ armed: true }), 16)
         return round
     }
 
-    /** Arrasta a mão armada até o ponto dado. */
-    function dragTo(round: ReturnType<typeof createBeteRound>, x: number, y: number, t = 32) {
-        round.observeFlick(flick({ armed: true, x, y }), t)
-    }
-
-    it('arma ao fechar depois de vista aberta, em qualquer ponto, e a pinça virtual começa na bolinha', () => {
+    it('arma ao fechar depois de vista aberta e mostra a direção da mão, sem elástico', () => {
         const round = armedRound()
         expect(round.state).toBe('aiming')
         const snap = round.snapshot()
-        expect(snap.aim?.pinch).toEqual({ x: 150, y: 300 })
-        expect(snap.aim?.shot).toBeNull()
+        expect(snap.flick?.direction).toEqual(RIGHT)
+        expect(snap.aim).toBeNull()
     })
 
-    it('a mira é relativa: pinça virtual = bolinha + arrasto da mão vezes a escala', () => {
-        const round = armedRound(1)
-        dragTo(round, 40, 340)
-        expect(round.snapshot().aim?.pinch).toEqual({ x: 90, y: 340 })
-
-        const scaled = armedRound(2)
-        dragTo(scaled, 40, 340)
-        expect(scaled.snapshot().aim?.pinch).toEqual({ x: 30, y: 380 })
-    })
-
-    it('por padrão o arrasto vale 1,5 vez no campo, como no modo pinça', () => {
-        const round = createBeteRound()
-        round.cameraReady()
-        round.observeFlick(flick({ armed: false }), 0)
-        round.observeFlick(flick({ armed: true }), 16)
-        dragTo(round, 0, 300)
-        expect(round.snapshot().aim?.pinch.x).toBeCloseTo(150 - 100 * 1.5, 6)
-    })
-
-    it('a previsão do tiro é a mesma do modo pinça para o mesmo arrasto', () => {
-        const pinch = readyRound()
-        aimAt(pinch, 40, 340)
-        const flickRound = armedRound(1)
-        dragTo(flickRound, -10, 340)
-        const fromPinch = pinch.snapshot().aim?.shot
-        const fromFlick = flickRound.snapshot().aim?.shot
-        expect(fromFlick).not.toBeNull()
-        expect(fromFlick?.velocity.x).toBeCloseTo(fromPinch?.velocity.x ?? NaN, 6)
-        expect(fromFlick?.velocity.y).toBeCloseTo(fromPinch?.velocity.y ?? NaN, 6)
+    it('a direção de pré-visualização acompanha a mão enquanto armado', () => {
+        const round = armedRound()
+        round.observeFlick(flick({ armed: true, direction: { x: 0, y: -1 } }), 32)
+        expect(round.snapshot().flick?.direction).toEqual({ x: 0, y: -1 })
     })
 
     it('uma pinça já armada ao aparecer não inicia a mira', () => {
@@ -379,7 +350,7 @@ describe('createBeteRound: modo estalo (alpha), mira relativa e gatilho rápido'
         round.observeFlick(flick({ armed: true }), 0)
         round.observeFlick(flick({ armed: true }), 16)
         expect(round.state).toBe('ready')
-        expect(round.snapshot().aim).toBeNull()
+        expect(round.snapshot().flick).toBeNull()
     })
 
     it('ignora o estalo enquanto a câmera não está pronta', () => {
@@ -389,87 +360,63 @@ describe('createBeteRound: modo estalo (alpha), mira relativa e gatilho rápido'
         expect(round.state).toBe('idle')
     })
 
-    it('abertura rápida com arrasto suficiente dispara: conta o tiro e a bolinha vai para o lado oposto ao arrasto', () => {
+    it('a força não depende do arrasto da mão: arrastar não muda a velocidade do estalo', () => {
+        const still = armedRound()
+        still.observeFlick(flick({ armed: false, release: release({ openSpeed: 50 }) }), 48)
+        const dragged = armedRound()
+        dragged.observeFlick(flick({ armed: true }), 32)
+        dragged.observeFlick(flick({ armed: false, release: release({ openSpeed: 50 }) }), 48)
+        still.advance(100)
+        dragged.advance(100)
+        expect(dragged.snapshot().shooter.x).toBeCloseTo(still.snapshot().shooter.x, 9)
+    })
+
+    it('estalo rápido dispara: conta o tiro e a bolinha de tiro se move na direção da mão', () => {
         const round = armedRound()
-        dragTo(round, -20, 300)
-        round.observeFlick(flick({ armed: false, x: -20, y: 300, release: release() }), 48)
+        round.observeFlick(flick({ armed: false, release: release({ openSpeed: 5 }) }), 48)
         expect(round.state).toBe('rolling')
         expect(round.snapshot().shots).toBe(1)
-        expect(round.snapshot().aim).toBeNull()
+        expect(round.snapshot().flick).toBeNull()
         round.advance(100)
         const { shooter } = round.snapshot()
         expect(shooter.x).toBeGreaterThan(150)
         expect(shooter.y).toBeCloseTo(300, 6)
     })
 
-    it('a força vem do arrasto, não da velocidade de abertura', () => {
-        const slowOpen = armedRound()
-        dragTo(slowOpen, -20, 300)
-        slowOpen.observeFlick(
-            flick({ armed: false, x: -20, y: 300, release: release({ openSpeed: 2.5 }) }),
-            48,
-        )
-        const fastOpen = armedRound()
-        dragTo(fastOpen, -20, 300)
-        fastOpen.observeFlick(
-            flick({ armed: false, x: -20, y: 300, release: release({ openSpeed: 199 }) }),
-            48,
-        )
-        slowOpen.advance(100)
-        fastOpen.advance(100)
-        expect(slowOpen.snapshot().shooter.x).toBeCloseTo(fastOpen.snapshot().shooter.x, 9)
+    it('a força vem da velocidade com que o polegar solta: fraca não chega ao alvo e forte acerta', () => {
+        const weak = armedRound()
+        weak.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
+        runUntil(weak, () => weak.state !== 'rolling')
+        expect(weak.state).toBe('ready')
+
+        const strong = armedRound()
+        strong.observeFlick(flick({ armed: false, release: release({ openSpeed: 100 }) }), 48)
+        runUntil(strong, () => strong.state !== 'rolling')
+        expect(strong.state).toBe('hit')
+        expect(strong.snapshot().hitShots).toBe(1)
     })
 
-    it('arrasto suficiente e abertura rápida acertam o alvo', () => {
-        const round = armedRound()
-        dragTo(round, -20, 300)
-        round.observeFlick(flick({ armed: false, x: -20, y: 300, release: release() }), 48)
-        runUntil(round, () => round.state !== 'rolling')
-        expect(round.state).toBe('hit')
-        expect(round.snapshot().hitShots).toBe(1)
-    })
-
-    it('vale a última posição com a pinça fechada, não a do quadro da abertura', () => {
-        const round = armedRound()
-        dragTo(round, -20, 300)
-        // A mão se mexe no quadro da abertura; a mira usada é a anterior.
-        round.observeFlick(flick({ armed: false, x: 100, y: 500, release: release() }), 48)
-        round.advance(100)
-        expect(round.snapshot().shooter.y).toBeCloseTo(300, 6)
-        expect(round.snapshot().shooter.x).toBeGreaterThan(150)
-    })
-
-    it('abertura lenta ou fraca cancela sem contar tiro', () => {
+    it('estalo lento ou fraco cancela sem contar tiro', () => {
         const slow = armedRound()
-        dragTo(slow, -20, 300)
-        slow.observeFlick(
-            flick({ armed: false, x: -20, y: 300, release: release({ fast: false, riseMs: 120 }) }),
-            48,
-        )
+        slow.observeFlick(flick({ armed: false, release: release({ fast: false }) }), 48)
         expect(slow.state).toBe('ready')
         expect(slow.snapshot().shots).toBe(0)
-        expect(slow.snapshot().aim).toBeNull()
+        expect(slow.snapshot().flick).toBeNull()
     })
 
-    it('abertura rápida com arrasto curto demais cancela sem contar tiro', () => {
+    it('estalo sem direção medida cancela', () => {
         const round = armedRound()
-        dragTo(round, 95, 300)
-        round.observeFlick(flick({ armed: false, x: 95, y: 300, release: release() }), 48)
+        round.observeFlick(flick({ armed: false, release: release({ direction: null }) }), 48)
         expect(round.state).toBe('ready')
         expect(round.snapshot().shots).toBe(0)
     })
 
-    it('abertura rápida sem nenhum arrasto cancela sem contar tiro', () => {
+    it('erro: a bolinha de tiro volta ao início e o jogador tenta de novo', () => {
         const round = armedRound()
-        round.observeFlick(flick({ armed: false, release: release() }), 48)
-        expect(round.state).toBe('ready')
-        expect(round.snapshot().shots).toBe(0)
-    })
-
-    it('erro: quando tudo para, a bolinha de tiro volta ao início e o jogador tenta de novo', () => {
-        const round = armedRound()
-        dragTo(round, 100, 150)
-        round.observeFlick(flick({ armed: false, x: 100, y: 150, release: release() }), 48)
+        round.observeFlick(
+            flick({ armed: false, release: release({ openSpeed: 5, direction: { x: 0, y: 1 } }) }),
+            48,
+        )
         runUntil(round, () => round.state !== 'rolling')
         expect(round.state).toBe('ready')
         expect(round.snapshot().shooter).toEqual({ x: 150, y: 300 })
@@ -487,7 +434,6 @@ describe('createBeteRound: modo estalo (alpha), mira relativa e gatilho rápido'
         lost.observeFlick(flick({ visible: false }), 400)
         expect(lost.state).toBe('ready')
         expect(lost.snapshot().shots).toBe(0)
-        expect(lost.snapshot().aim).toBeNull()
     })
 
     it('se o detector zerou o armado (mão aberta, sem soltura), a mira é cancelada', () => {
@@ -499,15 +445,15 @@ describe('createBeteRound: modo estalo (alpha), mira relativa e gatilho rápido'
 
     it('enquanto as bolinhas rolam, o estalo é ignorado', () => {
         const round = armedRound()
-        dragTo(round, -20, 300)
-        round.observeFlick(flick({ armed: false, x: -20, y: 300, release: release() }), 48)
+        round.observeFlick(flick({ armed: false, release: release() }), 48)
         round.observeFlick(flick({ armed: false }), 64)
         round.observeFlick(flick({ armed: true }), 80)
         expect(round.state).toBe('rolling')
     })
 
-    it('o snapshot não tem mais a direção do estalo', () => {
-        const round = armedRound()
-        expect(round.snapshot()).not.toHaveProperty('flick')
+    it('no modo pinça o snapshot não tem direção de estalo', () => {
+        const round = readyRound()
+        aimAt(round, 50, 300)
+        expect(round.snapshot().flick).toBeNull()
     })
 })

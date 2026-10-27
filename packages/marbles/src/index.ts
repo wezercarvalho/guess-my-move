@@ -4,7 +4,10 @@ export {
     type FlickDetector,
     type FlickReading,
     type FlickRelease,
+    type FlickShot,
     createFlickDetector,
+    flickShot,
+    handDirection,
 } from './flick.js'
 export {
     type Body,

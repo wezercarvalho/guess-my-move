@@ -1,4 +1,4 @@
-# Checklist de especificação — 2026-10-27-game-marbles-bete-refine-flick-relative-aim
+# Checklist de especificação — 2026-10-27-game-marbles-bete-refine-flick-thumb-release
 
 - **Spec:** `../spec.md`
 - **Revisor:** kirocrew (agente), com aprovação do maintainer wezercarvalho
@@ -33,4 +33,4 @@
 ## Resultado
 
 - **Status:** aprovado
-- **Pendências/justificativas:** nenhuma. O refino troca a fonte de direção e força do estalo (passa a vir do arrasto relativo da pinça) e reduz o estalo ao papel de gatilho; a viabilidade do estalo com a mão real segue sendo a incógnita da issue #72, com os números e a taxa real da câmera expostos no painel para a decisão do maintainer (CQ-005, CQ-006, NFR-002).
+- **Pendências/justificativas:** nenhuma. Após a correção de rumo (CQ-001), o refino mantém o estalo como mecânica distinta da pinça: direção pela orientação da mão, força pela velocidade de abertura numa escala logarítmica (CQ-002, CQ-003) e gatilho mais rígido (CQ-004); a viabilidade com a mão real segue sendo a incógnita da issue #72, com a força, o resultado e a taxa real da câmera expostos no painel para a decisão do maintainer (CQ-006, CQ-007, NFR-002).

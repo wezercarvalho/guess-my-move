@@ -46,9 +46,9 @@ O modelo não é versionado no repositório; `apps/web/public/mediapipe/` fica f
 Abra `/marbles.html` (por exemplo, `http://localhost:5173/marbles.html`) no Chrome desktop, autorize a câmera e escolha o **modo de tiro** no seletor. O vídeo e o esqueleto aparecem espelhados, como num espelho.
 
 - **Pinça (padrão):** feche a pinça (polegar e indicador juntos) em qualquer ponto, com a mão que preferir, arraste a mão para longe do alvo e abra os dedos. A mira é relativa: só o deslocamento da mão desde onde a pinça fechou conta, e o arrasto vale 1,5 vez no campo.
-- **Estalo (alpha):** mira como a pinça (feche a pinça em qualquer ponto e arraste a mão para longe do alvo; direção e força vêm do arrasto), mas o tiro só sai se você **abrir os dedos rápido**, como o estalo do polegar. Abrir devagar, ou sem arrasto suficiente, cancela o tiro. O limite de "rápido" (80 ms) e os demais números são palpites apoiados em uma única sessão de teste. Escolha o modo também por `?mode=estalo` na URL.
+- **Estalo (alpha):** uma mecânica diferente da pinça. Feche a pinça (polegar contra o indicador) com a mão apontada para o alvo e **solte o polegar rápido**: a direção vem da orientação da mão e a força, da velocidade com que o polegar solta (quanto mais rápido, mais forte). Abrir devagar (mais de 80 ms) ou fraco cancela o tiro. Na pinça, ao contrário, direção e força vêm do arrasto da mão. A escala da força e o limite de 80 ms são palpites apoiados em uma única sessão de teste. Escolha o modo também por `?mode=estalo` na URL.
 
-O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados, os quadros novos que a câmera entrega por segundo (a taxa real da webcam, ainda por medir) e a latência; no estalo, mostra também se está armado, a velocidade e a duração da abertura e o resultado do último estalo. `?delegate=cpu|gpu` também vale aqui.
+O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados, os quadros novos que a câmera entrega por segundo (a taxa real da webcam, ainda por medir) e a latência; no estalo, mostra também se está armado, a velocidade e a duração da abertura, a força do último estalo e o resultado. `?delegate=cpu|gpu` também vale aqui.
 
 ### Delegate GPU ou CPU
 
@@ -69,7 +69,7 @@ yarn preview   # serve o build localmente
 | `packages/core`    | TypeScript puro do jogo de cartas: schema e carta, ângulo da mão, avaliador da oscilação e máquina de estados da rodada.                     |
 | `packages/marbles` | TypeScript puro do bete: física 2D de círculos, detector de pinça, tiro por arrasto, detector de estalo e máquina de estados da rodada.      |
 
-Os núcleos são puros (sem DOM, câmera ou MediaPipe): `packages/core` expõe `handAngleDeg`, `evaluateOscillation`, `createRound`, a carta e `toPublicCard`; `packages/marbles` expõe `stepBodies`, `createPinchDetector`, `computeShot`, `createFlickDetector` e `createBeteRound`. O detector, o desenho e as telas ficam só em `apps/web`.
+Os núcleos são puros (sem DOM, câmera ou MediaPipe): `packages/core` expõe `handAngleDeg`, `evaluateOscillation`, `createRound`, a carta e `toPublicCard`; `packages/marbles` expõe `stepBodies`, `createPinchDetector`, `computeShot`, `createFlickDetector`, `flickShot` e `createBeteRound`. O detector, o desenho e as telas ficam só em `apps/web`.
 
 ## Scripts
 

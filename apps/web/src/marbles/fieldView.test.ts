@@ -39,6 +39,7 @@ const base: BeteSnapshot = {
     target: { x: 550, y: 300 },
     shots: 0,
     aim: null,
+    flick: null,
     hitShots: null,
     failureReason: null,
 }
@@ -120,27 +121,20 @@ describe('drawField', () => {
         )
     })
 
-    it('mirando sem tiro previsto, não desenha seta de orientação da mão nem elástico', () => {
-        const { canvas, context } = stubCanvas()
-        drawField(canvas, { ...base, state: 'aiming' })
-        expect(context.lineTo.mock.calls.length).toBe(0)
-    })
-
-    it('com tiro previsto, desenha o elástico e a seta de previsão a partir da bolinha, como na pinça', () => {
+    it('no modo estalo armado, desenha a seta de direção da mão, sem elástico da pinça', () => {
         const { canvas, context } = stubCanvas()
         drawField(canvas, {
             ...base,
             state: 'aiming',
-            aim: {
-                pinch: { x: 50, y: 300 },
-                shot: { velocity: { x: 500, y: 0 }, pull: 100, power: 0.5 },
-            },
+            flick: { direction: { x: 0, y: -1 } },
         })
         const lines = context.lineTo.mock.calls as unknown as number[][]
-        // Elástico (1) mais haste e as duas pontas da seta (3).
-        expect(lines.length).toBe(4)
-        // O elástico termina na bolinha de tiro.
-        expect(lines[0]).toEqual([150, 300])
+        // Haste e as duas pontas da seta.
+        expect(lines.length).toBe(3)
+        // A seta sai da bolinha de tiro e sobe (y diminui).
+        const tip = lines[1]
+        expect(tip[0]).toBeCloseTo(150, 6)
+        expect(tip[1]).toBeLessThan(300)
     })
 
         it('com arrasto curto, mostra o elástico mas não a seta de previsão', () => {

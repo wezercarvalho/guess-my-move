@@ -11,6 +11,7 @@ import {
     createBeteRound,
     createFlickDetector,
     createPinchDetector,
+    flickShot,
 } from '@guess-my-move/marbles'
 
 import { drawHand } from '../round/handOverlay.js'
@@ -32,12 +33,13 @@ export function modeFromSearch(search: string): MarblesMode {
 }
 
 /** O que aconteceu no último estalo, para a depuração. */
-export type FlickOutcome = 'disparado' | 'lento demais' | 'fraco demais' | 'sem tiro'
+export type FlickOutcome = 'disparado' | 'lento demais' | 'fraco demais' | 'sem direção'
 
-/** `fired` diz se a rodada saiu da mira para o rolar: uma abertura rápida sem arrasto suficiente é "sem tiro". */
-function flickOutcome(release: FlickRelease, fired: boolean): FlickOutcome {
-    if (!release.fast) return release.riseMs > DEFAULT_FLICK.slowMs ? 'lento demais' : 'fraco demais'
-    return fired ? 'disparado' : 'sem tiro'
+function flickOutcome(release: FlickRelease): FlickOutcome {
+    if (flickShot(release)) return 'disparado'
+    if (!release.direction) return 'sem direção'
+    if (release.riseMs > DEFAULT_FLICK.slowMs) return 'lento demais'
+    return 'fraco demais'
 }
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
@@ -74,6 +76,8 @@ export interface MarblesDebug {
         /** Pico da velocidade de abertura do último estalo, em razão por segundo. */
         lastOpenSpeed: number | null
         lastRiseMs: number | null
+        /** Força do último estalo disparado, de 0 a 1 (escala logarítmica da velocidade de abertura). */
+        lastPower: number | null
         lastResult: FlickOutcome | null
     }
 }
@@ -110,7 +114,12 @@ export class MarblesController {
     private readonly pinch: PinchDetector = createPinchDetector()
     private readonly flick: FlickDetector = createFlickDetector()
     private mode: MarblesMode
-    private lastFlick: { openSpeed: number; riseMs: number; result: FlickOutcome } | null = null
+    private lastFlick: {
+        openSpeed: number
+        riseMs: number
+        power: number | null
+        result: FlickOutcome
+    } | null = null
     private round: BeteRound = createBeteRound()
     private tracker: HandTracker | null = null
     private trackerStatus: MarblesTrackerStatus = 'idle'
@@ -298,14 +307,15 @@ export class MarblesController {
                 if (this.mode === 'flick') {
                     const reading = this.flick.update(hand?.landmarks ?? null, aspect, now)
                     this.reading = reading
-                    this.round.observeFlick(reading, now)
                     if (reading.release) {
                         this.lastFlick = {
                             openSpeed: reading.release.openSpeed,
                             riseMs: reading.release.riseMs,
-                            result: flickOutcome(reading.release, this.round.state === 'rolling'),
+                            power: flickShot(reading.release)?.power ?? null,
+                            result: flickOutcome(reading.release),
                         }
                     }
+                    this.round.observeFlick(reading, now)
                 } else {
                     this.reading = this.pinch.update(hand?.landmarks ?? null, aspect)
                     this.round.observePinch(this.reading, now)
@@ -440,6 +450,7 @@ export class MarblesController {
                     armed: this.mode === 'flick' && (this.reading?.closed ?? false),
                     lastOpenSpeed: this.lastFlick?.openSpeed ?? null,
                     lastRiseMs: this.lastFlick?.riseMs ?? null,
+                    lastPower: this.lastFlick?.power ?? null,
                     lastResult: this.lastFlick?.result ?? null,
                 },
                 frames: this.frames,

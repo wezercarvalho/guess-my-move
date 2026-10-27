@@ -81,6 +81,12 @@ export function MarblesDebugPanel({
                         </dd>
                         <dt>Duração da subida</dt>
                         <dd>{millis(debug.flick.lastRiseMs)}</dd>
+                        <dt>Força do último estalo</dt>
+                        <dd>
+                            {debug.flick.lastPower === null
+                                ? DASH
+                                : `${Math.round(debug.flick.lastPower * 100)}%`}
+                        </dd>
                         <dt>Resultado do último estalo</dt>
                         <dd aria-live="polite">{debug.flick.lastResult ?? DASH}</dd>
                     </>

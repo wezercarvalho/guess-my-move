@@ -265,41 +265,12 @@ describe('MarblesScreen: modo de tiro', () => {
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
         h.run(open(400, 300))
         expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(alpha\)/i)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(
-            /feche a pinça, arraste a mão para longe do alvo e abra os dedos rápido para atirar/i,
-        )
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/pinça.*abra.*rápido/i)
         expect(screen.getByText('Armado')).toBeInTheDocument()
         expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()
         expect(screen.getByText('Duração da subida')).toBeInTheDocument()
+        expect(screen.getByText('Força do último estalo')).toBeInTheDocument()
         expect(screen.getByText('Resultado do último estalo')).toBeInTheDocument()
-    })
-
-    it('armado, orienta a arrastar e abrir os dedos rápido; com arrasto, o estalo rápido dispara', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(open(400, 300), 2, 16)
-        h.run(closed(400, 300), 3, 16)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste.*mais.*curto/i)
-        h.run(closed(300, 300), 2, 16)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/abra os dedos rápido/i)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, 16)
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
-        expect(screen.getByText('disparado')).toBeInTheDocument()
-    })
-
-    it('abrir rápido sem arrasto mostra "sem tiro" na região aria-live e não conta tiro', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(open(400, 300), 2, 16)
-        h.run(closed(400, 300), 3, 16)
-        h.run(pinchHand({ ratio: 0.9, x: 400, y: 300 }), 1, 16)
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
-        const result = screen.getByText('sem tiro')
-        expect(result.closest('[aria-live]')).not.toBeNull()
     })
 
     it('mostra "Quadros novos da câmera/s" na depuração nos dois modos', async () => {
@@ -311,6 +282,29 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.getByText('Quadros novos da câmera/s')).toBeInTheDocument()
     })
 
+    it('a pinça não mostra força nem velocidade de abertura: essas linhas são só do estalo', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        expect(screen.queryByText('Força do último estalo')).not.toBeInTheDocument()
+        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
+    })
+
+    it('armado, orienta a apontar a mão e abrir a pinça rápido; o estalo rápido dispara', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        h.run(open(400, 300), 2, 16)
+        h.run(closed(400, 300), 3, 16)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/aponte.*solte o polegar rápido/i)
+        h.run(pinchHand({ ratio: 0.9, x: 400, y: 300 }), 1, 16)
+        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
+        expect(screen.getByText('disparado')).toBeInTheDocument()
+        expect(screen.getByText('Força do último estalo').nextElementSibling).toHaveTextContent(/%/)
+        expect(screen.getByText('disparado').closest('[aria-live]')).not.toBeNull()
+    })
+
     it('voltar para a pinça reinicia a rodada', async () => {
         const h = harness()
         renderScreen(h)
@@ -318,9 +312,7 @@ describe('MarblesScreen: modo de tiro', () => {
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
         h.run(open(400, 300), 2, 16)
         h.run(closed(400, 300), 3, 16)
-        h.run(closed(300, 300), 2, 16)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, 16)
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
+        h.run(pinchHand({ ratio: 0.9, x: 400, y: 300 }), 1, 16)
         fireEvent.click(screen.getByRole('radio', { name: /pinça/i }))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
         expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
