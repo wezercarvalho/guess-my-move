@@ -11,7 +11,7 @@
 
 ## Resumo do resultado
 
-**Gate 3:** o maintainer aprovou ao mergear o PR #70, sem testar o estalo com a mão; o texto abaixo foi escrito antes do merge. Implementação concluída e gates automatizados verdes. **O estalo não foi testado com a mão de ninguém**: a viabilidade dele é a pergunta da issue #68 e só o teste do maintainer no Chrome desktop (T015) responde a ela. O que existe é o detector, a conversão da abertura em força, a rodada em modo estalo, o seletor de modo e o painel com os números do detector, tudo coberto por testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página com `?mode=estalo`, mostrou o seletor e as linhas novas do painel e deixou o detector pronto, mas sem nenhuma pinça nem estalo. Todos os números do estalo (histerese, 0,40, 300 ms, 2 e 8 razão/s, 300 e 1100 unid/s) são palpites não medidos.
+**Gate 3:** o maintainer aprovou ao mergear o PR #70, sem testar o estalo com a mão; o texto abaixo foi escrito antes do merge. Implementação concluída e gates automatizados verdes. **O estalo não foi testado com a mão de ninguém**: a viabilidade dele é a pergunta da issue #68 e só o teste do maintainer no Chrome desktop (T015) responde a ela, e esse teste não foi feito; a T015 foi concluída com esse risco aceito no Gate 3. O que existe é o detector, a conversão da abertura em força, a rodada em modo estalo, o seletor de modo e o painel com os números do detector, tudo coberto por testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página com `?mode=estalo`, mostrou o seletor e as linhas novas do painel e deixou o detector pronto, mas sem nenhuma pinça nem estalo. Todos os números do estalo (histerese, 0,40, 300 ms, 2 e 8 razão/s, 300 e 1100 unid/s) são palpites não medidos.
 
 ## Conclusão das tarefas
 
@@ -98,10 +98,10 @@ Os comandos rodaram no Node 24 da VPS, e o `package.json` pede Node 26; o `pr-ga
 | Limitação/risco                                                                         | Impacto                                 | Responsável | Aceite                                   |
 | --------------------------------------------------------------------------------------- | --------------------------------------- | ----------- | ---------------------------------------- |
 | O estalo dura poucos quadros e o detector pode perder a mão em movimento rápido         | O modo pode ser inviável nesta câmera   | maintainer  | aceito por wezercarvalho em `2026-10-27` |
-| A direção vem da orientação da mão no plano da imagem; apontar para a câmera a degenera | Tiro na direção errada ou cancelado     | maintainer  | pendente                                 |
-| Todos os limiares do estalo são palpites                                                | Disparos falsos ou tiros que nunca saem | maintainer  | pendente                                 |
-| Abrir a mão sem querer, rápido, pode disparar                                           | Tiro involuntário                       | maintainer  | pendente                                 |
-| Câmera de 30 quadros por segundo pode dar só 2 a 3 amostras por estalo                  | Força imprecisa                         | maintainer  | pendente                                 |
+| A direção vem da orientação da mão no plano da imagem; apontar para a câmera a degenera | Tiro na direção errada ou cancelado     | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Todos os limiares do estalo são palpites                                                | Disparos falsos ou tiros que nunca saem | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Abrir a mão sem querer, rápido, pode disparar                                           | Tiro involuntário                       | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Câmera de 30 quadros por segundo pode dar só 2 a 3 amostras por estalo                  | Força imprecisa                         | maintainer  | aceito por wezercarvalho em `2026-10-27` |
 
 ## Gate 3 — Convergência validada
 
