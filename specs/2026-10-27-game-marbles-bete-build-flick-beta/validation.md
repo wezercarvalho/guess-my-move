@@ -3,20 +3,20 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** em andamento
+- **Status:** aprovado com risco aceito
 - **Constituição:** 1.0.0
 - **Data:** `2026-10-27`
-- **Executor/revisor:** kirocrew (agente); teste manual e Gate 3 pendentes do maintainer wezercarvalho
-- **Commit:** a registrar no fechamento do Gate 3
+- **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho pelo merge do PR #70
+- **Commit:** `b80a36c` (merge do PR #70 na `main`)
 
 ## Resumo do resultado
 
-Implementação concluída e gates automatizados verdes. **O estalo não foi testado com a mão de ninguém**: a viabilidade dele é a pergunta da issue #68 e só o teste do maintainer no Chrome desktop (T015) responde a ela. O que existe é o detector, a conversão da abertura em força, a rodada em modo estalo, o seletor de modo e o painel com os números do detector, tudo coberto por testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página com `?mode=estalo`, mostrou o seletor e as linhas novas do painel e deixou o detector pronto, mas sem nenhuma pinça nem estalo. Todos os números do estalo (histerese, 0,40, 300 ms, 2 e 8 razão/s, 300 e 1100 unid/s) são palpites não medidos.
+**Gate 3:** o maintainer aprovou ao mergear o PR #70, sem testar o estalo com a mão; o texto abaixo foi escrito antes do merge. Implementação concluída e gates automatizados verdes. **O estalo não foi testado com a mão de ninguém**: a viabilidade dele é a pergunta da issue #68 e só o teste do maintainer no Chrome desktop (T015) responde a ela, e esse teste não foi feito; a T015 foi concluída com esse risco aceito no Gate 3. O que existe é o detector, a conversão da abertura em força, a rodada em modo estalo, o seletor de modo e o painel com os números do detector, tudo coberto por testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página com `?mode=estalo`, mostrou o seletor e as linhas novas do painel e deixou o detector pronto, mas sem nenhuma pinça nem estalo. Todos os números do estalo (histerese, 0,40, 300 ms, 2 e 8 razão/s, 300 e 1100 unid/s) são palpites não medidos.
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 14 (T001 a T014)
-- **Pendentes:** 1 (T015, teste manual do maintainer)
+- **Concluídas:** 15 (T001 a T015)
+- **Pendentes:** 0
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -95,19 +95,19 @@ Os comandos rodaram no Node 24 da VPS, e o `package.json` pede Node 26; o `pr-ga
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                                         | Impacto                                 | Responsável | Aceite   |
-| --------------------------------------------------------------------------------------- | --------------------------------------- | ----------- | -------- |
-| O estalo dura poucos quadros e o detector pode perder a mão em movimento rápido         | O modo pode ser inviável nesta câmera   | maintainer  | pendente |
-| A direção vem da orientação da mão no plano da imagem; apontar para a câmera a degenera | Tiro na direção errada ou cancelado     | maintainer  | pendente |
-| Todos os limiares do estalo são palpites                                                | Disparos falsos ou tiros que nunca saem | maintainer  | pendente |
-| Abrir a mão sem querer, rápido, pode disparar                                           | Tiro involuntário                       | maintainer  | pendente |
-| Câmera de 30 quadros por segundo pode dar só 2 a 3 amostras por estalo                  | Força imprecisa                         | maintainer  | pendente |
+| Limitação/risco                                                                         | Impacto                                 | Responsável | Aceite                                   |
+| --------------------------------------------------------------------------------------- | --------------------------------------- | ----------- | ---------------------------------------- |
+| O estalo dura poucos quadros e o detector pode perder a mão em movimento rápido         | O modo pode ser inviável nesta câmera   | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| A direção vem da orientação da mão no plano da imagem; apontar para a câmera a degenera | Tiro na direção errada ou cancelado     | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Todos os limiares do estalo são palpites                                                | Disparos falsos ou tiros que nunca saem | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Abrir a mão sem querer, rápido, pode disparar                                           | Tiro involuntário                       | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| Câmera de 30 quadros por segundo pode dar só 2 a 3 amostras por estalo                  | Força imprecisa                         | maintainer  | aceito por wezercarvalho em `2026-10-27` |
 
 ## Gate 3 — Convergência validada
 
-- **Veredito:** pendente
-- **Aprovador:** wezercarvalho (maintainer)
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer), pelo merge do PR #70 na `main`
 - **Data:** `2026-10-27`
-- **Escopo aprovado:** pendente do teste manual (T015)
-- **Riscos aceitos:** pendente
-- **Observações:** o Gate 3 depende do teste do maintainer no Chrome desktop. A issue #68 não fecha com este trabalho; ela fecha com a decisão do maintainer sobre a viabilidade do estalo.
+- **Escopo aprovado:** FR-001 a FR-010 e os artefatos da spec, com o código em `packages/marbles/` e `apps/web/`; o modo é entregue como alpha
+- **Riscos aceitos:** estalo nunca testado com mão real (viabilidade, recall e disparo falso desconhecidos); todos os limiares são palpites; detector pode perder a mão em movimento rápido; direção degenera com a mão apontada para a câmera; câmera de 30 quadros por segundo pode dar 2 a 3 amostras por estalo
+- **Observações:** o Gate 3 foi concedido pelo merge, sem nenhuma medição do estalo com a mão. A convergência aprovada é entre código, spec e testes sem câmera, não a viabilidade do modo. A viabilidade segue desconhecida: o modo é rotulado alpha na tela e a pergunta da issue #68 pode ser retomada com os números do painel, sem reabrir esta spec. A issue #68 fecha com este registro.
