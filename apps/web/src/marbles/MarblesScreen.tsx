@@ -32,7 +32,7 @@ function statusText(
                 : 'Ative a câmera para jogar.'
         case 'ready':
             if (handVisible && mode === 'flick') {
-                return 'Estalo (beta): feche a pinça (polegar contra o indicador) com a mão apontada para o alvo e abra rápido, como um estalo.'
+                return 'Estalo (alpha): feche a pinça (polegar contra o indicador) com a mão apontada para o alvo e abra rápido, como um estalo.'
             }
             return handVisible
                 ? 'Mão à vista! Faça a pinça em qualquer ponto, arraste a mão para longe do alvo e abra os dedos para atirar.'
@@ -95,7 +95,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                     Ative a câmera e atire a bolinha azul no alvo vermelho com a mão, no menor
                     número de tiros. No modo Pinça (padrão), feche polegar e indicador em qualquer
                     ponto, com a mão que preferir, arraste para longe do alvo, como um
-                    estilingue, e abra os dedos. O modo Estalo (beta) imita o tiro real: aponte a
+                    estilingue, e abra os dedos. O modo Estalo (alpha) imita o tiro real: aponte a
                     mão para o alvo e abra a pinça rápido.
                 </p>
             </header>
@@ -130,7 +130,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                     game.setMode('flick')
                                 }}
                             />{' '}
-                            Estalo (beta)
+                            Estalo (alpha)
                         </label>
                     </fieldset>
                     <canvas

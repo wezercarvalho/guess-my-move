@@ -266,7 +266,7 @@ describe('modeFromSearch', () => {
     })
 })
 
-describe('MarblesController: modo estalo (beta)', () => {
+describe('MarblesController: modo estalo (alpha)', () => {
     const STEP = 16
 
     /** Pinça aberta, fechada (armada) por alguns quadros e a razão final dada, com a mão apontando para cima. */

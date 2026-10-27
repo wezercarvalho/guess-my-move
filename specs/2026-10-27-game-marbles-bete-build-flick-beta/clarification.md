@@ -7,7 +7,7 @@
 - **Constituição:** `1.0.0`
 - **Iniciada em:** `2026-10-27`
 
-As decisões CQ-001 a CQ-007 refletem as definições do maintainer para o modo de tiro por estalo (beta) do bete, registradas na sessão do dashboard em 2026-10-27, com os Gates 1 e 2 aprovados de forma antecipada (antes da redação dos documentos). CQ-008 e CQ-009 são decisões técnicas do agente, derivadas da composição com o modo pinça, e revisáveis. Esta spec estende a `2026-10-27-game-marbles-bete-build-pinch-shot` e não a substitui: o modo pinça continua o padrão e não muda.
+As decisões CQ-001 a CQ-007 refletem as definições do maintainer para o modo de tiro por estalo (alpha) do bete, registradas na sessão do dashboard em 2026-10-27, com os Gates 1 e 2 aprovados de forma antecipada (antes da redação dos documentos). CQ-008 e CQ-009 são decisões técnicas do agente, derivadas da composição com o modo pinça, e revisáveis. Esta spec estende a `2026-10-27-game-marbles-bete-build-pinch-shot` e não a substitui: o modo pinça continua o padrão e não muda.
 
 ## Log de decisões
 
@@ -16,7 +16,7 @@ As decisões CQ-001 a CQ-007 refletem as definições do maintainer para o modo 
 - **Data:** `2026-10-27`
 - **Impacto:** crítico
 - **Pergunta:** O estalo substitui a pinça ou convive com ela?
-- **Decisão:** Convive. O bete solo passa a ter dois modos de tiro, escolhidos por um seletor na tela: Pinça (padrão, já entregue, não muda) e Estalo (beta). Trocar de modo reinicia a rodada. O modo inicial pode vir de `?mode=estalo`.
+- **Decisão:** Convive. O bete solo passa a ter dois modos de tiro, escolhidos por um seletor na tela: Pinça (padrão, já entregue, não muda) e Estalo (alpha). Trocar de modo reinicia a rodada. O modo inicial pode vir de `?mode=estalo`.
 - **Razão:** O modo pinça funciona e serve de referência; o estalo é experimental e precisa ser comparado lado a lado sem perder o que já existe.
 - **Alternativas rejeitadas:** Substituir a pinça pelo estalo (perde o modo robusto e fecharia a issue #68 sem medição); dois jogos separados (duplica física e tela).
 - **Seções atualizadas em `spec.md`:** Resumo, Objetivos, US-002, FR-005.
@@ -61,12 +61,12 @@ As decisões CQ-001 a CQ-007 refletem as definições do maintainer para o modo 
 - **Alternativas rejeitadas:** Manter o armado através da perda (gera disparo espúrio na reaquisição).
 - **Seções atualizadas em `spec.md`:** US-001, FR-001, FR-004, Edge cases, H-03.
 
-### CQ-006 — Rótulo beta e números do detector
+### CQ-006 — Rótulo alpha e números do detector
 
 - **Data:** `2026-10-27`
 - **Impacto:** médio
 - **Pergunta:** Como tratar a viabilidade desconhecida do estalo (issue #68)?
-- **Decisão:** O modo é rotulado BETA e o painel de depuração do estalo mostra armado (sim/não), razão, velocidade de abertura do último estalo (razão/s), duração da subida (ms) e o resultado do último estalo (disparado, lento demais, fraco demais ou nenhum). Nenhum texto afirma desempenho ou viabilidade sem medição; a decisão da issue #68 é do maintainer após o teste manual.
+- **Decisão:** O modo é rotulado ALPHA e o painel de depuração do estalo mostra armado (sim/não), razão, velocidade de abertura do último estalo (razão/s), duração da subida (ms) e o resultado do último estalo (disparado, lento demais, fraco demais ou nenhum). Nenhum texto afirma desempenho ou viabilidade sem medição; a decisão da issue #68 é do maintainer após o teste manual.
 - **Razão:** O estalo dura poucos quadros e sua detecção não foi medida; expor os números é o que permite ao maintainer decidir com honestidade de evidência.
 - **Alternativas rejeitadas:** Entregar o estalo como modo estável (afirma viabilidade não medida); esconder os números (sem base para decidir).
 - **Seções atualizadas em `spec.md`:** Resumo, US-003, FR-007, NFR-002, SC-002, SC-003.
@@ -76,7 +76,7 @@ As decisões CQ-001 a CQ-007 refletem as definições do maintainer para o modo 
 - **Data:** `2026-10-27`
 - **Impacto:** médio
 - **Pergunta:** Como o jogador escolhe e entende o modo?
-- **Decisão:** Dois botões de rádio "Pinça" e "Estalo (beta)" num `fieldset` com legenda "Modo de tiro"; mensagens de orientação em pt-BR por modo e por estado; o modo inicial vem de `?mode=estalo` (qualquer outro valor = pinça). A seta de direção aparece no campo enquanto armado no modo estalo.
+- **Decisão:** Dois botões de rádio "Pinça" e "Estalo (alpha)" num `fieldset` com legenda "Modo de tiro"; mensagens de orientação em pt-BR por modo e por estado; o modo inicial vem de `?mode=estalo` (qualquer outro valor = pinça). A seta de direção aparece no campo enquanto armado no modo estalo.
 - **Razão:** Um `fieldset` com legenda e rótulos atende a acessibilidade; o parâmetro de URL facilita o teste direto do estalo.
 - **Alternativas rejeitadas:** Menu suspenso sem legenda (menos acessível); alternância por tecla (pouco descoberta).
 - **Seções atualizadas em `spec.md`:** US-002, FR-005, FR-006, NFR-003.

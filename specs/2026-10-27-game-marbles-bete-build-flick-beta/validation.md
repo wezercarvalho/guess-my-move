@@ -28,7 +28,7 @@ Implementação concluída e gates automatizados verdes. **O estalo não foi tes
 | FR-003    | T003, T004 | `flick.test.ts` (`flickShot`: mapeamento 2 a 8 para 300 a 1100, limites, direção, cancelamento, parâmetros próprios)                                                                             | PASS      |
 | FR-004    | T005, T006 | `round.test.ts` (13 testes do modo estalo: armar, pré-visualização, disparo, força e acerto, lento e fraco, sem direção, erro, perda da mão, detector zerado, rolling)                           | PASS      |
 | FR-005    | T007, T008 | `marblesController.test.ts` (`modeFromSearch`, `setMode`, roteamento por modo, troca reinicia) e `MarblesScreen.test.tsx` (seletor, `?mode=estalo`, volta à pinça)                               | PASS      |
-| FR-006    | T009, T010 | `MarblesScreen.test.tsx` (mensagens por estado no estalo, rótulo beta), `fieldView.test.ts` (seta de direção, sem elástico) e captura de tela do Chromium                                        | PASS      |
+| FR-006    | T009, T010 | `MarblesScreen.test.tsx` (mensagens por estado no estalo, rótulo alpha), `fieldView.test.ts` (seta de direção, sem elástico) e captura de tela do Chromium                                       | PASS      |
 | FR-007    | T007, T010 | `marblesController.test.ts` (armado, velocidade, duração e resultado), `MarblesScreen.test.tsx` (linhas só no estalo) e painel lido no Chromium                                                  | PASS      |
 | FR-008    | T011       | busca no código sem rede, armazenamento ou gravação; Chromium: 55 requisições, todas GET para a própria origem, nenhuma com corpo, nenhuma externa                                               | PASS      |
 | FR-009    | T012       | testes existentes do modo pinça (`round`, `pinch`, `shot`, `physics`) e do jogo de cartas passam sem alteração; nenhum arquivo do jogo de cartas mudou                                           | PASS      |
@@ -76,16 +76,16 @@ Os comandos rodaram no Node 24 da VPS, e o `package.json` pede Node 26; o `pr-ga
 
 ## Constitution Check final
 
-| Princípio/gate                              | Resultado | Evidência ou desvio aprovado                                                                                                           |
-| ------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| I. Intenção antes da implementação          | PASS      | Gates 1 e 2 antes do código.                                                                                                           |
-| II. Uma fonte vigente                       | PASS      | Spec nova que estende, sem substituir, a do modo pinça; catálogo atualizado.                                                           |
-| III. Rastreabilidade                        | PASS      | Matriz acima cobre os 10 FR.                                                                                                           |
-| IV. Test-first e incremental                | PASS      | Testes escritos antes de cada módulo; falha por módulo ausente ou comportamento ausente confirmada no detector, na rodada e na tela.   |
-| V. Evidência honesta                        | PASS      | O estalo está rotulado beta, nenhum número de viabilidade ou desempenho é afirmado, e a ausência de teste com mão real está declarada. |
-| VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para imagem; busca no código sem armazenamento ou gravação.                                                                   |
-| VII. Neutralidade e contexto sob demanda    | PASS      | READMEs e guia de arquitetura atualizados.                                                                                             |
-| VIII. Clareza, preservação, operação segura | PASS      | Modo pinça e jogo de cartas preservados; alterações preexistentes preservadas.                                                         |
+| Princípio/gate                              | Resultado | Evidência ou desvio aprovado                                                                                                            |
+| ------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Intenção antes da implementação          | PASS      | Gates 1 e 2 antes do código.                                                                                                            |
+| II. Uma fonte vigente                       | PASS      | Spec nova que estende, sem substituir, a do modo pinça; catálogo atualizado.                                                            |
+| III. Rastreabilidade                        | PASS      | Matriz acima cobre os 10 FR.                                                                                                            |
+| IV. Test-first e incremental                | PASS      | Testes escritos antes de cada módulo; falha por módulo ausente ou comportamento ausente confirmada no detector, na rodada e na tela.    |
+| V. Evidência honesta                        | PASS      | O estalo está rotulado alpha, nenhum número de viabilidade ou desempenho é afirmado, e a ausência de teste com mão real está declarada. |
+| VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para imagem; busca no código sem armazenamento ou gravação.                                                                    |
+| VII. Neutralidade e contexto sob demanda    | PASS      | READMEs e guia de arquitetura atualizados.                                                                                              |
+| VIII. Clareza, preservação, operação segura | PASS      | Modo pinça e jogo de cartas preservados; alterações preexistentes preservadas.                                                          |
 
 ## Convergência
 

@@ -22,14 +22,14 @@
 
 - [x] T007 [US-002] [FR-005] [FR-007] Escrever testes falhando do controlador (modo inicial por `?mode=estalo`, roteamento por modo, troca reinicia a rodada e os detectores, `mode` e debug do estalo no snapshot) em `apps/web/src/marbles`
 - [x] T008 [US-002] [FR-005] [FR-007] Implementar `mode`/`setMode(mode)` e o roteamento por modo no `MarblesController`, publicando `mode` e as linhas do estalo no snapshot, e confirmar verde
-- [x] T009 [US-002] [US-003] [FR-005] [FR-006] [FR-007] Escrever testes falhando da tela e do desenho (seletor "Modo de tiro" com rádio Pinça/Estalo beta, mensagens por estado, seta de direção em `drawField`, rótulo beta, `aria-live`, linhas de depuração do estalo) em `apps/web/src/marbles`
+- [x] T009 [US-002] [US-003] [FR-005] [FR-006] [FR-007] Escrever testes falhando da tela e do desenho (seletor "Modo de tiro" com rádio Pinça/Estalo alpha, mensagens por estado, seta de direção em `drawField`, rótulo alpha, `aria-live`, linhas de depuração do estalo) em `apps/web/src/marbles`
 - [x] T010 [US-001] [US-003] [FR-005] [FR-006] [FR-007] Implementar o seletor e as mensagens em `MarblesScreen`, a seta de direção em `fieldView.drawField` e as linhas do estalo no `DebugPanel`, e confirmar verde
 - [x] T011 [US-004] [FR-008] Verificar a privacidade no modo estalo por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
 - [x] T012 [FR-009] Confirmar que os testes do modo pinça (`packages/marbles`) e do jogo de cartas passam sem alteração de código e sem mudança de comportamento
 
 ## Fase 4 — Documentação
 
-- [x] T013 [FR-010] Atualizar `README.md` da raiz, `docs/development-context/README.md`, `docs/development-strategies/README.md`, `docs/development-strategies/sdd/README.md` (somente se algo ali ficar desatualizado), `specs/README.md`, o guia de arquitetura e o `PROJECT_SPEC` para descrever os dois modos de tiro do bete (pinça e estalo beta)
+- [x] T013 [FR-010] Atualizar `README.md` da raiz, `docs/development-context/README.md`, `docs/development-strategies/README.md`, `docs/development-strategies/sdd/README.md` (somente se algo ali ficar desatualizado), `specs/README.md`, o guia de arquitetura e o `PROJECT_SPEC` para descrever os dois modos de tiro do bete (pinça e estalo alpha)
 
 ## Fase final — Convergência
 

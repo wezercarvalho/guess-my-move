@@ -45,7 +45,7 @@ Alcance (cálculo, não medição): com atrito 400 unid/s², chegar ao alvo exig
 
 - Nenhuma medição de taxa de quadros, latência ou quadros por estalo foi feita; a medição que vale é a do Chrome desktop do maintainer (NFR-002).
 - Uma webcam de 30 quadros/s pode dar só 2 a 3 amostras por estalo (H-04); a máquina do maintainer processou cerca de 83 quadros/s em uma medição (um dado, uma máquina). Se a amostragem for pobre, a velocidade de abertura e a duração perdem resolução.
-- A detecção do estalo é a incógnita da issue #68; esta spec entrega o modo beta e os números, não a decisão de viabilidade.
+- A detecção do estalo é a incógnita da issue #68; esta spec entrega o modo alpha e os números, não a decisão de viabilidade.
 
 ## Decisão
 

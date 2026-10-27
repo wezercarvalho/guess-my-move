@@ -237,13 +237,13 @@ describe('MarblesScreen', () => {
 })
 
 describe('MarblesScreen: modo de tiro', () => {
-    it('mostra o seletor com a pinça marcada e o estalo como beta', () => {
+    it('mostra o seletor com a pinça marcada e o estalo como alpha', () => {
         renderScreen(harness())
         const group = screen.getByRole('group', { name: /modo de tiro/i })
         expect(within(group).getByRole('radio', { name: /pinça/i })).toBeChecked()
         const flickRadio = within(group).getByRole('radio', { name: /estalo/i })
         expect(flickRadio).not.toBeChecked()
-        expect(flickRadio.closest('label')).toHaveTextContent(/beta/i)
+        expect(flickRadio.closest('label')).toHaveTextContent(/alpha/i)
     })
 
     it('?mode=estalo na URL começa no modo estalo', () => {
@@ -264,7 +264,7 @@ describe('MarblesScreen: modo de tiro', () => {
 
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
         h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(beta\)/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(alpha\)/i)
         expect(screen.getByTestId('game-status')).toHaveTextContent(/pinça.*abra.*rápido/i)
         expect(screen.getByText('Armado')).toBeInTheDocument()
         expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()

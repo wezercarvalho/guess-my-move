@@ -90,7 +90,7 @@ specs/README.md                                                                 
 | FR-003    | `flickShot` com mapeamento linear 2–8 → 300–1100 e `null` para lento/fraco | `flick.test.ts`                                |
 | FR-004    | `observeFlick` e `snapshot().flick` na rodada; `fire` recebe a velocidade  | `round.test.ts`                                |
 | FR-005    | Seletor "Modo de tiro"; `mode`/`setMode`; roteamento; `?mode=estalo`       | testes do controlador e da tela                |
-| FR-006    | Seta no campo, rótulo beta, mensagens por estado e `aria-live`             | `MarblesScreen.test.tsx`                       |
+| FR-006    | Seta no campo, rótulo alpha, mensagens por estado e `aria-live`            | `MarblesScreen.test.tsx`                       |
 | FR-007    | Painel do estalo: armado, razão, velocidade, duração, resultado            | `DebugPanel.test.tsx`                          |
 | FR-008    | Sem rede para imagem no modo estalo; aviso de privacidade                  | busca no código e inspeção de rede no Chromium |
 | FR-009    | Modo pinça e jogo de cartas sem mudança de comportamento                   | testes existentes verdes, sem alteração        |

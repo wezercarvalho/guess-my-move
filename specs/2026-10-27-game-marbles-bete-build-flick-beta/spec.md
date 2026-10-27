@@ -1,19 +1,19 @@
 ---
 id: 2026-10-27-game-marbles-bete-build-flick-beta
-title: Modo de tiro por estalo (beta) do bete, selecionável na tela
+title: Modo de tiro por estalo (alpha) do bete, selecionável na tela
 slug: game-marbles-bete-build-flick-beta
 strategy: sdd
 domain: game
 capability: marbles-bete
 objective: build-flick-beta
-summary: Segundo modo de tiro no bete solo, selecionável na tela ao lado da pinça, que imita o estalo real do polegar — para a câmera, uma pinça que abre rápido —, mede velocidade de abertura, duração e direção do estalo, cancela estalos lentos ou fracos e mostra os números do detector para o maintainer decidir a viabilidade (issue #68); rotulado beta porque o estalo dura poucos quadros e sua detecção ainda não foi medida.
+summary: Segundo modo de tiro no bete solo, selecionável na tela ao lado da pinça, que imita o estalo real do polegar — para a câmera, uma pinça que abre rápido —, mede velocidade de abertura, duração e direção do estalo, cancela estalos lentos ou fracos e mostra os números do detector para o maintainer decidir a viabilidade (issue #68); rotulado alpha porque o estalo dura poucos quadros e sua detecção ainda não foi medida.
 status: implementing
 owners:
     - wezercarvalho
 reviewers: []
 aliases:
     - estalo
-    - estalo beta
+    - estalo alpha
     - tiro por estalo
     - flick
     - modo de tiro
@@ -32,11 +32,11 @@ created_at: 2026-10-27
 updated_at: 2026-10-27
 ---
 
-# Modo de tiro por estalo (beta) do bete, selecionável na tela
+# Modo de tiro por estalo (alpha) do bete, selecionável na tela
 
 ## Resumo
 
-O bete solo ganha um segundo modo de tiro, escolhido por um seletor na tela: **Pinça** (o padrão já entregue, que não muda) e **Estalo (beta)**. O estalo imita o tiro real de bolinha de gude: a bolinha apoiada no indicador dobrado, o polegar preso atrás dele e disparando num estalo. Para a câmera, o estalo é uma pinça (polegar contra o indicador) que ABRE RÁPIDO. O jogador arma fechando a pinça e dispara ao abrir num estalo; a direção vem da orientação da mão no plano da imagem, medida no início da abertura, e a força vem da velocidade de abertura. A viabilidade é desconhecida (issue #68): o estalo dura poucos quadros e o detector pode perder a mão em movimento rápido, por isso o modo é rotulado **beta** e a tela mostra os números do detector para o maintainer decidir. Toda a lógica nova fica no pacote puro `@guess-my-move/marbles`; o modo pinça, seus testes, a física, o campo, o alvo e a privacidade não mudam. Esta spec estende, mas não substitui, a `2026-10-27-game-marbles-bete-build-pinch-shot`.
+O bete solo ganha um segundo modo de tiro, escolhido por um seletor na tela: **Pinça** (o padrão já entregue, que não muda) e **Estalo (alpha)**. O estalo imita o tiro real de bolinha de gude: a bolinha apoiada no indicador dobrado, o polegar preso atrás dele e disparando num estalo. Para a câmera, o estalo é uma pinça (polegar contra o indicador) que ABRE RÁPIDO. O jogador arma fechando a pinça e dispara ao abrir num estalo; a direção vem da orientação da mão no plano da imagem, medida no início da abertura, e a força vem da velocidade de abertura. A viabilidade é desconhecida (issue #68): o estalo dura poucos quadros e o detector pode perder a mão em movimento rápido, por isso o modo é rotulado **alpha** e a tela mostra os números do detector para o maintainer decidir. Toda a lógica nova fica no pacote puro `@guess-my-move/marbles`; o modo pinça, seus testes, a física, o campo, o alvo e a privacidade não mudam. Esta spec estende, mas não substitui, a `2026-10-27-game-marbles-bete-build-pinch-shot`.
 
 ## Problema
 
@@ -55,7 +55,7 @@ O modo pinça entregue usa a pinça como estilingue: fechar, arrastar e abrir. E
 - Gravar ou exportar séries de landmarks do estalo, suavização de sinal e calibração automática dos limiares.
 - Duas mãos, mais modos de tiro além de pinça e estalo, e celular ou navegadores além do Chrome desktop.
 - Afirmar taxa de quadros, latência, taxa de reconhecimento do estalo ou viabilidade sem medição no desktop do maintainer.
-- Fechar a issue #68: esta spec entrega o modo beta e os números; a decisão (viável, viável com limitações, inviável) é do maintainer após o teste manual.
+- Fechar a issue #68: esta spec entrega o modo alpha e os números; a decisão (viável, viável com limitações, inviável) é do maintainer após o teste manual.
 - Alterar o modo pinça e seus testes, a física, o campo, o alvo, o jogo de cartas e a lógica do árbitro por visão.
 
 ## Atores
@@ -84,7 +84,7 @@ Como jogador, quero armar fechando a pinça e disparar abrindo num estalo rápid
 
 Como jogador, quero alternar entre os modos pinça e estalo por um seletor na tela, para comparar os dois gestos e escolher o que prefiro.
 
-**Teste independente:** com o jogo aberto, escolher "Estalo (beta)" no seletor e confirmar que a tela passa a mostrar as mensagens e o painel do estalo e que os tiros zeraram; voltar para "Pinça" e confirmar que o comportamento do modo pinça é o mesmo de antes; abrir `?mode=estalo` e confirmar que o jogo inicia no modo estalo.
+**Teste independente:** com o jogo aberto, escolher "Estalo (alpha)" no seletor e confirmar que a tela passa a mostrar as mensagens e o painel do estalo e que os tiros zeraram; voltar para "Pinça" e confirmar que o comportamento do modo pinça é o mesmo de antes; abrir `?mode=estalo` e confirmar que o jogo inicia no modo estalo.
 
 **Critérios de aceitação:**
 
@@ -120,12 +120,12 @@ Como jogador, quero que nenhuma imagem minha saia do navegador no modo estalo, p
 - **FR-002:** O pacote DEVE expor `handDirection(landmarks, aspect)` que devolve a orientação da mão no plano da imagem como o vetor do pulso (landmark 0) à base do dedo médio (landmark 9), com x multiplicado pela proporção da imagem e ESPELHADO em x (como o preview), normalizado para comprimento 1, e `null` quando o vetor é degenerado (comprimento quase zero).
 - **FR-003:** O pacote DEVE expor `flickShot(release, config)` que converte uma soltura em `{ velocity, power } | null`: para um estalo rápido, a velocidade do tiro é a interpolação linear de 300 a 1100 unid/s quando a velocidade de abertura vai de 2 a 8 razão/s (limitada nos extremos); para um estalo lento (não rápido) ou fraco, DEVE devolver `null` (tiro cancelado, sem contar tiro).
 - **FR-004:** A rodada DEVE ganhar `observeFlick(reading, nowMs)` e `snapshot().flick: { direction: Vec } | null`, de modo que, no modo estalo: só arma ao fechar depois de a pinça ter sido vista aberta; enquanto armado, publica a direção de pré-visualização no snapshot; dispara no estalo rápido passando a velocidade ao `fire`; cancela no estalo lento, no estalo fraco e na perda da mão por mais de 300 ms enquanto armado; e qualquer perda de mão zera o armado. O método `fire` DEVE passar a receber a velocidade do tiro. O modo pinça (`observePinch`) e seus testes NÃO mudam.
-- **FR-005:** A tela DEVE oferecer um seletor de modo — dois botões de rádio "Pinça" e "Estalo (beta)" num `fieldset` com legenda "Modo de tiro" —, o `MarblesController` DEVE ganhar `mode` e `setMode(mode)` (a troca reinicia a rodada e os detectores), rotear cada quadro para o detector do modo e expor `mode` no snapshot; o modo inicial DEVE vir de `?mode=estalo` (qualquer outro valor ou ausência = pinça). Trocar de modo DEVE reiniciar a rodada (tiros zerados).
-- **FR-006:** A tela do modo estalo DEVE desenhar no campo uma seta de direção a partir da bolinha de tiro enquanto armado (`fieldView.drawField`), exibir o rótulo beta, mostrar mensagens de orientação em pt-BR por estado (aberto, armado, disparado, lento, fraco, mão perdida) e anunciar o estado e o resultado por região `aria-live`.
+- **FR-005:** A tela DEVE oferecer um seletor de modo — dois botões de rádio "Pinça" e "Estalo (alpha)" num `fieldset` com legenda "Modo de tiro" —, o `MarblesController` DEVE ganhar `mode` e `setMode(mode)` (a troca reinicia a rodada e os detectores), rotear cada quadro para o detector do modo e expor `mode` no snapshot; o modo inicial DEVE vir de `?mode=estalo` (qualquer outro valor ou ausência = pinça). Trocar de modo DEVE reiniciar a rodada (tiros zerados).
+- **FR-006:** A tela do modo estalo DEVE desenhar no campo uma seta de direção a partir da bolinha de tiro enquanto armado (`fieldView.drawField`), exibir o rótulo alpha, mostrar mensagens de orientação em pt-BR por estado (aberto, armado, disparado, lento, fraco, mão perdida) e anunciar o estado e o resultado por região `aria-live`.
 - **FR-007:** O painel de depuração, no modo estalo, DEVE mostrar armado (sim/não), razão da pinça, velocidade de abertura do último estalo (razão/s), duração da subida (ms) e o resultado do último estalo (disparado, lento demais, fraco demais ou nenhum), além dos campos comuns do painel.
 - **FR-008:** O app NÃO DEVE persistir, registrar em log ou transmitir quadros, vídeo ou landmarks no modo estalo; o aviso de privacidade DEVE informar que o processamento é local.
 - **FR-009:** O modo pinça e o jogo de cartas (Acenar) NÃO DEVEM ter seu comportamento alterado: os testes existentes de `packages/marbles` (modo pinça) e do jogo de cartas DEVEM continuar passando sem alteração.
-- **FR-010:** A documentação (todos os `README.md` afetados, o guia de arquitetura, o `PROJECT_SPEC` e o catálogo de specs) DEVE descrever os dois modos de tiro do bete (pinça e estalo beta) de forma coerente, sem contradizer o fluxo do jogo de cartas nem o modo pinça.
+- **FR-010:** A documentação (todos os `README.md` afetados, o guia de arquitetura, o `PROJECT_SPEC` e o catálogo de specs) DEVE descrever os dois modos de tiro do bete (pinça e estalo alpha) de forma coerente, sem contradizer o fluxo do jogo de cartas nem o modo pinça.
 
 ## Requisitos não funcionais
 

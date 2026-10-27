@@ -24,7 +24,7 @@ import {
 
 export type MarblesTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
 
-/** Modo de tiro: a pinça com arrasto (padrão) ou o estalo do polegar (beta). */
+/** Modo de tiro: a pinça com arrasto (padrão) ou o estalo do polegar (alpha). */
 export type MarblesMode = 'pinch' | 'flick'
 
 /** Lê `?mode=estalo` da URL; qualquer outro valor mantém a pinça. */

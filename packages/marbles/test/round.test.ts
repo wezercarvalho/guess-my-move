@@ -294,7 +294,7 @@ describe('createBeteRound: tiro, erro e acerto', () => {
     })
 })
 
-describe('createBeteRound: modo estalo (beta)', () => {
+describe('createBeteRound: modo estalo (alpha)', () => {
     const RIGHT = { x: 1, y: 0 }
 
     /** Leitura do estalo: `closed` significa armado; `release` só no quadro da soltura. */

@@ -36,7 +36,7 @@ A hipótese técnica validada em spike é: _um detector de landmarks executado n
 | Alvo de navegador            | Chrome desktop apenas.                                                                                 |
 | IA jogadora                  | Fora do escopo atual; spec futura, sem receber a carta.                                                |
 | Segundo jogo (2026-10-27)    | Bolinhas de gude, bete solo: tiro com a mão pela câmera (pinça), alvo parado, tiros ilimitados.        |
-| Modos de tiro do bete        | **Pinça** (padrão, mira relativa) e **Estalo (beta)**, que imita o tiro real e depende de medição.     |
+| Modos de tiro do bete        | **Pinça** (padrão, mira relativa) e **Estalo (alpha)**, que imita o tiro real e depende de medição.    |
 
 ### 2.2 Decisões técnicas do agente (a partir do spike, revisáveis)
 

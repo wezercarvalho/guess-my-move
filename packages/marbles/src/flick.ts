@@ -1,5 +1,5 @@
 /**
- * Estalo do polegar (modo beta do bete): para a câmera, uma pinça que ABRE
+ * Estalo do polegar (modo alpha do bete): para a câmera, uma pinça que ABRE
  * RÁPIDO. Funções puras, sem DOM, sem relógio próprio e sem MediaPipe: o tempo
  * entra pelos argumentos. Todos os números padrão são palpites ainda não
  * medidos (issue #68).

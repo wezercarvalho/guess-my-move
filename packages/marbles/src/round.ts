@@ -24,7 +24,7 @@ export type BeteState =
 export interface BeteConfig {
     physics: PhysicsConfig
     shot: ShotConfig
-    /** Parâmetros do estalo (modo beta). */
+    /** Parâmetros do estalo (modo alpha). */
     flick: FlickConfig
     /** Raio das duas bolinhas. */
     radius: number
@@ -77,7 +77,7 @@ export interface BeteRound {
     trackerFailed(reason: string): void
     /** Leitura da pinça; `nowMs` é o relógio monotônico do chamador. */
     observePinch(reading: PinchReading, nowMs: number): void
-    /** Leitura do detector de estalo (modo beta); `closed` significa armado. */
+    /** Leitura do detector de estalo (modo alpha); `closed` significa armado. */
     observeFlick(reading: FlickReading, nowMs: number): void
     /** Avança a física em `dtMs` (só em `rolling` e `hit`). */
     advance(dtMs: number): void
