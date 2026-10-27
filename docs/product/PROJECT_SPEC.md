@@ -22,21 +22,21 @@ A hipótese técnica validada em spike é: _um detector de landmarks executado n
 
 ### 2.1 Decisões já tomadas (maintainer, 2026-10-26)
 
-| Tema                         | Decisão                                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Nome e repositório           | **Guess My Move** / `guess-my-move`.                                                                   |
-| Distribuição                 | Projeto público/open-source, vitrine de visão computacional no navegador.                              |
-| Mecânica central             | Jogador faz o gesto; o app verifica por visão computacional local.                                     |
-| Árbitro                      | Visão computacional determinística no navegador; sem LLM e sem servidor no fluxo principal.            |
-| Primeira carta               | **Acenar**; começar com apenas uma para fechar o escopo.                                               |
-| Início da rodada             | Botão **Começar**; a detecção automática do início fica para depois.                                   |
-| Feedback de depuração        | Mostrar o esqueleto da mão e os números do avaliador durante os testes.                                |
-| Formato do critério da carta | Schema mínimo, só com o critério necessário ao Acenar; novas cartas ampliam o schema quando existirem. |
-| Destino do código do LLM     | Removido. As specs substituídas e o histórico do Git são a referência para uma futura IA jogadora.     |
-| Alvo de navegador            | Chrome desktop apenas.                                                                                 |
-| IA jogadora                  | Fora do escopo atual; spec futura, sem receber a carta.                                                |
-| Segundo jogo (2026-10-27)    | Bolinhas de gude, bete solo: tiro com a mão pela câmera (pinça), alvo parado, tiros ilimitados.        |
-| Modos de tiro do bete        | **Pinça** (padrão, mira relativa) e **Estalo (alpha)**, que imita o tiro real e depende de medição.    |
+| Tema                         | Decisão                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nome e repositório           | **Guess My Move** / `guess-my-move`.                                                                                                        |
+| Distribuição                 | Projeto público/open-source, vitrine de visão computacional no navegador.                                                                   |
+| Mecânica central             | Jogador faz o gesto; o app verifica por visão computacional local.                                                                          |
+| Árbitro                      | Visão computacional determinística no navegador; sem LLM e sem servidor no fluxo principal.                                                 |
+| Primeira carta               | **Acenar**; começar com apenas uma para fechar o escopo.                                                                                    |
+| Início da rodada             | Botão **Começar**; a detecção automática do início fica para depois.                                                                        |
+| Feedback de depuração        | Mostrar o esqueleto da mão e os números do avaliador durante os testes.                                                                     |
+| Formato do critério da carta | Schema mínimo, só com o critério necessário ao Acenar; novas cartas ampliam o schema quando existirem.                                      |
+| Destino do código do LLM     | Removido. As specs substituídas e o histórico do Git são a referência para uma futura IA jogadora.                                          |
+| Alvo de navegador            | Chrome desktop apenas.                                                                                                                      |
+| IA jogadora                  | Fora do escopo atual; spec futura, sem receber a carta.                                                                                     |
+| Segundo jogo (2026-10-27)    | Bolinhas de gude, bete solo: tiro com a mão pela câmera (pinça), alvo parado, tiros ilimitados.                                             |
+| Modos de tiro do bete        | **Pinça** (padrão, mira relativa) e **Estalo (alpha)**, que mira como a pinça e só atira com abertura rápida dos dedos; depende de medição. |
 
 ### 2.2 Decisões técnicas do agente (a partir do spike, revisáveis)
 
@@ -187,13 +187,13 @@ sequenceDiagram
 
 ## 8. Entregas
 
-| Fase                           | Objetivo                                                          | Critério para avançar                                                                                                                                                     |
-| ------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Núcleo determinístico**      | Ângulo, avaliador, rodada e carta como funções puras testadas.    | Testes verdes, incluindo as fixtures dos 12 clipes de referência.                                                                                                         |
-| **Aplicação web**              | Câmera, detector, laço por quadro, desenho e depuração.           | Rodada completa no Chrome desktop do maintainer; latência registrada.                                                                                                     |
-| **Remoção do caminho por LLM** | Sem `apps/server`, `packages/providers`, `packages/benchmark`.    | `yarn check:all` verde, sem código órfão.                                                                                                                                 |
-| **IA jogadora (futura)**       | IA adivinha sem conhecer a carta.                                 | Spec própria; fora do escopo atual.                                                                                                                                       |
-| **Bete solo (segundo jogo)**   | Tiro com a pinça da mão contra um alvo parado, em `marbles.html`. | Specs `2026-10-27-game-marbles-bete-build-pinch-shot` e `2026-10-27-game-marbles-bete-build-flick-beta`; teste manual do maintainer; decisão sobre o estalo na issue #68. |
+| Fase                           | Objetivo                                                          | Critério para avançar                                                                                                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Núcleo determinístico**      | Ângulo, avaliador, rodada e carta como funções puras testadas.    | Testes verdes, incluindo as fixtures dos 12 clipes de referência.                                                                                                                                                                   |
+| **Aplicação web**              | Câmera, detector, laço por quadro, desenho e depuração.           | Rodada completa no Chrome desktop do maintainer; latência registrada.                                                                                                                                                               |
+| **Remoção do caminho por LLM** | Sem `apps/server`, `packages/providers`, `packages/benchmark`.    | `yarn check:all` verde, sem código órfão.                                                                                                                                                                                           |
+| **IA jogadora (futura)**       | IA adivinha sem conhecer a carta.                                 | Spec própria; fora do escopo atual.                                                                                                                                                                                                 |
+| **Bete solo (segundo jogo)**   | Tiro com a pinça da mão contra um alvo parado, em `marbles.html`. | Specs `2026-10-27-game-marbles-bete-build-pinch-shot`, `2026-10-27-game-marbles-bete-build-flick-beta` e `2026-10-27-game-marbles-bete-refine-flick-relative-aim`; teste manual do maintainer; decisão sobre o estalo na issue #68. |
 
 ## 9. Critérios de aceite e metas
 

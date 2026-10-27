@@ -20,20 +20,20 @@
 
 ## Fase 3 — Web: quadros novos, painel, tela (apps/web)
 
-- [ ] T006 [US-003] [FR-005] [FR-006] Escrever testes falhando em `apps/web/src/marbles`: o laço processa o detector só por quadro novo (`requestVideoFrameCallback` quando disponível; recuo para a comparação de `video.currentTime` sem reprocessar repetido no jsdom) e conta os quadros novos da câmera por segundo (janela de 1 s), expostos no snapshot
-- [ ] T007 [US-003] [US-004] [FR-005] [FR-006] Implementar o laço por quadro novo e a contagem no `MarblesController`, mapear o resultado do último estalo como `disparado`/`lento demais`/`fraco demais`/`sem tiro` (sem `sem direção`), e confirmar verde
-- [ ] T008 [US-001] [US-004] [FR-006] [FR-007] Escrever testes falhando em `apps/web/src/marbles`: a tela orienta "feche a pinça, arraste a mão para longe do alvo e abra os dedos rápido para atirar", mantém o rótulo "Estalo (alpha)", desenha a previsão do tiro (linha e seta) como na pinça e não desenha a seta de orientação da mão; o painel mostra a taxa da câmera e o resultado do último estalo por `aria-live`
-- [ ] T009 [US-001] [US-004] [FR-006] [FR-007] Implementar os textos em `MarblesScreen`, a previsão do tiro e a remoção da seta de orientação em `fieldView`, e as linhas novas do `DebugPanel`, e confirmar verde
-- [ ] T010 [US-005] [FR-008] Verificar a privacidade por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
-- [ ] T011 [FR-009] Confirmar que os testes do modo pinça (`packages/marbles`) e do jogo de cartas passam, com o modo pinça inalterado salvo o não reprocessar quadros repetidos
+- [x] T006 [US-003] [FR-005] [FR-006] Escrever testes falhando em `apps/web/src/marbles`: o laço processa o detector só por quadro novo (`requestVideoFrameCallback` quando disponível; recuo para a comparação de `video.currentTime` sem reprocessar repetido no jsdom) e conta os quadros novos da câmera por segundo (janela de 1 s), expostos no snapshot
+- [x] T007 [US-003] [US-004] [FR-005] [FR-006] Implementar o laço por quadro novo e a contagem no `MarblesController`, mapear o resultado do último estalo como `disparado`/`lento demais`/`fraco demais`/`sem tiro` (sem `sem direção`), e confirmar verde
+- [x] T008 [US-001] [US-004] [FR-006] [FR-007] Escrever testes falhando em `apps/web/src/marbles`: a tela orienta "feche a pinça, arraste a mão para longe do alvo e abra os dedos rápido para atirar", mantém o rótulo "Estalo (alpha)", desenha a previsão do tiro (linha e seta) como na pinça e não desenha a seta de orientação da mão; o painel mostra a taxa da câmera e o resultado do último estalo por `aria-live`
+- [x] T009 [US-001] [US-004] [FR-006] [FR-007] Implementar os textos em `MarblesScreen`, a previsão do tiro e a remoção da seta de orientação em `fieldView`, e as linhas novas do `DebugPanel`, e confirmar verde
+- [x] T010 [US-005] [FR-008] Verificar a privacidade por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
+- [x] T011 [FR-009] Confirmar que os testes do modo pinça (`packages/marbles`) e do jogo de cartas passam, com o modo pinça inalterado salvo o não reprocessar quadros repetidos
 
 ## Fase 4 — Documentação
 
-- [ ] T012 [FR-010] Atualizar o `README.md` da raiz, o guia de arquitetura `docs/development-context/architecture/architecture-guide.md`, o `docs/product/PROJECT_SPEC.md` e o `specs/README.md` para descrever o estalo com mira relativa e gatilho rápido e o processamento só de quadros novos; marcar a spec `2026-10-27-game-marbles-bete-build-flick-beta` como `superseded` (status, `related_specs`, seção `## Substituição`) e refletir no catálogo
+- [x] T012 [FR-010] Atualizar o `README.md` da raiz, o guia de arquitetura `docs/development-context/architecture/architecture-guide.md`, o `docs/product/PROJECT_SPEC.md` e o `specs/README.md` para descrever o estalo com mira relativa e gatilho rápido e o processamento só de quadros novos; marcar a spec `2026-10-27-game-marbles-bete-build-flick-beta` como `superseded` (status, `related_specs`, seção `## Substituição`) e refletir no catálogo
 
 ## Fase final — Convergência (PENDENTE)
 
-- [ ] T013 [SC-001] [SC-005] [NFR-004] Executar `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`; quando o código estiver implementado, também `yarn check:all`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
+- [x] T013 [SC-001] [SC-005] [NFR-004] Executar `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`; quando o código estiver implementado, também `yarn check:all`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
 - [ ] T014 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop com a mira relativa (disparou, em quantas tentativas, acertou o alvo, disparo falso), a taxa real da câmera lida no painel e a decisão da issue #72, e fechar o Gate 3
 
 ## Cobertura
