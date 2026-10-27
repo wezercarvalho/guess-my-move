@@ -7,7 +7,7 @@ domain: vision
 capability: hand-gesture-referee
 objective: replace-llm-guesser
 summary: O árbitro do fluxo principal passa a ser a visão computacional local (MediaPipe Hand Landmarker no navegador) que reconhece o gesto da carta pela oscilação do ângulo da mão; o caminho do LLM (servidor, provedores, árbitro semântico) é removido.
-status: planned
+status: validated
 owners:
     - wezercarvalho
 reviewers: []
@@ -33,7 +33,7 @@ supersedes:
 branch: feat/63-cv-referee
 constitution_version: 1.0.0
 created_at: 2026-10-26
-updated_at: 2026-10-26
+updated_at: 2026-10-27
 ---
 
 # Árbitro do gesto por visão computacional no navegador (substitui o adivinhador por LLM)

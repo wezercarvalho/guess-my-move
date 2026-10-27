@@ -58,7 +58,7 @@
 
 - [x] T028 [SC-004] [NFR-004] Executar no Chromium o app real com os 12 clipes como câmera simulada, inspecionar as requisições e registrar reconhecimento, falsos positivos, latência e delegate
 - [x] T029 [SC-005] [NFR-006] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check` e `yarn test:gates` e registrar `validation.md`
-- [ ] T030 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (tentativas, reconhecimentos, falsos positivos, latência) e reconciliar spec, plano, tarefas, implementação e evidências
+- [x] T030 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (tentativas, reconhecimentos, falsos positivos, latência) e reconciliar spec, plano, tarefas, implementação e evidências. Concluída com uma única rodada medida; recall e falsos positivos no desktop seguem sem medição e foram aceitos como risco no Gate 3 (`validation.md`)
 
 ## Cobertura
 
