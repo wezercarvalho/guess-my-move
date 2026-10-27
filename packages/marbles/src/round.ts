@@ -27,8 +27,12 @@ export interface BeteConfig {
     radius: number
     shooterStart: Vec
     targetStart: Vec
-    /** Distância máxima da pinça à bolinha de tiro para pegá-la. */
-    grabRadius: number
+    /**
+     * Quanto o arrasto da mão vale no campo. A mira é relativa: a pinça pode
+     * fechar em qualquer lugar e só o deslocamento a partir dali conta. Acima de
+     * 1, o braço se move menos para o mesmo tiro.
+     */
+    aimScale: number
     /** Tempo sem a mão, durante a mira, que cancela o tiro. */
     lostHandMs: number
     /** Teto do intervalo simulado por chamada de `advance`. */
@@ -41,7 +45,7 @@ export const DEFAULT_BETE: BeteConfig = {
     radius: 14,
     shooterStart: { x: 150, y: 300 },
     targetStart: { x: 550, y: 300 },
-    grabRadius: 70,
+    aimScale: 1.5,
     lostHandMs: 300,
     maxAdvanceMs: 250,
 }
@@ -52,7 +56,7 @@ export interface BeteSnapshot {
     shooter: Vec
     target: Vec
     shots: number
-    /** Mira em andamento: ponto da pinça no campo e a previsão do tiro (ou `null` se curto). */
+    /** Mira em andamento: pinça virtual (bolinha mais o arrasto) e a previsão do tiro (ou `null` se curto). */
     aim: { pinch: Vec; shot: Shot | null } | null
     /** Número de tiros que acertou o alvo; `null` enquanto não houve acerto. */
     hitShots: number | null
@@ -87,9 +91,13 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     let shots = 0
     let hitShots: number | null = null
     let failureReason: string | null = null
+    /** Onde a pinça fechou (campo); a mira conta o deslocamento a partir daqui. */
+    let aimAnchor: Vec | null = null
+    /** Pinça virtual: a bolinha de tiro mais o arrasto da mão, já na escala do campo. */
     let aimPinch: Vec | null = null
     let lastSeenMs = 0
-    let prevClosed = false
+    /** A leitura anterior tinha a mão à vista e a pinça aberta. */
+    let prevOpen = false
     let accumulatorMs = 0
 
     function initialBodies(): Body[] {
@@ -100,9 +108,9 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     }
 
     const shooterPos = (): Vec => bodies[0].pos
-    const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y)
 
     function cancelAim(): void {
+        aimAnchor = null
         aimPinch = null
         state = 'ready'
     }
@@ -111,6 +119,7 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
         const shooter = bodies[0]
         bodies = [{ ...shooter, vel: { ...shot.velocity } }, bodies[1]]
         shots++
+        aimAnchor = null
         aimPinch = null
         accumulatorMs = 0
         state = 'rolling'
@@ -124,15 +133,13 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     function observe(reading: PinchReading, nowMs: number): void {
         const point = fieldPoint(reading)
         const closedNow = reading.closed && point !== null
+        const openNow = point !== null && !reading.closed
 
         if (state === 'ready') {
-            if (
-                closedNow &&
-                !prevClosed &&
-                point &&
-                distance(point, shooterPos()) <= cfg.grabRadius
-            ) {
-                aimPinch = point
+            // A mira começa ao fechar a pinça (aberta na leitura anterior), em qualquer lugar.
+            if (closedNow && prevOpen && point) {
+                aimAnchor = point
+                aimPinch = { ...shooterPos() }
                 lastSeenMs = nowMs
                 state = 'aiming'
             }
@@ -142,16 +149,20 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
             } else {
                 lastSeenMs = nowMs
                 if (closedNow) {
-                    aimPinch = point
+                    const anchor = aimAnchor ?? point
+                    aimPinch = {
+                        x: shooterPos().x + (point.x - anchor.x) * cfg.aimScale,
+                        y: shooterPos().y + (point.y - anchor.y) * cfg.aimScale,
+                    }
                 } else {
-                    // Ao abrir a pinça, vale o último ponto com a pinça fechada.
+                    // Ao abrir a pinça, vale a última posição com a pinça fechada.
                     const shot = aimPinch ? computeShot(shooterPos(), aimPinch, cfg.shot) : null
                     if (shot) fire(shot)
                     else cancelAim()
                 }
             }
         }
-        prevClosed = closedNow
+        prevOpen = openNow
     }
 
     function resetPositions(): void {
@@ -185,7 +196,7 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
             cameraOk = true
             if (state === 'idle' || state === 'camera_denied') {
                 state = 'ready'
-                prevClosed = false
+                prevOpen = false
             }
         },
 
@@ -198,6 +209,7 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
 
         trackerFailed(reason: string) {
             if (state === 'hit') return
+            aimAnchor = null
             aimPinch = null
             failureReason = reason
             state = 'tracker_error'
@@ -230,8 +242,9 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
             shots = 0
             hitShots = null
             failureReason = null
+            aimAnchor = null
             aimPinch = null
-            prevClosed = false
+            prevOpen = false
             state = cameraOk ? 'ready' : 'idle'
         },
     }

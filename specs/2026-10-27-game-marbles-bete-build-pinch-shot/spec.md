@@ -35,7 +35,7 @@ updated_at: 2026-10-27
 
 ## Resumo
 
-O jogador abre uma página nova do app, liga a câmera e joga o bete de bolinhas de gude sozinho: uma bolinha de tiro e um alvo parado em um campo 2D visto de cima. Para atirar, o jogador faz o gesto de pinça (junta polegar e indicador) perto da bolinha de tiro, arrasta a mão para trás como um estilingue e abre a pinça para disparar. Uma física arcade determinística move as bolinhas; a rodada termina no primeiro contato entre a bolinha de tiro e o alvo, mostrando o número de tiros. Todo o processamento é local no navegador, sem rede para imagem e sem gravação. A câmera e o rastreador de mão são reaproveitados da spec `2026-10-26-vision-hand-gesture-referee-replace-llm-guesser` sem alteração; o jogo de cartas (Acenar) não muda e fica isolado.
+O jogador abre uma página nova do app, liga a câmera e joga o bete de bolinhas de gude sozinho: uma bolinha de tiro e um alvo parado em um campo 2D visto de cima. Para atirar, o jogador faz o gesto de pinça (junta polegar e indicador) em qualquer ponto da imagem da câmera, com a mão que preferir, arrasta a mão para longe do alvo como um estilingue e abre a pinça para disparar; a mira é relativa, e só o deslocamento da mão a partir de onde a pinça fechou conta. Uma física arcade determinística move as bolinhas; a rodada termina no primeiro contato entre a bolinha de tiro e o alvo, mostrando o número de tiros. Todo o processamento é local no navegador, sem rede para imagem e sem gravação. A câmera e o rastreador de mão são reaproveitados da spec `2026-10-26-vision-hand-gesture-referee-replace-llm-guesser` sem alteração; o jogo de cartas (Acenar) não muda e fica isolado.
 
 ## Problema
 
@@ -71,11 +71,11 @@ O repositório tem hoje um único jogo (Acenar, por cartas) e uma infraestrutura
 
 Como jogador, quero mirar com a pinça e disparar a bolinha como num estilingue, para acertar o alvo e ver em quantos tiros consegui.
 
-**Teste independente:** no Chrome desktop com a câmera ativa, fechar a pinça perto da bolinha de tiro, arrastar a mão para trás e abrir a pinça; a bolinha parte na direção da bolinha para a pinça e, ao tocar o alvo, a rodada termina mostrando o número de tiros.
+**Teste independente:** no Chrome desktop com a câmera ativa, fechar a pinça em qualquer ponto, arrastar a mão para longe do alvo e abrir a pinça; a bolinha parte na direção da bolinha para a pinça e, ao tocar o alvo, a rodada termina mostrando o número de tiros.
 
 **Critérios de aceitação:**
 
-1. **Dado** que a bolinha de tiro está parada e a mão visível, **quando** o jogador fecha a pinça a até 70 unidades da bolinha, arrasta para trás e abre a pinça, **então** a bolinha é disparada com direção da pinça para a bolinha e velocidade proporcional ao arrasto.
+1. **Dado** que a bolinha de tiro está parada e a mão visível, **quando** o jogador fecha a pinça em qualquer ponto da imagem, arrasta a mão e abre a pinça, **então** a bolinha é disparada com direção da pinça para a bolinha e velocidade proporcional ao arrasto.
 2. **Dado** que a bolinha de tiro está em movimento, **quando** ela toca o alvo pela primeira vez, **então** a rodada termina no estado de acerto e o número de tiros é exibido.
 3. **Dado** um arrasto menor que 30 unidades, **quando** a pinça abre, **então** o tiro é cancelado e nenhum disparo ocorre.
 4. **Dado** que o arrasto excede 220 unidades, **quando** a pinça abre, **então** a velocidade é limitada ao máximo (1100 unidades por segundo).
@@ -120,7 +120,7 @@ Como jogador, quero que nenhuma imagem minha saia do navegador, para jogar com p
 - **FR-002:** O pacote DEVE detectar o primeiro contato entre a bolinha de tiro e o alvo (distância entre centros menor ou igual à soma dos raios) e sinalizá-lo como acerto, sem depender de DOM.
 - **FR-003:** O pacote DEVE expor um detector de pinça puro que, a partir dos landmarks 4 (ponta do polegar), 8 (ponta do indicador), 0 (pulso) e 9 (base do dedo médio), calcula a razão `distância(4, 8) / distância(0, 9)` com o eixo x multiplicado pela proporção da imagem, aplica histerese (fecha com razão <= 0,35, abre com razão >= 0,55), devolve o ponto da pinça como ponto médio das pontas espelhado em x, e trata a ausência de mão como pinça aberta sem ponto.
 - **FR-004:** O pacote DEVE calcular o tiro a partir do arrasto: direção do ponto da pinça para a bolinha de tiro, velocidade igual a 5 vezes a distância do arrasto limitada a 220 unidades (velocidade máxima 1100 unidades por segundo), e cancelamento quando o arrasto é menor que 30 unidades.
-- **FR-005:** O pacote DEVE expor `createBeteRound()` com máquina de estados `idle | ready | aiming | rolling | hit | camera_denied | tracker_error` e eventos `cameraReady()`, `denyCamera()`, `trackerFailed(msg)`, `observePinch(reading, nowMs)`, `advance(dtMs)` e `newRound()`, de modo que: a pega só inicia a mira com a pinça fechada a até 70 unidades da bolinha de tiro parada; perder a mão por mais de 300 ms durante a mira cancela o tiro; o erro (tudo parado sem contato) volta a bolinha de tiro a (150, 300) e o alvo a (550, 300); o primeiro contato leva a `hit`; `newRound()` reinicia tiros e posições; `snapshot()` devolve estado, posições, tiros, dados da mira e resultado.
+- **FR-005:** O pacote DEVE expor `createBeteRound()` com máquina de estados `idle | ready | aiming | rolling | hit | camera_denied | tracker_error` e eventos `cameraReady()`, `denyCamera()`, `trackerFailed(msg)`, `observePinch(reading, nowMs)`, `advance(dtMs)` e `newRound()`, de modo que: a mira é relativa: a pinça que fecha, depois de ter sido vista aberta, em qualquer ponto inicia a mira, e a pinça virtual é a bolinha de tiro mais o deslocamento da mão desde esse ponto multiplicado por uma escala (padrão 1,5), de modo que qualquer mão serve e o jogador não precisa alcançar a bolinha; perder a mão por mais de 300 ms durante a mira cancela o tiro; o erro (tudo parado sem contato) volta a bolinha de tiro a (150, 300) e o alvo a (550, 300); o primeiro contato leva a `hit`; `newRound()` reinicia tiros e posições; `snapshot()` devolve estado, posições, tiros, dados da mira e resultado.
 - **FR-006:** A tela DEVE desenhar em canvas 2D o campo, a bolinha de tiro, o alvo, a linha do elástico e a seta de previsão durante a mira, o contador de tiros, as mensagens de estado e um botão **Nova rodada**, e DEVE anunciar o estado e o resultado por região `aria-live`. Sempre que o detector enxergar a mão, a tela DEVE desenhar no campo um cursor na posição da pinça (cor distinta para pinça aberta e fechada); quando não enxergar, DEVE dizer isso e orientar o jogador a mostrar a mão inteira, com a palma voltada para a câmera, na altura do peito e com boa luz. A câmera DEVE ficar visível ao lado do campo em telas largas.
 - **FR-007:** A página DEVE reaproveitar sem alterar `useCamera`, `CameraPanel`, `HandTracker`/`createMediaPipeHandTracker` e `drawHand`, usar uma mão, selecionar o delegate automaticamente ou por parâmetro de URL, e espelhar em x o vídeo de preview e o esqueleto.
 - **FR-008:** A tela DEVE exibir um painel de depuração com delegate em uso, estado da rodada, razão da pinça, pinça fechada, mão visível, quadros processados e latências mediana e p95, como no jogo de cartas.
@@ -142,14 +142,14 @@ Como jogador, quero que nenhuma imagem minha saia do navegador, para jogar com p
 - Mão some entre fechar a pinça e disparar por mais de 300 ms: o tiro em preparação é cancelado e a bolinha permanece em (150, 300).
 - Arrasto muito curto (menor que 30 unidades): o disparo é cancelado ao abrir a pinça.
 - Arrasto muito longo (maior que 220 unidades): a velocidade satura no máximo.
-- Pinça fechada longe da bolinha (mais de 70 unidades): não inicia a mira.
+- Pinça já fechada quando a mão aparece (sem ter sido vista aberta): não inicia a mira.
 - Duas mãos no quadro: apenas a primeira devolvida pelo rastreador é considerada.
 - Câmera negada ou falha do rastreador: a rodada entra em `camera_denied` ou `tracker_error` com mensagem, sem travar o jogo.
 - Bolinhas em repouso instável perto do limiar de 8 unidades por segundo: a parada é determinística pelo passo fixo.
 
 ## Hipóteses e dependências
 
-- **H-01:** Os limiares da pinça (0,35 e 0,55), o raio de pega (70), o ganho de velocidade (5x) e os limites (30 e 220 unidades) são placeholders de calibração, não medidos; serão ajustados com uso real.
+- **H-01:** Os limiares da pinça (0,35 e 0,55), a escala da mira (1,5), o ganho de velocidade (5x) e os limites (30 e 220 unidades) são placeholders de calibração, não medidos; serão ajustados com uso real.
 - **H-02:** Mapear o quadro inteiro da câmera ao campo (com x espelhado) é suficiente para mirar; a validação é no teste do maintainer.
 - **H-03:** O reconhecimento da pinça depende da taxa de quadros e da perda de mão em movimento rápido (visto na spec do Acenar); por isso o arrasto é lento por desenho.
 - **Dependências:** reaproveitamento da câmera e do rastreador de mão da spec `2026-10-26-vision-hand-gesture-referee-replace-llm-guesser` (MediaPipe Hand Landmarker), sem alteração dessa lógica; Chrome desktop como alvo.

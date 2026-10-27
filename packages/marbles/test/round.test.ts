@@ -15,9 +15,9 @@ const reading = (x: number, y: number, closed: boolean): PinchReading => ({
 })
 const noHand: PinchReading = { handVisible: false, closed: false, ratio: null, point: null }
 
-/** Rodada pronta, com a pinça aberta já observada (como numa câmera real). */
+/** Rodada pronta, com a pinça aberta já observada (como numa câmera real). Escala 1 mantém as contas em unidades do campo. */
 function readyRound() {
-    const round = createBeteRound()
+    const round = createBeteRound({ aimScale: 1 })
     round.cameraReady()
     round.observePinch(reading(100, 300, false), 0)
     return round
@@ -81,24 +81,68 @@ describe('createBeteRound: início e câmera', () => {
 })
 
 describe('createBeteRound: mira', () => {
-    it('pega a bolinha ao fechar a pinça a até 70 unidades dela', () => {
+    it('a pinça fechada em qualquer ponto do campo inicia a mira, sem exigir proximidade da bolinha', () => {
         const round = readyRound()
-        round.observePinch(reading(150 + 60, 300, true), 16)
+        round.observePinch(reading(700, 500, true), 16)
         expect(round.state).toBe('aiming')
     })
 
-    it('não pega a bolinha quando a pinça fecha a mais de 70 unidades', () => {
-        const round = readyRound()
-        round.observePinch(reading(150 + 80, 300, true), 16)
-        expect(round.state).toBe('ready')
+    it('a mira é relativa: só o arrasto importa, não o ponto onde a pinça fechou', () => {
+        const near = readyRound()
+        aimAt(near, 50, 300)
+        const far = readyRound()
+        far.observePinch(reading(700, 500, true), 100)
+        far.observePinch(reading(600, 500, true), 116)
+        expect(far.snapshot().aim?.shot?.velocity.x).toBeCloseTo(
+            near.snapshot().aim?.shot?.velocity.x ?? Number.NaN,
+            6,
+        )
+        expect(far.snapshot().aim?.shot?.velocity.y).toBeCloseTo(0, 9)
     })
 
-    it('só pega ao fechar: uma pinça já fechada que chega perto não conta', () => {
+    it('arrastar para a direita e para baixo lança a bolinha para a esquerda e para cima', () => {
+        const round = readyRound()
+        round.observePinch(reading(300, 200, true), 100)
+        round.observePinch(reading(380, 260, true), 116)
+        const velocity = round.snapshot().aim?.shot?.velocity
+        expect(velocity?.x).toBeLessThan(0)
+        expect(velocity?.y).toBeLessThan(0)
+    })
+
+    it('o elástico aparece partindo da bolinha: a pinça virtual é a bolinha mais o arrasto', () => {
+        const round = readyRound()
+        round.observePinch(reading(700, 500, true), 100)
+        round.observePinch(reading(660, 470, true), 116)
+        const pinch = round.snapshot().aim?.pinch
+        expect(pinch?.x).toBeCloseTo(150 - 40, 6)
+        expect(pinch?.y).toBeCloseTo(300 - 30, 6)
+    })
+
+    it('por padrão o arrasto da mão vale 1,5 vez no campo (menos movimento do braço)', () => {
+        const round = createBeteRound()
+        round.cameraReady()
+        round.observePinch(reading(400, 300, false), 0)
+        round.observePinch(reading(400, 300, true), 100)
+        round.observePinch(reading(300, 300, true), 116)
+        expect(round.snapshot().aim?.shot?.pull).toBeCloseTo(150, 6)
+        expect(round.snapshot().aim?.shot?.velocity.x).toBeCloseTo(750, 6)
+    })
+
+    it('só inicia ao fechar: uma pinça já fechada ao aparecer não inicia a mira', () => {
         const round = createBeteRound()
         round.cameraReady()
         round.observePinch(reading(400, 100, true), 0)
-        round.observePinch(reading(150, 300, true), 16)
+        round.observePinch(reading(400, 100, true), 16)
         expect(round.state).toBe('ready')
+    })
+
+    it('depois de cancelar com um arrasto curto, abrir e fechar a pinça inicia uma nova mira', () => {
+        const round = readyRound()
+        aimAt(round, 140, 300)
+        round.observePinch(reading(140, 300, false), 200)
+        expect(round.state).toBe('ready')
+        round.observePinch(reading(300, 300, true), 216)
+        expect(round.state).toBe('aiming')
     })
 
     it('mostra a pinça e a previsão do tiro durante a mira', () => {

@@ -81,7 +81,7 @@ specs/README.md                                                       nova linha
 ### Fluxo
 
 1. Câmera ativa dispara o carregamento do rastreador; o estado vai a `ready`.
-2. A pinça fechada a até 70 unidades da bolinha de tiro parada inicia `aiming`; o arrasto define direção e força.
+2. A pinça que fecha em qualquer ponto, depois de vista aberta, inicia `aiming`; o deslocamento da mão desde ali, na escala 1,5, define direção e força.
 3. Abrir a pinça com arrasto >= 30 unidades dispara (`rolling`); abaixo disso cancela e volta a `ready`.
 4. A física avança por passo fixo; o primeiro contato leva a `hit` e mostra os tiros; tudo parado sem contato volta a bolinha de tiro e o alvo às posições iniciais em `ready`.
 5. Perda da mão por mais de 300 ms em `aiming` cancela o tiro. Câmera negada ou falha do rastreador leva a `camera_denied`/`tracker_error`.

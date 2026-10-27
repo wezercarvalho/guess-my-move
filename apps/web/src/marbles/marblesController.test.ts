@@ -187,7 +187,7 @@ describe('MarblesController: laço por quadro', () => {
         expect(h.controller.getSnapshot().hand).toBeNull()
     })
 
-    it('pinça aberta, fechada perto da bolinha e arrastada leva a aiming com a previsão', async () => {
+    it('pinça aberta, fechada em qualquer ponto e arrastada leva a aiming com a previsão', async () => {
         const h = harness()
         await h.ready()
         h.run(open(100, 300))
@@ -195,8 +195,21 @@ describe('MarblesController: laço por quadro', () => {
         h.run(closed(50, 300))
         const { round } = h.controller.getSnapshot()
         expect(round.state).toBe('aiming')
-        expect(round.aim?.pinch.x).toBeCloseTo(50, 3)
-        expect(round.aim?.shot?.velocity.x).toBeCloseTo(500, 2)
+        // Arrasto de 100 unidades na escala padrão de 1,5: pinça virtual 150 à esquerda da bolinha.
+        expect(round.aim?.pinch.x).toBeCloseTo(0, 3)
+        expect(round.aim?.shot?.velocity.x).toBeCloseTo(750, 2)
+    })
+
+    it('a pinça pode fechar longe da bolinha e a mira ainda funciona (qualquer mão, qualquer lado)', async () => {
+        const h = harness()
+        await h.ready()
+        h.run(open(650, 450))
+        h.run(closed(650, 450))
+        h.run(closed(550, 450))
+        const { round } = h.controller.getSnapshot()
+        expect(round.state).toBe('aiming')
+        expect(round.aim?.shot?.velocity.x).toBeCloseTo(750, 2)
+        expect(round.aim?.shot?.velocity.y).toBeCloseTo(0, 2)
     })
 
     it('soltar a pinça dispara e a bolinha rola até acertar o alvo', async () => {

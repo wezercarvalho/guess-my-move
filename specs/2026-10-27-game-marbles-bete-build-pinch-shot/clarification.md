@@ -26,7 +26,7 @@ As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete 
 - **Data:** `2026-10-27`
 - **Impacto:** alto
 - **Pergunta:** Como o jogador dispara a bolinha?
-- **Decisão:** Pinça (polegar e indicador) como estilingue: fechar perto da bolinha, arrastar para trás e abrir para disparar; o estalo real fica para a issue #68.
+- **Decisão:** Pinça (polegar e indicador) como estilingue: fechar em qualquer ponto (mira relativa, ver CQ-010), arrastar para longe do alvo e abrir para disparar; o estalo real fica para a issue #68.
 - **Razão:** A pinça é robusta no rastreador de mão e mapeia bem para o estilingue; o estalo exige detecção de gesto mais fina.
 - **Alternativas rejeitadas:** Estalo do dedo na primeira entrega (issue #68, fora de escopo); apontar e clicar (perde o caráter de gesto).
 - **Seções atualizadas em `spec.md`:** Resumo, Fora de escopo, US-001, FR-003, FR-004.
@@ -36,7 +36,7 @@ As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete 
 - **Data:** `2026-10-27`
 - **Impacto:** médio
 - **Pergunta:** Quais valores de campo, bolinhas e tiro valem como ponto de partida?
-- **Decisão:** Campo 800 x 600, raio 14, tiro em (150, 300), alvo em (550, 300); pega a até 70 unidades, velocidade 5x o arrasto, limite de arrasto 220, cancelamento abaixo de 30, perda da mão acima de 300 ms. Todos placeholders de calibração.
+- **Decisão:** Campo 800 x 600, raio 14, tiro em (150, 300), alvo em (550, 300); escala da mira 1,5, velocidade 5x o arrasto, limite de arrasto 220, cancelamento abaixo de 30, perda da mão acima de 300 ms. Todos placeholders de calibração.
 - **Razão:** Proporção 4:3 compatível com a webcam; valores iniciais suficientes para jogar e calibrar.
 - **Alternativas rejeitadas:** Fixar valores como definitivos sem medição (contraria a Constituição V).
 - **Seções atualizadas em `spec.md`:** Resumo, FR-001, FR-004, FR-005, H-01.
@@ -96,14 +96,24 @@ As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete 
 - **Data:** `2026-10-27`
 - **Impacto:** médio
 - **Pergunta:** Como o jogador chega a cada jogo e como sabe que a mão foi vista?
-- **Decisão:** Pedido do maintainer após o primeiro teste: `index.html` vira um menu com um card por jogo (FR-012), e o jogo de cartas passa a `cards.html` sem mudar seu código. No primeiro teste do maintainer a mão não foi vista em nenhum momento (painel com "Razão da pinça: —" por 19 s, mão só na borda inferior do quadro) e a tela não dizia isso; a FR-006 passa a exigir o cursor da mão no campo, mensagens de orientação e a câmera ao lado do campo.
-- **Razão:** O menu evita decorar URLs; o guia da mão corrige uma falha de interface, sem alterar os limiares nem o ganho.
+- **Decisão:** Pedido do maintainer após o primeiro teste: `index.html` vira um menu com um card por jogo (FR-012), e o jogo de cartas passa a `cards.html` sem mudar seu código. A tela não mostrava onde a mão do jogador estava no campo nem se ela era vista, o que dificultava jogar e entender o que o detector lia; a FR-006 passa a exigir o cursor da mão no campo, mensagens de orientação e a câmera ao lado do campo.
+- **Razão:** O menu evita decorar URLs; o guia da mão corrige uma falha de interface, sem alterar os limiares nem o ganho. (Uma versão anterior desta decisão dizia que o detector não tinha visto a mão no primeiro teste; isso estava errado, ver a retratação em `validation.md`.)
 - **Alternativas rejeitadas:** Roteamento no cliente dentro de uma entrada só (mexeria no `App.tsx` do jogo de cartas).
 - **Seções atualizadas em `spec.md`:** FR-006, FR-010, FR-012.
 
+## CQ-010 — Mira relativa (qualquer mão, qualquer lado)
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** A pinça precisa fechar perto da bolinha de tiro?
+- **Decisão:** Não. No segundo teste do maintainer (vídeo de tela, mão direita), a bolinha de tiro fica no lado esquerdo do campo e a mão direita precisava cruzar o corpo para o anel chegar nela; ele relatou ter de alternar entre as mãos. A mira passa a ser relativa: a pinça que fecha em qualquer ponto inicia a mira (desde que tenha sido vista aberta antes) e a pinça virtual é a bolinha de tiro mais o deslocamento da mão desde esse ponto, na escala `aimScale` (padrão 1,5). O raio de pega (70) deixa de existir, inclusive no código.
+- **Razão:** Funciona com qualquer mão, não depende de alcançar o lado esquerdo do campo e reduz o movimento do braço; o arrasto continua sendo um estilingue.
+- **Alternativas rejeitadas:** Mover a bolinha de tiro para o centro (continua forçando um lado); espelhar o campo por mão (exige detectar a mão e confunde); manter o raio de pega e ampliar (mantém o problema).
+- **Seções atualizadas em `spec.md`:** Resumo, US-001, FR-005, casos de borda, H-01.
+
 ## Hipóteses remanescentes
 
-- Limiares da pinça, raio de pega, ganho e limites são placeholders até a calibração com uso real (H-01); mitigado pelo painel de depuração e pelo teste do maintainer.
+- Limiares da pinça, escala da mira, ganho e limites são placeholders até a calibração com uso real (H-01); mitigado pelo painel de depuração e pelo teste do maintainer.
 - O mapeamento do quadro inteiro ao campo pode exigir ajuste de sensibilidade (H-02); validado no teste do maintainer.
 - A perda da mão em movimento rápido pode cancelar tiros legítimos (H-03); mitigado pelo arrasto lento por desenho.
 

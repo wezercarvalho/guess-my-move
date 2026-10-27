@@ -38,7 +38,7 @@ O modelo não é versionado no repositório; `apps/web/public/mediapipe/` fica f
 
 ### Bolinhas de gude (bete)
 
-Com o mesmo servidor de desenvolvimento, abra `/marbles.html` (por exemplo, `http://localhost:5173/marbles.html`) no Chrome desktop e autorize a câmera. Faça a pinça (polegar e indicador juntos) perto da bolinha azul, arraste a mão para trás e abra os dedos para atirar na bolinha vermelha. O vídeo e o esqueleto aparecem espelhados, como num espelho. O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados e a latência. `?delegate=cpu|gpu` também vale aqui.
+Com o mesmo servidor de desenvolvimento, abra `/marbles.html` (por exemplo, `http://localhost:5173/marbles.html`) no Chrome desktop e autorize a câmera. Faça a pinça (polegar e indicador juntos) em qualquer ponto, com a mão que preferir, arraste a mão para longe do alvo e abra os dedos para atirar a bolinha azul na vermelha. A mira é relativa: só o deslocamento da mão desde onde a pinça fechou conta. O vídeo e o esqueleto aparecem espelhados, como num espelho. O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados e a latência. `?delegate=cpu|gpu` também vale aqui.
 
 ### Delegate GPU ou CPU
 

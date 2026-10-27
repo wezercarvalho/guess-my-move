@@ -25,7 +25,7 @@
 
 ## Fase 3 — Rodada
 
-- [x] T009 [US-002] [FR-005] Escrever testes falhando da rodada (pega até 70 unidades, mira, perda de mão > 300 ms, erro volta ao início, acerto, nova rodada, `camera_denied`, `tracker_error`, `snapshot`) em `packages/marbles/test/round.test.ts`
+- [x] T009 [US-002] [FR-005] Escrever testes falhando da rodada (mira, perda de mão > 300 ms, erro volta ao início, acerto, nova rodada, `camera_denied`, `tracker_error`, `snapshot`) em `packages/marbles/test/round.test.ts`
 - [x] T010 [US-002] [FR-005] Implementar `packages/marbles/src/round.ts` (`createBeteRound`) e `index.ts`, e confirmar verde
 
 ## Fase 4 — Web
@@ -37,13 +37,12 @@
 - [x] T015 [US-004] [FR-009] Verificar a privacidade por busca no código (`fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, persistência) e por execução no Chromium com inspeção de rede
 - [x] T016 [FR-010] Confirmar que o jogo de cartas continua passando sem alteração de código (testes do Acenar verdes, `index.html` e `src/round/` intactos)
 - [x] T017 [FR-011] Atualizar `docs/product/PROJECT_SPEC.md`, `README.md` e o guia de arquitetura em `docs/development-context/` com o modo bete, o pacote `packages/marbles` e a segunda entrada
-
-## Fase final — Convergência
-
 - [x] T020 [FR-012] Escrever testes falhando do menu inicial (um card por jogo, links relativos para `cards.html` e `marbles.html`, link de volta ao menu) em `apps/web/src/home`
 - [x] T021 [FR-012] Implementar o menu em `index.html` e `src/home`, mover a página do jogo de cartas para `cards.html` sem alterar `src/main.tsx` nem o código do jogo, e adicionar o link de volta nas duas páginas
 - [x] T022 [FR-006] Escrever testes falhando do guia visual da mão (cursor no campo com a pinça aberta e fechada, mensagem quando a mão não é vista, câmera ao lado do campo)
 - [x] T023 [FR-006] [FR-007] Implementar o cursor da mão no campo, as mensagens de orientação e o layout em duas colunas, publicando a posição da mão no snapshot do controlador a cada quadro
+- [x] T024 [FR-005] Escrever testes falhando da mira relativa (pinça fechada em qualquer ponto inicia a mira, só o arrasto importa, escala padrão 1,5, só inicia ao fechar depois de vista aberta) em `packages/marbles/test/round.test.ts` e no controlador
+- [x] T025 [FR-005] [FR-006] Implementar a mira relativa em `round.ts` (`aimScale` no lugar do raio de pega), remover o anel de pega do campo e atualizar as mensagens da tela
 
 ## Fase final — Convergência
 
@@ -58,7 +57,7 @@
 | FR-002    | T003, T004             | `physics.test.ts`                                 |
 | FR-003    | T005, T006             | `pinch.test.ts`                                   |
 | FR-004    | T007, T008             | `shot.test.ts`                                    |
-| FR-005    | T009, T010             | `round.test.ts`                                   |
+| FR-005    | T009, T010, T024, T025 | `round.test.ts`                                   |
 | FR-006    | T013, T014, T022, T023 | `MarblesScreen.test.tsx`                          |
 | FR-007    | T011, T012             | controlador com rastreador simulado, Chromium     |
 | FR-008    | T013, T014             | `DebugPanel.test.tsx`                             |

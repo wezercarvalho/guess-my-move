@@ -62,7 +62,7 @@ export function drawField(
     const context = canvas.getContext('2d')
     if (!context) return
     const { width, height } = config.physics
-    const { radius, shooterStart, grabRadius } = config
+    const { radius, shooterStart } = config
 
     context.clearRect(0, 0, width, height)
     context.fillStyle = '#b98f5e'
@@ -74,9 +74,6 @@ export function drawField(
     context.lineWidth = 2
     context.strokeStyle = 'rgba(60, 40, 20, 0.45)'
     ring(context, shooterStart.x, shooterStart.y, radius + 8, [4, 4])
-    if (snapshot.state === 'ready') {
-        ring(context, snapshot.shooter.x, snapshot.shooter.y, grabRadius, [3, 9])
-    }
 
     marble(context, snapshot.target.x, snapshot.target.y, radius, '#e5533d')
     marble(context, snapshot.shooter.x, snapshot.shooter.y, radius, '#3b82f6')

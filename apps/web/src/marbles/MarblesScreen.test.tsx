@@ -139,7 +139,7 @@ describe('MarblesScreen', () => {
         renderScreen(h)
         await readyToPlay()
         h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste para trás/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/em qualquer ponto/i)
     })
 
     it('sem a mão à vista, orienta a mostrá-la inteira, com a palma para a câmera', async () => {
@@ -232,6 +232,6 @@ describe('MarblesScreen', () => {
         fireEvent.click(screen.getByRole('button', { name: /nova rodada/i }))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
         h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/arraste para trás/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/em qualquer ponto/i)
     })
 })

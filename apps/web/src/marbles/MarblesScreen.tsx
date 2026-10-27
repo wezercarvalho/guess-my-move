@@ -26,7 +26,7 @@ function statusText(round: Round, tracker: TrackerStatus, handVisible: boolean):
                 : 'Ative a câmera para jogar.'
         case 'ready':
             return handVisible
-                ? 'Mão à vista! Faça a pinça perto da bolinha azul, arraste para trás e abra os dedos para atirar.'
+                ? 'Mão à vista! Faça a pinça em qualquer ponto, arraste a mão para longe do alvo e abra os dedos para atirar.'
                 : 'Não estou vendo a sua mão. Mostre-a inteira para a câmera, com a palma voltada para ela, na altura do peito e com boa luz.'
         case 'aiming':
             return round.aim?.shot
@@ -80,9 +80,10 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             <header className="app-header">
                 <h1>Bolinhas de gude: bete</h1>
                 <p>
-                    Ative a câmera, faça a pinça (polegar e indicador juntos) perto da bolinha
-                    azul, arraste a mão para trás e abra os dedos para atirar. Acerte a bolinha
-                    vermelha com o menor número de tiros.
+                    Ative a câmera e faça a pinça (polegar e indicador juntos) em qualquer ponto,
+                    com a mão que preferir. Arraste a mão para longe da bolinha vermelha, como um
+                    estilingue, e abra os dedos para atirar a bolinha azul. Acerte o alvo com o
+                    menor número de tiros.
                 </p>
             </header>
 

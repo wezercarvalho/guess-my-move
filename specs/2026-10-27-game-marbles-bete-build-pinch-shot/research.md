@@ -41,7 +41,7 @@ A lógica de física, pinça, tiro e rodada fica em `@guess-my-move/marbles`, se
 | Restituição entre bolinhas | 1,0           | Colisão elástica, massas iguais                |
 | Razão para fechar a pinça  | <= 0,35       | Histerese                                      |
 | Razão para abrir a pinça   | >= 0,55       | Histerese                                      |
-| Raio de pega               | 70 unidades   | Distância máxima da pinça à bolinha de tiro    |
+| Escala da mira             | 1,5           | Deslocamento da mão vale 1,5 no campo          |
 | Ganho de velocidade        | 5x o arrasto  | —                                              |
 | Limite de arrasto          | 220 unidades  | Velocidade máxima 1100 unid/s                  |
 | Cancelamento de arrasto    | < 30 unidades | Tiro cancelado                                 |
