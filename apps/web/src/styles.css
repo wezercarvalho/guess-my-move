@@ -42,7 +42,7 @@ body {
     color: var(--cor-texto-suave);
 }
 
-.external-provider-notice {
+.privacy-notice {
     margin: 0;
     padding: 0.75rem 1rem;
     border-radius: var(--raio);
@@ -81,7 +81,7 @@ body {
     width: 100%;
     max-height: 360px;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
     background: #000;
     transform: scaleX(-1); /* espelha o preview, como um espelho */
 }
@@ -177,14 +177,14 @@ a:focus-visible {
     font-size: 0.9rem;
 }
 
-.poc-screen {
+.gesture-screen {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
 }
 
 .card-view,
-.attempt-panel {
+.round-panel {
     background: var(--cor-superficie);
     border-radius: var(--raio);
     padding: 1.25rem;
@@ -194,7 +194,7 @@ a:focus-visible {
 }
 
 .card-view h2,
-.attempt-panel h2 {
+.round-panel h2 {
     margin: 0;
     font-size: 1.25rem;
 }
@@ -232,42 +232,29 @@ a:focus-visible {
     letter-spacing: 0.03em;
 }
 
-.attempt-actions {
+.round-actions {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
 }
 
-.attempt-result {
+.round-result {
     min-height: 1.5rem;
 }
 
-.attempt-success strong {
-    color: var(--cor-ativo);
-    font-size: 1.1rem;
-}
 
-.attempt-duration {
-    color: var(--cor-texto-suave);
-    font-size: 0.9rem;
-    margin: 0.25rem 0 0;
-}
 
-.attempt-error {
+.round-error {
     background: rgba(255, 107, 107, 0.12);
     border: 1px solid var(--cor-erro);
     border-radius: var(--raio);
     padding: 0.75rem 1rem;
 }
 
-.attempt-error p {
+.round-error p {
     margin: 0.25rem 0;
 }
 
-.attempt-error-hint {
-    color: var(--cor-texto-suave);
-    font-size: 0.9rem;
-}
 
 /* Conteúdo só para leitores de tela (anúncios aria-live). */
 .sr-only {
@@ -288,17 +275,50 @@ a:focus-visible {
     font-size: 0.9rem;
 }
 
-.round-verdict {
-    margin: 0;
-    font-weight: 600;
+.round-timer {
+    align-self: center;
+    color: var(--cor-texto-suave);
+    font-variant-numeric: tabular-nums;
 }
 
-.round-verdict-correct {
-    color: var(--cor-acento);
-}
-
-.rejected-guesses {
-    margin: 0.5rem 0 0;
+.round-error-hint {
     color: var(--cor-texto-suave);
     font-size: 0.9rem;
+}
+
+/* Esqueleto da mão sobre o vídeo; espelhado como o preview. */
+.hand-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    transform: scaleX(-1);
+}
+
+.debug-panel {
+    background: var(--cor-superficie);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+}
+
+.debug-panel h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.25rem;
+}
+
+.debug-grid {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.25rem 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.debug-grid dt {
+    color: var(--cor-texto-suave);
+}
+
+.debug-grid dd {
+    margin: 0;
 }

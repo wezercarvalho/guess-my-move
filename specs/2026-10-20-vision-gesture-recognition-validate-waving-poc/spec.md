@@ -7,7 +7,7 @@ domain: vision
 capability: gesture-recognition
 objective: validate-waving-poc
 summary: PoC visual (Fase 0) que valida se um modelo multimodal gerenciado reconhece o gesto acenar a partir de frames da webcam, sem treinamento e sem receber a carta.
-status: implementing
+status: superseded
 owners:
     - wezercarvalho
 reviewers: []
@@ -22,11 +22,12 @@ code_paths:
     - packages/
 related_specs:
     - 2026-10-21-game-engine-round-referee-build-core-loop
+    - 2026-10-26-vision-hand-gesture-referee-replace-llm-guesser
 supersedes: []
 branch: docs/1-clarify-plan-tasks
 constitution_version: 1.0.0
 created_at: 2026-10-20
-updated_at: 2026-10-21
+updated_at: 2026-10-26
 ---
 
 # Validar o reconhecimento do gesto "acenar" por modelo multimodal (PoC visual)
@@ -171,3 +172,7 @@ Resolvidas em 2026-10-21 pelo orquestrador sob aprovação geral do maintainer (
 - **Perfil do benchmark e consentimento:** definidos na seção "Perfil do benchmark".
 - **Modelos:** a PoC usa o adaptador `codex` (`gpt-6-luna`, esforço `none`, `low` e `high`) e o `mock` para testes. Bedrock (Claude Haiku 5.5 e Nova 2 Lite) fica como candidato de produção em issue futura, dependente do acesso AWS (issue #2). O perfil de inferência `global` x `us` fica adiado até o acesso AWS ser configurado.
 - **Validação de acurácia:** a PoC não valida acurácia por conta própria; o benchmark (issue #10) só é executado com clipes reais gravados pelo maintainer. A entrega da issue #10 é o harness reproduzível + protocolo + modelo de relatório.
+
+## Substituição
+
+O reconhecimento do gesto por um modelo multimodal gerenciado (adivinhador por LLM, captura de seis frames, benchmark de provedores) foi substituído pela detecção local de landmarks da mão no navegador. O maintainer julgou o adivinhador por LLM não escalável e caro por tentativa. O comportamento vigente está na spec [`2026-10-26-vision-hand-gesture-referee-replace-llm-guesser`](../2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/spec.md); o histórico do Git preserva esta spec para uma futura IA jogadora.

@@ -7,7 +7,7 @@ domain: game-engine
 capability: round-referee
 objective: build-core-loop
 summary: Núcleo puro do jogo (packages/core) — carta com dados públicos e privados, máquina de estados da rodada com limites de tentativas, árbitro semântico determinístico com fallback opcional por LLM e histórico de palpites rejeitados.
-status: implementing
+status: superseded
 owners:
     - wezercarvalho
 reviewers: []
@@ -21,11 +21,12 @@ code_paths:
     - packages/core/
 related_specs:
     - 2026-10-20-vision-gesture-recognition-validate-waving-poc
+    - 2026-10-26-vision-hand-gesture-referee-replace-llm-guesser
 supersedes: []
 branch: docs/1-clarify-plan-tasks
 constitution_version: 1.0.0
 created_at: 2026-10-21
-updated_at: 2026-10-21
+updated_at: 2026-10-26
 ---
 
 # Motor da rodada, carta e árbitro semântico do núcleo do jogo
@@ -150,3 +151,7 @@ Como jogador, quero que novas tentativas não repitam palpites já recusados par
 - **SC-002:** Um teste automatizado falha se `evaluation` (palavra, dica, sugestão, canônico, aliases ou critérios) cruzar a fronteira do adivinhador ou entrar em `rejectedGuesses`.
 - **SC-003:** A máquina de estados cobre, por teste, acerto, nova tentativa sem repetir rejeitados, erro de provedor e fim por limite de tentativas.
 - **SC-004:** Um colaborador roda o app em modo mock seguindo apenas o README, sem credencial.
+
+## Substituição
+
+A carta com critério tipado de avaliação, a máquina de estados da rodada e o árbitro foram redefinidos para o fluxo por visão computacional; o árbitro semântico determinístico, o fallback por LLM e o histórico de palpites rejeitados saíram do código. O comportamento vigente está na spec [`2026-10-26-vision-hand-gesture-referee-replace-llm-guesser`](../2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/spec.md); o histórico do Git preserva esta spec como referência.

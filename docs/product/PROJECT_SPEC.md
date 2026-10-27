@@ -1,111 +1,102 @@
 # Guess My Move — Especificação de produto e arquitetura
 
-**Versão:** 0.1 · **Data:** 20/10/2026 · **Status:** planejamento / prova de conceito  
+**Versão:** 0.2 · **Data:** 26/10/2026 · **Status:** em desenvolvimento (árbitro por visão computacional)  
 **Repositório:** `guess-my-move` · **Natureza:** open-source · **Idioma deste documento:** português (Brasil)
 
 > **Descrição para o GitHub**  
-> An open-source AI-powered charades game where players act out prompts on camera and AI tries to guess what they're miming.
+> An open-source charades game where the browser recognizes a card's gesture from the webcam using on-device computer vision — no server, no cloud AI.
+
+> A fonte vigente do comportamento é a spec SDD [`specs/2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/`](../../specs/2026-10-26-vision-hand-gesture-referee-replace-llm-guesser/spec.md). Em divergência, a spec aprovada prevalece sobre este documento.
 
 ## 1. Resumo executivo
 
-**Guess My Move** é um jogo de mímica em que uma pessoa recebe uma carta com uma palavra, interpreta essa palavra diante da webcam e desafia uma IA a adivinhar a representação. O diferencial é inverter a lógica convencional: **o humano faz a mímica e a IA tenta descobrir o que ela significa**.
+**Guess My Move** é um jogo de mímica em que o jogador recebe uma carta com um gesto, ativa a webcam e executa o gesto. O **árbitro é a visão computacional local**: o navegador detecta a mão com o MediaPipe Hand Landmarker, calcula o ângulo da mão a cada quadro e um avaliador determinístico decide se o critério da carta foi cumprido. Nenhuma imagem sai do navegador e não há servidor nem provedor de IA no fluxo principal.
 
-No primeiro experimento, haverá **somente uma carta: “Acenar”**. A IA adivinhadora recebe imagens do movimento, mas **não recebe a palavra da carta, a dica, a sugestão nem os critérios internos**. Um **árbitro semântico** verifica automaticamente se o palpite tem o mesmo significado da resposta esperada. **Não haverá confirmação manual de acerto como fonte de verdade**.
+No primeiro experimento há **somente uma carta: “Acenar”**. O critério do Acenar é a oscilação repetida do ângulo da mão. A IA jogadora — uma IA que tenta adivinhar o gesto sem conhecer a carta — é uma **evolução futura** com spec própria; ela continuará sem receber a carta.
 
-A hipótese técnica a validar é: _um modelo multimodal pré-treinado consegue identificar ações simples a partir de uma sequência curta de imagens com precisão e latência adequadas para uma experiência divertida?_
+A hipótese técnica validada em spike é: _um detector de landmarks executado no navegador reconhece o Acenar de forma determinística, com poucos falsos positivos, sem enviar imagens a terceiros?_ O spike (12 clipes, uma pessoa) é evidência inicial, não acurácia geral.
 
-**Escopo da primeira entrega:** testar a interpretação visual e produzir uma demonstração de ponta a ponta. **Não é objetivo inicial** criar um classificador treinado do zero, construir um sistema antifraude completo ou interpretar qualquer mímica de forma confiável.
+**Escopo da entrega atual:** reconhecer o Acenar localmente, mostrar o que o detector lê para ajuste e remover do repositório o caminho por LLM. **Não é objetivo** treinar modelos, cobrir outros navegadores ou afirmar acurácia, taxa de quadros ou latência gerais.
 
 ## 2. Decisões e premissas
 
-### 2.1 Decisões já tomadas na conversa
+### 2.1 Decisões já tomadas (maintainer, 2026-10-26)
 
-| Tema                            | Decisão                                                                                       |
-| ------------------------------- | --------------------------------------------------------------------------------------------- |
-| Nome e repositório              | **Guess My Move** / `guess-my-move`.                                                          |
-| Distribuição                    | Projeto público/open-source, pensado como vitrine de visão computacional e integração com IA. |
-| Mecânica central                | Pessoa faz a mímica; IA adivinha. Modalidade inversa é evolução futura.                       |
-| Interface de carta              | Palavra + dica (_hint_) + sugestão de como representar.                                       |
-| Primeira carta                  | **Acenar**; começar com apenas uma para fechar o escopo.                                      |
-| Conhecimento da IA adivinhadora | A IA **não conhece** a resposta da carta antes de palpitar.                                   |
-| Verificação de acerto           | Automática, por **árbitro semântico**; usuário não decide se o palpite acertou.               |
-| Estratégia de IA inicial        | Usar um **modelo multimodal pré-treinado**, sem treinamento/fine-tuning próprios.             |
-| Estratégia visual inicial       | Enviar **sequências curtas de frames**; não depender do MediaPipe na PoC.                     |
-| Critério visual de execução     | Previsto para evolução; **não será árbitro visual na primeira versão**.                       |
-| Extensibilidade                 | Carta com metadados privados de avaliação e componentes desacoplados.                         |
+| Tema                         | Decisão                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Nome e repositório           | **Guess My Move** / `guess-my-move`.                                                                   |
+| Distribuição                 | Projeto público/open-source, vitrine de visão computacional no navegador.                              |
+| Mecânica central             | Jogador faz o gesto; o app verifica por visão computacional local.                                     |
+| Árbitro                      | Visão computacional determinística no navegador; sem LLM e sem servidor no fluxo principal.            |
+| Primeira carta               | **Acenar**; começar com apenas uma para fechar o escopo.                                               |
+| Início da rodada             | Botão **Começar**; a detecção automática do início fica para depois.                                   |
+| Feedback de depuração        | Mostrar o esqueleto da mão e os números do avaliador durante os testes.                                |
+| Formato do critério da carta | Schema mínimo, só com o critério necessário ao Acenar; novas cartas ampliam o schema quando existirem. |
+| Destino do código do LLM     | Removido. As specs substituídas e o histórico do Git são a referência para uma futura IA jogadora.     |
+| Alvo de navegador            | Chrome desktop apenas.                                                                                 |
+| IA jogadora                  | Fora do escopo atual; spec futura, sem receber a carta.                                                |
 
-### 2.2 Recomendações técnicas (ainda não são decisões fechadas)
+### 2.2 Decisões técnicas do agente (a partir do spike, revisáveis)
 
-- **Frontend:** React + Vite + TypeScript, por familiaridade e rapidez de execução.
-- **Servidor:** um pequeno backend Node.js/TypeScript ou função serverless para proteger a chave da API. NestJS pode entrar quando houver necessidade real de mais estrutura.
-- **Interpretação visual:** interface de provedor multimodal, para testar e substituir modelos sem reescrever o jogo.
-- **Adivinhação:** um palpite por tentativa, a partir de uma janela curta de frames com indicação de ordem/tempo.
-- **Julgamento:** comparação normalizada/exata e aliases cadastrados antes de recorrer a um LLM para casos ambíguos.
-- **Dados:** carta em JSON/TypeScript versionado no Git; banco de dados não é necessário no início.
-- **Persistência:** evitar armazenamento permanente de vídeos ou imagens no MVP.
+- **Detector e sinal:** Hand Landmarker (uma mão) e o ângulo do vetor pulso até o início do dedo médio; critério por inversões de direção com histerese em uma janela de tempo.
+- **Limite de tempo da rodada:** 10 s como valor inicial, exposto como configuração do motor e ajustável conforme o teste.
 
 ### 2.3 Decisões em aberto
 
-O projeto ainda precisa escolher provedor/modelo multimodal, idioma padrão da interface, licença open-source, hospedagem, limites de tentativas/tempo, metas de latência/custo e forma de coletar métricas de avaliação com consentimento. **Não tratar esses pontos como aprovados ou definidos.**
+- Licença do arquivo `.task` do modelo, ainda não confirmada na fonte (por isso o arquivo não é versionado).
+- Generalização para outras pessoas, câmeras e iluminação, a confirmar no teste manual do maintainer.
+- Metas numéricas: ver §9; são as vigentes do projeto e ajustáveis conforme a medição.
 
 ## 3. Objetivos e não objetivos
 
-### Objetivos da prova de conceito (PoC)
+### Objetivos
 
-1. Solicitar permissão de câmera no navegador e capturar frames em sequência.
-2. Enviar o conjunto de imagens, em ordem temporal, a um modelo multimodal por uma integração segura.
-3. Exibir um palpite textual sobre a ação observada.
-4. Executar o cenário da carta **Acenar** e comparar contra cenários negativos.
-5. Medir acertos, respostas equivocadas, tempo de resposta e, quando disponível, custo por tentativa.
+1. Reconhecer o Acenar localmente, em tempo de rodada, com critério determinístico, testável sem câmera e parametrizado pela carta.
+2. Mostrar ao jogador, para depuração e ajuste, o que o detector lê: esqueleto da mão, ângulo, contagem de inversões, amostras, quadros e latência de inferência.
+3. Preservar a privacidade: processamento 100% local, sem persistência, sem log de imagem e sem envio a terceiros.
+4. Manter o repositório sem o código do fluxo por LLM, com os gates verdes.
 
-### Objetivos do MVP jogável
+### Não objetivos
 
-1. Exibir a carta com palavra, dica e sugestão.
-2. Iniciar e encerrar uma rodada.
-3. Enviar frames ao adivinhador **sem revelar a carta**.
-4. Receber palpites, submetê-los ao árbitro semântico e apresentar acerto/erro.
-5. Possibilitar novas tentativas após erros, sem repetir palpites rejeitados.
-6. Tratar câmera negada, timeout do modelo, resposta inválida e falha de rede.
+- IA jogadora (adivinhar sem conhecer a carta); detecção automática do início do gesto.
+- Mais de uma carta, baralho, pontuação, internacionalização, tempo de rodada configurável pela interface.
+- Navegadores além do Chrome desktop; celular.
+- Detecção de trapaça, multiplayer, autenticação, banco de dados, áudio.
+- Treinar ou ajustar modelos; qualquer modelo além do Hand Landmarker pré-treinado.
+- Afirmar acurácia, recall, falso positivo ou latência gerais a partir da amostra do spike.
 
-### Fora do escopo inicial
+## 4. Atores e fronteiras de informação
 
-Treinar modelos; classificar qualquer ação arbitrária; verificar por visão computacional se o jogador executou corretamente o movimento; ranking competitivo; detecção robusta de trapaça; multiplayer; autenticação; banco de dados; streaming contínuo; áudio e reconhecimento de fala; geração de animações por IA.
+| Ator / componente      | Recebe                                           | Faz                                                                           | Não deve receber / fazer                                |
+| ---------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Jogador**            | Carta pública (palavra, dica, sugestão)          | Ativa a câmera, aperta Começar e faz o gesto                                  | Não recebe o critério de avaliação da carta.            |
+| **Detector de mão**    | Quadros do vídeo                                 | Devolve os 21 pontos da mão por quadro                                        | Não sai do navegador; não persiste nem envia quadros.   |
+| **Avaliador do gesto** | Amostras `(tempo, ângulo)` e o critério da carta | Decide reconhecido/não reconhecido por janela de tempo, puro e determinístico | Não acessa câmera, DOM nem MediaPipe.                   |
+| **Motor da rodada**    | Carta, ângulo por quadro, relógio injetado       | Máquina de estados da rodada                                                  | Não guarda amostras fora da janela nem imagens.         |
+| **Baralho** (dados)    | Definições de cartas                             | Oferece `public` e o critério privado de `evaluation`                         | Não expõe `evaluation` ao jogador (ver `toPublicCard`). |
 
-## 4. Atores, responsabilidades e fronteiras de informação
-
-| Ator / componente     | Recebe                                                                               | Faz                                                            | Não deve receber / fazer                                                           |
-| --------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Jogador**           | Carta com palavra, dica e sugestão                                                   | Interpreta a ação diante da webcam                             | Não determina oficialmente se o palpite acertou.                                   |
-| **IA adivinhadora**   | Frames, ordem temporal, contexto genérico da mecânica e, depois, palpites rejeitados | Produz hipótese textual sobre a mímica                         | **Não recebe** palavra, dica, sinônimos, critérios privados nem resposta esperada. |
-| **Árbitro semântico** | Resposta da carta, aliases e palpite da IA                                           | Decide se o palpite é semanticamente equivalente               | Não precisa analisar webcam e não comprova que a mímica foi executada.             |
-| **Motor do jogo**     | Estado da rodada, carta, frames e retornos dos componentes                           | Orquestra a partida, tentativas e resultados                   | Não confunde um palpite semanticamente correto com prova visual de execução.       |
-| **Baralho** (dados)   | Definições de cartas                                                                 | Oferece informações públicas e metadados privados de avaliação | Não é um agente/ator de IA.                                                        |
-
-**Nota de segurança do escopo:** a resposta aparecerá na interface do jogador. Separar informações no fluxo de chamadas impede o _vazamento acidental ao adivinhador_, mas **não prova que o próprio jogador seja honesto**. Antifraude competitivo exigirá cuidados adicionais, inclusive validação visual e proteção da integridade da partida.
+**Nota.** A separação `public`/`evaluation` evita vazar o critério ao jogador e a uma IA jogadora futura. Ela não prova que o jogador executou o gesto; antifraude competitivo exigirá cuidados adicionais.
 
 ## 5. Carta inicial e contrato de dados
 
-### 5.1 Carta “Acenar”
+A carta separa `public` (o que o jogador vê) de `evaluation` (o critério do gesto, privado do motor). O schema é estrito em `packages/core/src/schemas/`: um campo inesperado invalida a carta, e `toPublicCard` devolve apenas `public`, com teste automatizado que falha se `evaluation` aparecer na projeção.
 
-**Visível ao jogador**
+### 5.1 Carta “Acenar” (fonte: `packages/core/src/card/acenar.ts`)
+
+**Visível ao jogador (`public`)**
 
 - **Palavra:** Acenar.
 - **Dica:** Um gesto usado para cumprimentar ou se despedir de alguém à distância.
 - **Sugestão:** Levante uma das mãos e movimente-a de um lado para o outro.
-- **Dificuldade:** Fácil (rótulo proposto; não essencial à PoC).
+- **Dificuldade:** `easy`.
 
-**Privado para o árbitro e o motor de jogo**
+**Privado para o motor (`evaluation`)**
 
-- **Resposta canônica:** `acenar`.
-- **Expressões aceitas (exemplos):** `dar tchau`, `acenando`, `waving`, `waving goodbye`.
-- **Respostas insuficientes (exemplos):** `levantar a mão`, `mexer os braços`, `cumprimentar alguém` sem descrição mais específica.
-- **Critérios visuais futuros:** uma mão erguida com movimento lateral repetido, compatível com cumprimento/despedida. **Não utilizados no MVP sem árbitro visual.**
+- **Critério:** `hand-angle-oscillation` com `amplitudeDeg: 15`, `minReversals: 3`, `windowMs: 2500`, `minSamples: 5`. Valores iniciais confirmados no spike; ajustam-se na carta, sem mudar o código do avaliador.
 
-Os aliases representam política de julgamento — **não devem ser fornecidos ao adivinhador**. Um sinônimo só deve contar quando preservar a ação-alvo, não apenas o tema geral.
+### 5.2 Esquema da carta
 
-### 5.2 Exemplo de esquema lógico (ilustrativo)
-
-```json
+```jsonc
 {
     "id": "wave-001",
     "locale": "pt-BR",
@@ -113,251 +104,153 @@ Os aliases representam política de julgamento — **não devem ser fornecidos a
         "word": "Acenar",
         "hint": "Um gesto usado para cumprimentar ou se despedir de alguém à distância.",
         "suggestion": "Levante uma das mãos e movimente-a de um lado para o outro.",
-        "difficulty": "easy"
+        "difficulty": "easy",
     },
     "evaluation": {
-        "canonicalAnswer": "acenar",
-        "acceptedAliases": [
-            "dar tchau",
-            "acenando",
-            "waving",
-            "waving goodbye"
-        ],
-        "insufficientGuesses": ["levantar a mão", "mexer os braços"],
-        "visualCriteria": [
-            "Uma das mãos aparece levantada.",
-            "Há deslocamento lateral repetido da mão ao longo do tempo."
-        ]
-    }
+        "criterion": {
+            "kind": "hand-angle-oscillation",
+            "amplitudeDeg": 15,
+            "minReversals": 3,
+            "windowMs": 2500,
+            "minSamples": 5,
+        },
+    },
 }
 ```
 
-Em uma versão com pontuação competitiva, os metadados de avaliação precisam ser autoridade do servidor. Para a PoC, a separação do payload enviado ao modelo já é suficiente para validar a ideia — sem reivindicar segurança antifraude.
+O schema rejeita campos desconhecidos e valores não positivos. Adicionar uma carta é incluir outro objeto no baralho (`packages/core/src/card/deck.ts`); um novo tipo de critério exige ampliar o schema.
 
 ## 6. Experiência do usuário e fluxo da rodada
 
-### 6.1 Fluxo jogável previsto
+### 6.1 Fluxo
 
-1. A interface apresenta a carta **Acenar** ao jogador.
-2. O usuário autoriza a câmera e clica em **Iniciar mímica**.
-3. O navegador captura uma sequência curta de frames com ordem temporal identificada.
-4. O motor envia somente esses frames e instruções genéricas à IA adivinhadora.
-5. A IA retorna **um palpite**, por exemplo: “Você está dando tchau”.
-6. O árbitro compara “dar tchau” com a resposta `acenar` e marca **correto**, sem intervenção manual.
-7. Se o palpite fosse “Você está levantando a mão”, o árbitro indicaria **incorreto**, e o motor permitiria nova tentativa.
-8. A rodada termina por acerto, limite de tentativas, tempo esgotado ou encerramento manual.
+1. A interface apresenta a carta pública e o painel da câmera.
+2. O jogador autoriza a câmera; o botão **Começar** fica habilitado quando a câmera está ativa e o detector carregado.
+3. **Começar** inicia a rodada; o app lê um quadro por vez do vídeo, calcula o ângulo da mão e alimenta o avaliador.
+4. O primeiro instante em que o avaliador reconhece o gesto encerra a rodada como **reconhecido**; o limite de 10 s encerra como **não reconhecido**.
+5. Durante a rodada há **Cancelar**; ao fim há **Nova rodada**.
+6. Falha do detector mostra mensagem em português, sem marcar reconhecimento nem consumir a rodada.
 
-**Comportamento importante:** não prometer reconhecimento contínuo em tempo real. O primeiro protótipo trabalha por **janelas de captura** e respostas assíncronas. A experiência precisa mostrar quando está capturando, processando e apresentando o palpite.
+### 6.2 Estados da rodada (fonte: `packages/core/src/round/types.ts`)
 
-### 6.2 Estados sugeridos
+Fluxo feliz:
 
-`idle → card_revealed → camera_ready → capturing → guessing → judging → (correct | retry | finished)`
+`idle → card_revealed → camera_ready → detecting → (recognized | timed_out)`
 
-Estados de exceção: `camera_denied`, `request_timeout`, `provider_error`, `invalid_model_response`, `user_cancelled`.
+Estados de exceção que encerram a rodada: `camera_denied`, `tracker_error`, `user_cancelled`. Uma nova rodada começa em `idle`.
 
 ### 6.3 Diagrama de sequência (conceitual)
 
 ```mermaid
 sequenceDiagram
     participant U as Jogador
-    participant W as Web / Motor
-    participant G as IA Adivinhadora
-    participant J as Árbitro semântico
-    U->>W: Abre carta "Acenar" e inicia mímica
-    W->>W: Captura frames ordenados
-    W->>G: Frames + instrução genérica (sem resposta)
-    G-->>W: Palpite: "dar tchau"
-    W->>J: Palpite + resposta "acenar" + aliases
-    J-->>W: Correto (equivalência semântica)
-    W-->>U: Exibe palpite e resultado
+    participant W as Web / Câmera
+    participant T as Detector de mão (MediaPipe)
+    participant C as Motor + avaliador (core)
+    U->>W: Ativa a câmera e aperta Começar
+    loop por quadro, até reconhecer ou 10 s
+        W->>T: Quadro do vídeo
+        T-->>W: 21 landmarks da mão
+        W->>C: ângulo da mão (observe)
+        C-->>W: reconhecido / ainda não
+    end
+    W-->>U: "gesto reconhecido" ou "não reconhecido"
 ```
 
-## 7. Design técnico: proposta inicial
+## 7. Design técnico
 
 ### 7.1 Camadas
 
-**Aplicação web:** carta, permissão e preview da câmera, captura temporária de frames, interface de tentativas e resultado.
+- **Núcleo (`packages/core`):** funções puras, sem DOM, câmera ou MediaPipe. Contém o schema da carta e `toPublicCard`, `handAngleDeg`, `evaluateOscillation` e a máquina de estados `createRound`.
+- **Aplicação web (`apps/web`):** câmera com consentimento, detector atrás da interface `HandTracker`, laço por quadro, desenho do esqueleto e painel de depuração. Serve o `.wasm` e o modelo `.task` sem CDN.
 
-**Motor da partida:** máquina de estados, seleção da carta, limites, histórico de palpites e integração com adivinhador/árbitro.
+### 7.2 Núcleo: ângulo, avaliador e rodada
 
-**Adaptador de modelo visual:** monta a requisição ao provedor escolhido; recebe frames com ordenação temporal; valida uma saída estruturada que contenha um único palpite. Não injeta pistas privadas.
+- **`handAngleDeg(landmarks, aspect)`** (`gesture/angle.ts`): ângulo, em graus, do vetor do pulso (ponto 0) ao início do dedo médio (ponto 9); 0 aponta para cima, positivo para a direita da imagem. O deslocamento horizontal é corrigido pela proporção `aspect` (largura/altura). Devolve `null` quando faltam pontos, `aspect` é inválido ou o vetor é degenerado.
+- **`evaluateOscillation(criterion, samples, nowMs)`** (`gesture/oscillation.ts`): considera as amostras da janela `(nowMs - windowMs, nowMs]`, conta inversões de direção com histerese de `amplitudeDeg` e devolve `{ recognized, reversals, windowSamples }`; reconhece quando `windowSamples >= minSamples` e `reversals >= minReversals`. Lacunas não são preenchidas: só contam as amostras com mão.
+- **`createRound({ card, maxDurationMs, clock })`** (`round/round.ts`): máquina de estados com `revealCard`, `cameraReady`, `denyCamera`, `trackerFailed`, `start`, `observe(angleDeg)`, `tick`, `cancel`. O relógio é injetável; o limite padrão de `detecting` é 10 000 ms (`DEFAULT_MAX_DURATION_MS`). Guarda só as amostras da janela e descarta tudo ao terminar.
 
-**Árbitro semântico:** normaliza pontuação/maiúsculas/acentuação e verifica resposta canônica/aliases. Se necessário, aplica uma política de equivalência via LLM com resposta estruturada. Não julga a veracidade do gesto pelo vídeo.
+### 7.3 Aplicação web: detector, rodada e depuração
 
-**Servidor mínimo:** guarda segredos, aplica limites de payload, autenticação operacional da API se necessário e limites de taxa/custo; pode ser uma função serverless ou um pequeno serviço Node/TypeScript. **Nunca colocar chave de provedor de IA no bundle do navegador**.
+- **`HandTracker`** (`src/tracker/handTracker.ts`): `{ delegate, detect(video, timestampMs) → landmarks | null, close() }`. A implementação do MediaPipe (`mediapipeTracker.ts`) usa o `HandLandmarker` do `@mediapipe/tasks-vision` em modo de vídeo, com no máximo uma mão; tenta o delegate GPU e recua para CPU quando a criação falha. O parâmetro de URL `?delegate=cpu` ou `?delegate=gpu` força um delegate, sem recuo, para comparação; o delegate efetivo aparece no painel.
+- **`GestureController` + `useGestureRound`** (`src/round/`): carregam o detector quando a câmera fica ativa, executam o laço por quadro durante `detecting`, medem a latência de cada inferência, atualizam o desenho e o painel e chamam `observe`.
+- **`GestureScreen`, `HandOverlay`, `DebugPanel`** (`src/round/`): a tela desenha os 21 pontos e as conexões sobre o vídeo e mostra delegate, ângulo, inversões, amostras da janela, quadros, latência mediana e p95 de inferência.
+- **Ativos (`apps/web/scripts/prepare-assets.mjs`):** copia o `.wasm` do pacote npm para `apps/web/public/mediapipe/wasm/` e baixa o modelo `.task` para `public/mediapipe/`, verificando o SHA-256 fixado; um arquivo existente com hash correto não é baixado de novo. O modelo não é versionado; `public/mediapipe/` fica fora do Git. O script roda em `yarn dev:web` e `yarn build`.
 
-### 7.2 Contratos internos sugeridos
+### 7.4 Contratos e dados
 
-```ts
-type GuessInput = {
-    frames: Array<{ data: string; timestampMs: number; mimeType: string }>
-    rejectedGuesses: string[]
-    language?: string
-}
+- `Card.evaluation = { criterion: { kind: 'hand-angle-oscillation', amplitudeDeg, minReversals, windowMs, minSamples } }`, estrito.
+- `HandSample = { t: number; angleDeg: number }`, com `t` em ms do relógio injetado.
+- A API pública do núcleo é reduzida de forma deliberada; não há consumidores externos.
 
-type GuessResult = { guess: string }
+## 8. Entregas
 
-type SemanticJudgeInput = {
-    canonicalAnswer: string
-    acceptedAliases: string[]
-    insufficientGuesses: string[]
-    guess: string
-}
+| Fase                           | Objetivo                                                       | Critério para avançar                                                 |
+| ------------------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Núcleo determinístico**      | Ângulo, avaliador, rodada e carta como funções puras testadas. | Testes verdes, incluindo as fixtures dos 12 clipes de referência.     |
+| **Aplicação web**              | Câmera, detector, laço por quadro, desenho e depuração.        | Rodada completa no Chrome desktop do maintainer; latência registrada. |
+| **Remoção do caminho por LLM** | Sem `apps/server`, `packages/providers`, `packages/benchmark`. | `yarn check:all` verde, sem código órfão.                             |
+| **IA jogadora (futura)**       | IA adivinha sem conhecer a carta.                              | Spec própria; fora do escopo atual.                                   |
 
-type SemanticJudgeResult = {
-    isCorrect: boolean
-    method: 'canonical' | 'alias' | 'llm' | 'undetermined'
-    matchedAnswer?: string
-}
-```
+## 9. Critérios de aceite e metas
 
-**Cuidados:** `confidence` autodeclarada por LLM não é uma probabilidade calibrada. Não usá-la diretamente como garantia de reconhecimento. Frames devem ter limites de resolução, número, tamanho total e duração. Essas interfaces são exemplos para guiar a implementação, não uma exigência rígida de nomes.
+### 9.1 Critérios de aceite (BDD)
 
-### 7.3 Captura e prompts
+**A — reconhecimento positivo:** câmera ativa e jogador acenando após **Começar** ⇒ o app indica "gesto reconhecido" e encerra a rodada.  
+**B — limite sem gesto:** a rodada começou e o limite termina sem o critério ⇒ "não reconhecido".  
+**C — confusores:** coçar a cabeça, ajeitar o fone ou manter a mão parada levantada ⇒ "não reconhecido" ao fim do limite.  
+**D — critério testável sem câmera:** o avaliador sobre as séries de ângulo dos 12 clipes de referência ⇒ 5 acenos reconhecidos e 0 confusores.  
+**E — câmera negada:** câmera negada ⇒ o app explica como reabilitar a permissão e nenhum detector é executado.  
+**F — sem rede nem terceiros:** inspeção das requisições de uma rodada ⇒ nenhuma carrega imagem, vídeo ou landmarks e nenhuma vai a domínio de terceiros.
 
-- Capturar alguns frames **ao longo de um intervalo**, em vez de enviar só uma foto.
-- Preservar explicitamente a ordem dos frames; o modelo pode falhar em reconhecer ações temporais mesmo assim.
-- Reduzir resolução e quantidade de imagens para controlar latência, rede e custo.
-- Instruir o adivinhador a descrever a **ação predominante** e produzir **uma única hipótese curta**, em resposta estruturada.
-- Proibir no prompt da adivinhação referências à carta secreta. Não incluir dica, sugestão ou aliases em histórico, logs enviados ao modelo ou mensagens auxiliares.
-- Rejeitar respostas vazias, fora de formato ou que aleguem certeza sem evidência; oferecer erro controlado ou nova tentativa.
-- Para testes, implementar um `MockGuesser` configurável, sem consumo de API.
+### 9.2 Metas vigentes (ajustáveis)
 
-### 7.4 Política do árbitro semântico
+- Recall >= 80%; falsos positivos <= 10%, com nenhum em "pessoa parada".
+- Mediana do tempo entre apertar Começar e o reconhecimento <= 8 s; p95 <= 15 s.
 
-1. Normalizar texto sem desfigurar significado: minúsculas, espaços, pontuação e variantes triviais.
-2. Comparar com resposta canônica e aliases **por equivalência de expressão**, não pela presença de uma palavra como substring.
-3. Se o palpite for explicitamente genérico/insuficiente, marcar incorreto.
-4. Se permanecer ambíguo, opcionalmente consultar LLM com _canonical answer_, aliases, exemplos aceitos/rejeitados e critérios conservadores.
-5. Se o LLM falhar ou houver dúvida material, retornar `undetermined` e adotar uma regra de UX explícita (por exemplo, pedir nova tentativa); não inventar decisão.
-6. Registrar método e motivo resumido, quando possível, para auditoria e ajuste de aliases.
+As metas são referência do projeto e ajustáveis conforme o resultado do teste do maintainer. A latência por quadro e o delegate efetivo são registrados em `validation.md` com número, máquina e navegador.
 
-**Limite assumido:** com apenas o árbitro semântico, um palpite correto por acaso pode ganhar a rodada mesmo que o movimento não tenha ocorrido. Esse risco permanece até a inclusão de um árbitro visual.
+### 9.3 Evidência honesta
 
-## 8. Entregas incrementais
+O spike (12 clipes, uma pessoa, em Chromium headless) é evidência inicial, não acurácia geral. Resultados nos clipes variam com a taxa de amostragem (15/s: 5 de 5 acenos e 0 de 7 confusores; 7,5/s: 7 de 10 acenos; 5/s: 9 de 15). A latência medida no spike foi só numa VPS (CPU, 100 a 210 ms por quadro) e não representa o desktop do maintainer. Nenhum texto afirma acurácia, taxa de quadros ou latência gerais.
 
-| Fase                              | Objetivo                                          | Entregáveis                                                                                                               | Critério para avançar                                                                         |
-| --------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Fase 0 — PoC visual**           | Validar reconhecimento de “acenar”.               | Webcam, frames temporais, integração protegida, palpite, testes manuais, medições iniciais.                               | Evidência de que o provedor reconhece o gesto com desempenho promissor em condições variadas. |
-| **Fase 1 — MVP jogável**          | Fechar um ciclo de rodada sem confirmação humana. | Carta, motor, árbitro semântico, tentativas, estados de erro, documentação e testes.                                      | Rodada reproduzível com acerto, erro e falha de provedor tratados.                            |
-| **Fase 2 — Expansão de conteúdo** | Escalar baralho e jogo.                           | Mais cartas, categorias, níveis, cronômetro/pontos, configurações de idioma, telemetria opt-in.                           | Cartas novas não exigem alterar algoritmos centrais.                                          |
-| **Fase 3 — Arbitragem visual**    | Verificar se a mímica foi efetivamente executada. | Critérios visuais por carta, verificação multimodal independente, calibração e contestação.                               | Menor incidência de acertos por coincidência e falsos positivos mensurados.                   |
-| **Fase 4 — Modos avançados**      | Enriquecer o produto.                             | IA faz mímica, modo multiplayer, rankings, modelos locais, pose estimation/classificadores temporais conforme evidências. | Justificativa técnica e de custo a partir de resultados reais.                                |
+## 10. Segurança e privacidade
 
-Estimativas iniciais discutidas (não compromissos): **4–8 horas** para uma PoC visual mínima; **2–5 dias** para um MVP jogável; **1–3 semanas** para amadurecer robustez, dependendo da qualidade do reconhecimento.
-
-## 9. Critérios de aceite e casos de teste
-
-### 9.1 Critérios de aceite em BDD
-
-**Cenário A — reconhecimento positivo**  
-**Dado** que a câmera foi autorizada e o jogador está acenando,  
-**Quando** a aplicação envia frames ordenados ao adivinhador,  
-**Então** recebe um palpite legível e o exibe ao jogador, ou sinaliza claramente a impossibilidade de obter um palpite.
-
-**Cenário B — sinônimo aceito**  
-**Dado** que a carta esperada é `acenar`,  
-**Quando** o palpite for `dar tchau`,  
-**Então** o árbitro semântico marca o palpite como correto e registra que o acerto decorreu de alias.
-
-**Cenário C — palpite excessivamente genérico**  
-**Dado** que a carta esperada é `acenar`,  
-**Quando** o palpite for `levantar a mão`,  
-**Então** o árbitro semântico marca o palpite como incorreto.
-
-**Cenário D — não revelar a resposta**  
-**Dado** que a carta foi revelada apenas ao jogador,  
-**Quando** o motor invocar a IA adivinhadora,  
-**Então** o payload enviado ao modelo não contém palavra, dica, sugestão, aliases ou critérios de avaliação da carta.
-
-**Cenário E — permissão negada**  
-**Dado** que o navegador negou acesso à câmera,  
-**Quando** a rodada for iniciada,  
-**Então** o sistema não faz invocação ao modelo e informa como reabilitar a permissão.
-
-**Cenário F — erro de provedor**  
-**Dado** que o provedor está indisponível ou a resposta é inválida,  
-**Quando** uma tentativa falhar,  
-**Então** o sistema mostra erro recuperável, mantém a integridade do estado e não marca acerto.
-
-### 9.2 Matriz inicial de avaliação
-
-Executar cenários positivos e negativos, sempre registrando o resultado esperado por um observador humano:
-
-- **Positivos:** aceno frontal, de perfil parcial, com mão direita/esquerda, ritmos distintos e fundos diferentes.
-- **Negativos:** pessoa parada, mão erguida sem movimento, movimentos de braços sem aceno e ausência de pessoa.
-- **Limites:** iluminação ruim, enquadramento parcial da mão, oclusões, instabilidade da rede.
-- **Semântica:** `acenar`, `dar tchau` e `waving` devem ser aceitos; `levantar a mão` deve ser recusado.
-
-Registrar, no mínimo, **acertos por cenário**, **falsos positivos**, **tempo por tentativa** (mediana e p95 se houver amostra), **custo estimado por tentativa** e **falhas técnicas**. Não anunciar uma taxa de precisão geral a partir de poucas rodadas nem confundir avaliação do árbitro semântico com acurácia visual.
-
-Metas numéricas de lançamento permanecem **em aberto** até um teste piloto com amostra suficiente.
-
-## 10. Segurança, privacidade, custos e observabilidade
-
-**Privacidade e câmera:** solicitar consentimento explícito do navegador, mostrar indicador de câmera ativa, permitir parar a captura, não salvar imagens/vídeos por padrão, evitar registrar dados de imagem em logs e descrever quando frames são enviados a um provedor externo. Em conteúdo de menores, aplicar salvaguardas apropriadas antes de expandir o público.
-
-**Chaves e infraestrutura:** armazenar credenciais apenas no servidor; configurar variáveis de ambiente; adicionar `.env.example` sem segredos; evitar commits com material sensível; impor rate limit e limites de payload. Acesso às rotas de API não deve permitir consumo irrestrito da chave de IA.
-
-**Custos:** custos crescem com imagens por tentativa, resolução, frequência de tentativas e modelo usado. Iniciar com poucos frames, limitar tentativas concorrentes e registrar uso/tokens quando o provedor expuser esses dados. Evitar depender de um preço/modelo específico antes de um benchmark.
-
-**Observabilidade:** eventos sem mídia bruta, como `round_started`, `frames_captured`, `guess_received`, `guess_judged`, `round_finished`, `provider_failed`, com `round_id` e tempos. O histórico de palpites pode ficar apenas na memória no MVP; persistência é uma decisão posterior.
-
-**Qualidade e comunidade:** separar mocks de chamadas pagas; testes unitários do árbitro e do motor; instruções claras para executar localmente; explicitar limitações técnicas no README; definir licença antes de divulgar o projeto como reutilizável por terceiros.
+- **Processamento local:** nenhuma imagem, vídeo ou landmark é enviado, gravado ou registrado em log. Uma rodada não gera requisição de rede com mídia; só há o carregamento do app e dos arquivos do detector, servidos pelo próprio app.
+- **Sem servidor nem segredo:** não há `apps/server`, variáveis de ambiente de provedor nem chave de IA no fluxo principal.
+- **Câmera:** consentimento explícito do navegador, indicador de câmera ativa e opção de parar a captura. Em conteúdo de menores, aplicar salvaguardas antes de ampliar o público.
+- **Modelo:** o `.task` não é versionado; sua licença não foi confirmada na fonte e a verificação fica pendente antes de qualquer redistribuição (registro em `research.md`).
 
 ## 11. Riscos e mitigação
 
-| Risco                                           | Consequência                       | Mitigação inicial                                                                                |
-| ----------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Modelo não entende movimento em frames esparsos | Palpites errados, experiência ruim | Aumentar/ajustar janelas de frames; comparar modelos; considerar vídeo nativo quando disponível. |
-| Latência alta                                   | Rodadas lentas                     | Captura sob demanda, imagens reduzidas, feedback visual, limites de timeout.                     |
-| Adivinhador recebe resposta da carta            | Acertos artificiais, PoC inválida  | Testar payloads; interfaces públicas/privadas separadas; revisar logs e prompts.                 |
-| Árbitro aceita resposta vaga                    | Falsos acertos                     | Aliases específicos, exemplos negativos, testes semânticos automatizados.                        |
-| Jogador não representa a carta                  | Acertos por sorte ou exploração    | Aceitar como limite do MVP; avaliar árbitro visual em fase posterior.                            |
-| Exposição de dados da webcam                    | Falha de confiança e privacidade   | Captura transitória, consentimento, ausência de persistência padrão, documentação.               |
-| Consumo excessivo de API                        | Custo imprevisível                 | Quotas, resolução limitada, rate limiting, métricas por tentativa.                               |
-| Dependência de um provedor                      | Lock-in                            | Interface `GuesserProvider`, mocks e configuração externa.                                       |
+| Risco                                                | Mitigação                                                | Contingência                                   |
+| ---------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------- |
+| Falso positivo ou negativo em outra pessoa ou câmera | Painel de depuração com números; limiares na carta       | Ajustar o critério da carta sem mudar o código |
+| GPU indisponível ou lenta                            | Recuo automático para CPU; delegate exibido; `?delegate` | Fixar CPU                                      |
+| Download do modelo falha ou muda                     | Hash SHA-256 fixado; mensagem clara; arquivo em cache    | Fixar outra versão do modelo com novo hash     |
+| Aceno lento não acumula inversões a tempo            | Limite de 10 s ajustável                                 | Ajustar `maxDurationMs` ou o critério          |
+| Licença do modelo incompatível com redistribuição    | Modelo não versionado                                    | Trocar de modelo ou treinar um próprio         |
 
-## 12. Backlog inicial priorizado
+## 12. Backlog
 
-**P0 — Comprovar viabilidade visual**
+**Atual**
 
-- [ ] Iniciar projeto React/Vite/TypeScript com documentação básica.
-- [ ] Implementar câmera com consentimento, visualização e parada explícita.
-- [ ] Capturar frames ordenados e temporários com limites configuráveis.
-- [ ] Criar endpoint/proxy seguro para modelo multimodal e um provedor mockado.
-- [ ] Exibir palpite ou erro técnico de forma distinguível.
-- [ ] Rodar e documentar matriz de testes da carta “Acenar”.
+- [x] Núcleo: ângulo, avaliador, rodada e carta com testes.
+- [x] Aplicação web: câmera, detector, laço por quadro, desenho e painel de depuração.
+- [x] Remoção de `apps/server`, `packages/providers` e `packages/benchmark`.
+- [ ] Teste manual do maintainer no Chrome desktop e registro em `validation.md`.
 
-**P1 — Tornar jogável**
+**Futuro (orientado por resultados)**
 
-- [ ] Implementar carta pública e metadados privados de avaliação.
-- [ ] Criar máquina de estados da rodada e limites configuráveis de tentativas.
-- [ ] Implementar árbitro semântico determinístico com testes.
-- [ ] Prever interface opcional para fallback LLM, sem torná-lo obrigatório na primeira execução.
-- [ ] Bloquear vazamento da carta para o adivinhador, com teste automatizado.
-- [ ] Incluir histórico de palpites rejeitados, tratamento de erros e instruções de execução.
+- [ ] Detecção automática do início do gesto.
+- [ ] Novas cartas e novos tipos de critério, ampliando o schema.
+- [ ] Modo de IA jogadora (sem receber a carta), com spec própria.
+- [ ] Pontuação, tempo e, se útil, internacionalização.
 
-**P2 — Evolução orientada por resultados**
+## 13. Definição de pronto
 
-- [ ] Benchmark entre modelos/provedores e parâmetros de captura.
-- [ ] Criar baralho com múltiplas cartas/categorias.
-- [ ] Acrescentar pontuação, tempo e, se útil, internacionalização.
-- [ ] Prototipar árbitro visual e comparar ganhos reais.
-- [ ] Avaliar MediaPipe, modelos temporais e inferência local **somente se os resultados justificarem**.
+A entrega atual está pronta quando a rodada completa roda no Chrome desktop do maintainer com reconhecimento do Acenar e rejeição dos confusores; o avaliador reconhece 5 de 5 acenos e 0 de 7 confusores nas fixtures; nenhuma requisição de rede carrega mídia; o repositório não contém `apps/server`, `packages/providers` nem `packages/benchmark`; e `yarn check:all`, `yarn sdd:check`, `yarn docs:format:check` e `yarn test:gates` passam.
 
-## 13. Definição de pronto das primeiras entregas
+## 14. Próximo passo
 
-A **PoC** está pronta quando a webcam funciona em ambiente local seguro (localhost/HTTPS), o servidor mantém a chave da API protegida, o modelo gera um palpite a partir de uma sequência de frames, falhas são compreensíveis e existe um relatório de testes positivos e negativos com limitações explícitas.
-
-O **MVP** está pronto quando o ciclo carta → mímica → frames → palpite → árbitro → resultado funciona sem confirmação manual; respostas equivalentes são reconhecidas de modo previsível; casos genéricos não são aceitos; não existe vazamento acidental da resposta ao modelo; e o projeto contém testes, instruções de execução, `.env.example` e explicação de privacidade.
-
-## 14. Próximo passo recomendado
-
-**Executar primeiro a Fase 0, sem antecipar o restante.** Iniciar a aplicação, validar captura de frames e capacidade do modelo de reconhecer “Acenar”. Só depois implementar o árbitro e o motor da partida. Isso preserva o orçamento de tempo e evita construir abstrações sobre uma hipótese visual ainda não comprovada.
-
-O arquivo **`DEVELOPMENT_PROMPT.md`** acompanha esta especificação e pode ser fornecido a um agente de programação. Ele define a ordem das entregas, as restrições arquiteturais e os critérios para não expandir indevidamente o escopo.
-
----
-
-_Documento elaborado a partir das decisões discutidas para Guess My Move. Propostas técnicas, estimativas e escolhas em aberto foram identificadas separadamente para evitar que recomendações sejam confundidas com decisões já tomadas._
+Executar o teste manual do maintainer no Chrome desktop, registrar latência e delegate em `validation.md` e ajustar os limiares da carta se necessário. A IA jogadora só começa depois, com spec própria.

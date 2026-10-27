@@ -49,8 +49,13 @@ export const nonEmptyText = () =>
         }),
     )
 
-/** Lista de textos. */
-export const textList = () => z.array(text(), { error: ptBR })
+/** Número estritamente positivo. */
+export const positiveNumber = () =>
+    z.number({ error: ptBR }).check(z.positive({ error: ptBR }))
+
+/** Inteiro estritamente positivo. */
+export const positiveInt = () =>
+    z.int({ error: ptBR }).check(z.positive({ error: ptBR }))
 
 /** Objeto estrito: rejeita qualquer campo não declarado. */
 export const strict = <T extends z.core.$ZodShape>(shape: T) =>

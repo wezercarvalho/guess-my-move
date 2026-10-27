@@ -2,44 +2,28 @@
  * API pública do pacote `@guess-my-move/core`.
  *
  * Contratos compartilhados (tipos) vivem em `contracts.ts`; a implementação é
- * organizada por domínio (`card/`, `referee/`, `round/`, `guesser/`). A
- * fronteira de informação é inviolável: a IA adivinhadora nunca recebe a carta
- * — nem palavra, dica, sugestão, aliases ou critérios.
- *
- * Mantenha esta API compatível com os contratos já exportados: apenas adicione.
+ * organizada por domínio (`card/`, `gesture/`, `round/`). Tudo aqui é puro:
+ * sem DOM, sem câmera e sem MediaPipe. A fronteira de informação é inviolável:
+ * o jogador e uma IA jogadora futura nunca recebem a avaliação da carta.
  */
 
-// Contratos compartilhados: tipos derivados dos schemas e interfaces de comportamento.
+// Contratos compartilhados: tipos derivados dos schemas.
 export type {
-    ApiError,
-    ApiErrorCode,
-    CapturedFrame,
     Card,
     CardEvaluation,
     CardPublic,
-    GuessResponse,
-    GuesserInput,
-    GuesserProvider,
-    GuesserResult,
+    HandAngleOscillationCriterion,
 } from './contracts.js'
 
-// Schemas Zod: fonte única dos contratos de dados (carta e rota de palpite).
-export type { GuessLimitViolation, GuessLimits } from './schemas/index.js'
+// Schemas Zod: fonte única do contrato da carta.
 export {
-    ALLOWED_FRAME_MIME_TYPES,
-    apiErrorCodeSchema,
-    apiErrorSchema,
-    base64ByteLength,
-    capturedFrameSchema,
     cardEvaluationSchema,
     cardPublicSchema,
     cardSchema,
-    checkGuessLimits,
-    guessRequestSchema,
-    guessResponseSchema,
+    handAngleOscillationCriterionSchema,
 } from './schemas/index.js'
 
-// Carta: schema/validação, projeção pública e baralho versionado (#11).
+// Carta: schema/validação, projeção pública e baralho versionado.
 export type { CardPublicProjection, ValidationResult } from './card/index.js'
 export {
     acenarCard,
@@ -51,29 +35,10 @@ export {
     validateCard,
 } from './card/index.js'
 
-// Árbitro semântico determinístico (#13).
-export type { RefereeMethod, RefereeResult } from './referee/index.js'
-export { judge, normalize } from './referee/index.js'
+// Gesto: ângulo da mão e avaliador da oscilação.
+export type { HandLandmark, HandSample, OscillationVerdict } from './gesture/index.js'
+export { evaluateOscillation, handAngleDeg } from './gesture/index.js'
 
-// Fallback opcional por LLM do árbitro (#14).
-export type {
-    AmbiguityResolver,
-    AmbiguityResolverInput,
-    AmbiguityResolverResult,
-    JudgeOptions,
-} from './referee/index.js'
-export { judgeWithFallback } from './referee/index.js'
-
-// Motor da rodada: máquina de estados pura e determinística (#12).
-export type {
-    AttemptOutcome,
-    Clock,
-    Round,
-    RoundAttempt,
-    RoundConfig,
-    RoundState,
-} from './round/index.js'
-export { createRound } from './round/index.js'
-
-// Histórico de palpites rejeitados do modelo, em memória (#15).
-export { RejectedGuesses } from './guesser/index.js'
+// Motor da rodada: máquina de estados pura e determinística.
+export type { Clock, Round, RoundConfig, RoundState } from './round/index.js'
+export { createRound, DEFAULT_MAX_DURATION_MS } from './round/index.js'

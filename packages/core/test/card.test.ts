@@ -10,31 +10,24 @@ import {
     validateCard,
 } from '../src/index.js'
 
-describe('carta — schema e validação (#11)', () => {
-    it('expõe public e evaluation da carta Acenar separadamente', () => {
+describe('carta — schema e validação', () => {
+    it('expõe public e o critério de avaliação da carta Acenar', () => {
         expect(acenarCard.id).toBe('wave-001')
         expect(acenarCard.locale).toBe('pt-BR')
         expect(acenarCard.public.word).toBe('Acenar')
         expect(acenarCard.public.hint).toMatch(/cumprimentar|despedir/i)
         expect(acenarCard.public.suggestion).toMatch(/mão/i)
-        expect(acenarCard.evaluation.canonicalAnswer).toBe('acenar')
-    })
-
-    it('segue os aliases e palpites insuficientes do PROJECT_SPEC', () => {
-        const aliases = acenarCard.evaluation.acceptedAliases
-        expect(aliases).toContain('dar tchau')
-        expect(aliases).toContain('acenando')
-        expect(aliases).toContain('waving')
-        expect(aliases).toContain('waving goodbye')
-
-        const insufficient = acenarCard.evaluation.insufficientGuesses
-        expect(insufficient).toContain('levantar a mão')
-        expect(insufficient).toContain('mexer o braço')
+        expect(acenarCard.evaluation.criterion).toEqual({
+            kind: 'hand-angle-oscillation',
+            amplitudeDeg: 15,
+            minReversals: 3,
+            windowMs: 2500,
+            minSamples: 5,
+        })
     })
 
     it('valida uma carta bem formada e rejeita cartas inválidas', () => {
-        const result = validateCard(acenarCard)
-        expect(result.ok).toBe(true)
+        expect(validateCard(acenarCard).ok).toBe(true)
 
         const bad = validateCard({ id: 'x', locale: 'pt-BR' })
         expect(bad.ok).toBe(false)
@@ -48,27 +41,9 @@ describe('carta — schema e validação (#11)', () => {
 
     it('parseCard lança em carta inválida e devolve carta tipada em válida', () => {
         expect(() => parseCard({ nope: true })).toThrow()
-        const parsed = parseCard(acenarCard)
-        expect(parsed.evaluation.canonicalAnswer).toBe('acenar')
-    })
-
-    it('rejeita evaluation com campos ausentes ou de tipo errado', () => {
-        const invalid = {
-            id: 'wave-002',
-            locale: 'pt-BR',
-            public: {
-                word: 'Pular',
-                hint: 'dica',
-                suggestion: 'sugestão',
-            },
-            evaluation: {
-                canonicalAnswer: 'pular',
-                acceptedAliases: 'não é array',
-                insufficientGuesses: [],
-            },
-        }
-        const result = validateCard(invalid)
-        expect(result.ok).toBe(false)
+        expect(parseCard(acenarCard).evaluation.criterion.kind).toBe(
+            'hand-angle-oscillation',
+        )
     })
 
     it('getCardById encontra a carta no baralho versionado', () => {
@@ -78,17 +53,16 @@ describe('carta — schema e validação (#11)', () => {
     })
 })
 
-describe('carta — fronteira de informação (#11)', () => {
-    it('toPublicCard nunca inclui evaluation', () => {
+describe('carta — fronteira de informação', () => {
+    it('toPublicCard nunca inclui evaluation nem o critério', () => {
         const pub = toPublicCard(acenarCard)
         expect(pub.public.word).toBe('Acenar')
         expect('evaluation' in pub).toBe(false)
-        // Nenhum dado de avaliação pode vazar no objeto público serializado.
         const serialized = JSON.stringify(pub)
-        expect(serialized).not.toContain('canonicalAnswer')
-        expect(serialized).not.toContain('acenar'.toLowerCase())
-        expect(serialized).not.toContain('tchau')
-        expect(serialized).not.toContain('waving')
+        expect(serialized).not.toContain('criterion')
+        expect(serialized).not.toContain('hand-angle-oscillation')
+        expect(serialized).not.toContain('amplitudeDeg')
+        expect(serialized).not.toContain('minReversals')
     })
 
     it('toPublicCard preserva id, locale e dados públicos', () => {

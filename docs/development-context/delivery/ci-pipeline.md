@@ -2,7 +2,7 @@
 
 O CI executa os mesmos scripts do `package.json` que existem localmente. Nenhuma regra de qualidade é definida dentro dos workflows; a composição dos gates está em [checks de qualidade](../quality/quality-gates.md).
 
-**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `apps/server`, `packages/core`). O pipeline cobre a governança (SDD, documentação e os próprios gates), o escopo de código (`typecheck`, `lint`, `test`, `build` via `yarn check:all`) e a auditoria de dependências.
+**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `packages/core`). O pipeline cobre a governança (SDD, documentação e os próprios gates), o escopo de código (`typecheck`, `lint`, `test`, `build` via `yarn check:all`) e a auditoria de dependências.
 
 ## Workflows
 

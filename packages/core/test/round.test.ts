@@ -1,340 +1,223 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import type {
-    CapturedFrame,
-    GuesserInput,
-    GuesserProvider,
-    GuesserResult,
+import {
+    acenarCard,
+    createRound,
+    DEFAULT_MAX_DURATION_MS,
+    type OscillationVerdict,
 } from '../src/index.js'
-import { acenarCard, createRound } from '../src/index.js'
 
-const frames: CapturedFrame[] = [
-    { timestampMs: 0, mimeType: 'image/jpeg', data: 'AAAA' },
-    { timestampMs: 400, mimeType: 'image/jpeg', data: 'BBBB' },
-]
-
-/** Provedor de teste que devolve palpites de uma fila, em ordem. */
-function queueProvider(
-    guesses: Array<GuesserResult | Error>,
-    capture?: (input: GuesserInput) => void,
-): GuesserProvider {
-    let i = 0
+function setup(maxDurationMs?: number) {
+    let now = 1000
+    const clock = () => now
+    const round = createRound({
+        card: acenarCard,
+        clock,
+        ...(maxDurationMs === undefined ? {} : { maxDurationMs }),
+    })
     return {
-        id: 'queue',
-        guess(input) {
-            capture?.(input)
-            const next = guesses[i++]
-            if (next instanceof Error) return Promise.reject(next)
-            return Promise.resolve(next)
+        round,
+        advance: (ms: number) => {
+            now += ms
         },
     }
 }
 
-describe('motor da rodada — transições felizes (#12)', () => {
-    it('idle → card_revealed → camera_ready → correct no acerto', async () => {
-        const provider = queueProvider([{ guess: 'dar tchau' }])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        expect(round.state).toBe('idle')
-        round.revealCard()
-        expect(round.state).toBe('card_revealed')
-        round.cameraReady()
-        expect(round.state).toBe('camera_ready')
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(true)
-        expect(round.state).toBe('correct')
-        expect(round.finished).toBe(true)
+/** Alimenta oscilações largas (±30°) a cada 100 ms até reconhecer ou esgotar `count`. */
+function wave(ctx: ReturnType<typeof setup>, count: number): OscillationVerdict | null {
+    let last: OscillationVerdict | null = null
+    for (let i = 0; i < count; i++) {
+        ctx.advance(100)
+        const phase = (i % 8) / 8
+        const tri = phase < 0.5 ? phase * 2 : 2 - phase * 2
+        last = ctx.round.observe(-30 + 60 * tri)
+        if (ctx.round.state !== 'detecting') break
+    }
+    return last
+}
+
+describe('rodada — fluxo feliz', () => {
+    it('percorre idle → card_revealed → camera_ready → detecting → recognized', () => {
+        const ctx = setup()
+        expect(ctx.round.state).toBe('idle')
+        ctx.round.revealCard()
+        expect(ctx.round.state).toBe('card_revealed')
+        ctx.round.cameraReady()
+        expect(ctx.round.state).toBe('camera_ready')
+        ctx.round.start()
+        expect(ctx.round.state).toBe('detecting')
+
+        const verdict = wave(ctx, 40)
+        expect(verdict?.recognized).toBe(true)
+        expect(ctx.round.state).toBe('recognized')
+        expect(ctx.round.finished).toBe(true)
+        expect(ctx.round.verdict?.reversals).toBeGreaterThanOrEqual(3)
+    })
+
+    it('reconhece no primeiro instante em que o avaliador devolve reconhecido', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        wave(ctx, 40)
+        const stoppedAt = ctx.round.elapsedMs
+        expect(ctx.round.state).toBe('recognized')
+        // Amostras posteriores são ignoradas e o estado não muda.
+        ctx.advance(500)
+        expect(ctx.round.observe(0)).toBeNull()
+        expect(ctx.round.elapsedMs).toBe(stoppedAt)
+    })
+
+    it('mede o tempo decorrido desde o Começar', () => {
+        const ctx = setup()
+        expect(ctx.round.elapsedMs).toBeNull()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.advance(300)
+        expect(ctx.round.elapsedMs).toBe(300)
     })
 })
 
-describe('motor da rodada — nova tentativa sem repetir rejeitados (#12)', () => {
-    it('palpite incorreto volta a retry e acumula rejectedGuesses', async () => {
-        const seen: GuesserInput[] = []
-        const provider = queueProvider(
-            [{ guess: 'levantar a mão' }, { guess: 'acenar' }],
-            (input) => seen.push(structuredClone(input)),
-        )
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        round.revealCard()
-        round.cameraReady()
-
-        const first = await round.attempt(frames)
-        expect(first.isCorrect).toBe(false)
-        expect(round.state).toBe('retry')
-
-        const second = await round.attempt(frames)
-        expect(second.isCorrect).toBe(true)
-        expect(round.state).toBe('correct')
-
-        // Primeira chamada sem rejeitados; segunda carrega o palpite anterior.
-        expect(seen[0]?.rejectedGuesses ?? []).toHaveLength(0)
-        expect(seen[1]?.rejectedGuesses).toContain('levantar a mão')
+describe('rodada — limite de tempo', () => {
+    it('usa 10 s por padrão', () => {
+        expect(DEFAULT_MAX_DURATION_MS).toBe(10_000)
     })
 
-    it('não repete o mesmo palpite rejeitado no histórico', async () => {
-        const seen: GuesserInput[] = []
-        const provider = queueProvider(
-            [
-                { guess: 'levantar a mão' },
-                { guess: 'levantar a mão' },
-                { guess: 'acenar' },
-            ],
-            (input) => seen.push(structuredClone(input)),
-        )
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 5,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        await round.attempt(frames)
-        await round.attempt(frames)
-        // Mesmo palpite repetido aparece uma única vez em rejectedGuesses.
-        const last = seen[2]?.rejectedGuesses ?? []
-        expect(last.filter((g) => g === 'levantar a mão')).toHaveLength(1)
+    it('termina em timed_out por tick quando o limite passa sem reconhecimento', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.advance(9_999)
+        ctx.round.tick()
+        expect(ctx.round.state).toBe('detecting')
+        ctx.advance(1)
+        ctx.round.tick()
+        expect(ctx.round.state).toBe('timed_out')
+        expect(ctx.round.finished).toBe(true)
+    })
+
+    it('termina em timed_out ao observar depois do limite, sem reconhecer', () => {
+        const ctx = setup(2_000)
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.advance(2_500)
+        expect(ctx.round.observe(30)).toBeNull()
+        expect(ctx.round.state).toBe('timed_out')
+    })
+
+    it('respeita um limite configurado', () => {
+        const ctx = setup(1_000)
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.advance(1_000)
+        ctx.round.tick()
+        expect(ctx.round.state).toBe('timed_out')
+    })
+
+    it('rejeita limite não positivo', () => {
+        expect(() => createRound({ card: acenarCard, maxDurationMs: 0 })).toThrow()
     })
 })
 
-describe('motor da rodada — limites (#12)', () => {
-    it('termina sem acerto ao esgotar as tentativas', async () => {
-        const provider = queueProvider([
-            { guess: 'levantar a mão' },
-            { guess: 'mexer o braço' },
-        ])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 2,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        expect(round.state).toBe('retry')
-        const last = await round.attempt(frames)
-        expect(last.isCorrect).toBe(false)
-        expect(round.state).toBe('finished')
-        expect(round.finished).toBe(true)
+describe('rodada — exceções', () => {
+    it('câmera negada encerra a rodada e impede o início', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.denyCamera()
+        expect(ctx.round.state).toBe('camera_denied')
+        expect(ctx.round.finished).toBe(true)
+        expect(() => ctx.round.start()).toThrow()
     })
 
-    it('respeita o limite de tempo por rodada com relógio injetável', async () => {
-        let now = 1_000
-        const clock = () => now
-        const provider = queueProvider([
-            { guess: 'levantar a mão' },
-            { guess: 'acenar' },
-        ])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 5,
-            maxDurationMs: 5_000,
-            clock,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        expect(round.state).toBe('retry')
-        now = 7_000 // tempo esgotou
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(false)
-        expect(round.state).toBe('finished')
-        expect(outcome.reason).toMatch(/tempo/i)
+    it('falha do detector encerra a rodada com o motivo', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.trackerFailed('modelo não carregou')
+        expect(ctx.round.state).toBe('tracker_error')
+        expect(ctx.round.finished).toBe(true)
+        expect(ctx.round.failureReason).toBe('modelo não carregou')
+    })
+
+    it('falha do detector durante a detecção não marca reconhecimento', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.advance(100)
+        ctx.round.observe(-30)
+        ctx.round.trackerFailed('erro de inferência')
+        expect(ctx.round.state).toBe('tracker_error')
+        expect(ctx.round.observe(30)).toBeNull()
+    })
+
+    it('cancelar encerra a rodada em qualquer estado não final', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        ctx.round.cancel()
+        expect(ctx.round.state).toBe('user_cancelled')
+        expect(ctx.round.finished).toBe(true)
+    })
+
+    it('cancelar depois de terminar não muda o desfecho', () => {
+        const ctx = setup()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        wave(ctx, 40)
+        ctx.round.cancel()
+        expect(ctx.round.state).toBe('recognized')
     })
 })
 
-describe('motor da rodada — estados de exceção (#12)', () => {
-    it('erro de provedor: estado íntegro, nenhum acerto marcado', async () => {
-        const provider = queueProvider([new Error('falha de rede')])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        round.revealCard()
-        round.cameraReady()
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(false)
-        expect(round.state).toBe('provider_error')
-        // Recuperável: pode tentar de novo.
-        expect(round.finished).toBe(false)
+describe('rodada — transições inválidas e amostras', () => {
+    it('lança em transição fora de ordem', () => {
+        const ctx = setup()
+        expect(() => ctx.round.cameraReady()).toThrow()
+        expect(() => ctx.round.start()).toThrow()
+        ctx.round.revealCard()
+        expect(() => ctx.round.revealCard()).toThrow()
+        expect(() => ctx.round.start()).toThrow()
     })
 
-    it('resposta inválida do modelo → invalid_model_response, sem acerto', async () => {
-        const provider = queueProvider([{ guess: '' }])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        round.revealCard()
-        round.cameraReady()
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(false)
-        expect(round.state).toBe('invalid_model_response')
+    it('ignora amostras fora do estado detecting', () => {
+        const ctx = setup()
+        expect(ctx.round.observe(10)).toBeNull()
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        expect(ctx.round.observe(10)).toBeNull()
+        expect(ctx.round.verdict).toBeNull()
     })
 
-    it('timeout do provedor → request_timeout, sem acerto', async () => {
-        const provider: GuesserProvider = {
-            id: 'lento',
-            guess: () =>
-                new Promise((_resolve, reject) =>
-                    setTimeout(() => reject(new Error('timeout')), 50),
-                ),
+    it('não acumula amostras fora da janela', () => {
+        const ctx = setup(60_000)
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        for (let i = 0; i < 200; i++) {
+            ctx.advance(100)
+            ctx.round.observe(0)
         }
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-            requestTimeoutMs: 5,
-        })
-        round.revealCard()
-        round.cameraReady()
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(false)
-        expect(round.state).toBe('request_timeout')
+        expect(ctx.round.verdict?.windowSamples).toBeLessThanOrEqual(25)
+        expect(ctx.round.state).toBe('detecting')
     })
 
-    it('câmera negada e cancelamento do usuário encerram sem acerto', () => {
-        const provider = queueProvider([{ guess: 'acenar' }])
-        const denied = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        denied.revealCard()
-        denied.denyCamera()
-        expect(denied.state).toBe('camera_denied')
-
-        const cancelled = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        cancelled.revealCard()
-        cancelled.cameraReady()
-        cancelled.cancel()
-        expect(cancelled.state).toBe('user_cancelled')
-        expect(cancelled.finished).toBe(true)
-    })
-
-    it('tentar julgar sem câmera pronta é rejeitado (transição inválida)', async () => {
-        const provider = queueProvider([{ guess: 'acenar' }])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        await expect(round.attempt(frames)).rejects.toThrow()
-    })
-
-    it.each([
-        ['erro do provedor', () => new Error('falha de rede'), 'provider_error'],
-        ['evidência insuficiente', () => ({ guess: '', insufficientEvidence: true }), 'invalid_model_response'],
-    ])(
-        'erro recuperável (%s): permite nova tentativa sem consumi-la',
-        async (_name, makeFailure, expectedState) => {
-            const provider = queueProvider([
-                makeFailure(),
-                { guess: 'levantar a mão' },
-                { guess: 'acenar' },
-            ])
-            const round = createRound({
-                card: acenarCard,
-                provider,
-                maxAttempts: 2,
-            })
-            round.revealCard()
-            round.cameraReady()
-
-            await round.attempt(frames)
-            expect(round.state).toBe(expectedState)
-            expect(round.attempts).toBe(0)
-
-            // Repete após o erro: 1ª tentativa válida, errada; ainda resta uma.
-            const retried = await round.attempt(frames)
-            expect(retried.state).toBe('retry')
-            expect(round.attempts).toBe(1)
-
-            const final = await round.attempt(frames)
-            expect(final.isCorrect).toBe(true)
-            expect(round.state).toBe('correct')
-        },
-    )
-
-    it('timeout do provedor também permite nova tentativa sem consumi-la', async () => {
-        let calls = 0
-        const provider: GuesserProvider = {
-            id: 'lento-depois-rapido',
-            guess: () => {
-                calls += 1
-                if (calls === 1) {
-                    return new Promise((_resolve, reject) =>
-                        setTimeout(() => reject(new Error('timeout')), 50),
-                    )
-                }
-                return Promise.resolve({ guess: 'acenar' })
-            },
+    it('não reconhece movimento pequeno ou sem volta', () => {
+        const ctx = setup(60_000)
+        ctx.round.revealCard()
+        ctx.round.cameraReady()
+        ctx.round.start()
+        for (let i = 0; i < 100; i++) {
+            ctx.advance(100)
+            ctx.round.observe(i % 2 === 0 ? 3 : -3)
         }
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-            requestTimeoutMs: 5,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        expect(round.state).toBe('request_timeout')
-        expect(round.attempts).toBe(0)
-        const outcome = await round.attempt(frames)
-        expect(outcome.isCorrect).toBe(true)
-    })
-})
-
-describe('motor da rodada — histórico e provedor (#12)', () => {
-    it('mantém o histórico de tentativas em memória', async () => {
-        const provider = queueProvider([
-            { guess: 'levantar a mão' },
-            { guess: 'acenar' },
-        ])
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        await round.attempt(frames)
-        expect(round.history).toHaveLength(2)
-        expect(round.history[0]?.guess).toBe('levantar a mão')
-        expect(round.history[1]?.result.isCorrect).toBe(true)
-    })
-
-    it('passa o signal e os frames ao provedor', async () => {
-        const spy =
-            vi.fn<(input: GuesserInput) => Promise<GuesserResult>>()
-        spy.mockResolvedValue({ guess: 'acenar' })
-        const provider: GuesserProvider = { id: 'spy', guess: spy }
-        const round = createRound({
-            card: acenarCard,
-            provider,
-            maxAttempts: 3,
-        })
-        round.revealCard()
-        round.cameraReady()
-        await round.attempt(frames)
-        expect(spy).toHaveBeenCalledOnce()
-        const input = spy.mock.calls[0]?.[0]
-        expect(input?.frames).toEqual(frames)
+        expect(ctx.round.state).toBe('detecting')
+        expect(ctx.round.verdict?.reversals).toBe(0)
     })
 })

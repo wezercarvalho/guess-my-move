@@ -1,7 +1,7 @@
 /**
  * Projeção pública da carta: tudo o que o jogador pode ver, nunca a avaliação.
- * A fronteira de informação é inviolável — nenhum dado de `evaluation` (resposta
- * canônica, aliases, palpites insuficientes, critérios visuais) aparece aqui.
+ * A fronteira de informação é inviolável — nenhum dado de `evaluation` (o
+ * critério do gesto) aparece aqui.
  */
 import type { Card, CardPublic } from '../contracts.js'
 
