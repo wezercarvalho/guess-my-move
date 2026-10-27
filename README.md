@@ -8,6 +8,8 @@
 
 A carta inicial é **Acenar**. O critério é a oscilação do ângulo da mão (avaliador puro em `packages/core`), e a interface (`apps/web`) roda o detector no Chrome desktop, desenha o esqueleto da mão e mostra os números do avaliador para ajuste. O reconhecimento foi validado só em um spike (12 clipes, uma pessoa); ainda **não há medição de acurácia ou latência geral**. A IA jogadora (uma IA que adivinha sem conhecer a carta) é evolução futura, com spec própria.
 
+Há também um segundo jogo, isolado do jogo de cartas: **bolinhas de gude, bete solo**, em `marbles.html`. O jogador faz o tiro com a mão pela câmera (pinça, arrastar para trás e abrir os dedos) contra um alvo parado, com tiros ilimitados; a rodada termina no primeiro acerto, mostrando o número de tiros. Os limiares da pinça, o ganho do tiro e a física são palpites ainda **não calibrados nem medidos**. O estalo real do polegar fica para uma versão beta (issue #68).
+
 ## Requisitos
 
 - Node.js 26.12.1 ou superior da linha 26 (ver `.node-version`).
@@ -22,7 +24,7 @@ corepack enable
 yarn install --immutable
 ```
 
-Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packages/core`). Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
+Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packages/core`, `packages/marbles`). Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
 
 ## Como rodar
 
@@ -30,9 +32,13 @@ Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packa
 yarn dev:web
 ```
 
-`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa o modelo `hand_landmarker.task`, verificando o SHA-256 fixado) e sobe o Vite. Abra o endereço do Vite no Chrome desktop, autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
+`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa o modelo `hand_landmarker.task`, verificando o SHA-256 fixado) e sobe o Vite. Abra o endereço do Vite no Chrome desktop: a página inicial (`/`) é um menu com um card por jogo. O jogo de cartas fica em `cards.html`: autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
 
 O modelo não é versionado no repositório; `apps/web/public/mediapipe/` fica fora do Git e é preparado pelo script. O primeiro `prepare:assets` precisa de rede para baixar o modelo; depois ele reaproveita o arquivo em cache.
+
+### Bolinhas de gude (bete)
+
+Com o mesmo servidor de desenvolvimento, abra `/marbles.html` (por exemplo, `http://localhost:5173/marbles.html`) no Chrome desktop e autorize a câmera. Faça a pinça (polegar e indicador juntos) em qualquer ponto, com a mão que preferir, arraste a mão para longe do alvo e abra os dedos para atirar a bolinha azul na vermelha. A mira é relativa: só o deslocamento da mão desde onde a pinça fechou conta. O vídeo e o esqueleto aparecem espelhados, como num espelho. O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados e a latência. `?delegate=cpu|gpu` também vale aqui.
 
 ### Delegate GPU ou CPU
 
@@ -47,10 +53,11 @@ yarn preview   # serve o build localmente
 
 ## Estrutura
 
-| Pasta           | Conteúdo                                                                                                        |
-| --------------- | --------------------------------------------------------------------------------------------------------------- |
-| `apps/web`      | React + Vite: câmera, detector MediaPipe atrás da interface `HandTracker`, laço por quadro, esqueleto e painel. |
-| `packages/core` | TypeScript puro: schema e carta, ângulo da mão, avaliador da oscilação e máquina de estados da rodada.          |
+| Pasta              | Conteúdo                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`         | React + Vite: câmera, detector MediaPipe atrás da interface `HandTracker`, laço por quadro, esqueleto e painel.     |
+| `packages/core`    | TypeScript puro: schema e carta, ângulo da mão, avaliador da oscilação e máquina de estados da rodada.              |
+| `packages/marbles` | TypeScript puro do bete: física 2D de círculos, detector de pinça, tiro por arrasto e máquina de estados da rodada. |
 
 O núcleo é puro (sem DOM, câmera ou MediaPipe): expõe `handAngleDeg`, `evaluateOscillation`, `createRound`, a carta e `toPublicCard`. O detector e o desenho ficam só em `apps/web`.
 

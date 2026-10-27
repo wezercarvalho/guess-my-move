@@ -1,0 +1,60 @@
+/* Estilos exclusivos do bete; o restante vem de ../styles.css. */
+.marbles-screen {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.marbles-field-panel {
+    background: var(--cor-superficie);
+    border-radius: var(--raio);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.marbles-field-panel h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.marbles-field {
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 4 / 3;
+    height: auto;
+    border-radius: var(--raio);
+    background: #b98f5e;
+}
+
+.shot-counter {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Página mais larga que a do jogo de cartas, para o campo e a câmera ficarem lado a lado. */
+.app.app-wide {
+    max-width: 1200px;
+}
+
+.marbles-layout {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+    align-items: start;
+}
+
+.marbles-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+@media (min-width: 960px) {
+    .marbles-layout {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    }
+}

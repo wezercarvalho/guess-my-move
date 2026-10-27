@@ -154,11 +154,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@guess-my-move/marbles@npm:0.0.0, @guess-my-move/marbles@workspace:packages/marbles":
+  version: 0.0.0-use.local
+  resolution: "@guess-my-move/marbles@workspace:packages/marbles"
+  dependencies:
+    typescript: "npm:7.0.2"
+    vite: "npm:8.3.4"
+    vitest: "npm:5.0.5"
+  languageName: unknown
+  linkType: soft
+
 "@guess-my-move/web@workspace:apps/web":
   version: 0.0.0-use.local
   resolution: "@guess-my-move/web@workspace:apps/web"
   dependencies:
     "@guess-my-move/core": "npm:0.0.0"
+    "@guess-my-move/marbles": "npm:0.0.0"
     "@mediapipe/tasks-vision": "npm:1.1.1"
     "@testing-library/dom": "npm:10.4.2"
     "@testing-library/jest-dom": "npm:7.0.1"

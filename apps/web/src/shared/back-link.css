@@ -1,0 +1,15 @@
+/* Link de volta ao menu, usado por cards.html e marbles.html (cores fixas: o CSS do app pode ainda não ter carregado). */
+.back-link {
+    display: inline-block;
+    margin: 1rem 1.25rem 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    color: #4f9cff;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    text-decoration: none;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+    text-decoration: underline;
+}

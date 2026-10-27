@@ -1,0 +1,127 @@
+# Clarificação — 2026-10-27-game-marbles-bete-build-pinch-shot
+
+## Contexto
+
+- **Spec:** `spec.md`
+- **Status de entrada:** `specified`
+- **Constituição:** `1.0.0`
+- **Iniciada em:** `2026-10-27`
+
+As decisões CQ-001 a CQ-006 refletem as definições do maintainer para o bete solo com tiro por pinça, registradas na sessão do dashboard em 2026-10-27, com os Gates 1 e 2 aprovados de forma antecipada (antes da redação dos documentos). CQ-007 e CQ-008 são decisões técnicas do agente, derivadas do reaproveitamento da spec do árbitro por visão e revisáveis.
+
+## Log de decisões
+
+### CQ-001 — Mecânica e escopo do jogo
+
+- **Data:** `2026-10-27`
+- **Impacto:** crítico
+- **Pergunta:** Qual mecânica e qual recorte entram na primeira entrega do bete?
+- **Decisão:** Bete solo, uma bolinha de tiro e um alvo parado, tiros ilimitados; a rodada termina no primeiro contato e mostra o número de tiros; o erro volta tudo ao início.
+- **Razão:** Mecânica mínima, jogável e testável sem câmera na parte de física e tiro.
+- **Alternativas rejeitadas:** Triângulo, cova e multijogador (complexidade sem necessidade agora); pontuação além do contador de tiros.
+- **Seções atualizadas em `spec.md`:** Resumo, Objetivos, Fora de escopo, US-001, US-002, FR-002, FR-005.
+
+### CQ-002 — Gesto de tiro
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** Como o jogador dispara a bolinha?
+- **Decisão:** Pinça (polegar e indicador) como estilingue: fechar em qualquer ponto (mira relativa, ver CQ-010), arrastar para longe do alvo e abrir para disparar; o estalo real fica para a issue #68.
+- **Razão:** A pinça é robusta no rastreador de mão e mapeia bem para o estilingue; o estalo exige detecção de gesto mais fina.
+- **Alternativas rejeitadas:** Estalo do dedo na primeira entrega (issue #68, fora de escopo); apontar e clicar (perde o caráter de gesto).
+- **Seções atualizadas em `spec.md`:** Resumo, Fora de escopo, US-001, FR-003, FR-004.
+
+### CQ-003 — Parâmetros do campo e do tiro
+
+- **Data:** `2026-10-27`
+- **Impacto:** médio
+- **Pergunta:** Quais valores de campo, bolinhas e tiro valem como ponto de partida?
+- **Decisão:** Campo 800 x 600, raio 14, tiro em (150, 300), alvo em (550, 300); escala da mira 1,5, velocidade 5x o arrasto, limite de arrasto 220, cancelamento abaixo de 30, perda da mão acima de 300 ms. Todos placeholders de calibração.
+- **Razão:** Proporção 4:3 compatível com a webcam; valores iniciais suficientes para jogar e calibrar.
+- **Alternativas rejeitadas:** Fixar valores como definitivos sem medição (contraria a Constituição V).
+- **Seções atualizadas em `spec.md`:** Resumo, FR-001, FR-004, FR-005, H-01.
+
+### CQ-004 — Física
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** Qual modelo de física?
+- **Decisão:** Arcade determinística com passo fixo de 1/120 s: círculos, atrito constante 400, parada abaixo de 8, restituição 0,8 nas paredes e 1,0 elástica entre bolinhas de massas iguais.
+- **Razão:** Determinismo permite teste automático sem câmera; arcade basta para a mecânica.
+- **Alternativas rejeitadas:** Física contínua não determinística (difícil de testar); 3D (fora de escopo).
+- **Seções atualizadas em `spec.md`:** FR-001, FR-002, Edge cases.
+
+### CQ-005 — Alvo e privacidade
+
+- **Data:** `2026-10-27`
+- **Impacto:** médio
+- **Pergunta:** Qual navegador e qual regra de privacidade?
+- **Decisão:** Chrome desktop, uma mão; privacidade igual à spec do árbitro por visão: nenhum quadro sai do navegador, é gravado ou registrado.
+- **Razão:** Reduz a matriz de teste e mantém a regra de privacidade do projeto.
+- **Alternativas rejeitadas:** Celular e outros navegadores na primeira entrega.
+- **Seções atualizadas em `spec.md`:** Fora de escopo, US-004, FR-009.
+
+### CQ-006 — Depuração
+
+- **Data:** `2026-10-27`
+- **Impacto:** baixo
+- **Pergunta:** O que o painel de depuração mostra?
+- **Decisão:** Como no jogo de cartas: delegate, estado, razão da pinça, pinça fechada, mão visível, quadros processados, latências mediana e p95.
+- **Razão:** O ajuste dos limiares da pinça depende de ver o que o detector lê.
+- **Alternativas rejeitadas:** Só o veredito do jogo (sem como calibrar).
+- **Seções atualizadas em `spec.md`:** US-003, FR-008.
+
+### CQ-007 — Arquitetura da página
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** App novo ou página extra no app atual?
+- **Decisão:** Página extra no mesmo app (segunda entrada do Vite, `marbles.html`), reaproveitando câmera e rastreador sem extrair um pacote compartilhado nem mexer no jogo de cartas.
+- **Razão:** Reaproveita a infraestrutura existente com o menor acoplamento; o jogo de cartas permanece isolado.
+- **Alternativas rejeitadas:** App novo (duplica câmera e rastreador); extrair pacote compartilhado agora (complexidade antecipada).
+- **Seções atualizadas em `spec.md`:** Resumo, FR-007, FR-010.
+
+### CQ-008 — Pacote da lógica
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** Onde fica a lógica pura do bete?
+- **Decisão:** Pacote novo `packages/marbles` (`@guess-my-move/marbles`), puro, sem DOM, sem MediaPipe e sem depender de `@guess-my-move/core`, com tipos de ponto próprios e estruturais `{x, y}` compatíveis com os landmarks.
+- **Razão:** Mantém a física, a pinça, o tiro e a rodada testáveis em Node e independentes do núcleo do jogo de cartas.
+- **Alternativas rejeitadas:** Colocar a lógica em `@guess-my-move/core` (acopla ao jogo de cartas); misturar no app web (perde o teste puro).
+- **Seções atualizadas em `spec.md`:** FR-010, NFR-001.
+
+## CQ-009 — Emenda após o primeiro teste (menu inicial e guia da mão)
+
+- **Data:** `2026-10-27`
+- **Impacto:** médio
+- **Pergunta:** Como o jogador chega a cada jogo e como sabe que a mão foi vista?
+- **Decisão:** Pedido do maintainer após o primeiro teste: `index.html` vira um menu com um card por jogo (FR-012), e o jogo de cartas passa a `cards.html` sem mudar seu código. A tela não mostrava onde a mão do jogador estava no campo nem se ela era vista, o que dificultava jogar e entender o que o detector lia; a FR-006 passa a exigir o cursor da mão no campo, mensagens de orientação e a câmera ao lado do campo.
+- **Razão:** O menu evita decorar URLs; o guia da mão corrige uma falha de interface, sem alterar os limiares nem o ganho. (Uma versão anterior desta decisão dizia que o detector não tinha visto a mão no primeiro teste; isso estava errado, ver a retratação em `validation.md`.)
+- **Alternativas rejeitadas:** Roteamento no cliente dentro de uma entrada só (mexeria no `App.tsx` do jogo de cartas).
+- **Seções atualizadas em `spec.md`:** FR-006, FR-010, FR-012.
+
+## CQ-010 — Mira relativa (qualquer mão, qualquer lado)
+
+- **Data:** `2026-10-27`
+- **Impacto:** alto
+- **Pergunta:** A pinça precisa fechar perto da bolinha de tiro?
+- **Decisão:** Não. No segundo teste do maintainer (vídeo de tela, mão direita), a bolinha de tiro fica no lado esquerdo do campo e a mão direita precisava cruzar o corpo para o anel chegar nela; ele relatou ter de alternar entre as mãos. A mira passa a ser relativa: a pinça que fecha em qualquer ponto inicia a mira (desde que tenha sido vista aberta antes) e a pinça virtual é a bolinha de tiro mais o deslocamento da mão desde esse ponto, na escala `aimScale` (padrão 1,5). O raio de pega (70) deixa de existir, inclusive no código.
+- **Razão:** Funciona com qualquer mão, não depende de alcançar o lado esquerdo do campo e reduz o movimento do braço; o arrasto continua sendo um estilingue.
+- **Alternativas rejeitadas:** Mover a bolinha de tiro para o centro (continua forçando um lado); espelhar o campo por mão (exige detectar a mão e confunde); manter o raio de pega e ampliar (mantém o problema).
+- **Seções atualizadas em `spec.md`:** Resumo, US-001, FR-005, casos de borda, H-01.
+
+## Hipóteses remanescentes
+
+- Limiares da pinça, escala da mira, ganho e limites são placeholders até a calibração com uso real (H-01); mitigado pelo painel de depuração e pelo teste do maintainer.
+- O mapeamento do quadro inteiro ao campo pode exigir ajuste de sensibilidade (H-02); validado no teste do maintainer.
+- A perda da mão em movimento rápido pode cancelar tiros legítimos (H-03); mitigado pelo arrasto lento por desenho.
+
+## Gate 1 — Clarificação aprovada
+
+- **Status:** aprovado
+- **Aprovador:** wezercarvalho (maintainer)
+- **Data:** `2026-10-27`
+- **Artefatos aprovados:** `spec.md`, `clarification.md`
+- **Referência:** Mensagem do maintainer na sessão do dashboard em 2026-10-27 e issue 67 do repositório.
+- **Observações:** Aprovação antecipada dos Gates 1 e 2, dada no chat antes da redação dos documentos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.

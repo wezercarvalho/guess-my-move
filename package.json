@@ -9,7 +9,8 @@
     },
     "workspaces": [
         "apps/web",
-        "packages/core"
+        "packages/core",
+        "packages/marbles"
     ],
     "scripts": {
         "typecheck": "yarn workspaces foreach --all --topological run typecheck",
