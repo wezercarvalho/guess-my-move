@@ -1,4 +1,4 @@
-import { DEFAULT_FLICK, type FlickConfig, type FlickReading, flickShot } from './flick.js'
+import { DEFAULT_FLICK, type FlickConfig, type FlickReading } from './flick.js'
 import { type PinchReading } from './pinch.js'
 import {
     type Body,
@@ -24,7 +24,7 @@ export type BeteState =
 export interface BeteConfig {
     physics: PhysicsConfig
     shot: ShotConfig
-    /** Parâmetros do estalo (modo alpha). */
+    /** Parâmetros do gatilho do estalo (modo alpha). */
     flick: FlickConfig
     /** Raio das duas bolinhas. */
     radius: number
@@ -62,8 +62,6 @@ export interface BeteSnapshot {
     shots: number
     /** Mira em andamento: pinça virtual (bolinha mais o arrasto) e a previsão do tiro (ou `null` se curto). */
     aim: { pinch: Vec; shot: Shot | null } | null
-    /** Modo estalo armado: direção da mão (vetor unitário do campo); `null` fora disso. */
-    flick: { direction: Vec } | null
     /** Número de tiros que acertou o alvo; `null` enquanto não houve acerto. */
     hitShots: number | null
     failureReason: string | null
@@ -77,7 +75,7 @@ export interface BeteRound {
     trackerFailed(reason: string): void
     /** Leitura da pinça; `nowMs` é o relógio monotônico do chamador. */
     observePinch(reading: PinchReading, nowMs: number): void
-    /** Leitura do detector de estalo (modo alpha); `closed` significa armado. */
+    /** Leitura do detector de estalo (modo alpha): mira pelo arrasto e dispara na abertura rápida; `closed` significa armado. */
     observeFlick(reading: FlickReading, nowMs: number): void
     /** Avança a física em `dtMs` (só em `rolling` e `hit`). */
     advance(dtMs: number): void
@@ -103,8 +101,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     let aimAnchor: Vec | null = null
     /** Pinça virtual: a bolinha de tiro mais o arrasto da mão, já na escala do campo. */
     let aimPinch: Vec | null = null
-    /** Direção da mão enquanto armado no modo estalo. */
-    let flickDirection: Vec | null = null
     let lastSeenMs = 0
     /** A leitura anterior tinha a mão à vista e a pinça aberta. */
     let prevOpen = false
@@ -122,7 +118,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     function cancelAim(): void {
         aimAnchor = null
         aimPinch = null
-        flickDirection = null
         state = 'ready'
     }
 
@@ -132,7 +127,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
         shots++
         aimAnchor = null
         aimPinch = null
-        flickDirection = null
         accumulatorMs = 0
         state = 'rolling'
     }
@@ -142,6 +136,23 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
         return { x: reading.point.x * cfg.physics.width, y: reading.point.y * cfg.physics.height }
     }
 
+    /** Começa a mira: a pinça virtual parte da bolinha e só o arrasto a partir daqui conta. */
+    function startAim(point: Vec, nowMs: number): void {
+        aimAnchor = point
+        aimPinch = { ...shooterPos() }
+        lastSeenMs = nowMs
+        state = 'aiming'
+    }
+
+    /** Atualiza a pinça virtual: a bolinha mais o arrasto da mão, na escala do campo. */
+    function updateAim(point: Vec): void {
+        const anchor = aimAnchor ?? point
+        aimPinch = {
+            x: shooterPos().x + (point.x - anchor.x) * cfg.aimScale,
+            y: shooterPos().y + (point.y - anchor.y) * cfg.aimScale,
+        }
+    }
+
     function observe(reading: PinchReading, nowMs: number): void {
         const point = fieldPoint(reading)
         const closedNow = reading.closed && point !== null
@@ -149,23 +160,14 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
 
         if (state === 'ready') {
             // A mira começa ao fechar a pinça (aberta na leitura anterior), em qualquer lugar.
-            if (closedNow && prevOpen && point) {
-                aimAnchor = point
-                aimPinch = { ...shooterPos() }
-                lastSeenMs = nowMs
-                state = 'aiming'
-            }
+            if (closedNow && prevOpen && point) startAim(point, nowMs)
         } else if (state === 'aiming') {
             if (!point) {
                 if (nowMs - lastSeenMs > cfg.lostHandMs) cancelAim()
             } else {
                 lastSeenMs = nowMs
                 if (closedNow) {
-                    const anchor = aimAnchor ?? point
-                    aimPinch = {
-                        x: shooterPos().x + (point.x - anchor.x) * cfg.aimScale,
-                        y: shooterPos().y + (point.y - anchor.y) * cfg.aimScale,
-                    }
+                    updateAim(point)
                 } else {
                     // Ao abrir a pinça, vale a última posição com a pinça fechada.
                     const shot = aimPinch ? computeShot(shooterPos(), aimPinch, cfg.shot) : null
@@ -178,27 +180,28 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     }
 
     function observeFlickReading(reading: FlickReading, nowMs: number): void {
-        const visible = reading.handVisible
-        const armedNow = reading.closed && visible
-        const openNow = visible && !reading.closed
+        const point = fieldPoint(reading)
+        const armedNow = reading.closed && point !== null
+        const openNow = point !== null && !reading.closed
 
         if (state === 'ready') {
-            if (armedNow && prevOpen) {
-                flickDirection = reading.direction
-                lastSeenMs = nowMs
-                state = 'aiming'
-            }
+            // A mira começa ao armar (pinça aberta na leitura anterior), em qualquer lugar.
+            if (armedNow && prevOpen && point) startAim(point, nowMs)
         } else if (state === 'aiming') {
-            if (!visible) {
+            if (!point) {
                 if (nowMs - lastSeenMs > cfg.lostHandMs) cancelAim()
             } else {
                 lastSeenMs = nowMs
                 if (reading.release) {
-                    const shot = flickShot(reading.release, cfg.flick)
+                    // Abertura rápida dispara o tiro previsto pelo arrasto; lenta, fraca ou sem arrasto cancela.
+                    const shot =
+                        reading.release.fast && aimPinch
+                            ? computeShot(shooterPos(), aimPinch, cfg.shot)
+                            : null
                     if (shot) fire(shot.velocity)
                     else cancelAim()
                 } else if (armedNow) {
-                    flickDirection = reading.direction
+                    updateAim(point)
                 } else {
                     // O detector zerou o armado sem soltura (por exemplo, a mão sumiu e voltou aberta).
                     cancelAim()
@@ -230,7 +233,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
                           shot: computeShot(shooterPos(), aimPinch, cfg.shot),
                       }
                     : null,
-                flick: flickDirection ? { direction: { ...flickDirection } } : null,
                 hitShots,
                 failureReason,
             }
@@ -255,7 +257,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
             if (state === 'hit') return
             aimAnchor = null
             aimPinch = null
-            flickDirection = null
             failureReason = reason
             state = 'tracker_error'
         },
@@ -293,7 +294,6 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
             failureReason = null
             aimAnchor = null
             aimPinch = null
-            flickDirection = null
             prevOpen = false
             state = cameraOk ? 'ready' : 'idle'
         },

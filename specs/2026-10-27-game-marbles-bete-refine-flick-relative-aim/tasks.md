@@ -9,14 +9,14 @@
 
 ## Fase 1 — Detector de estalo como classificador de gatilho (packages/marbles)
 
-- [ ] T001 [US-002] [FR-002] [FR-003] Escrever testes falhando em `packages/marbles/test/flick.test.ts`: o detector classifica a abertura só como gatilho rápido (subida <= `slowMs` 80 ms E velocidade de abertura >= `minOpenSpeed` 2 razão/s) ou não; a soltura não traz mais `direction`; `handDirection`, `flickShot`, `maxOpenSpeed`, `minShotSpeed` e `maxShotSpeed` não existem mais na API
-- [ ] T002 [US-002] [FR-002] [FR-003] Implementar em `packages/marbles/src/flick.ts`: remover `handDirection`, o campo `direction`, `flickShot` e os parâmetros de força; baixar `slowMs` de 300 para 80 ms; manter a medição de duração e velocidade de abertura como dado; ajustar `index.ts`, e confirmar verde
+- [x] T001 [US-002] [FR-002] [FR-003] Escrever testes falhando em `packages/marbles/test/flick.test.ts`: o detector classifica a abertura só como gatilho rápido (subida <= `slowMs` 80 ms E velocidade de abertura >= `minOpenSpeed` 2 razão/s) ou não; a soltura não traz mais `direction`; `handDirection`, `flickShot`, `maxOpenSpeed`, `minShotSpeed` e `maxShotSpeed` não existem mais na API
+- [x] T002 [US-002] [FR-002] [FR-003] Implementar em `packages/marbles/src/flick.ts`: remover `handDirection`, o campo `direction`, `flickShot` e os parâmetros de força; baixar `slowMs` de 300 para 80 ms; manter a medição de duração e velocidade de abertura como dado; ajustar `index.ts`, e confirmar verde
 
 ## Fase 2 — Rodada com mira relativa (packages/marbles)
 
-- [ ] T003 [US-001] [FR-001] Escrever testes falhando em `packages/marbles/test/round.test.ts`: no modo estalo, enquanto armado, a posição alvo da mira é a posição da bolinha de tiro mais o deslocamento da mão vezes `aimScale`, e o tiro previsto vem de `computeShot` (reaproveitado do modo pinça), publicado no snapshot como na pinça
-- [ ] T004 [US-001] [US-002] [FR-003] [FR-004] Escrever testes falhando em `packages/marbles/test/round.test.ts`: `observeFlick` dispara o tiro previsto no gatilho rápido com arrasto suficiente; cancela sem contar tiro no lento, no fraco e no sem arrasto ("sem tiro"); perda > 300 ms cancela e qualquer perda zera o armado; sem alterar os casos do modo pinça
-- [ ] T005 [US-001] [US-002] [FR-001] [FR-003] [FR-004] Implementar `observeFlick` e o snapshot em `packages/marbles/src/round.ts` usando a pinça virtual e `computeShot`, e confirmar verde
+- [x] T003 [US-001] [FR-001] Escrever testes falhando em `packages/marbles/test/round.test.ts`: no modo estalo, enquanto armado, a posição alvo da mira é a posição da bolinha de tiro mais o deslocamento da mão vezes `aimScale`, e o tiro previsto vem de `computeShot` (reaproveitado do modo pinça), publicado no snapshot como na pinça
+- [x] T004 [US-001] [US-002] [FR-003] [FR-004] Escrever testes falhando em `packages/marbles/test/round.test.ts`: `observeFlick` dispara o tiro previsto no gatilho rápido com arrasto suficiente; cancela sem contar tiro no lento, no fraco e no sem arrasto ("sem tiro"); perda > 300 ms cancela e qualquer perda zera o armado; sem alterar os casos do modo pinça
+- [x] T005 [US-001] [US-002] [FR-001] [FR-003] [FR-004] Implementar `observeFlick` e o snapshot em `packages/marbles/src/round.ts` usando a pinça virtual e `computeShot`, e confirmar verde
 
 ## Fase 3 — Web: quadros novos, painel, tela (apps/web)
 
