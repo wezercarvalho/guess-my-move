@@ -47,7 +47,7 @@
 ## Fase final — Convergência
 
 - [x] T018 [SC-005] [NFR-004] Executar `yarn check:all`, `yarn sdd:check`, `yarn test:sdd`, `yarn docs:format:check`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
-- [ ] T019 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (acerto com a pinça, reconhecimento e latência) e fechar o Gate 3
+- [x] T019 [SC-002] [SC-003] [NFR-002] Registrar o teste manual do maintainer no Chrome desktop (acerto com a pinça, reconhecimento e latência) e fechar o Gate 3
 
 ## Cobertura
 

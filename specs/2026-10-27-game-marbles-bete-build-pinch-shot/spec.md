@@ -7,7 +7,7 @@ domain: game
 capability: marbles-bete
 objective: build-pinch-shot
 summary: Novo jogo solo de bolinhas de gude na variante bete, 100% local no Chrome desktop, em que o jogador mira e dispara a bolinha de tiro com um gesto de pinça da mão lido pela câmera (estilingue), sobre uma física arcade determinística, reaproveitando a câmera e o rastreador de mão da spec do árbitro por visão computacional sem alterar o jogo de cartas.
-status: implementing
+status: validated
 owners:
     - wezercarvalho
 reviewers: []

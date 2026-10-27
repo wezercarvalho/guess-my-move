@@ -3,20 +3,20 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** em andamento
+- **Status:** aprovado com risco aceito
 - **Constituição:** 1.0.0
 - **Data:** `2026-10-27`
-- **Executor/revisor:** kirocrew (agente); teste manual e Gate 3 pendentes do maintainer wezercarvalho
-- **Commit:** a registrar no fechamento do Gate 3
+- **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho pelo merge do PR #69
+- **Commit:** `bc3007f` (merge do PR #69 na `main`)
 
 ## Resumo do resultado
 
-Implementação concluída e gates automatizados verdes. O maintainer já jogou no Chrome desktop com a versão anterior da mira: a pinça fechou, houve mira e ele acertou o alvo em 2 tiros, mas a mão direita precisava cruzar o corpo para chegar à bolinha de tiro. A mira passou a ser relativa (CQ-010), o que ainda não foi testado por ele. Falta o teste manual do maintainer com essa versão (T019), que decide SC-002, SC-003 e NFR-002. A física, o detector de pinça, o tiro e a rodada têm testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página `marbles.html`, deixou o detector pronto e leu a razão da pinça de uma mão real (clipe de aceno). Os limiares, o ganho, a escala da mira e a física são palpites ainda não calibrados.
+**Gate 3:** o maintainer aprovou ao mergear o PR #69; o texto abaixo foi escrito antes do merge. Implementação concluída e gates automatizados verdes. O maintainer já jogou no Chrome desktop com a versão anterior da mira: a pinça fechou, houve mira e ele acertou o alvo em 2 tiros, mas a mão direita precisava cruzar o corpo para chegar à bolinha de tiro. A mira passou a ser relativa (CQ-010), o que ainda não foi testado por ele. Falta o teste manual do maintainer com essa versão (T019), que decide SC-002, SC-003 e NFR-002. A física, o detector de pinça, o tiro e a rodada têm testes sem câmera. Na VPS, o Chromium com o MediaPipe real carregou a página `marbles.html`, deixou o detector pronto e leu a razão da pinça de uma mão real (clipe de aceno). Os limiares, o ganho, a escala da mira e a física são palpites ainda não calibrados.
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 24 (T001 a T018 e T020 a T025)
-- **Pendentes:** 1 (T019, teste manual do maintainer)
+- **Concluídas:** 25 (T001 a T025)
+- **Pendentes:** 0
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -97,19 +97,19 @@ Os comandos rodaram no Node 24 da VPS, e o `package.json` pede Node 26; o `pr-ga
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                                                                                                                   | Impacto                                    | Responsável | Aceite   |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------- | -------- |
-| Limiares da pinça (a razão fechada vista pelo maintainer, 0,16 a 0,26, está bem abaixo de 0,35), ganho, escala da mira e física são palpites ainda não calibrados | A jogabilidade pode ficar difícil          | maintainer  | pendente |
-| A razão da mão aberta chegou a 0,36, perto do limiar de fechamento 0,35                                                                                           | Pinça pode fechar sozinha                  | maintainer  | pendente |
-| Reconhecimento da pinça depende da taxa de quadros e da perda da mão                                                                                              | Tiro perdido em movimento rápido           | maintainer  | pendente |
-| Sem suavização do tremor da mão na primeira entrega                                                                                                               | Mira instável                              | maintainer  | pendente |
-| Mapear o quadro inteiro da câmera ao campo pode exigir movimentos largos                                                                                          | Cansaço do braço e dificuldade de precisão | maintainer  | pendente |
+| Limitação/risco                                                                                                                                                   | Impacto                                    | Responsável | Aceite                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------- | ---------------------------------------- |
+| Limiares da pinça (a razão fechada vista pelo maintainer, 0,16 a 0,26, está bem abaixo de 0,35), ganho, escala da mira e física são palpites ainda não calibrados | A jogabilidade pode ficar difícil          | maintainer  | aceito por wezercarvalho em `2026-10-27` |
+| A razão da mão aberta chegou a 0,36, perto do limiar de fechamento 0,35                                                                                           | Pinça pode fechar sozinha                  | maintainer  | pendente                                 |
+| Reconhecimento da pinça depende da taxa de quadros e da perda da mão                                                                                              | Tiro perdido em movimento rápido           | maintainer  | pendente                                 |
+| Sem suavização do tremor da mão na primeira entrega                                                                                                               | Mira instável                              | maintainer  | pendente                                 |
+| Mapear o quadro inteiro da câmera ao campo pode exigir movimentos largos                                                                                          | Cansaço do braço e dificuldade de precisão | maintainer  | pendente                                 |
 
 ## Gate 3 — Convergência validada
 
-- **Veredito:** pendente
-- **Aprovador:** wezercarvalho (maintainer)
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer), pelo merge do PR #69 na `main`
 - **Data:** `2026-10-27`
-- **Escopo aprovado:** pendente do teste manual (T019)
-- **Riscos aceitos:** pendente
-- **Observações:** o Gate 3 depende do teste do maintainer no Chrome desktop.
+- **Escopo aprovado:** FR-001 a FR-012 e os artefatos da spec, com o código em `packages/marbles/` e `apps/web/`
+- **Riscos aceitos:** limiares da pinça, ganho, escala da mira 1,5 e física sem calibração além de uma rodada de 2 tiros; a pinça pode fechar sozinha (razão de mão aberta de 0,36 contra o limiar 0,35); dependência da taxa de quadros; sem suavização do tremor; movimentos largos do braço
+- **Observações:** o Gate 3 foi concedido pelo merge, sem que SC-002, SC-003 e NFR-002 tenham sido medidos além da rodada do maintainer registrada em Medições. A calibração da escala da mira e dos limiares pode ser registrada depois, sem reabrir esta spec, enquanto os números não forem usados como afirmação de desempenho. A issue #67 fecha com este registro.
