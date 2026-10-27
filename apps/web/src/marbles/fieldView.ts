@@ -78,6 +78,13 @@ export function drawField(
     marble(context, snapshot.target.x, snapshot.target.y, radius, '#e5533d')
     marble(context, snapshot.shooter.x, snapshot.shooter.y, radius, '#3b82f6')
 
+    if (snapshot.flick) {
+        context.lineCap = 'round'
+        context.lineWidth = 3
+        context.strokeStyle = '#1e3a8a'
+        arrow(context, snapshot.shooter, snapshot.flick.direction, 0.3)
+    }
+
     const { aim } = snapshot
     if (hand && !aim) {
         context.lineWidth = 3

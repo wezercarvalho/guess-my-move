@@ -1,6 +1,6 @@
 import { type BeteState } from '@guess-my-move/marbles'
 
-import { type MarblesDebug } from './marblesController.js'
+import { type MarblesDebug, type MarblesMode } from './marblesController.js'
 
 const DASH = '—'
 
@@ -21,7 +21,15 @@ const millis = (value: number | null) => (value === null ? DASH : `${Math.round(
  * Painel de depuração do bete: o que o detector está lendo, para calibrar a
  * pinça. Apenas números locais; nada é enviado nem gravado.
  */
-export function MarblesDebugPanel({ debug, state }: { debug: MarblesDebug; state: BeteState }) {
+export function MarblesDebugPanel({
+    debug,
+    state,
+    mode = 'pinch',
+}: {
+    debug: MarblesDebug
+    state: BeteState
+    mode?: MarblesMode
+}) {
     return (
         <section aria-labelledby="marbles-debug-heading" className="debug-panel">
             <h2 id="marbles-debug-heading">Depuração</h2>
@@ -49,6 +57,25 @@ export function MarblesDebugPanel({ debug, state }: { debug: MarblesDebug; state
                 <dd>{millis(debug.medianMs)}</dd>
                 <dt>Latência p95</dt>
                 <dd>{millis(debug.p95Ms)}</dd>
+                {mode === 'flick' && (
+                    <>
+                        <dt>Armado</dt>
+                        <dd>{yesNo(debug.flick.armed)}</dd>
+                        <dt>Velocidade da abertura</dt>
+                        <dd>
+                            {debug.flick.lastOpenSpeed === null
+                                ? DASH
+                                : `${debug.flick.lastOpenSpeed.toLocaleString('pt-BR', {
+                                      maximumFractionDigits: 1,
+                                      minimumFractionDigits: 1,
+                                  })} razão/s`}
+                        </dd>
+                        <dt>Duração da subida</dt>
+                        <dd>{millis(debug.flick.lastRiseMs)}</dd>
+                        <dt>Resultado do último estalo</dt>
+                        <dd>{debug.flick.lastResult ?? DASH}</dd>
+                    </>
+                )}
             </dl>
         </section>
     )

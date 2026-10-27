@@ -8,7 +8,9 @@ import {
 import {
     type MarblesEnv,
     MarblesController,
+    type MarblesMode,
     type MarblesSnapshot,
+    modeFromSearch,
 } from './marblesController.js'
 
 /** Dependências injetáveis para teste; os padrões usam o navegador e o MediaPipe. */
@@ -26,6 +28,7 @@ export interface UseMarblesGameOptions {
 
 export interface MarblesGameView extends MarblesSnapshot {
     newRound: () => void
+    setMode: (mode: MarblesMode) => void
 }
 
 /** Resolve as dependências, usando o navegador e o MediaPipe quando não injetadas. */
@@ -51,7 +54,9 @@ function resolveEnv(deps: MarblesDeps | undefined): MarblesEnv {
  */
 export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView {
     const { cameraActive, cameraFailed, videoRef, overlayRef, deps } = options
-    const [controller] = useState(() => new MarblesController(resolveEnv(deps)))
+    const [controller] = useState(
+        () => new MarblesController(resolveEnv(deps), modeFromSearch(window.location.search)),
+    )
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
 
     useEffect(() => {
@@ -68,5 +73,5 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
         controller.setCamera(cameraActive, cameraFailed)
     }, [controller, cameraActive, cameraFailed])
 
-    return { ...snapshot, newRound: controller.newRound }
+    return { ...snapshot, newRound: controller.newRound, setMode: controller.setMode }
 }

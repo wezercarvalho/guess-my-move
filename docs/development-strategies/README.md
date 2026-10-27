@@ -14,11 +14,11 @@ Não antecipe um fluxo ainda não documentado.
 
 Use o SDD obrigatoriamente quando a mudança afetar:
 
-- a fronteira de informação entre carta, adivinhador e árbitro (o que o modelo pode ou não receber);
+- a fronteira de informação da carta: o critério de avaliação nunca chega ao jogador nem a uma futura IA jogadora (`toPublicCard`);
 - captura, transmissão ou armazenamento de imagens da webcam, ou qualquer dado pessoal;
 - integração com provedor externo de IA, credenciais, custo ou limites de uso;
-- contrato entre frontend e backend, ou entre motor do jogo e provedores;
-- critérios de avaliação do jogo (árbitro semântico, aliases, política de acerto);
+- contratos entre os núcleos puros dos jogos, o detector de mão e a interface;
+- critérios de avaliação e regras dos jogos (critério tipado da carta, limiares do detector, tiro, política de acerto);
 - infraestrutura, hospedagem ou deploy.
 
 Use o SDD preferencialmente quando houver ambiguidade relevante, alternativas arquiteturais ou impacto em mais de um componente.

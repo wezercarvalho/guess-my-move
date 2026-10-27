@@ -7,6 +7,7 @@ import { useCamera } from '../camera/useCamera.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { drawField } from './fieldView.js'
 import { MarblesDebugPanel } from './MarblesDebugPanel.js'
+import { type MarblesMode } from './marblesController.js'
 import { type MarblesDeps, useMarblesGame } from './useMarblesGame.js'
 
 export interface MarblesScreenProps {
@@ -18,17 +19,28 @@ export interface MarblesScreenProps {
 type Round = ReturnType<typeof useMarblesGame>['round']
 type TrackerStatus = ReturnType<typeof useMarblesGame>['trackerStatus']
 
-function statusText(round: Round, tracker: TrackerStatus, handVisible: boolean): string {
+function statusText(
+    round: Round,
+    tracker: TrackerStatus,
+    handVisible: boolean,
+    mode: MarblesMode,
+): string {
     switch (round.state) {
         case 'idle':
             return tracker === 'loading'
                 ? 'Carregando o detector de mão…'
                 : 'Ative a câmera para jogar.'
         case 'ready':
+            if (handVisible && mode === 'flick') {
+                return 'Estalo (alpha): feche a pinça (polegar contra o indicador) com a mão apontada para o alvo e abra rápido, como um estalo.'
+            }
             return handVisible
                 ? 'Mão à vista! Faça a pinça em qualquer ponto, arraste a mão para longe do alvo e abra os dedos para atirar.'
                 : 'Não estou vendo a sua mão. Mostre-a inteira para a câmera, com a palma voltada para ela, na altura do peito e com boa luz.'
         case 'aiming':
+            if (mode === 'flick') {
+                return 'Armado! Aponte a mão para o alvo e abra a pinça rápido, como um estalo.'
+            }
             return round.aim?.shot
                 ? 'Arraste para trás e abra a pinça para atirar.'
                 : 'Puxe mais para trás: com esse arrasto curto o tiro será cancelado.'
@@ -80,10 +92,11 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             <header className="app-header">
                 <h1>Bolinhas de gude: bete</h1>
                 <p>
-                    Ative a câmera e faça a pinça (polegar e indicador juntos) em qualquer ponto,
-                    com a mão que preferir. Arraste a mão para longe da bolinha vermelha, como um
-                    estilingue, e abra os dedos para atirar a bolinha azul. Acerte o alvo com o
-                    menor número de tiros.
+                    Ative a câmera e atire a bolinha azul no alvo vermelho com a mão, no menor
+                    número de tiros. No modo Pinça (padrão), feche polegar e indicador em qualquer
+                    ponto, com a mão que preferir, arraste para longe do alvo, como um
+                    estilingue, e abra os dedos. O modo Estalo (alpha) imita o tiro real: aponte a
+                    mão para o alvo e abra a pinça rápido.
                 </p>
             </header>
 
@@ -95,6 +108,31 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             <div className="marbles-layout">
                 <section aria-labelledby="field-heading" className="marbles-field-panel">
                     <h2 id="field-heading">Campo</h2>
+                    <fieldset className="mode-picker">
+                        <legend>Modo de tiro</legend>
+                        <label>
+                            <input
+                                type="radio"
+                                name="shot-mode"
+                                checked={game.mode === 'pinch'}
+                                onChange={() => {
+                                    game.setMode('pinch')
+                                }}
+                            />{' '}
+                            Pinça
+                        </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="shot-mode"
+                                checked={game.mode === 'flick'}
+                                onChange={() => {
+                                    game.setMode('flick')
+                                }}
+                            />{' '}
+                            Estalo (alpha)
+                        </label>
+                    </fieldset>
                     <canvas
                         ref={fieldRef}
                         className="marbles-field"
@@ -107,7 +145,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                         Tiros: {round.shots}
                     </p>
                     <p aria-live="polite" className="round-status" data-testid="game-status">
-                        {statusText(round, game.trackerStatus, game.debug.handVisible)}
+                        {statusText(round, game.trackerStatus, game.debug.handVisible, game.mode)}
                     </p>
                     {round.state === 'tracker_error' && (
                         <p className="round-error" role="alert">
@@ -128,7 +166,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                         overlay={<HandOverlay canvasRef={overlayRef} />}
                     />
 
-                    <MarblesDebugPanel debug={game.debug} state={round.state} />
+                    <MarblesDebugPanel debug={game.debug} state={round.state} mode={game.mode} />
                 </div>
             </div>
         </div>

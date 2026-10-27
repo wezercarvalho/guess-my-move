@@ -58,3 +58,22 @@
         grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     }
 }
+
+.mode-picker {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--raio);
+}
+
+.mode-picker legend {
+    padding: 0 0.4rem;
+    color: var(--cor-texto-suave);
+    font-size: 0.85rem;
+}
+
+.mode-picker label {
+    cursor: pointer;
+}
