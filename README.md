@@ -79,10 +79,10 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 
 ## Limites conhecidos
 
-- O reconhecimento foi validado só em um spike (12 clipes, uma pessoa, Chromium headless); não generaliza para outras pessoas, câmeras e iluminação. O teste manual do maintainer no Chrome desktop ainda está pendente.
-- A latência medida até agora foi só em CPU numa VPS e não representa o desktop do maintainer.
+- O reconhecimento foi validado em um spike (12 clipes, uma pessoa, Chromium headless) e em uma rodada manual no Chrome desktop com GPU. Recall e falsos positivos no desktop não foram medidos, e o resultado não generaliza para outras pessoas, câmeras e iluminação.
+- A latência de 14 ms (mediana) vem de uma única rodada no desktop do maintainer com GPU; em CPU numa VPS foi de 100 a 210 ms por quadro. O reconhecimento depende da taxa de quadros.
 - Alvo suportado: Chrome desktop. Celular e outros navegadores ficam para depois.
-- A licença do arquivo `.task` do modelo não foi confirmada na fonte; por isso ele não é versionado.
+- A licença do arquivo `.task` do modelo não foi lida na fonte (o pacote `@mediapipe/tasks-vision` é Apache-2.0). O arquivo é baixado no build e não é versionado; confirme a licença antes de versioná-lo ou redistribuí-lo.
 
 ## Documentação
 
