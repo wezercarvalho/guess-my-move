@@ -102,12 +102,12 @@ Implementação concluída e gates automatizados verdes. O maintainer testou no 
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                                        | Impacto                                            | Responsável | Aceite                                                                                    |
-| -------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| Reconhecimento depende da taxa de quadros; medido só na VPS e em uma rodada no desktop | Pode falhar em máquinas lentas                     | maintainer  | aceito por wezercarvalho em `2026-10-27` (merge do PR #64)                                |
-| Recall e falsos positivos no desktop sem medição (SC-002, SC-003)                      | As metas de 80% e 10% não têm evidência no desktop | maintainer  | aceito por wezercarvalho em `2026-10-27`                                                  |
-| Amostra de uma pessoa e uma câmera                                                     | Generalização desconhecida                         | maintainer  | aceito por wezercarvalho em `2026-10-27`                                                  |
-| Licença do arquivo do modelo não confirmada na fonte                                   | Bloqueia redistribuição do arquivo                 | maintainer  | aceito por wezercarvalho em `2026-10-27`; o arquivo é baixado no build e não é versionado |
+| Limitação/risco                                                                        | Impacto                                               | Responsável | Aceite                                                                                    |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| Reconhecimento depende da taxa de quadros; medido só na VPS e em uma rodada no desktop | Pode falhar em máquinas lentas                        | maintainer  | aceito por wezercarvalho em `2026-10-27` (merge do PR #64)                                |
+| Recall e falsos positivos no desktop sem medição (SC-002, SC-003)                      | As metas de 80% e 10% não têm evidência no desktop    | maintainer  | aceito por wezercarvalho em `2026-10-27`                                                  |
+| Amostra de uma pessoa e uma câmera                                                     | Generalização desconhecida                            | maintainer  | aceito por wezercarvalho em `2026-10-27`                                                  |
+| Licença do arquivo do modelo não confirmada na fonte                                   | Só afeta se o arquivo for versionado ou redistribuído | maintainer  | aceito por wezercarvalho em `2026-10-27`; o arquivo é baixado no build e não é versionado |
 
 ## Gate 3 — Convergência validada
 
