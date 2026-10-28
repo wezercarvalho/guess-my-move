@@ -1,0 +1,239 @@
+/* Componentes base do design system. Só valores vindos de tokens.css. */
+
+/* Botões */
+.ds-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    min-height: var(--touch-target);
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-family: var(--font-body);
+    font-size: var(--size-small);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        transform var(--motion-fast),
+        background var(--motion-fast),
+        border-color var(--motion-fast);
+}
+
+.ds-button--primary {
+    background: var(--gold-bright);
+    color: var(--ink);
+}
+
+.ds-button--primary:hover:not(:disabled) {
+    background: var(--gold-hover);
+    transform: translateY(var(--lift));
+    filter: none;
+}
+
+.ds-button--secondary {
+    background: transparent;
+    color: var(--paper);
+    border-color: var(--control-border);
+}
+
+.ds-button--secondary:hover:not(:disabled) {
+    background: transparent;
+    border-color: var(--gold-bright);
+    color: var(--gold-bright);
+    transform: translateY(var(--lift));
+    filter: none;
+}
+
+.ds-button--secondary[aria-expanded='true'] {
+    border-color: var(--gold-bright);
+    color: var(--gold-bright);
+}
+
+.ds-button--text {
+    background: transparent;
+    color: var(--gold-bright);
+    padding-inline: var(--space-2);
+}
+
+.ds-button--text:hover:not(:disabled) {
+    background: transparent;
+    color: var(--gold-hover);
+    filter: none;
+}
+
+.ds-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Painel */
+.ds-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.ds-panel--raised {
+    background: var(--surface-raised);
+}
+
+.ds-panel > h2 {
+    margin: 0;
+}
+
+/* Rótulo "eyebrow" */
+.ds-eyebrow {
+    margin: 0;
+    color: var(--gold-bright);
+    font-family: var(--font-display);
+    font-size: var(--size-caption);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-eyebrow);
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+/* Aviso */
+.ds-notice {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--control-border);
+    border-left: 4px solid var(--gold-bright);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--paper);
+    font-size: var(--size-small);
+}
+
+/* Etapas */
+.ds-steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: ds-step;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.ds-step {
+    counter-increment: ds-step;
+    display: grid;
+    grid-template-columns: 1.75rem 1fr;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-left: 4px solid var(--line);
+    color: var(--muted);
+    font-size: var(--size-small);
+}
+
+.ds-step::before {
+    content: counter(ds-step, decimal-leading-zero);
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    color: var(--muted);
+}
+
+.ds-step[aria-current='step'] {
+    border-left-color: var(--gold-bright);
+    background: var(--surface-raised);
+    color: var(--paper);
+    font-weight: var(--weight-semibold);
+}
+
+.ds-step[aria-current='step']::before {
+    color: var(--gold-bright);
+}
+
+/* Controle segmentado */
+.ds-segmented {
+    display: inline-flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+.ds-segmented > legend {
+    padding: 0;
+    margin-bottom: var(--space-2);
+    color: var(--muted);
+    font-size: var(--size-caption);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+}
+
+.ds-segmented-options {
+    display: inline-flex;
+}
+
+.ds-segment {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target);
+    padding: 0 var(--space-5);
+    border: 1px solid var(--control-border);
+    margin-left: -1px;
+    color: var(--paper);
+    font-size: var(--size-small);
+    font-weight: var(--weight-semibold);
+    cursor: pointer;
+    transition:
+        background var(--motion-fast),
+        color var(--motion-fast);
+}
+
+.ds-segment:first-child {
+    margin-left: 0;
+}
+
+.ds-segment input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+
+.ds-segment:has(input:checked) {
+    background: var(--gold-bright);
+    border-color: var(--gold-bright);
+    color: var(--ink);
+    z-index: 1;
+}
+
+.ds-segment:has(input:focus-visible) {
+    outline: var(--focus-width) solid var(--focus-color);
+    outline-offset: var(--focus-offset);
+}
+
+/* Gaveta (conteúdo recolhido) */
+.ds-drawer[hidden] {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ds-button,
+    .ds-segment {
+        transition: none;
+    }
+
+    .ds-button--primary:hover:not(:disabled),
+    .ds-button--secondary:hover:not(:disabled) {
+        transform: none;
+    }
+}

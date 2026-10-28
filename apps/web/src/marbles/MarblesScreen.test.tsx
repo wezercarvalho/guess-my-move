@@ -114,14 +114,40 @@ const open = (x: number, y: number) => pinchHand({ ratio: OPEN_RATIO, x, y })
 const closed = (x: number, y: number) => pinchHand({ ratio: CLOSED_RATIO, x, y })
 
 describe('MarblesScreen', () => {
-    it('mostra o título, o aviso de privacidade, o campo, o contador e o painel de depuração', () => {
+    it('mostra a marca, o título, o aviso de privacidade, o campo, o contador e o botão de depuração', () => {
         renderScreen(harness())
+        expect(screen.getByText(/intersect/i, { selector: '.marbles-brand' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: /bolinhas de gude/i })).toBeInTheDocument()
         expect(screen.getByRole('note')).toHaveTextContent(/nenhuma imagem/i)
         expect(screen.getByLabelText(/campo do jogo/i)).toBeInTheDocument()
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
-        expect(screen.getByRole('heading', { name: /depuração/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /depuração/i })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /ativar câmera/i })).toBeInTheDocument()
+    })
+
+    it('a depuração começa recolhida e abre e fecha pelo botão, com o estado anunciado', () => {
+        renderScreen(harness())
+        const toggle = screen.getByRole('button', { name: /depuração/i })
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('heading', { name: /depuração/i })).not.toBeInTheDocument()
+
+        fireEvent.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('heading', { name: /depuração/i })).toBeInTheDocument()
+        const panelId = toggle.getAttribute('aria-controls') ?? ''
+        expect(document.getElementById(panelId)).toContainElement(
+            screen.getByRole('heading', { name: /depuração/i }),
+        )
+
+        fireEvent.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('heading', { name: /depuração/i })).not.toBeInTheDocument()
+    })
+
+    it('o modo de tiro é um controle segmentado dentro da barra do campo', () => {
+        renderScreen(harness())
+        const group = screen.getByRole('group', { name: /modo de tiro/i })
+        expect(group.closest('.marbles-toolbar')).not.toBeNull()
     })
 
     it('antes da câmera, orienta a ativá-la', () => {
@@ -204,6 +230,7 @@ describe('MarblesScreen', () => {
         renderScreen(h)
         await readyToPlay()
         h.run(closed(400, 100), 2)
+        fireEvent.click(screen.getByRole('button', { name: /depuração/i }))
         const panel = screen.getByRole('heading', { name: /depuração/i }).closest('section')
         expect(panel).not.toBeNull()
         const debug = within(panel as HTMLElement)

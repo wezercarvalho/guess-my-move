@@ -1,110 +1,185 @@
-/* Estilos exclusivos do bete; o restante vem de ../styles.css. */
+/* Estilos exclusivos do bete; tokens e componentes vêm de ../design e o restante de ../styles.css. */
+.app.app-wide {
+    max-width: 1360px;
+    padding: var(--space-4) var(--space-5) var(--space-7);
+    gap: var(--space-4);
+}
+
 .marbles-screen {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--space-5);
+}
+
+.marbles-header {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: end;
+}
+
+@media (min-width: 960px) {
+    .marbles-header {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: var(--space-7);
+    }
+}
+
+.marbles-headline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.marbles-brand {
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-brand);
+}
+
+.marbles-brand b {
+    color: var(--gold-bright);
+}
+
+.marbles-header h1 {
+    margin: 0;
+    font-size: var(--size-title);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
+}
+
+.marbles-lead {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--muted);
+    font-size: var(--size-small);
+}
+
+/* Campo grande à esquerda; coluna estreita à direita com a câmera pequena e o guia. */
+.marbles-layout {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+@media (min-width: 960px) {
+    .marbles-layout {
+        grid-template-columns: minmax(0, 1fr) 17.5rem;
+    }
 }
 
 .marbles-field-panel {
-    background: var(--cor-superficie);
-    border-radius: var(--raio);
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-4);
 }
 
-.marbles-field-panel h2 {
-    margin: 0;
-    font-size: 1.25rem;
+.marbles-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+}
+
+/* Na barra do campo a legenda do seletor fica ao lado dos botões (continua sendo a legenda do grupo). */
+.marbles-toolbar .ds-segmented {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.marbles-toolbar .ds-segmented > legend {
+    float: left;
+    margin: 0 var(--space-3) 0 0;
+}
+
+.marbles-toolbar h2 {
+    margin: 0 auto 0 0;
+    font-size: var(--size-heading);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-display);
 }
 
 .marbles-field {
-    width: 100%;
-    max-width: 800px;
-    aspect-ratio: 4 / 3;
+    /* Cabe na janela: a largura é limitada pela altura disponível, mantendo 4:3. */
+    width: min(100%, calc((100dvh - 20rem) * 4 / 3));
+    min-width: min(100%, 20rem);
+    align-self: center;
     height: auto;
-    border-radius: var(--raio);
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--line);
     background: #b98f5e;
 }
 
 .shot-counter {
     margin: 0;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: var(--size-heading);
+    font-weight: var(--weight-semibold);
     font-variant-numeric: tabular-nums;
 }
 
-/* Página mais larga que a do jogo de cartas, para o campo e a câmera ficarem lado a lado. */
-.app.app-wide {
-    max-width: 1200px;
+.marbles-round {
+    gap: var(--space-3);
 }
 
-.marbles-layout {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: 1fr;
-    align-items: start;
+.marbles-round .round-status {
+    margin: 0;
+    color: var(--paper);
+    font-size: var(--size-small);
+}
+
+.marbles-round .ds-button {
+    align-self: flex-start;
 }
 
 .marbles-side {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--space-5);
     min-width: 0;
 }
 
-@media (min-width: 960px) {
-    .marbles-layout {
-        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+/* Câmera pequena: o painel compartilhado com o jogo de cartas é reduzido só aqui, por CSS. */
+.marbles-side .camera-panel {
+    padding: var(--space-4);
+    gap: var(--space-3);
+    border: 1px solid var(--line);
+}
+
+.marbles-side .camera-panel h2 {
+    font-size: var(--size-body);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    font-weight: var(--weight-semibold);
+    color: var(--gold-bright);
+}
+
+.marbles-side .camera-preview-wrapper {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.marbles-side .camera-preview {
+    max-height: none;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 959px) {
+    .marbles-side {
+        max-width: 18rem;
     }
 }
 
-.mode-picker {
-    display: flex;
-    gap: 1.5rem;
-    margin: 0;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--raio);
-}
-
-.mode-picker legend {
-    padding: 0 0.4rem;
-    color: var(--cor-texto-suave);
-    font-size: 0.85rem;
-}
-
-.mode-picker label {
-    cursor: pointer;
-}
-
-/* Guia das etapas do estalo. */
-.flick-steps {
-    margin: 0;
-    padding: 0 0 0 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    color: var(--cor-texto-suave);
-}
-
-.flick-step {
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    border-left: 4px solid transparent;
-}
-
-.flick-step-current {
-    color: var(--cor-texto);
-    font-weight: 600;
-    background: rgba(79, 156, 255, 0.16);
-    border-left-color: var(--cor-acento);
-}
-
+/* Guia do estalo. */
 .flick-hint {
-    margin: 0.5rem 0 0;
+    margin: var(--space-3) 0 0;
     min-height: 1.5em;
-    color: var(--cor-erro);
+    color: var(--danger);
+    font-size: var(--size-small);
 }
 
 .flick-hint:empty {

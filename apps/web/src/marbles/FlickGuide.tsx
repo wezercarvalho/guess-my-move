@@ -1,5 +1,6 @@
 import { type BeteState, type FlickPhase } from '@guess-my-move/marbles'
 
+import { Steps } from '../design/index.js'
 import { currentStep } from './flickStep.js'
 import { type FlickOutcome } from './marblesController.js'
 
@@ -38,17 +39,7 @@ export function FlickGuide({
     const hint = lastResult === null ? undefined : HINTS[lastResult]
     return (
         <div className="flick-guide">
-            <ol className="flick-steps" aria-label="Etapas do estalo">
-                {STEPS.map((text, index) => (
-                    <li
-                        key={text}
-                        className={step === index + 1 ? 'flick-step flick-step-current' : 'flick-step'}
-                        {...(step === index + 1 ? { 'aria-current': 'step' as const } : {})}
-                    >
-                        {text}
-                    </li>
-                ))}
-            </ol>
+            <Steps label="Etapas do estalo" items={STEPS} current={step} />
             <p className="flick-hint" data-testid="flick-hint" aria-live="polite">
                 {hint}
             </p>

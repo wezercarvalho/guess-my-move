@@ -1,0 +1,69 @@
+/*
+ * Tokens de design: identidade escura com dourado, lida do CSS publicado em
+ * intersectlogic.com. Os valores marcados como "derivado" não vêm do site:
+ * foram escolhidos aqui e medidos (contraste WCAG) em
+ * specs/2026-10-28-frontend-design-system-adopt-intersect-dark-gold/research.md.
+ */
+:root {
+    color-scheme: dark;
+
+    /* Cores base (site) */
+    --ink: #090909;
+    --paper: #f6f4ef;
+    --gold: #c99400;
+    --gold-bright: #e0aa08;
+    --gold-hover: #f1c52d;
+    --muted: #aaa8a0;
+    --paper-text-muted: #686760;
+    --line: #292929;
+
+    /* Derivados: superfícies um pouco mais claras que a tinta e a borda de controle (3:1 ou mais) */
+    --surface: #121212;
+    --surface-raised: #1a1a1a;
+    --control-border: #77756d;
+
+    /* Estados */
+    --success: #2ecc71;
+    --danger: #ff6b6b;
+
+    /* Tipografia */
+    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --weight-bold: 700;
+    --tracking-display: -0.055em;
+    --tracking-eyebrow: 0.2em;
+    --tracking-brand: 0.17em;
+    --size-body: 1rem;
+    --size-small: 0.875rem;
+    --size-caption: 0.75rem;
+    --size-title: clamp(1.75rem, 3.2vw, 2.75rem);
+    --size-heading: clamp(1.25rem, 1.6vw, 1.5rem);
+    --leading-body: 1.6;
+    --leading-display: 1;
+
+    /* Espaçamento (base de 4px) */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+    --space-8: 4rem;
+
+    /* Forma e movimento */
+    --radius: 0;
+    --motion-fast: 0.2s;
+    --lift: -3px;
+
+    /* Foco */
+    --focus-color: var(--gold-bright);
+    --focus-width: 2px;
+    --focus-offset: 5px;
+
+    /* Alvo de toque mínimo */
+    --touch-target: 2.75rem;
+}
