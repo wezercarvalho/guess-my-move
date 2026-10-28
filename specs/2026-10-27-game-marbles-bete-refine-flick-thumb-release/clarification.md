@@ -172,6 +172,97 @@ As decisões CQ-001 a CQ-008 refletem o refino do modo estalo (alpha) do bete ap
   FR-002, FR-003, FR-004, FR-006, FR-007, edge cases, H-01, H-02, H-03, H-05,
   critérios de sucesso e a tabela "Distinção entre os modos".
 
+### CQ-010 — Estalo por troca de gestos prontos? Reconhecedor de gestos, guia de etapas e veto de palma aberta
+
+- **Data:** `2026-10-28`
+- **Impacto:** alto
+- **Pergunta:** O maintainer pediu que o estalo passasse a ser detectado "por
+  troca de gestos" (usar os gestos prontos do MediaPipe — `Closed_Fist`,
+  `Open_Palm`, `Thumb_Up` — para armar e disparar) e uma ajuda na tela com as
+  etapas do estalo. Os gestos prontos reconhecem a pose do estalo (punho com o
+  polegar preso; polegar para cima) a ponto de substituir o gatilho por razão da
+  CQ-009?
+- **Decisão:** PARCIALMENTE. Esta é uma **emenda da mesma entrega** (issue #72,
+  mesma branch `feat/72-refina-estalo`); os Gates 1 e 2 já aprovados de forma
+  antecipada pelo maintainer para o #72 continuam valendo, como na CQ-009. O jogo
+  das bolinhas passa a usar o `GestureRecognizer` do MediaPipe (`realGestureLoader`
+  em `apps/web/src/tracker/mediapipeTracker.ts`; modo de vídeo, uma mão) em vez do
+  `HandLandmarker`, que entrega os mesmos landmarks MAIS o gesto pronto de maior
+  pontuação da primeira mão; o jogo de cartas segue com o `HandLandmarker`. Mas os
+  gestos prontos NÃO reconheceram a pose do estalo na conferência offline, então
+  eles NÃO substituem o gatilho por razão: o gatilho da CQ-009 (armar por
+  `armRatio`, confirmar por razão esticada sustentada) permanece. Mudanças:
+    - **Gesto pronto como diagnóstico e veto, não como gatilho.** O gesto do quadro
+      (`HandGesture { name, score }`) entra no detector por `update(landmarks,
+aspect, nowMs, gesture?)` e aparece no painel na linha "Gesto reconhecido"
+      (nome e pontuação, ou traço). NÃO se exige `Closed_Fist` para armar nem
+      `Thumb_Up` para disparar, porque a conferência não os viu.
+    - **Veto de palma aberta.** Novo veredito `open_hand` (resultado no painel: `mão
+aberta`): se alguma das `confirmSamples` (3) amostras de confirmação tiver o
+      gesto `openHandGesture` (`Open_Palm`) com pontuação >= `gestureMinScore`
+      (0,8), o estalo é cancelado — é a mão se abrindo, não o polegar esticando. A
+      `FlickReading` ganhou `phase` (`idle`, `armed`, `pending`) e `gesture`. Todo o
+      resto do detector da CQ-009 continua igual.
+    - **Guia de etapas na tela.** Novo componente `apps/web/src/marbles/FlickGuide.tsx`
+      no modo estalo: lista ordenada "Etapas do estalo" com quatro etapas (1 fechar a
+      mão com o polegar preso contra o indicador; 2 apontar a mão para o alvo, com a
+      seta mostrando a direção; 3 esticar o polegar para cima de uma vez e deixá-lo
+      esticado; 4 a bolinha rola, a força vem da rapidez), com a etapa atual marcada
+      por `aria-current="step"` (1: pronto e sem armar; 2: armado; 3: confirmando o
+      polegar esticado; 4: bolinha rolando ou acerto) e uma dica em região
+      `aria-live="polite"` para o último estalo que não disparou (`fraco demais`,
+      `não sustentado`, `mão aberta`, `sem direção`). A pinça não tem guia (fora de
+      escopo).
+    - **Ativo novo.** `gesture_recognizer.task` (float16, v1, cerca de 8,4 MB,
+      SHA-256 `97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482`,
+      URL `https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`),
+      baixado por `yarn prepare:assets` junto do `hand_landmarker.task`, servido pelo
+      próprio app e não versionado. A licença desse `.task` NÃO foi lida na fonte (a
+      mesma ressalva que o README já faz para o outro modelo).
+- **Evidência (conferência offline dos gestos prontos, MUITO limitada; só números):**
+  rodando o Gesture Recognizer nos recortes de câmera de duas gravações de tela
+  (foto de baixa resolução com o esqueleto desenhado por cima; a taxa de detecção
+  ficou baixa e não é a do app ao vivo). Vídeo B (estalos, 9,5 a 35,5 s): 390
+  quadros, mão detectada em 151; rótulos `None` 127, `Open_Palm` 23 (pontuações 0,50
+  a 0,65), `Pointing_Up` 1; `Closed_Fist` e `Thumb_Up` ZERO. Os `Open_Palm`
+  apareceram também em dois estalos reais (cerca de 32,4 a 32,9 s e 34,4 a 34,5 s,
+  com o polegar esticado, razão 1,0 a 1,4), por isso a pontuação mínima do veto é
+  0,8 (acima do observado nos estalos reais) e não 0,5. Vídeo A (punho em
+  movimento): 238 quadros, mão em 35, todos `None` (nenhum `Closed_Fist`). Os
+  landmarks do `GestureRecognizer` coincidiram com os do `HandLandmarker` até a 2ª
+  casa decimal da razão nos 6 quadros em que ambos detectaram (0,67; 0,86; 0,61;
+  0,72; 0,67; 0,75), o que sugere que a pinça não muda; é conferência pequena, não
+  prova. Em Chromium headless com câmera simulada (sem mão real), o
+  `gesture_recognizer.task` carregou do próprio app, 160 quadros processados, 15,0
+  quadros novos/s, delegate CPU, 10 requisições todas GET sem corpo e só para a
+  própria origem, e o guia apareceu com a etapa 1 marcada; nenhum estalo real foi
+  testado ao vivo.
+- **Razão:** Nesta conferência os gestos prontos NÃO reconheceram a pose do estalo
+  (punho com o polegar preso; polegar para cima) nem o punho do vídeo A; portanto
+  trocar o gatilho da CQ-009 por gestos prontos não se sustenta na evidência. O
+  gesto fica como veto de palma aberta com pontuação alta (para o caso da mão se
+  abrir, a limitação conhecida da CQ-009) e como diagnóstico no painel, que é o que
+  o próximo teste ao vivo precisa para decidir entre gestos prontos, treino de gesto
+  próprio (Model Maker) ou outra abordagem. O guia de etapas atende diretamente ao
+  pedido de "ajuda na tela com as etapas".
+- **Alternativas rejeitadas:** Exigir `Closed_Fist` para armar e `Thumb_Up` para
+  disparar (os gestos prontos não reconheceram essas poses na conferência; travaria
+  o estalo); baixar o veto para pontuação 0,5 (cancelaria dois estalos reais que
+  tiveram `Open_Palm` 0,50 a 0,65); manter só o `HandLandmarker` no jogo das
+  bolinhas (sem o gesto pronto não há veto nem diagnóstico que o maintainer pediu).
+- **Limitação conhecida:** o veto NÃO foi medido contra a mão se abrindo de verdade
+  (não houve quadros claros de palma aberta nas gravações), então pode não ajudar; o
+  veto pode cancelar um estalo real se o reconhecedor rotular o polegar esticado como
+  palma aberta com pontuação >= 0,8; os gestos prontos podem não reconhecer a pose do
+  estalo ao vivo; e a conferência offline foi em recortes de baixa resolução, com
+  taxa de detecção baixa, não a do app ao vivo. Nada foi testado com mão viva (Gate 3
+  / T014 segue pendente).
+- **Seções atualizadas em `spec.md`:** frontmatter (`summary`, `updated_at`),
+  Resumo, Problema, Objetivos, Atores, US-002, US-004 e critérios, nova US-006,
+  FR-002, FR-006, FR-008 (privacidade do novo modelo), FR-011 (reconhecedor e ativo),
+  FR-012 (guia de etapas), novo NFR-005 (acessibilidade do guia), edge cases, H-06,
+  critérios de sucesso e a tabela "Distinção entre os modos".
+
 ## Hipóteses remanescentes
 
 - Os limiares do gatilho (`armRatio` = 1,05; `extendRatio` = 1,2; `confirmSamples` = 3; `minRise` = 0,4; `baseWindowMs` = 250 ms) são palpites calibrados em DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s (H-01).
@@ -180,6 +271,7 @@ As decisões CQ-001 a CQ-008 refletem o refino do modo estalo (alpha) do bete ap
 - A direção pela orientação da mão pode não corresponder ao estalo real (H-04); mantida porque a seta de prévia deixa ajustar a mão; alternativas ficam como pergunta aberta.
 - Numa subida de 1 a 2 quadros a velocidade de abertura é limitada pela taxa de quadros, não pela força do polegar; por isso o gatilho passou a exigir a razão esticada por vários quadros em vez de uma subida rápida (H-05).
 - Limitação conhecida não resolvida: a razão polegar-indicador sozinha não distingue abrir a mão de esticar o polegar, então uma mão fechada que se abre pode confirmar um estalo (1 caso no replay do vídeo A).
+- Os gestos prontos do MediaPipe (`Closed_Fist`, `Thumb_Up`) não reconheceram a pose do estalo na conferência offline, então o gesto entra só como veto de palma aberta (pontuação >= 0,8) e diagnóstico, não como gatilho; o veto não foi medido contra a mão se abrindo de verdade e pode não ajudar ou cancelar um estalo real (H-06).
 
 ## Gate 1 — Clarificação aprovada
 
@@ -188,4 +280,4 @@ As decisões CQ-001 a CQ-008 refletem o refino do modo estalo (alpha) do bete ap
 - **Data:** `2026-10-27`
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** Mensagem do maintainer na sessão do dashboard em 2026-10-27 ("Tu precisa estruturar essas distinções e aplicar adequadamente a cada modo" e "pode fazer então, abre um PR") e issue 72 do repositório.
-- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. A recalibração do 2º teste (CQ-009, 2026-10-28) é uma emenda da MESMA entrega do #72 (mesma branch); os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72 permanecem válidos e não foram reabertos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.
+- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. A recalibração do 2º teste (CQ-009, 2026-10-28) e a troca para o reconhecedor de gestos, o guia de etapas e o veto de palma aberta (CQ-010, 2026-10-28) são emendas da MESMA entrega do #72 (mesma branch); os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72 permanecem válidos e não foram reabertos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.

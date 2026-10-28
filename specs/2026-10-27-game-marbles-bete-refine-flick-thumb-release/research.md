@@ -49,6 +49,25 @@ Foram processados cerca de 86 quadros/s, mais que os 30/s de uma webcam comum. O
 
 `spec.md` é a única fonte vigente do comportamento (Princípio II). Como este refino redefine a escala de força (linear → log), o gatilho (300 → 80 ms) e o processamento de quadros, a spec de criação `2026-10-27-game-marbles-bete-build-flick-beta` deixa de ser a fonte vigente. O validador estrutural (`scripts/sdd/check-state.mjs`, função `checkState`) trata uma spec `superseded` como um caso que só exige `related_specs` não vazio e uma seção `## Substituição` substantiva (>= 20 caracteres fora de fences), e retorna sem reprocessar os demais artefatos. Ambos atendidos. Por isso a antiga passa a `superseded`, esta declara `supersedes`, é a fonte vigente completa do modo estalo, e o catálogo é atualizado. A spec do modo pinça não muda de comportamento e entra só em `related_specs`.
 
+### Reconhecedor de gestos, veto de palma aberta e guia de etapas (emenda CQ-010)
+
+O maintainer pediu detectar o estalo "por troca de gestos" (os gestos prontos do MediaPipe) e uma ajuda na tela com as etapas. Para ter o gesto pronto do quadro, o jogo das bolinhas passa a usar o `GestureRecognizer` (`realGestureLoader`; modo de vídeo, uma mão) em vez do `HandLandmarker`: ele devolve os mesmos landmarks MAIS os gestos. O jogo de cartas continua com o `HandLandmarker`.
+
+Uma conferência offline MUITO limitada (o Gesture Recognizer rodado nos recortes de câmera de duas gravações de tela — foto de baixa resolução com o esqueleto desenhado por cima; a taxa de detecção ficou baixa e não é a do app ao vivo) mediu:
+
+| Gravação                        | Quadros | Mão detectada | Rótulos (gesto pronto)                                                                                |
+| ------------------------------- | ------- | ------------- | ----------------------------------------------------------------------------------------------------- |
+| Vídeo B (estalos, 9,5 a 35,5 s) | 390     | 151           | `None` 127; `Open_Palm` 23 (pontuações 0,50 a 0,65); `Pointing_Up` 1; `Closed_Fist` e `Thumb_Up` ZERO |
+| Vídeo A (punho em movimento)    | 238     | 35            | todos `None` (nenhum `Closed_Fist`)                                                                   |
+
+Conclusões: (1) os gestos prontos NÃO reconheceram a pose do estalo (punho com o polegar preso; polegar para cima), então NÃO se exige `Closed_Fist` para armar nem `Thumb_Up` para disparar — o gatilho por razão da CQ-009 permanece. (2) O gesto entra como **veto de palma aberta**: se alguma das `confirmSamples` amostras de confirmação tiver `Open_Palm` com pontuação >= `gestureMinScore` (0,8), o estalo é cancelado (veredito `open_hand`, resultado `mão aberta`). A pontuação mínima é 0,8 — e não 0,5 — porque dois estalos reais também tiveram `Open_Palm` (pontuações 0,50 a 0,65, polegar esticado, razão 1,0 a 1,4); 0,8 fica acima disso. (3) O gesto aparece no painel na linha "Gesto reconhecido" como diagnóstico. (4) Os landmarks do `GestureRecognizer` coincidiram com os do `HandLandmarker` até a 2ª casa decimal da razão nos 6 quadros em que ambos detectaram (0,67; 0,86; 0,61; 0,72; 0,67; 0,75), o que sugere que a pinça não muda — conferência pequena, não prova.
+
+O ativo `gesture_recognizer.task` (float16, v1, cerca de 8,4 MB, SHA-256 `97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482`, URL `https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`) é baixado por `prepare:assets` junto do `hand_landmarker.task`, servido pelo próprio app e não versionado. A licença do `.task` NÃO foi lida na fonte (mesma ressalva do outro modelo).
+
+A ajuda na tela é o `FlickGuide`: lista ordenada "Etapas do estalo" com quatro etapas (1 fechar a mão com o polegar preso; 2 apontar a mão para o alvo; 3 esticar o polegar de uma vez e deixá-lo esticado; 4 a bolinha rola, a força vem da rapidez), com a etapa atual por `aria-current="step"` (mapeada de `state` + `phase` em `flickStep.ts`: `ready`→1; `aiming` com `phase` `pending`→3, senão→2; `rolling`/`hit`→4) e uma dica em região `aria-live="polite"` para o último estalo que não disparou.
+
+**Ressalva:** o veto NÃO foi medido contra a mão se abrindo de verdade (não houve quadros claros de palma aberta nas gravações), então pode não ajudar; pode cancelar um estalo real se o reconhecedor rotular o polegar esticado como palma aberta com pontuação >= 0,8; os gestos prontos podem não reconhecer a pose ao vivo; a conferência foi em recortes de baixa resolução, não no app ao vivo. Nada foi testado com mão viva. O próximo teste (linha "Gesto reconhecido") decide entre gestos prontos, treino de gesto próprio (Model Maker) ou outra abordagem.
+
 ## Parâmetros (palpites, duas sessões de teste de uma pessoa, webcam de cerca de 15 quadros/s)
 
 | Parâmetro                                                                       | Valor       | Mudança        | Evidência / observação                                                                                             |
@@ -63,6 +82,8 @@ Foram processados cerca de 86 quadros/s, mais que os 30/s de uma webcam comum. O
 | `minShotSpeed`                                                                  | 300 unid/s  | mantido        | Velocidade do tiro com power 0                                                                                     |
 | `maxShotSpeed`                                                                  | 1100 unid/s | mantido        | Velocidade do tiro com power 1                                                                                     |
 | `historyMs`                                                                     | 400 ms      | mantido        | Histórico guardado enquanto armado                                                                                 |
+| `openHandGesture` (veto)                                                        | `Open_Palm` | novo           | Gesto pronto que, visto na confirmação, indica a mão se abrindo e cancela o estalo                                 |
+| `gestureMinScore` (veto)                                                        | 0,8         | novo           | Pontuação mínima do `Open_Palm` para vetar; acima dos 0,50 a 0,65 vistos em dois estalos reais                     |
 | `slowMs`, `minOpenSpeed`, `riseStartRatio`, histerese 0,35/0,55, `maxOpenSpeed` | removidos   | removidos      | A cerca de 15 quadros/s a duração/velocidade não separam estalo de oscilação; a pinça fechada não arma a pose real |
 | Perda de mão na mira                                                            | > 300 ms    | mantido        | Cancela; qualquer perda zera o armado                                                                              |
 | Direção (orientação da mão)                                                     | mantida     | medida na base | Pulso → base do dedo médio, espelhada; `null` cancela                                                              |
@@ -78,6 +99,7 @@ Foram processados cerca de 86 quadros/s, mais que os 30/s de uma webcam comum. O
 - A razão polegar-indicador sozinha não distingue abrir a mão de esticar o polegar: uma mão fechada que se abre pode confirmar um estalo (1 caso no replay do vídeo A); limitação conhecida, não resolvida.
 - Os vídeos do teste não fazem parte do repositório; só os números lidos do painel entram nos documentos e na fixture `flick-sessions.ts`.
 - Os limiares foram ajustados a DUAS sessões de UMA pessoa e UMA webcam; o replay protege contra regressão mas é sobreajuste a essas séries.
+- Os gestos prontos do MediaPipe não reconheceram a pose do estalo na conferência offline (recortes de baixa resolução, taxa de detecção baixa, não a do app ao vivo); por isso entram só como veto de palma aberta (pontuação >= 0,8) e diagnóstico, não como gatilho. O veto não foi medido contra a mão se abrindo de verdade, pode não ajudar e pode cancelar um estalo real; nada foi testado ao vivo. A licença do `gesture_recognizer.task` não foi lida na fonte.
 
 ## Decisão
 

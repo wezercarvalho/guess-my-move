@@ -37,18 +37,18 @@ Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packa
 yarn dev:web
 ```
 
-`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa o modelo `hand_landmarker.task`, verificando o SHA-256 fixado) e sobe o Vite. Abra o endereço do Vite no Chrome desktop e escolha um jogo no menu. No jogo de cartas (`cards.html`), autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
+`yarn dev:web` roda primeiro `prepare:assets` (copia o `.wasm` do MediaPipe do pacote npm e baixa os modelos `hand_landmarker.task` e `gesture_recognizer.task`, verificando o SHA-256 fixado de cada um) e sobe o Vite. Abra o endereço do Vite no Chrome desktop e escolha um jogo no menu. No jogo de cartas (`cards.html`), autorize a câmera, aperte **Começar** e faça o gesto; o app indica "reconhecido" ou "não reconhecido" ao fim do limite da rodada (10 s por padrão).
 
-O modelo não é versionado no repositório; `apps/web/public/mediapipe/` fica fora do Git e é preparado pelo script. O primeiro `prepare:assets` precisa de rede para baixar o modelo; depois ele reaproveita o arquivo em cache.
+Os modelos não são versionados no repositório; `apps/web/public/mediapipe/` fica fora do Git e é preparado pelo script. O primeiro `prepare:assets` precisa de rede para baixar os modelos; depois ele reaproveita os arquivos em cache. O jogo de cartas usa o `hand_landmarker.task`; o jogo das bolinhas usa o `gesture_recognizer.task` (os mesmos landmarks mais o gesto pronto da mão).
 
 ### Bolinhas de gude (bete)
 
 Abra `/marbles.html` (por exemplo, `http://localhost:5173/marbles.html`) no Chrome desktop, autorize a câmera e escolha o **modo de tiro** no seletor. O vídeo e o esqueleto aparecem espelhados, como num espelho.
 
 - **Pinça (padrão):** feche a pinça (polegar e indicador juntos) em qualquer ponto, com a mão que preferir, arraste a mão para longe do alvo e abra os dedos. A mira é relativa: só o deslocamento da mão desde onde a pinça fechou conta, e o arrasto vale 1,5 vez no campo.
-- **Estalo (alpha):** uma mecânica diferente da pinça. Feche a mão com o polegar preso contra o indicador para armar, aponte a mão para o alvo e **estique o polegar de uma vez, deixando-o esticado**: a direção vem da orientação da mão e a força, da rapidez com que o polegar estica (quanto mais rápido, mais forte). Esticar só um pouco cancela como "fraco demais", e esticar e fechar antes de firmar cancela como "não sustentado". Na pinça, ao contrário, direção e força vêm do arrasto da mão. A escala da força (3 a 20 razão/s) e os limiares do gatilho são palpites apoiados em duas sessões de uma pessoa numa webcam de cerca de 15 quadros/s. Escolha o modo também por `?mode=estalo` na URL.
+- **Estalo (alpha):** uma mecânica diferente da pinça. Feche a mão com o polegar preso contra o indicador para armar, aponte a mão para o alvo e **estique o polegar de uma vez, deixando-o esticado**: a direção vem da orientação da mão e a força, da rapidez com que o polegar estica (quanto mais rápido, mais forte). Esticar só um pouco cancela como "fraco demais", e esticar e fechar antes de firmar cancela como "não sustentado". Na pinça, ao contrário, direção e força vêm do arrasto da mão. A escala da força (3 a 20 razão/s) e os limiares do gatilho são palpites apoiados em duas sessões de uma pessoa numa webcam de cerca de 15 quadros/s. Escolha o modo também por `?mode=estalo` na URL. Uma ajuda na tela ("Etapas do estalo") mostra as quatro etapas e destaca a atual. O jogo das bolinhas usa o reconhecedor de gestos do MediaPipe (`gesture_recognizer.task`), que traz o gesto pronto da mão: ele é mostrado no painel como diagnóstico e usado só como **veto de palma aberta** — se a mão abre (gesto `Open_Palm`) na hora de firmar o estalo, o tiro é cancelado como "mão aberta". Os gestos prontos **não** reconheceram a pose do estalo nas gravações de teste, então não armam nem disparam o estalo; isso e o veto não foram testados ao vivo.
 
-O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados, os quadros novos que a câmera entrega por segundo (a taxa real da webcam, cerca de 15/s nas gravações de teste) e a latência; no estalo, mostra também se está armado, a velocidade da abertura, a força do último estalo e o resultado (`disparado`, `fraco demais`, `não sustentado`, `sem direção`). `?delegate=cpu|gpu` também vale aqui.
+O painel de depuração mostra o delegate, o estado, a razão da pinça, se a pinça está fechada, se a mão está visível, os quadros processados, os quadros novos que a câmera entrega por segundo (a taxa real da webcam, cerca de 15/s nas gravações de teste) e a latência; no estalo, mostra também se está armado, o gesto reconhecido (nome e pontuação), a velocidade da abertura, a força do último estalo e o resultado (`disparado`, `fraco demais`, `não sustentado`, `mão aberta`, `sem direção`). `?delegate=cpu|gpu` também vale aqui.
 
 ### Delegate GPU ou CPU
 
@@ -100,7 +100,7 @@ Os gates de governança (`sdd:check`, `test:sdd`, `docs:format:check`, `test:gat
 - No bete, a pinça foi jogada pelo maintainer (razão da pinça fechada entre 0,16 e 0,26; latência de 8 a 10 ms em GPU), mas os limiares, o ganho, a escala da mira e a física são palpites não calibrados. O **estalo (alpha)** ainda não foi medido: o estalo dura poucos quadros e o detector pode perder a mão em movimento rápido; a decisão de mantê-lo, limitá-lo ou descartá-lo é da issue #68.
 - O reconhecimento depende da taxa de quadros do dispositivo. Em CPU numa VPS a latência foi de 100 a 210 ms por quadro.
 - Alvo suportado: Chrome desktop. Celular e outros navegadores ficam para depois.
-- A licença do arquivo `.task` do modelo não foi lida na fonte (o pacote `@mediapipe/tasks-vision` é Apache-2.0). O arquivo é baixado no build e não é versionado; confirme a licença antes de versioná-lo ou redistribuí-lo.
+- A licença dos arquivos `.task` dos modelos (`hand_landmarker.task` e `gesture_recognizer.task`) não foi lida na fonte (o pacote `@mediapipe/tasks-vision` é Apache-2.0). Os arquivos são baixados no build e não são versionados; confirme a licença antes de versioná-los ou redistribuí-los.
 
 ## Documentação
 

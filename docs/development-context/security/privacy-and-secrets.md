@@ -17,8 +17,8 @@ Aplica-se a qualquer mudança que toque câmera, quadros, landmarks, logs ou doc
 
 ## Arquivos do detector
 
-- O `.wasm` do MediaPipe e o modelo `.task` são servidos pelo próprio app (sem CDN), preparados por `prepare:assets`.
-- O modelo não é versionado: `apps/web/public/mediapipe/` fica fora do Git. O download é verificado por SHA-256 fixado; a licença do arquivo `.task` ainda não foi confirmada na fonte, e a verificação fica pendente antes de qualquer redistribuição.
+- O `.wasm` do MediaPipe e os modelos `.task` (`hand_landmarker.task` no jogo de cartas e `gesture_recognizer.task` no jogo das bolinhas) são servidos pelo próprio app (sem CDN), preparados por `prepare:assets`.
+- Os modelos não são versionados: `apps/web/public/mediapipe/` fica fora do Git. O download é verificado por SHA-256 fixado; a licença dos arquivos `.task` ainda não foi confirmada na fonte, e a verificação fica pendente antes de qualquer redistribuição.
 
 ## Fronteira de informação
 
