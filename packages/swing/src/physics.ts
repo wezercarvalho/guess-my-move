@@ -5,6 +5,16 @@ import { DEFAULT_WEB, type WebConfig } from './web.js'
 const degrees = (value: number) => (value * Math.PI) / 180
 
 /** Valores de jogo (não são realistas): ajustados para o balanço ficar rápido e legível. */
+/** Teia no céu: sem prédio alcançável, prende num ponto à frente e acima do jogador. */
+export interface SkyWebConfig {
+    /** Distância horizontal do ponto, em metros. */
+    distance: number
+    /** Altura do ponto acima do jogador, em metros. */
+    rise: number
+    /** Acima desta altura do jogador, a teia no céu não existe, em metros. */
+    maxAltitude: number
+}
+
 export interface SwingConfig {
     /** Gravidade, em m/s². */
     gravity: number
@@ -37,6 +47,14 @@ export interface SwingConfig {
     /** Passo fixo da simulação e maior tempo de quadro aceito, em segundos. */
     step: number
     maxFrame: number
+    /** Desvio lateral da mira da teia lançada pela mão esquerda ou direita, em radianos. */
+    sideYaw: number
+    /** Rapidez, por segundo, com que a câmera passa a olhar para onde o jogador se move. */
+    headingFollow: number
+    /** Velocidade horizontal mínima, em m/s, para a câmera acompanhar o movimento. */
+    headingMinSpeed: number
+    /** Teia no céu quando nenhum prédio é alcançável; `null` desliga. */
+    skyWeb: SkyWebConfig | null
     /** Altura do ponto de partida, em metros. */
     spawnHeight: number
     /** Velocidade para a frente ao começar, em m/s. */
@@ -61,6 +79,10 @@ export const DEFAULT_SWING: SwingConfig = {
     web: DEFAULT_WEB,
     step: 1 / 120,
     maxFrame: 0.05,
+    sideYaw: degrees(18),
+    headingFollow: 1.2,
+    headingMinSpeed: 8,
+    skyWeb: { distance: 60, rise: 70, maxAltitude: 220 },
     spawnHeight: 90,
     spawnSpeed: 10,
 }
@@ -76,10 +98,16 @@ export interface SwingStats {
     topSpeed: number
 }
 
-/** A teia presa: ponto de ancoragem e comprimento atual da corda. */
+/** Lado da mão que lança a teia: -1 esquerda, 0 centro (as duas mãos ou o teclado), 1 direita. */
+export type WebSide = -1 | 0 | 1
+
+/** A teia presa: ponto de ancoragem, comprimento atual da corda e a mão que a lançou. */
 export interface ActiveWeb {
     anchor: Vec3
     length: number
+    side?: WebSide
+    /** Ponto no céu, sem prédio: a teia prende no ar. */
+    virtual?: boolean
 }
 
 export interface SwingState {
@@ -202,7 +230,7 @@ export function stepPlayer(
         state.grounded = true
     }
 
-    const { bounds } = index.city
+    const bounds = index.playBounds
     const minX = bounds.minX + config.boundsMargin
     const maxX = bounds.maxX - config.boundsMargin
     const minZ = bounds.minZ + config.boundsMargin

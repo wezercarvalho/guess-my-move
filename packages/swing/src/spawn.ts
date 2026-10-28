@@ -15,7 +15,7 @@ const START_PITCH = (10 * Math.PI) / 180
  * prédio à frente; sem nenhum assim, usa o primeiro lugar livre. Sem achar, começa na origem.
  */
 export function findSpawn(index: CityIndex, config: SwingConfig = DEFAULT_SWING): Vec3 {
-    const { bounds } = index.city
+    const bounds = index.playBounds
     const reach = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ)
     let firstFree: Vec3 | null = null
     for (let radius = 0; radius <= reach; radius += SEARCH_STEP) {

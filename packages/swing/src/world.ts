@@ -4,17 +4,23 @@ import {
     type StepEvents,
     type SwingConfig,
     type SwingState,
+    type WebSide,
     createSwingState,
     stepPlayer,
 } from './physics.js'
 import { findSpawn } from './spawn.js'
-import { forwardFromAngles } from './vec.js'
+import { forwardFromAngles, type Vec3 } from './vec.js'
 import { pickAnchor } from './web.js'
+
+/** Lado da mão que lança a teia. */
+export { type WebSide } from './physics.js'
 
 /** O que o jogador pede a cada passo. As taxas vão de -1 a 1. */
 export interface SwingInput {
     /** A teia deve estar presa (gesto ou tecla seguros). */
     webHeld: boolean
+    /** Mão que está lançando; ausente vale o centro. */
+    webSide?: WebSide
     yawRate: number
     pitchRate: number
 }
@@ -26,6 +32,8 @@ export interface SwingWorld {
     step(input: SwingInput, dt: number): StepEvents
     /** Avança `frameSeconds` em passos fixos, sem passar de `maxFrame` por chamada. */
     advance(input: SwingInput, frameSeconds: number): void
+    /** Onde a teia prenderia agora se a mão do lado `side` a lançasse; não altera o jogo. */
+    aim(side: WebSide): Vec3 | null
     /** Volta ao ponto de partida e zera as estatísticas. */
     reset(): void
 }
@@ -38,39 +46,98 @@ export function createSwingWorld(
     const spawn = findSpawn(index, config)
     const state = createSwingState(spawn)
     let previousHeld = false
+    let previousSide: WebSide = 0
     let accumulator = 0
 
     function start(): void {
         Object.assign(state, createSwingState(spawn))
         previousHeld = false
+        previousSide = 0
         accumulator = 0
     }
     start()
 
+    /**
+     * Onde a teia prenderia agora, lançada pela mão do lado `side`. O lado é uma preferência:
+     * tenta o desvio inteiro, depois metade e por fim o centro, para uma teia lançada de lado
+     * não errar um prédio que está bem à frente.
+     */
+    function aimWeb(side: WebSide): { anchor: Vec3; virtual: boolean } | null {
+        const factors = side === 0 ? [0] : [1, 0.5, 0]
+        for (const factor of factors) {
+            const anchor = pickAnchor(
+                index,
+                state.position,
+                state.yaw + side * factor * config.sideYaw,
+                state.pitch,
+                config.web,
+            )
+            if (anchor) return { anchor, virtual: false }
+        }
+        return skyAnchor(side)
+    }
+
+    /** Ponto no céu à frente e acima, quando nenhum prédio é alcançável. */
+    function skyAnchor(side: WebSide): { anchor: Vec3; virtual: boolean } | null {
+        const sky = config.skyWeb
+        if (!sky || state.position.y > sky.maxAltitude) return null
+        const ahead = forwardFromAngles(state.yaw + side * config.sideYaw, 0)
+        return {
+            anchor: {
+                x: state.position.x + ahead.x * sky.distance,
+                y: state.position.y + sky.rise,
+                z: state.position.z + ahead.z * sky.distance,
+            },
+            virtual: true,
+        }
+    }
+
+    function aim(side: WebSide): Vec3 | null {
+        return aimWeb(side)?.anchor ?? null
+    }
+
+    /** A câmera passa a olhar, aos poucos, para onde o jogador se move. */
+    function followHeading(dt: number): void {
+        const { x, z } = state.velocity
+        if (Math.hypot(x, z) < config.headingMinSpeed) return
+        const target = Math.atan2(x, -z)
+        let diff = target - state.yaw
+        while (diff > Math.PI) diff -= 2 * Math.PI
+        while (diff < -Math.PI) diff += 2 * Math.PI
+        state.yaw += diff * (1 - Math.exp(-config.headingFollow * dt))
+    }
+
     function step(input: SwingInput, dt: number): StepEvents {
         state.yaw += input.yawRate * config.yawRate * dt
+        if (state.started && input.yawRate === 0) followHeading(dt)
         state.pitch = Math.max(
             -config.pitchLimit,
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
+        const side = input.webSide ?? 0
+        // Passar a usar a outra mão (mesmo com as duas juntas por um instante) lança do novo lado.
+        const heldSide = state.web?.side ?? 0
+        const switchedHand = side !== 0 && side !== previousSide && heldSide !== 0 && heldSide !== side
         if (!input.webHeld) {
             state.web = null
-        } else if (!previousHeld) {
-            const anchor = pickAnchor(index, state.position, state.yaw, state.pitch, config.web)
-            if (anchor) {
+        } else if (!previousHeld || switchedHand) {
+            const found = aimWeb(side)
+            if (found) {
+                const { anchor } = found
                 const length = Math.hypot(
                     anchor.x - state.position.x,
                     anchor.y - state.position.y,
                     anchor.z - state.position.z,
                 )
-                state.web = { anchor, length }
+                state.web = found.virtual ? { anchor, length, side, virtual: true } : { anchor, length, side }
                 state.stats.webs++
             } else {
                 state.stats.misses++
             }
         }
         previousHeld = input.webHeld
+        previousSide = input.webHeld ? side : 0
 
         // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia.
         if (!state.started) {
@@ -96,6 +163,7 @@ export function createSwingWorld(
                 accumulator -= config.step
             }
         },
+        aim,
         reset: start,
     }
 }

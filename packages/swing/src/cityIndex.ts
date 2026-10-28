@@ -1,4 +1,4 @@
-import { type City } from './city.js'
+import { type City, type CityBounds } from './city.js'
 import { type Vec3, normalize } from './vec.js'
 
 /** Onde um raio acertou: parede lateral ou telhado. */
@@ -21,6 +21,8 @@ export interface Contact {
 
 export interface CityIndex {
     readonly city: City
+    /** Área jogável: a dos prédios com uma folga, dentro dos limites do mapa. */
+    readonly playBounds: CityBounds
     raycast(origin: Vec3, direction: Vec3, maxDistance: number): RayHit | null
     /** Altura do telhado sob o ponto `x, z`, ou 0 quando não há prédio. */
     supportHeight(x: number, z: number): number
@@ -154,6 +156,33 @@ function rayBuilding(b: Prepared, o: Vec3, d: Vec3, maxDistance: number): RayHit
 }
 
 /** Índice espacial dos prédios (grade de 32 m) com raycast, apoio e colisão por esfera. */
+/** Folga ao redor dos prédios, em metros, antes da parede invisível. */
+const PLAY_MARGIN = 120
+
+/**
+ * Ruas longas esticam os limites do mapa muito além dos prédios, e ali a teia nunca prende.
+ * A área jogável é a caixa dos prédios com uma folga, sem passar dos limites do mapa.
+ */
+function playableBounds(city: City, buildings: readonly Prepared[]): CityBounds {
+    if (buildings.length === 0) return city.bounds
+    let minX = Infinity
+    let maxX = -Infinity
+    let minZ = Infinity
+    let maxZ = -Infinity
+    for (const b of buildings) {
+        minX = Math.min(minX, b.minX)
+        maxX = Math.max(maxX, b.maxX)
+        minZ = Math.min(minZ, b.minZ)
+        maxZ = Math.max(maxZ, b.maxZ)
+    }
+    return {
+        minX: Math.max(city.bounds.minX, minX - PLAY_MARGIN),
+        maxX: Math.min(city.bounds.maxX, maxX + PLAY_MARGIN),
+        minZ: Math.max(city.bounds.minZ, minZ - PLAY_MARGIN),
+        maxZ: Math.min(city.bounds.maxZ, maxZ + PLAY_MARGIN),
+    }
+}
+
 export function createCityIndex(city: City): CityIndex {
     const buildings = city.buildings.map((b) => prepare(b.height, b.ring))
     const grid = new Map<number, number[]>()
@@ -180,6 +209,7 @@ export function createCityIndex(city: City): CityIndex {
 
     return {
         city,
+        playBounds: playableBounds(city, buildings),
         raycast(origin, direction, maxDistance) {
             const d = normalize(direction)
             const endX = origin.x + d.x * maxDistance

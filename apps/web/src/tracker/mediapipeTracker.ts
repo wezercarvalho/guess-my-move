@@ -51,26 +51,33 @@ export const realMediaPipeLoader: MediaPipeLoader = {
  * `HandLandmarker`, mais o gesto pronto (punho, palma aberta, polegar para cima…).
  * O jogo de cartas segue com o `realMediaPipeLoader`.
  */
-export const realGestureLoader: MediaPipeLoader = {
-    load: () => FilesetResolver.forVisionTasks(WASM_PATH),
-    create: async (fileset, delegate) => {
-        const recognizer = await GestureRecognizer.createFromOptions(
-            fileset as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
-            {
-                baseOptions: { modelAssetPath: GESTURE_MODEL_PATH, delegate },
-                runningMode: 'VIDEO',
-                numHands: 1,
-            },
-        )
-        return {
-            detectForVideo: (video, timestampMs) =>
-                recognizer.recognizeForVideo(video, timestampMs),
-            close: () => {
-                recognizer.close()
-            },
-        }
-    },
+function gestureLoader(numHands: number): MediaPipeLoader {
+    return {
+        load: () => FilesetResolver.forVisionTasks(WASM_PATH),
+        create: async (fileset, delegate) => {
+            const recognizer = await GestureRecognizer.createFromOptions(
+                fileset as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
+                {
+                    baseOptions: { modelAssetPath: GESTURE_MODEL_PATH, delegate },
+                    runningMode: 'VIDEO',
+                    numHands,
+                },
+            )
+            return {
+                detectForVideo: (video, timestampMs) =>
+                    recognizer.recognizeForVideo(video, timestampMs),
+                close: () => {
+                    recognizer.close()
+                },
+            }
+        },
+    }
 }
+
+export const realGestureLoader: MediaPipeLoader = gestureLoader(1)
+
+/** Como o `realGestureLoader`, mas com até duas mãos (o Arranha-Teia usa uma teia por mão). */
+export const realTwoHandGestureLoader: MediaPipeLoader = gestureLoader(2)
 
 /** Preferência de delegate: automática (GPU com recuo para CPU) ou forçada. */
 export type DelegatePreference = 'auto' | TrackerDelegate
@@ -120,16 +127,30 @@ export async function createMediaPipeHandTracker(
     }
 
     const active = landmarker
+    const toHand = (
+        result: ReturnType<HandLandmarkerLike['detectForVideo']>,
+        index: number,
+    ): TrackedHand | null => {
+        const landmarks = result.landmarks[index]
+        if (!landmarks) return null
+        const top = result.gestures?.[index]?.[0]
+        return top
+            ? { landmarks, gesture: { name: top.categoryName, score: top.score } }
+            : { landmarks }
+    }
     return {
         delegate,
         detect(video, timestampMs): TrackedHand | null {
+            return toHand(active.detectForVideo(video, timestampMs), 0)
+        },
+        detectAll(video, timestampMs): TrackedHand[] {
             const result = active.detectForVideo(video, timestampMs)
-            const first = result.landmarks[0]
-            if (!first) return null
-            const top = result.gestures?.[0]?.[0]
-            return top
-                ? { landmarks: first, gesture: { name: top.categoryName, score: top.score } }
-                : { landmarks: first }
+            const hands: TrackedHand[] = []
+            for (let index = 0; index < result.landmarks.length; index++) {
+                const hand = toHand(result, index)
+                if (hand) hands.push(hand)
+            }
+            return hands
         },
         close() {
             active.close()

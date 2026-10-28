@@ -45,6 +45,15 @@ export function drawHand(
     video: HTMLVideoElement,
     landmarks: readonly HandLandmark[] | null,
 ): void {
+    drawHands(canvas, video, landmarks ? [landmarks] : [])
+}
+
+/** Como `drawHand`, mas com várias mãos no mesmo quadro (sem mão, só limpa). */
+export function drawHands(
+    canvas: HTMLCanvasElement,
+    video: HTMLVideoElement,
+    hands: readonly (readonly HandLandmark[])[],
+): void {
     const ratio = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1
     const width = Math.round(video.clientWidth * ratio)
     const height = Math.round(video.clientHeight * ratio)
@@ -54,7 +63,6 @@ export function drawHand(
     const context = canvas.getContext('2d')
     if (!context) return
     context.clearRect(0, 0, canvas.width, canvas.height)
-    if (!landmarks) return
 
     const area = containRect(canvas.width, canvas.height, video.videoWidth, video.videoHeight)
     const point = (landmark: HandLandmark) => ({
@@ -62,25 +70,27 @@ export function drawHand(
         y: area.y + landmark.y * area.height,
     })
 
-    context.lineWidth = 2 * ratio
-    context.strokeStyle = '#4f9cff'
-    for (const [from, to] of HAND_CONNECTIONS) {
-        const a = landmarks[from]
-        const b = landmarks[to]
-        if (!a || !b) continue
-        const start = point(a)
-        const end = point(b)
-        context.beginPath()
-        context.moveTo(start.x, start.y)
-        context.lineTo(end.x, end.y)
-        context.stroke()
-    }
+    for (const landmarks of hands) {
+        context.lineWidth = 2 * ratio
+        context.strokeStyle = '#4f9cff'
+        for (const [from, to] of HAND_CONNECTIONS) {
+            const a = landmarks[from]
+            const b = landmarks[to]
+            if (!a || !b) continue
+            const start = point(a)
+            const end = point(b)
+            context.beginPath()
+            context.moveTo(start.x, start.y)
+            context.lineTo(end.x, end.y)
+            context.stroke()
+        }
 
-    context.fillStyle = '#2ecc71'
-    for (const landmark of landmarks) {
-        const { x, y } = point(landmark)
-        context.beginPath()
-        context.arc(x, y, 3 * ratio, 0, Math.PI * 2)
-        context.fill()
+        context.fillStyle = '#2ecc71'
+        for (const landmark of landmarks) {
+            const { x, y } = point(landmark)
+            context.beginPath()
+            context.arc(x, y, 3 * ratio, 0, Math.PI * 2)
+            context.fill()
+        }
     }
 }

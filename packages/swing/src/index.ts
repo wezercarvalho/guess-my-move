@@ -12,9 +12,12 @@ export {
     type SwingConfig,
     type SwingState,
     type SwingStats,
+    type WebSide,
     createSwingState,
     stepPlayer,
 } from './physics.js'
+export { type SwingCue, swingCue } from './cue.js'
+export { handSide, isWebPose, webSignal } from './pose.js'
 export { findSpawn } from './spawn.js'
 export { type HandPoint, type LookRates, steerFromHand } from './steering.js'
 export {

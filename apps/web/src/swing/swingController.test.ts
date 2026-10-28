@@ -123,7 +123,7 @@ describe('SwingController', () => {
         expect(controller.getSnapshot().hud.webAttached).toBe(false)
     })
 
-    it('registra o lançamento que errou quando não há prédio na mira', async () => {
+    it('sem prédio na mira, a teia prende no céu e conta como acerto', async () => {
         const { controller, tick, press, release } = await playing()
         tick()
         press('ArrowDown')
@@ -133,8 +133,8 @@ describe('SwingController', () => {
         tick()
         tick()
         tick(150)
-        expect(controller.getSnapshot().lastThrow).toBe('miss')
-        expect(controller.getSnapshot().hud.webAttached).toBe(false)
+        expect(controller.getSnapshot().lastThrow).toBe('hit')
+        expect(controller.getSnapshot().hud.webAttached).toBe(true)
     })
 
     it('registra o lançamento que prendeu', async () => {

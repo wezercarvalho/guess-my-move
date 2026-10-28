@@ -54,6 +54,17 @@
     overflow: hidden;
 }
 
+/* Na hora de soltar, o palco ganha um contorno dourado (sem animação). */
+.swing-stage[data-cue='release'] {
+    outline: 4px solid var(--gold-bright, #e0aa08);
+    outline-offset: -4px;
+}
+
+.swing-stage[data-cue='low'] {
+    outline: 4px solid var(--danger, #ff6b6b);
+    outline-offset: -4px;
+}
+
 .swing-scene,
 .swing-effects {
     position: absolute;

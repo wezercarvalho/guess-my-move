@@ -18,6 +18,8 @@ export interface HandTracker {
     readonly delegate: TrackerDelegate
     /** `timestampMs` deve crescer a cada chamada (exigência do modo de vídeo). */
     detect(video: HTMLVideoElement, timestampMs: number): TrackedHand | null
+    /** Todas as mãos do quadro (as duas, quando o detector foi criado para isso). */
+    detectAll?(video: HTMLVideoElement, timestampMs: number): TrackedHand[]
     close(): void
 }
 

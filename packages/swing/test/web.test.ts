@@ -39,10 +39,10 @@ describe('pickAnchor', () => {
     })
 
     it('cai no raio mais baixo quando os mais altos passam por cima', () => {
-        // Prédio baixo e largo: só o raio de +8° (18° no total) acerta a parede abaixo do telhado.
-        const index = createCityIndex(cityOf(box(60, -50, 70, 50, 50)))
+        // Prédio de 75 m a 100 m: os raios de 45° e 30° passam por cima; só o de +8° (18° no total) acerta a parede.
+        const index = createCityIndex(cityOf(box(100, -60, 110, 60, 75)))
         const anchor = pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)
-        expect(anchor?.x).toBeCloseTo(60)
-        expect(anchor?.y).toBeCloseTo(30 + 60 * Math.tan((18 * Math.PI) / 180), 0)
+        expect(anchor?.x).toBeCloseTo(100)
+        expect(anchor?.y).toBeCloseTo(30 + 100 * Math.tan((18 * Math.PI) / 180), 0)
     })
 })

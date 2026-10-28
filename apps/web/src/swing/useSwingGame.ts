@@ -3,7 +3,7 @@ import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react
 import {
     createMediaPipeHandTracker,
     delegatePreferenceFromSearch,
-    realGestureLoader,
+    realTwoHandGestureLoader,
 } from '../tracker/mediapipeTracker.js'
 import { createThreeRenderer } from './cityRenderer.js'
 import { fetchCity } from './loadCity.js'
@@ -33,7 +33,7 @@ function resolveEnv(deps: SwingDeps | undefined): SwingEnv {
             deps?.createTracker ??
             (() =>
                 createMediaPipeHandTracker(
-                    realGestureLoader,
+                    realTwoHandGestureLoader,
                     delegatePreferenceFromSearch(window.location.search),
                 )),
         loadCity:

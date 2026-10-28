@@ -77,7 +77,7 @@ describe('createSwingWorld', () => {
     })
 
     it('conta a teia que errou e não tenta de novo enquanto o gesto continua', () => {
-        const world = createSwingWorld(createCityIndex(cityOf()))
+        const world = createSwingWorld(createCityIndex(cityOf()), { ...DEFAULT_SWING, skyWeb: null })
         const hold = { webHeld: true, yawRate: 0, pitchRate: 0 }
         world.step(hold, 1 / 120)
         world.step(hold, 1 / 120)

@@ -1,4 +1,10 @@
-import { type City, DEFAULT_SWING, type SwingState, forwardFromAngles } from '@guess-my-move/swing'
+import {
+    type City,
+    DEFAULT_SWING,
+    type SwingState,
+    type Vec3,
+    forwardFromAngles,
+} from '@guess-my-move/swing'
 import {
     BackSide,
     BufferGeometry,
@@ -23,11 +29,14 @@ import {
 } from 'three'
 
 import { type MeshData, buildRoofs, buildWalls } from './cityGeometry.js'
+import { type ScreenPoint } from './reticle.js'
 
 /** O que a tela precisa do desenho 3D: tamanho, um quadro por estado e liberação. */
 export interface SwingRenderer {
     resize(width: number, height: number): void
     render(state: SwingState): void
+    /** Onde um ponto do mundo cai no quadro atual (0 a 1), ou `null` antes do primeiro desenho. */
+    project?(point: Vec3): ScreenPoint | null
     dispose(): void
 }
 
@@ -196,12 +205,13 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     scene.add(base, streets)
 
     const rope = new Mesh(
-        track(new CylinderGeometry(0.05, 0.05, 1, 6)),
+        track(new CylinderGeometry(0.025, 0.025, 1, 6)),
         track(new MeshBasicMaterial({ color: 0xf2f2ff, fog: false })),
     )
     rope.visible = false
     scene.add(rope)
 
+    const projected = new Vector3()
     const up = new Vector3(0, 1, 0)
     const from = new Vector3()
     const to = new Vector3()
@@ -232,10 +242,12 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
 
             if (web) {
                 const ahead = forwardFromAngles(yaw, pitch)
+                // A corda sai do pulso do lado que lançou (centro: pela direita, como antes).
+                const lateral = web.side ? web.side * 0.55 : 0.45
                 from.set(
-                    position.x + ahead.x * 0.6 + Math.cos(yaw) * 0.45,
+                    position.x + ahead.x * 0.6 + Math.cos(yaw) * lateral,
                     position.y + ahead.y * 0.6 - 0.35,
-                    position.z + ahead.z * 0.6 + Math.sin(yaw) * 0.45,
+                    position.z + ahead.z * 0.6 + Math.sin(yaw) * lateral,
                 )
                 to.set(web.anchor.x, web.anchor.y, web.anchor.z)
                 direction.subVectors(to, from)
@@ -248,6 +260,15 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
                 rope.visible = false
             }
             renderer.render(scene, camera)
+        },
+
+        project(point) {
+            camera.updateMatrixWorld()
+            camera.matrixWorldInverse.copy(camera.matrixWorld).invert()
+            const inCamera = projected.set(point.x, point.y, point.z).applyMatrix4(camera.matrixWorldInverse)
+            const behind = inCamera.z > 0
+            const ndc = projected.set(point.x, point.y, point.z).project(camera)
+            return { x: (ndc.x + 1) / 2, y: (1 - ndc.y) / 2, behind }
         },
 
         dispose() {

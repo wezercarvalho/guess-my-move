@@ -18,8 +18,8 @@ const degrees = (value: number) => (value * Math.PI) / 180
 export const DEFAULT_WEB: WebConfig = {
     range: 140,
     pitchOffsets: [degrees(35), degrees(20), degrees(8)],
-    minRise: 8,
-    minHorizontal: 12,
+    minRise: 25,
+    minHorizontal: 30,
 }
 
 /** Inclinação máxima de um raio, para não apontar além do zênite. */

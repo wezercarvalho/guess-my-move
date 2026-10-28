@@ -63,7 +63,7 @@ function harness(overrides: SwingDeps = {}) {
 async function openGame(h = harness()) {
     render(<SwingScreen cameraGetUserMedia={null} deps={h.deps} />)
     await waitFor(() => {
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/eu te amo/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i)
     })
     return h
 }
@@ -98,7 +98,24 @@ describe('SwingScreen', () => {
         expect(screen.getByTestId('game-status')).toHaveTextContent(/balançando/i)
         const guide = screen.getByRole('list', { name: /como jogar/i })
         const current = within(guide).getAllByRole('listitem').find((item) => item.getAttribute('aria-current') === 'step')
-        expect(current).toHaveTextContent(/desfaça o gesto/i)
+        expect(current).toHaveTextContent(/segure e balance/i)
+        expect(screen.getByTestId('hud-web')).toHaveTextContent(/centro|esquerda|direita/)
+    })
+
+    it('Z lança à esquerda e o medidor mostra a mão da teia', async () => {
+        const h = await openGame()
+        h.run(2)
+        h.press('z')
+        h.run(3)
+        h.run(1, 150)
+        await waitFor(() => {
+            expect(screen.getByTestId('hud-web')).toHaveTextContent('esquerda')
+        })
+    })
+
+    it('sem teia o medidor diz solta', async () => {
+        await openGame()
+        expect(screen.getByTestId('hud-web')).toHaveTextContent('solta')
     })
 
     it('mostra velocidade e altura do jogador', async () => {
@@ -114,7 +131,7 @@ describe('SwingScreen', () => {
 
     it('sem câmera, a dica manda usar o teclado', async () => {
         await openGame()
-        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/Espaço lança a teia/i)
+        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/Sem câmera.*Z e X/i)
     })
 
     it('Voltar ao início zera o contador de teias', async () => {

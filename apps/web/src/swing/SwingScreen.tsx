@@ -6,7 +6,7 @@ import { useCamera } from '../camera/useCamera.js'
 import { Button, Eyebrow, Panel, Steps } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { STEPS, currentStep, guideHint } from './guide.js'
+import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
@@ -19,9 +19,14 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
-    if (!game.hud.started) return 'Faça o gesto “eu te amo” para saltar.'
-    if (game.hud.webAttached) return 'Balançando. Desfaça o gesto para soltar.'
-    return 'Faça o gesto “eu te amo” para lançar a teia.'
+    return statusLine(game.cue)
+}
+
+const SIDE_NAMES = { '-1': 'esquerda', '0': 'centro', '1': 'direita' } as const
+
+/** Mão da teia presa, para o medidor da tela. */
+function webLabel(side: -1 | 0 | 1 | null): string {
+    return side === null ? 'solta' : SIDE_NAMES[`${side}`]
 }
 
 /**
@@ -65,7 +70,9 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         cameraActive: camera.isActive,
         trackerStatus: game.trackerStatus,
         handVisible: game.handVisible,
+        gestureHeld: game.gestureHeld,
         lastThrow: game.lastThrow,
+        cue: game.cue,
     })
 
     return (
@@ -78,7 +85,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
 
             <div className="swing-layout">
                 <Panel aria-label="Cidade" className="swing-stage-panel">
-                    <div ref={stageRef} className="swing-stage">
+                    <div ref={stageRef} className="swing-stage" data-cue={game.cue}>
                         <canvas
                             ref={sceneRef}
                             className="swing-scene"
@@ -94,6 +101,10 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             <div>
                                 <dt>Altura</dt>
                                 <dd data-testid="hud-altitude">{game.hud.altitude} m</dd>
+                            </div>
+                            <div>
+                                <dt>Teia</dt>
+                                <dd data-testid="hud-web">{webLabel(game.hud.webSide)}</dd>
                             </div>
                         </dl>
                     </div>
@@ -132,12 +143,11 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                         <Steps
                             label="Como jogar"
                             items={STEPS}
-                            current={currentStep(game.hud.webAttached)}
+                            current={currentStep(game.cue)}
                         />
                         <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
                             {hint}
                         </p>
-                        <p className="swing-keys">Teclado: Espaço lança a teia, setas olham.</p>
                     </Panel>
                     <PrivacyNotice />
                 </div>
