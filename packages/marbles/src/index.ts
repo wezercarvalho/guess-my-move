@@ -2,12 +2,14 @@ export {
     DEFAULT_FLICK,
     type FlickConfig,
     type FlickDetector,
+    type FlickPhase,
     type FlickReading,
     type FlickRelease,
-    type FlickShot,
+    type FlickPower,
+    type FlickVerdict,
+    type HandGesture,
     createFlickDetector,
-    flickShot,
-    handDirection,
+    flickPower,
 } from './flick.js'
 export {
     type Body,

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { copyWasm, ensureModel, sha256Hex } from './prepare-assets.mjs'
+import { GESTURE_MODEL, MODEL, copyWasm, ensureModel, sha256Hex } from './prepare-assets.mjs'
 
 const bytes = Buffer.from('conteudo-do-modelo')
 const model = { file: 'm.task', url: 'https://exemplo.invalid/m.task', sha256: sha256Hex(bytes) }
@@ -79,5 +79,17 @@ describe('copyWasm', () => {
         await writeFile(join(from, 'b.js'), 'bbbbb')
         assert.equal(await copyWasm({ from, to }), 1)
         assert.equal(await readFile(join(to, 'b.js'), 'utf8'), 'bbbbb')
+    })
+})
+
+describe('modelos preparados', () => {
+    it('o detector de mão e o reconhecedor de gestos têm arquivo, URL do Google e SHA-256 próprios', () => {
+        for (const entry of [MODEL, GESTURE_MODEL]) {
+            assert.match(entry.file, /\.task$/)
+            assert.match(entry.url, /^https:\/\/storage\.googleapis\.com\/mediapipe-models\//)
+            assert.match(entry.sha256, /^[0-9a-f]{64}$/)
+        }
+        assert.notEqual(MODEL.file, GESTURE_MODEL.file)
+        assert.notEqual(MODEL.sha256, GESTURE_MODEL.sha256)
     })
 })

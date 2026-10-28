@@ -3,7 +3,7 @@ import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react
 import {
     createMediaPipeHandTracker,
     delegatePreferenceFromSearch,
-    realMediaPipeLoader,
+    realGestureLoader,
 } from '../tracker/mediapipeTracker.js'
 import {
     type MarblesEnv,
@@ -38,7 +38,7 @@ function resolveEnv(deps: MarblesDeps | undefined): MarblesEnv {
             deps?.createTracker ??
             (() =>
                 createMediaPipeHandTracker(
-                    realMediaPipeLoader,
+                    realGestureLoader,
                     delegatePreferenceFromSearch(window.location.search),
                 )),
         requestFrame:

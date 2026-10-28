@@ -14,10 +14,11 @@ const FIELD = { width: 800, height: 600 }
 export function pinchHand(options: { ratio: number; x: number; y: number }): TrackedHand {
     const { ratio, x, y } = options
     const points = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5 }))
-    points[0] = { x: 0.5, y: 0.8 }
-    points[9] = { x: 0.5, y: 0.6 }
     const centerX = 1 - x / FIELD.width
     const centerY = y / FIELD.height
+    // O pulso e a base do dedo médio acompanham a pinça, para a mão inteira se mover no campo.
+    points[0] = { x: centerX, y: centerY + 0.3 }
+    points[9] = { x: centerX, y: centerY + 0.1 }
     const gap = (ratio * 0.2) / FAKE_ASPECT
     points[4] = { x: centerX - gap / 2, y: centerY }
     points[8] = { x: centerX + gap / 2, y: centerY }

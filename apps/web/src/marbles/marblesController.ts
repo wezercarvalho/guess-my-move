@@ -1,17 +1,19 @@
 import {
     type BeteRound,
     type BeteSnapshot,
-    DEFAULT_FLICK,
     DEFAULT_PHYSICS,
     type FlickDetector,
+    type FlickPhase,
+    type FlickReading,
     type FlickRelease,
+    type HandGesture,
     type PinchDetector,
     type PinchReading,
     type Vec,
     createBeteRound,
     createFlickDetector,
     createPinchDetector,
-    flickShot,
+    flickPower,
 } from '@guess-my-move/marbles'
 
 import { drawHand } from '../round/handOverlay.js'
@@ -33,13 +35,18 @@ export function modeFromSearch(search: string): MarblesMode {
 }
 
 /** O que aconteceu no último estalo, para a depuração. */
-export type FlickOutcome = 'disparado' | 'lento demais' | 'fraco demais' | 'sem direção'
+export type FlickOutcome =
+    | 'disparado'
+    | 'fraco demais'
+    | 'não sustentado'
+    | 'mão aberta'
+    | 'sem mira'
 
-function flickOutcome(release: FlickRelease): FlickOutcome {
-    if (flickShot(release)) return 'disparado'
-    if (!release.direction) return 'sem direção'
-    if (release.riseMs > DEFAULT_FLICK.slowMs) return 'lento demais'
-    return 'fraco demais'
+function flickOutcome(release: FlickRelease, fired: boolean): FlickOutcome {
+    if (release.verdict === 'weak') return 'fraco demais'
+    if (release.verdict === 'unsustained') return 'não sustentado'
+    if (release.verdict === 'open_hand') return 'mão aberta'
+    return fired ? 'disparado' : 'sem mira'
 }
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
@@ -66,14 +73,22 @@ export interface MarblesDebug {
     handVisible: boolean
     /** Quadros processados pelo detector desde que o jogo começou. */
     frames: number
+    /** Quadros novos que a câmera entregou por segundo, na última janela de 1 s; `null` até fechar a primeira. */
+    cameraFps: number | null
     medianMs: number | null
     p95Ms: number | null
     /** Números do estalo (só têm sentido no modo estalo). */
     flick: {
         armed: boolean
+        /** Etapa do estalo: sem armar, armado (polegar preso) ou confirmando o polegar esticado. */
+        phase: FlickPhase
+        /** Gesto pronto que o reconhecedor viu no último quadro (punho, palma aberta, polegar para cima…). */
+        gesture: HandGesture | null
         /** Pico da velocidade de abertura do último estalo, em razão por segundo. */
         lastOpenSpeed: number | null
         lastRiseMs: number | null
+        /** Força do último estalo disparado, de 0 a 1 (escala logarítmica da velocidade de abertura). */
+        lastPower: number | null
         lastResult: FlickOutcome | null
     }
 }
@@ -92,6 +107,7 @@ const LATENCY_WINDOW = 300
 const PUBLISH_INTERVAL_MS = 100
 const SUMMARY_INTERVAL_MS = 250
 const ANIMATING = ['aiming', 'rolling', 'hit']
+const CAMERA_FPS_WINDOW_MS = 1000
 
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha ao usar o detector de mão.'
@@ -109,7 +125,12 @@ export class MarblesController {
     private readonly pinch: PinchDetector = createPinchDetector()
     private readonly flick: FlickDetector = createFlickDetector()
     private mode: MarblesMode
-    private lastFlick: { openSpeed: number; riseMs: number; result: FlickOutcome } | null = null
+    private lastFlick: {
+        openSpeed: number
+        riseMs: number
+        power: number | null
+        result: FlickOutcome
+    } | null = null
     private round: BeteRound = createBeteRound()
     private tracker: HandTracker | null = null
     private trackerStatus: MarblesTrackerStatus = 'idle'
@@ -120,10 +141,19 @@ export class MarblesController {
     private loadToken = 0
     private loop: number | null = null
     private lastVideoTime = -1
+    /** Espera pelo próximo quadro da câmera (`requestVideoFrameCallback`), quando o navegador oferece. */
+    private cameraFrameHandle: number | null = null
+    private cameraFrameVideo: HTMLVideoElement | null = null
+    /** Chegou um quadro novo da câmera que o laço ainda não processou. */
+    private cameraFramePending = false
+    private cameraFps: number | null = null
+    private cameraWindowStart: number | null = null
+    private cameraWindowCount = 0
     private lastNow: number | null = null
     private frames = 0
     private latencies: number[] = []
     private reading: PinchReading | null = null
+    private flickReading: FlickReading | null = null
     private delegate: TrackerDelegate | null = null
     private summary = summarizeLatency([])
     private lastSummaryAt = 0
@@ -197,6 +227,7 @@ export class MarblesController {
         this.flick.reset()
         this.lastFlick = null
         this.reading = null
+        this.flickReading = null
         this.frames = 0
         this.latencies = []
         if (this.trackerStatus === 'error') this.trackerStatus = 'idle'
@@ -259,6 +290,11 @@ export class MarblesController {
             return
         this.lastNow = null
         this.lastVideoTime = -1
+        this.cameraFramePending = false
+        this.cameraFps = null
+        this.cameraWindowStart = null
+        this.cameraWindowCount = 0
+        this.watchCameraFrames()
         this.loop = this.env.requestFrame(this.step)
     }
 
@@ -273,12 +309,7 @@ export class MarblesController {
         this.lastNow = now
         let processedFrame = false
 
-        if (
-            video.readyState >= 2 &&
-            video.videoWidth > 0 &&
-            video.currentTime !== this.lastVideoTime
-        ) {
-            this.lastVideoTime = video.currentTime
+        if (video.readyState >= 2 && video.videoWidth > 0 && this.takeNewCameraFrame(video, now)) {
             processedFrame = true
             try {
                 const hand = tracker.detect(video, now)
@@ -287,17 +318,27 @@ export class MarblesController {
                 this.frames++
                 const aspect = video.videoWidth / video.videoHeight
                 if (this.mode === 'flick') {
-                    const reading = this.flick.update(hand?.landmarks ?? null, aspect, now)
+                    const reading = this.flick.update(
+                        hand?.landmarks ?? null,
+                        aspect,
+                        now,
+                        hand?.gesture ?? null,
+                    )
                     this.reading = reading
+                    this.flickReading = reading
+                    const shotsBefore = this.round.snapshot().shots
+                    this.round.observeFlick(reading, now)
                     if (reading.release) {
+                        const fired = this.round.snapshot().shots > shotsBefore
                         this.lastFlick = {
                             openSpeed: reading.release.openSpeed,
                             riseMs: reading.release.riseMs,
-                            result: flickOutcome(reading.release),
+                            power: fired ? (flickPower(reading.release)?.power ?? null) : null,
+                            result: flickOutcome(reading.release, fired),
                         }
                     }
-                    this.round.observeFlick(reading, now)
                 } else {
+                    this.flickReading = null
                     this.reading = this.pinch.update(hand?.landmarks ?? null, aspect)
                     this.round.observePinch(this.reading, now)
                 }
@@ -306,6 +347,7 @@ export class MarblesController {
             } catch (error) {
                 this.trackerStatus = 'error'
                 this.round.trackerFailed(messageOf(error))
+                this.unwatchCameraFrames()
                 this.clearOverlay()
                 this.emit()
                 return
@@ -326,6 +368,67 @@ export class MarblesController {
     private stopLoop(): void {
         if (this.loop !== null) this.env.cancelFrame(this.loop)
         this.loop = null
+        this.unwatchCameraFrames()
+    }
+
+    /**
+     * Pede ao vídeo que avise cada quadro NOVO da câmera. Num fluxo ao vivo,
+     * `currentTime` pode mudar a cada quadro de exibição, então ele não prova
+     * que a câmera entregou algo novo; sem `requestVideoFrameCallback` (por
+     * exemplo no jsdom) o laço recua para a comparação de `currentTime`.
+     */
+    private watchCameraFrames(): void {
+        const video = this.surfaces.getVideo()
+        this.unwatchCameraFrames()
+        if (!video || typeof video.requestVideoFrameCallback !== 'function') return
+        this.cameraFrameVideo = video
+        const arm = (): void => {
+            this.cameraFrameHandle = video.requestVideoFrameCallback(() => {
+                this.cameraFramePending = true
+                this.countCameraFrame(this.env.now())
+                arm()
+            })
+        }
+        arm()
+    }
+
+    private unwatchCameraFrames(): void {
+        const video = this.cameraFrameVideo
+        if (video && this.cameraFrameHandle !== null) {
+            video.cancelVideoFrameCallback(this.cameraFrameHandle)
+        }
+        this.cameraFrameHandle = null
+        this.cameraFrameVideo = null
+        this.cameraFramePending = false
+    }
+
+    /** Diz se há um quadro novo da câmera para processar neste passo (e o consome). */
+    private takeNewCameraFrame(video: HTMLVideoElement, now: number): boolean {
+        if (this.cameraFrameVideo === video) {
+            if (!this.cameraFramePending) return false
+            this.cameraFramePending = false
+            return true
+        }
+        if (video.currentTime === this.lastVideoTime) return false
+        this.lastVideoTime = video.currentTime
+        this.countCameraFrame(now)
+        return true
+    }
+
+    /** Conta um quadro novo da câmera e fecha a janela de 1 s com a taxa observada. */
+    private countCameraFrame(now: number): void {
+        if (this.cameraWindowStart === null) {
+            this.cameraWindowStart = now
+            this.cameraWindowCount = 1
+            return
+        }
+        this.cameraWindowCount++
+        const elapsed = now - this.cameraWindowStart
+        if (elapsed >= CAMERA_FPS_WINDOW_MS) {
+            this.cameraFps = ((this.cameraWindowCount - 1) * 1000) / elapsed
+            this.cameraWindowStart = now
+            this.cameraWindowCount = 1
+        }
     }
 
     private clearOverlay(): void {
@@ -367,11 +470,15 @@ export class MarblesController {
                 handVisible: this.reading?.handVisible ?? false,
                 flick: {
                     armed: this.mode === 'flick' && (this.reading?.closed ?? false),
+                    phase: this.mode === 'flick' ? (this.flickReading?.phase ?? 'idle') : 'idle',
+                    gesture: this.mode === 'flick' ? (this.flickReading?.gesture ?? null) : null,
                     lastOpenSpeed: this.lastFlick?.openSpeed ?? null,
                     lastRiseMs: this.lastFlick?.riseMs ?? null,
+                    lastPower: this.lastFlick?.power ?? null,
                     lastResult: this.lastFlick?.result ?? null,
                 },
                 frames: this.frames,
+                cameraFps: this.cameraFps,
                 ...this.summary,
             },
         }

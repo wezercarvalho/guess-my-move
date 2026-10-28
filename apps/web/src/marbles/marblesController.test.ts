@@ -5,7 +5,9 @@ import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
 import { MarblesController, modeFromSearch } from './marblesController.js'
 
 /** Relógio, quadros de vídeo e detector controlados pelo teste. */
-function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
+function harness(
+    options: { createTracker?: () => Promise<HandTracker>; videoFrameCallback?: boolean } = {},
+) {
     let nowMs = 1000
     let queued: (() => void) | null = null
     const media = { currentTime: 0 }
@@ -21,6 +23,21 @@ function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
             return media.currentTime
         },
     } as unknown as HTMLVideoElement
+
+    // Com `videoFrameCallback`, o vídeo avisa cada quadro novo da câmera, como o Chrome faz.
+    let cameraFrame: (() => void) | null = null
+    const cancelVideoFrameCallback = vi.fn(() => {
+        cameraFrame = null
+    })
+    if (options.videoFrameCallback) {
+        Object.assign(video, {
+            requestVideoFrameCallback: (callback: (now: number, metadata: object) => void) => {
+                cameraFrame = () => callback(0, {})
+                return 7
+            },
+            cancelVideoFrameCallback,
+        })
+    }
 
     const detect = vi.fn((): TrackedHand | null => next)
     const close = vi.fn()
@@ -46,6 +63,7 @@ function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
         detect,
         close,
         cancelFrame,
+        cancelVideoFrameCallback,
         createTracker,
         /** Liga a câmera e espera o detector ficar pronto. */
         async ready() {
@@ -64,6 +82,20 @@ function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
                 queued = null
                 callback?.()
             }
+        },
+        /** Um passo do laço de exibição; `currentTime` sempre avança (fluxo ao vivo), mas a câmera só entrega quadro novo se pedido. */
+        runLive(hand: TrackedHand | null, newCameraFrame: boolean, stepMs = 16) {
+            next = hand
+            nowMs += stepMs
+            media.currentTime += stepMs / 1000
+            if (newCameraFrame) {
+                const deliver = cameraFrame
+                cameraFrame = null
+                deliver?.()
+            }
+            const callback = queued
+            queued = null
+            callback?.()
         },
         /** Passa o relógio sem quadro novo de vídeo. */
         runWithoutNewFrame(stepMs = 33) {
@@ -267,12 +299,18 @@ describe('modeFromSearch', () => {
 })
 
 describe('MarblesController: modo estalo (alpha)', () => {
-    const STEP = 16
+    /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
+    const STEP = 67
+    /** Onde a mão arma no campo; a mira é relativa a este ponto. */
+    const HOME = 300
+    /** Mão puxada 80 unidades para a esquerda: com o ganho de 1,5, atira para a direita (alvo). */
+    const PULLED = 220
+    const tucked = (ratio = 0.8, x = PULLED) => pinchHand({ ratio, x, y: 300 })
 
-    /** Pinça aberta, fechada (armada) por alguns quadros e a razão final dada, com a mão apontando para cima. */
+    /** Polegar preso contra o indicador e a mão afastada do alvo, como o estilingue da pinça. */
     function arm(h: ReturnType<typeof harness>) {
-        h.run(open(300, 300), 2, STEP)
-        h.run(closed(300, 300), 3, STEP)
+        h.run(tucked(0.8, HOME), 1, STEP)
+        h.run(tucked(0.8, PULLED), 2, STEP)
     }
 
     it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
@@ -283,45 +321,122 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(h.controller.getSnapshot().mode).toBe('flick')
     })
 
-    it('fechar a pinça arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
+    it('com o polegar preso a mão arma e a seta aponta para onde a mão afastada manda o tiro (para o alvo)', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('aiming')
-        expect(round.flick?.direction.y).toBeCloseTo(-1, 6)
+        expect(round.flick?.direction.x).toBeCloseTo(1, 6)
+        expect(round.flick?.direction.y).toBeCloseTo(0, 6)
+        expect(round.aim).toBeNull()
         expect(debug.flick.armed).toBe(true)
     })
 
-    it('abrir rápido dispara; a velocidade de abertura e o resultado aparecem na depuração', async () => {
+    it('esticar o polegar e mantê-lo esticado dispara; a velocidade e o resultado aparecem na depuração', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        h.run(tucked(1.5), 3, STEP)
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('rolling')
         expect(round.shots).toBe(1)
         expect(debug.flick.lastResult).toBe('disparado')
-        expect(debug.flick.lastOpenSpeed).toBeCloseTo((0.9 - 0.2) / 0.016, 1)
+        const speed = (1.5 - 0.8) / (STEP / 1000)
+        expect(debug.flick.lastOpenSpeed).toBeCloseTo(speed, 1)
+        // Força na escala logarítmica de 3 a 20 razão/s.
+        expect(debug.flick.lastPower).toBeCloseTo(Math.log(speed / 3) / Math.log(20 / 3), 3)
         expect(debug.flick.armed).toBe(false)
         h.run(null, 4, STEP)
-        expect(h.controller.getSnapshot().round.shooter.y).toBeLessThan(300)
+        expect(h.controller.getSnapshot().round.shooter.x).toBeGreaterThan(150)
     })
 
-    it('abrir devagar cancela, sem contar tiro, e registra "fraco demais"', async () => {
+    it('estalo confirmado sem afastar a mão (sem arrasto) não dispara e registra "sem mira"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        h.run(tucked(0.8, HOME), 3, STEP)
+        h.run(tucked(1.5, HOME), 3, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(debug.flick.lastResult).toBe('sem mira')
+        expect(debug.flick.lastPower).toBeNull()
+    })
+
+    it('uma oscilação que sobe e volta no quadro seguinte não dispara e registra "não sustentado"', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        for (let ratio = 0.215; ratio < 0.75; ratio += 0.015) {
-            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
-        }
+        h.run(tucked(1.5), 1, STEP)
+        h.run(tucked(0.8), 1, STEP)
         const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('ready')
         expect(round.shots).toBe(0)
+        expect(round.state).toBe('ready')
+        expect(debug.flick.lastResult).toBe('não sustentado')
+        expect(debug.flick.lastPower).toBeNull()
+    })
+
+    it('uma subida pequena (a razão só derivou até o limite) registra "fraco demais"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        h.run(tucked(1.0, HOME), 1, STEP)
+        h.run(tucked(1.0, PULLED), 2, STEP)
+        h.run(tucked(1.25), 1, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(round.state).toBe('ready')
         expect(debug.flick.lastResult).toBe('fraco demais')
+    })
+
+    it('estalos de velocidades diferentes dão forças diferentes na depuração', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        h.run(tucked(1.8), 3, STEP)
+        const strong = h.controller.getSnapshot().debug.flick.lastPower
+        h.controller.newRound()
+        arm(h)
+        // Subida em dois passos: o pico fica abaixo do salto de um quadro só.
+        h.run(tucked(1.3), 1, STEP)
+        h.run(tucked(1.5), 2, STEP)
+        const weaker = h.controller.getSnapshot().debug.flick.lastPower
+        expect(strong).not.toBeNull()
+        expect(weaker).not.toBeNull()
+        expect(weaker ?? 0).toBeLessThan(strong ?? 0)
+    })
+
+    it('palma aberta durante a confirmação é a mão se abrindo: não dispara e registra "mão aberta"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        const palm = { ...tucked(1.5), gesture: { name: 'Open_Palm', score: 0.9 } }
+        h.run(palm, 3, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(debug.flick.lastResult).toBe('mão aberta')
+        expect(debug.flick.lastPower).toBeNull()
+    })
+
+    it('a depuração mostra o gesto reconhecido e a etapa do estalo', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        expect(h.controller.getSnapshot().debug.flick.gesture).toBeNull()
+        expect(h.controller.getSnapshot().debug.flick.phase).toBe('idle')
+        h.run({ ...tucked(0.8, HOME), gesture: { name: 'Closed_Fist', score: 0.8 } }, 3, STEP)
+        let flick = h.controller.getSnapshot().debug.flick
+        expect(flick.gesture).toEqual({ name: 'Closed_Fist', score: 0.8 })
+        expect(flick.phase).toBe('armed')
+        h.run(tucked(1.5), 1, STEP)
+        flick = h.controller.getSnapshot().debug.flick
+        expect(flick.phase).toBe('pending')
+        expect(flick.gesture).toBeNull()
     })
 
     it('trocar de modo reinicia a rodada e zera o armado', async () => {
@@ -329,7 +444,7 @@ describe('MarblesController: modo estalo (alpha)', () => {
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        h.run(tucked(1.5), 3, STEP)
         expect(h.controller.getSnapshot().round.shots).toBe(1)
         h.controller.setMode('pinch')
         const { round, debug } = h.controller.getSnapshot()
@@ -339,12 +454,78 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.lastResult).toBeNull()
     })
 
-    it('no modo estalo a pinça comum não faz nada além de armar; no modo pinça o estalo não existe', async () => {
+    it('no modo pinça a pinça comum arma o elástico e o estalo não existe', async () => {
         const h = harness()
         await h.ready()
         h.run(open(300, 300), 2, STEP)
         h.run(closed(300, 300), 3, STEP)
         expect(h.controller.getSnapshot().round.flick).toBeNull()
         expect(h.controller.getSnapshot().round.aim).not.toBeNull()
+    })
+})
+
+describe('MarblesController: quadros novos da câmera', () => {
+    it('sem requestVideoFrameCallback, recua para currentTime e não reprocessa o quadro repetido', async () => {
+        const h = harness()
+        await h.ready()
+        h.run(open(300, 300), 2)
+        const processed = h.detect.mock.calls.length
+        h.runWithoutNewFrame()
+        h.runWithoutNewFrame()
+        expect(h.detect.mock.calls.length).toBe(processed)
+        h.run(open(300, 300))
+        expect(h.detect.mock.calls.length).toBe(processed + 1)
+    })
+
+    it('com requestVideoFrameCallback, só processa quando a câmera entregou um quadro, mesmo com currentTime avançando', async () => {
+        const h = harness({ videoFrameCallback: true })
+        await h.ready()
+        h.runLive(open(300, 300), false)
+        h.runLive(open(300, 300), false)
+        h.runLive(open(300, 300), false)
+        expect(h.detect).not.toHaveBeenCalled()
+        h.runLive(open(300, 300), true)
+        expect(h.detect).toHaveBeenCalledTimes(1)
+        h.runLive(open(300, 300), false)
+        expect(h.detect).toHaveBeenCalledTimes(1)
+        h.runLive(open(300, 300), true)
+        expect(h.detect).toHaveBeenCalledTimes(2)
+    })
+
+    it('a taxa da câmera é nula até fechar a primeira janela de 1 s', async () => {
+        const h = harness()
+        await h.ready()
+        h.run(open(300, 300), 5)
+        expect(h.controller.getSnapshot().debug.cameraFps).toBeNull()
+    })
+
+    it('sem requestVideoFrameCallback, conta os quadros novos por segundo', async () => {
+        const h = harness()
+        await h.ready()
+        h.run(open(300, 300), 40, 33)
+        const fps = h.controller.getSnapshot().debug.cameraFps
+        expect(fps).not.toBeNull()
+        expect(fps).toBeGreaterThan(29)
+        expect(fps).toBeLessThan(31.5)
+    })
+
+    it('com requestVideoFrameCallback, a taxa é a da câmera e não a do laço de exibição', async () => {
+        const h = harness({ videoFrameCallback: true })
+        await h.ready()
+        // Laço a cada 16 ms; a câmera entrega um quadro a cada 3 passos (48 ms, cerca de 20,8 por segundo).
+        for (let i = 0; i < 90; i++) h.runLive(open(300, 300), i % 3 === 0)
+        const fps = h.controller.getSnapshot().debug.cameraFps
+        expect(fps).not.toBeNull()
+        expect(fps).toBeGreaterThan(20)
+        expect(fps).toBeLessThan(22)
+        const { frames } = h.controller.getSnapshot().debug
+        expect(frames).toBe(30)
+    })
+
+    it('desligar a câmera cancela a espera pelo quadro da câmera', async () => {
+        const h = harness({ videoFrameCallback: true })
+        await h.ready()
+        h.controller.setCamera(false, false)
+        expect(h.cancelVideoFrameCallback).toHaveBeenCalled()
     })
 })

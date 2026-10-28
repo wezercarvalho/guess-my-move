@@ -12,6 +12,13 @@ export const MODEL = {
     sha256: 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1',
 }
 
+/** Reconhecedor de gestos do jogo das bolinhas (landmarks da mão mais o gesto pronto). */
+export const GESTURE_MODEL = {
+    file: 'gesture_recognizer.task',
+    url: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+    sha256: '97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482',
+}
+
 export function sha256Hex(bytes) {
     return createHash('sha256').update(bytes).digest('hex')
 }
@@ -74,10 +81,11 @@ async function main() {
     const wasmSource = join(dirname(packageEntry), 'wasm')
 
     const copied = await copyWasm({ from: wasmSource, to: join(publicDir, 'wasm') })
-    const modelStatus = await ensureModel({ dir: publicDir })
-    console.log(
-        `MediaPipe: wasm (${copied} arquivo(s) copiado(s)), modelo ${MODEL.file} (${modelStatus}).`,
-    )
+    const statuses = []
+    for (const model of [MODEL, GESTURE_MODEL]) {
+        statuses.push(`${model.file} (${await ensureModel({ dir: publicDir, model })})`)
+    }
+    console.log(`MediaPipe: wasm (${copied} arquivo(s) copiado(s)), modelos ${statuses.join(', ')}.`)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

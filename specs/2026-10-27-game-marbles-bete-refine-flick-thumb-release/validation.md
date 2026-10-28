@@ -1,0 +1,126 @@
+# Validação — 2026-10-27-game-marbles-bete-refine-flick-thumb-release
+
+## Estado
+
+- **Spec:** `spec.md`
+- **Status:** aprovado com risco aceito
+- **Constituição:** 1.0.0
+- **Data:** `2026-10-28`
+- **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho pelo merge do PR #73
+- **Commit:** merge do PR #73 na `main`
+
+## Resumo do resultado
+
+**Gate 3:** o maintainer aprovou ao mergear o PR #73, sem testar o estalo ao vivo depois das emendas CQ-009 a CQ-011; o texto abaixo foi escrito antes do merge. Implementação concluída e gates automatizados verdes; o teste manual do maintainer (T014) não foi feito e o Gate 3 foi concedido pelo merge. Após o 2º teste do maintainer, o detector foi recalibrado (CQ-009): o estalo é o polegar se esticando de uma vez a partir da mão fechada com o polegar preso contra o indicador, não a pinça fechada que abre rápido. A mão arma com a razão <= `armRatio` (1,05); o estalo dispara quando a razão chega a >= `extendRatio` (1,2), sobe pelo menos `minRise` (0,4) acima do mínimo dos últimos `baseWindowMs` (250 ms) e fica esticada por `confirmSamples` (3) amostras; `fraco demais` (subida pequena), `não sustentado` (volta antes de confirmar) e `sem direção` cancelam. A direção vem da orientação da mão (pulso à base do dedo médio, espelhada, medida na base da subida) e a força, da velocidade de abertura, numa escala logarítmica de 3 a 20 razão/s (antes 10 a 200, que colocava a faixa real de 5 a 10 perto de força 0). Saíram `slowMs`, `minOpenSpeed`, `riseStartRatio` e a histerese da pinça; o detector deixou de compor o de pinça. A pinça não mudou: direção e força vêm do arrasto, e continua exigindo a pinça vista aberta antes. O laço processa o detector só por quadro novo da câmera (`requestVideoFrameCallback`, com recuo para `currentTime`), e a taxa real medida foi de cerca de 15 quadros/s. O replay das duas séries gravadas (`flick-replay.test.ts`) protege contra regressão. Numa segunda emenda da mesma entrega (CQ-010), o jogo das bolinhas passou a usar o `GestureRecognizer` do MediaPipe (modelo `gesture_recognizer.task`, baixado por `prepare:assets` e servido pelo app) em vez do `HandLandmarker`, trazendo o gesto pronto da mão; como os gestos prontos NÃO reconheceram a pose do estalo numa conferência offline muito limitada, o gesto entra só como veto de palma aberta (veredito `open_hand`, resultado `mão aberta`, quando `Open_Palm` tem pontuação >= 0,8) e como diagnóstico na linha "Gesto reconhecido" do painel, não como gatilho. A tela do modo estalo ganhou o guia de etapas (`FlickGuide`, etapa atual por `aria-current`, dica por `aria-live`). O jogo de cartas segue com o `HandLandmarker`. Numa terceira emenda da mesma entrega (CQ-011), a direção do estalo passou da orientação da mão para a MIRA RELATIVA da pinça, porque o maintainer relatou que mirar pela orientação da mão ficou ruim de usar ("a usabilidade para mirar está muito ruim"): ao armar, a posição da mão (base do dedo médio, espelhada) vira a âncora e o deslocamento desde ela × `aimScale` (1,5) define a pinça virtual cuja direção para a bolinha é o tiro (estilingue; `minPull` 30, abaixo disso cancela como `sem mira`); a mira trava na última posição armada. O detector perdeu `handDirection` e o campo `direction`; `flickShot` virou `flickPower` (`{ power, speed }`); o resultado `sem direção` virou `sem mira`; os textos passaram a pedir afastar a mão do alvo para mirar. A FORÇA continua no polegar, então a distinção entre os modos ficou só na força e no gatilho. **Nenhum estalo foi exercitado com mão viva nestas emendas**; a viabilidade, a usabilidade da mira relativa no estalo, a utilidade do veto e o comportamento com outra mão ou webcam continuam desconhecidos (sobreajuste a duas sessões de uma pessoa; a licença do `gesture_recognizer.task` não foi lida na fonte).
+
+## Conclusão das tarefas
+
+- **Concluídas:** 29 (T001 a T029)
+- **Pendentes:** 0 (T014 fechada pelo Gate 3, sem teste manual)
+- **Evidência:** `tasks.md`
+
+## Evidências por requisito
+
+| Requisito | Tarefas                      | Evidência                                                                                                                                                                                                                                                                                              | Resultado |
+| --------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| FR-001    | T001, T003, T027, T028       | `flick.test.ts` (mira relativa: posição da mão travada em `release.point`, sem `handDirection`) e `round.test.ts` (a prévia da mira relativa acompanha a mão; arrasto não muda a velocidade do estalo, só a direção)                                                                                   | PASS      |
+| FR-002    | T015, T016, T022             | `flick.test.ts`: escala logarítmica de 3 a 20 razão/s para 300 a 1100 unid/s, extremos, média geométrica no meio, sem `maxOpenSpeed`; veto `open_hand` cancela o tiro                                                                                                                                  | PASS      |
+| FR-003    | T015, T016, T018, T022, T028 | `flick.test.ts` (armar por `armRatio`; candidato por `extendRatio`; `weak` por subida abaixo de `minRise`; `unsustained` por volta antes de confirmar; `open_hand` por `Open_Palm` a partir de 0,8) e `round.test.ts` (dispara ao confirmar; cancela por fraco, não sustentado, mão aberta e sem mira) | PASS      |
+| FR-004    | T004, T016                   | `round.test.ts` (perda da mão por mais e menos de 300 ms; detector que zera o armado) e `flick.test.ts` (perder a mão zera o armado)                                                                                                                                                                   | PASS      |
+| FR-005    | T006, T007                   | `marblesController.test.ts`: só processa por quadro novo com e sem `requestVideoFrameCallback`; cancela a espera ao parar                                                                                                                                                                              | PASS      |
+| FR-006    | T019, T026, T029             | `marblesController.test.ts` e `MarblesScreen.test.tsx`: taxa da câmera nos dois modos; linha "Gesto reconhecido"; força e resultado (`disparado`, `fraco demais`, `não sustentado`, `mão aberta`, `sem mira`)                                                                                          | PASS      |
+| FR-007    | T008, T020, T029             | `MarblesScreen.test.tsx` (orientação "afaste a mão do alvo... estique o polegar de uma vez", rótulo alpha, seletor) e `fieldView.test.ts` (seta de direção, sem elástico da pinça)                                                                                                                     | PASS      |
+| FR-008    | T010, T023, T024             | busca no código sem `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.` nem persistência; os dois modelos (`hand_landmarker.task` e `gesture_recognizer.task`) servidos pelo app; Chromium: GET só para a própria origem                                                                               | PASS      |
+| FR-009    | T011, T018                   | testes da pinça em `packages/marbles` e do jogo de cartas passam (`yarn check:all`); a pinça segue regulada pelo arrasto e exigindo a pinça vista aberta antes                                                                                                                                         | PASS      |
+| FR-010    | T012, T021                   | README, guia de arquitetura, `PROJECT_SPEC.md` e `specs/README.md` atualizados; `yarn docs:format:check` e `yarn sdd:check`                                                                                                                                                                            | PASS      |
+| FR-011    | T023, T024                   | `mediapipeTracker.test.ts` (`realGestureLoader`: landmarks + gesto pronto; cartas seguem com `HandLandmarker`) e `prepare-assets.test.mjs` (download do `gesture_recognizer.task` com SHA-256)                                                                                                         | PASS      |
+| FR-012    | T025                         | `FlickGuide.test.tsx` e `MarblesScreen.test.tsx`: lista ordenada "Etapas do estalo", etapa atual por `aria-current`, dica por `aria-live`                                                                                                                                                              | PASS      |
+
+O replay das duas séries gravadas (T017, `flick-replay.test.ts`) é a evidência de regressão: vídeo A (mão fechada em movimento) deixa 1 confirmado (cerca de 8,97 s) e >= 5 não sustentados sem tiro; vídeo B confirma os seis estalos (cerca de 22, 26, 28, 30, 32 e 34 s) com forças de 0,26 a 0,93.
+
+NFR-002 segue em aberto até o teste do maintainer: os textos não afirmam desempenho nem viabilidade e declaram os limiares (faixa 3 a 20, `armRatio`/`extendRatio`/`confirmSamples`) como palpites ajustados a duas sessões de uma pessoa (sobreajuste). NFR-005: o guia de etapas usa lista ordenada com rótulo, `aria-current="step"` na etapa atual e dica em região `aria-live="polite"`; o texto declara que os gestos prontos não reconheceram a pose do estalo na conferência offline, que o veto de palma aberta não foi medido contra a mão se abrindo de verdade e que nada foi testado ao vivo.
+
+## Histórias e critérios de aceitação
+
+| História/cenário           | Demonstração                                                                      | Resultado |
+| -------------------------- | --------------------------------------------------------------------------------- | --------- |
+| US-001 / direção do estalo | `flick.test.ts`, `round.test.ts` e `fieldView.test.ts`; nenhuma mira com mão real | PASS      |
+| US-002 / força do polegar  | `flick.test.ts`, `round.test.ts` e `marblesController.test.ts`; sem mão real      | PASS      |
+| US-003 / quadros novos     | controlador em jsdom e Chromium com câmera simulada (`requestVideoFrameCallback`) | PASS      |
+| US-004 / tela e painel     | `MarblesScreen.test.tsx`                                                          | PASS      |
+| US-005 / privacidade       | busca no código e inspeção de rede no Chromium                                    | PASS      |
+| US-006 / guia de etapas    | `FlickGuide.test.tsx` e `MarblesScreen.test.tsx`; sem mão real                    | PASS      |
+
+Critérios que dependem de mão real (SC-002, SC-003) e da câmera do maintainer ficam na T014.
+
+## Comandos executados
+
+| Comando exato                | Data       | Resultado | Evidência/observação                                           |
+| ---------------------------- | ---------- | --------- | -------------------------------------------------------------- |
+| `yarn docs:format:check`     | 2026-10-27 | PASS      | todos os documentos no estilo do Prettier                      |
+| `yarn sdd:check`             | 2026-10-27 | PASS      | catálogo, estados, gates, cobertura e links válidos            |
+| `yarn test:sdd`              | 2026-10-27 | PASS      | 109 testes                                                     |
+| `yarn check:all`             | 2026-10-27 | PASS      | typecheck, lint, testes (core 68, marbles 102, web 128), build |
+| `yarn test:gates`            | 2026-10-27 | PASS      | 231 testes                                                     |
+| `yarn security:dependencies` | 2026-10-27 | PASS      | nenhuma vulnerabilidade em nenhum nível                        |
+
+## Medições e benchmark (quando aplicável)
+
+- **Protocolo e amostra:** a página `marbles.html?mode=estalo&delegate=cpu` no Chromium headless de uma VPS compartilhada, com a câmera simulada pelo dispositivo falso do Chromium (`--use-fake-device-for-media-stream`, sem mão no quadro). Uma execução de cerca de 9 s.
+- **Taxa da câmera:** o painel mostrou 18,3 quadros novos da câmera por segundo, com `requestVideoFrameCallback` disponível e 148 quadros processados no total; o dispositivo falso é nominalmente de 20 quadros por segundo. Isto só mostra que a contagem funciona; não é a taxa da webcam do maintainer.
+- **Rede:** 52 requisições, todas GET para a própria origem, nenhuma com corpo e nenhuma externa.
+- **Leitura de origem do refino (1º teste):** a 1ª sessão de teste do maintainer (cerca de 40 s, Chrome desktop, câmera real) registrou 15 aberturas, velocidade de abertura de 9,1 a 199 razão/s, subida de 11 a 13 ms em 8 delas, 103 e 192 ms em duas, cerca de 86 quadros processados por segundo e latência mediana de 9 ms; 8 tiros e nenhum acerto. Foi lida do painel em vídeo de tela, que não faz parte do repositório.
+- **Rodada de calibração (2º teste, origem da recalibração CQ-009; só números, lidos quadro a quadro do painel):** a taxa real da webcam foi de 14,6 a 15,3 quadros novos/s (cerca de 15; cerca de 67 ms entre amostras). Vídeo A (cerca de 16 s, mão FECHADA em movimento, sem estalo): 9 disparos no critério antigo — razão em 0,05 a 0,35 com saltos para 0,8 a 1,4 num quadro; velocidade de abertura 6 a 19 razão/s; subida de um quadro (55 a 73 ms). Vídeo B (cerca de 37 s): das tentativas anteriores a 12,1 s (polegar contra a ponta do indicador, razão 0,05 a 0,4, subindo no máximo a cerca de 1,0) nenhuma dispara no novo critério; dos 12,1 s ao fim a razão ficou em 0,6 a 1,0 subindo para 1,2 a 2,0; seis estalos nítidos em torno de 21,5; 25,8; 28,1; 30,3; 32,2 e 34,2 s, com base 0,6 a 1,0, pico 1,4 a 2,0, razão >= 1,2 por pelo menos 3 amostras (cerca de 0,7 a 1 s) e velocidade de abertura de 5 a 10 razão/s. Os números foram conferidos em 6 instantes contra leitura manual (0,59; 0,48; 0,79; 1,37; 1,17; 1,06, iguais). A série está na fixture `packages/marbles/test/fixtures/flick-sessions.ts`. Os vídeos não fazem parte do repositório.
+- **Replay (regressão, sem câmera):** vídeo A deixa 1 estalo confirmado (cerca de 8,97 s, a mão se abrindo depois do punho) e os demais como não sustentados sem tiro; vídeo B confirma os seis estalos (cerca de 22, 26, 28, 30, 32 e 34 s) com forças de 0,26 a 0,93.
+- **Conferência offline dos gestos prontos (origem da emenda CQ-010; MUITO limitada, só números):** o Gesture Recognizer rodado nos recortes de câmera das duas gravações de tela (foto de baixa resolução com o esqueleto desenhado por cima; taxa de detecção baixa, não a do app ao vivo). Vídeo B (estalos, 9,5 a 35,5 s): 390 quadros, mão em 151; `None` 127, `Open_Palm` 23 (pontuações 0,50 a 0,65), `Pointing_Up` 1; `Closed_Fist` e `Thumb_Up` ZERO. Os `Open_Palm` apareceram também em dois estalos reais (cerca de 32,4 a 32,9 s e 34,4 a 34,5 s, polegar esticado, razão 1,0 a 1,4), o que fixou o veto em pontuação >= 0,8. Vídeo A (punho em movimento): 238 quadros, mão em 35, todos `None`. Os landmarks do `GestureRecognizer` coincidiram com os do `HandLandmarker` até a 2ª casa decimal da razão nos 6 quadros com ambos (0,67; 0,86; 0,61; 0,72; 0,67; 0,75). Conclusão: os gestos prontos NÃO reconheceram a pose do estalo; o gesto fica como veto de palma aberta e diagnóstico, não como gatilho. Os vídeos não fazem parte do repositório.
+- **Verificação em Chromium headless com câmera simulada (CQ-010; sem mão real):** o `gesture_recognizer.task` carregou do próprio app, 160 quadros processados, 15,0 quadros novos/s, delegate CPU, 10 requisições todas GET sem corpo e só para a própria origem; o guia apareceu com a etapa 1 marcada. Nenhum estalo real foi testado ao vivo.
+- **Limitações:** nenhuma medição ao vivo do estalo com o detector recalibrado; o estalo não foi exercitado com mão viva após a recalibração; os limiares são palpites ajustados a DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s (sobreajuste), e a razão sozinha não distingue abrir a mão de esticar o polegar.
+
+## Validações estruturais e documentais
+
+- **Links e catálogo:** `yarn sdd:check` passa.
+- **Contratos:** `packages/marbles` não depende de `packages/core`; a mira relativa, o detector de estalo e `flickPower` não usam relógio próprio (o tempo entra por argumento).
+- **Privacidade e segredos:** busca no código sem `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.`, `localStorage`, `sessionStorage`, `indexedDB`, `MediaRecorder`, `toDataURL` nem `toBlob` fora dos testes; sem chaves. Os dois modelos do detector (`hand_landmarker.task` e `gesture_recognizer.task`) são servidos pelo próprio app, sem CDN; a licença do `gesture_recognizer.task` não foi lida na fonte e fica pendente antes de redistribuir.
+- **UTF-8 e acentuação:** conferidos.
+- **Alterações fora de escopo:** a marcação da spec antiga como `superseded`, prevista em `plan.md`.
+
+## Constitution Check final
+
+| Princípio/gate                              | Resultado | Evidência ou desvio aprovado                                                                                                |
+| ------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| I. Intenção antes da implementação          | PASS      | Gates 1 e 2 aprovados antecipadamente pelo maintainer; cada emenda (CQ-009 a CQ-011) registrada antes do código.            |
+| II. Uma fonte vigente                       | PASS      | Esta spec é a fonte vigente completa do modo estalo; a spec de criação está `superseded`; catálogo atualizado.              |
+| III. Rastreabilidade                        | PASS      | Matriz acima cobre os 12 FR; `sdd:check` valida cobertura e links.                                                          |
+| IV. Test-first e incremental                | PASS      | Testes do detector, da rodada e da web escritos junto de cada mudança; parte dos testes do veto veio logo após o código.    |
+| V. Evidência honesta                        | PASS      | O estalo segue alpha; nenhum desempenho ou viabilidade afirmado; a falta de teste ao vivo e o sobreajuste estão declarados. |
+| VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para imagem; os dois modelos são servidos pelo app; sem persistência nem log de quadros ou landmarks.              |
+| VII. Neutralidade e contexto sob demanda    | PASS      | READMEs, guia de arquitetura e PROJECT_SPEC atualizados; nenhum outro projeto citado.                                       |
+| VIII. Clareza, preservação, operação segura | PASS      | Modo pinça e jogo de cartas preservados; alterações preexistentes preservadas; sem push direto na `main`.                   |
+
+## Convergência
+
+- **Divergências encontradas:** a primeira versão desta entrega tirou do estalo a direção pela mão e a força pelo polegar e o deixou quase igual à pinça; o maintainer apontou que a força do estalo é regulada pelo polegar e que a mecânica é distinta. A spec foi reescrita (CQ-001) e a pasta renomeada de `refine-flick-relative-aim` para `refine-flick-thumb-release`. A 1ª implementação armava pela pinça fechada e disparava por uma subida curta (<= 80 ms) com força em escala 10 a 200. O 2º teste mostrou que, a cerca de 15 quadros/s, isso disparava falso com a mão fechada em movimento e nunca armava a pose real do estalo (polegar preso contra o indicador, razão 0,6 a 1,0). O detector foi recalibrado (CQ-009): armar por `armRatio`, gatilho por razão esticada sustentada (`extendRatio`/`minRise`/`confirmSamples`), escala 3 a 20, sem compor o detector de pinça, e a rodada arma sem exigir a pinça vista aberta antes. A hipótese de reprocessamento de quadros (H-03) foi confirmada: a taxa real é de cerca de 15/s. Depois, o maintainer pediu detectar o estalo "por troca de gestos" e uma ajuda na tela; a conferência offline (CQ-010) mostrou que os gestos prontos não reconhecem a pose do estalo, então o jogo das bolinhas trocou para o `GestureRecognizer` e o gesto entrou só como veto de palma aberta e diagnóstico, somando-se o guia de etapas (`FlickGuide`). Por fim, ao testar o estalo o maintainer relatou que mirar pela orientação da mão ficou ruim de usar; a direção passou à mira relativa da pinça (CQ-011), com `handDirection`/`direction` removidos, `flickShot` virando `flickPower` e o resultado `sem direção` virando `sem mira`, mantendo a força no polegar.
+- **Artefatos reabertos:** `spec.md`, `clarification.md` (CQ-009, CQ-010 e CQ-011), `research.md`, `plan.md`, `tasks.md` (Fases 5, 6 e 7) e `validation.md`.
+- **Reexecuções:** os gates automatizados (`yarn docs:format:check`, `yarn sdd:check`, `yarn test:sdd`) rodaram de novo depois da recalibração e da atualização dos documentos.
+
+## Limitações e riscos residuais
+
+| Limitação/risco                                                                      | Impacto                                                                                                                                         | Responsável | Aceite                                   |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- |
+| Estalo com direção pela mira relativa e força logarítmica não testado com a mão      | Viabilidade da issue #72 desconhecida                                                                                                           | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| `armRatio`/`extendRatio`/`confirmSamples` são palpites de duas sessões de uma pessoa | Pode cancelar estalos legítimos ou passar oscilações com outra mão/webcam (sobreajuste)                                                         | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| A faixa 3 a 20 da escala de força vem só da amplitude observada                      | A força pode não corresponder ao esforço real do polegar (H-02)                                                                                 | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| A mira relativa pode não ser boa de usar no estalo (relato, não medição)             | A mira pode continuar ruim; `aimScale`/`minPull` são os valores da pinça (H-04)                                                                 | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| A razão sozinha não distingue abrir a mão de esticar o polegar                       | Uma mão fechada que se abre pode confirmar um estalo falso (vídeo A)                                                                            | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Comportamento com outra webcam (taxa real medida de cerca de 15/s aqui)              | Número de amostras por estalo muda com a taxa de quadros (H-05)                                                                                 | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Veto de palma aberta não medido contra a mão se abrindo de verdade                   | Pode não ajudar ou cancelar um estalo real (`Open_Palm` >= 0,8 no polegar esticado); os gestos prontos não reconheceram a pose do estalo (H-06) | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Licença do `gesture_recognizer.task` não lida na fonte                               | Pendente de confirmação antes de versionar ou redistribuir (modelo não versionado)                                                              | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+
+## Gate 3 — Convergência validada
+
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer), pelo merge do PR #73 na `main`
+- **Data:** `2026-10-28`
+- **Escopo aprovado:** FR-001 a FR-012 e os artefatos da spec, com o código em `packages/marbles/` e `apps/web/`; o modo é entregue como alpha
+- **Riscos aceitos:** estalo com a mira relativa, o reconhecedor de gestos, o guia e a escala de força nunca testado ao vivo; todos os limiares (`armRatio`, `extendRatio`, `confirmSamples`, `minRise`, escala 3 a 20, `aimScale`, `minPull`, veto de palma aberta em 0,8) são palpites ajustados a duas sessões de uma pessoa e uma webcam; a razão não distingue abrir a mão de esticar o polegar; o veto de palma aberta não foi medido; a licença do `gesture_recognizer.task` não foi lida na fonte
+- **Observações:** o Gate 3 foi concedido pelo merge, sem teste manual (T014) depois das emendas. A convergência aprovada é entre código, spec e testes sem câmera, não a viabilidade do modo. O maintainer decidiu manter o modo como está por enquanto; o modo segue rotulado alpha e os números do painel (gesto reconhecido, velocidade, força e resultado) podem retomar a calibração sem reabrir esta spec. A issue #72 fecha com este registro.
