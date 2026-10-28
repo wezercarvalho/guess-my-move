@@ -263,12 +263,86 @@ aberta`): se alguma das `confirmSamples` (3) amostras de confirmação tiver o
   FR-012 (guia de etapas), novo NFR-005 (acessibilidade do guia), edge cases, H-06,
   critérios de sucesso e a tabela "Distinção entre os modos".
 
+### CQ-011 — Mira do estalo: orientação da mão ou mira relativa?
+
+- **Data:** `2026-10-28`
+- **Impacto:** crítico
+- **Pergunta:** A direção do estalo deve continuar vindo da ORIENTAÇÃO da
+  mão no plano da imagem (pulso à base do dedo médio, espelhada), como
+  decidido na CQ-002, ou passar a vir da mira relativa — a mesma da pinça,
+  que o maintainer aprovou?
+- **Decisão:** Passa a vir da MIRA RELATIVA, a mesma da pinça. Esta é uma
+  **emenda da mesma entrega** (issue #72, mesma branch `feat/72-refina-estalo`);
+  os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72
+  continuam valendo, como nas CQ-009 e CQ-010. A decisão da CQ-002 (direção
+  pela orientação da mão) e a norma anterior da spec ("o estalo NÃO usa o
+  arrasto para direção") ficam SUBSTITUÍDAS por esta: agora o estalo usa a
+  mira relativa para a DIREÇÃO e continua NÃO usando o arrasto para a FORÇA,
+  que segue sendo a velocidade do polegar. A distinção entre os dois modos
+  deixa de estar na direção e passa a estar só na FORÇA (pinça: arrasto;
+  estalo: velocidade do polegar) e no GATILHO (pinça: abrir a pinça; estalo:
+  esticar o polegar de uma vez, sustentado). A pinça NÃO muda. Mudanças:
+    - **Mira relativa, como a da pinça.** Quando a mão arma (razão
+      polegar-indicador baixa), o ponto da mão vira a âncora; o deslocamento
+      da mão desde a âncora, vezes o ganho `aimScale` (1,5, o mesmo da pinça),
+      define uma pinça virtual, e a direção do tiro vai da pinça virtual para
+      a bolinha (estilingue: AFASTAR a mão do alvo manda o tiro para o alvo).
+      Arrasto mínimo de 30 unidades (o `minPull` da pinça): abaixo disso não
+      há seta de direção e um estalo confirmado é cancelado como `sem mira`
+      (o antigo `sem direção`). No campo aparece só a SETA de direção a partir
+      da bolinha de tiro (sem o elástico da pinça) e o anel da mão.
+    - **Posição da mão = base do dedo médio (landmark 9), espelhada em x.** Não
+      mais o ponto médio entre as pontas do polegar e do indicador, porque a
+      base do dedo médio não se move quando o polegar se estica.
+    - **A mira trava na ÚLTIMA posição armada** antes de a razão cruzar 1,2
+      (`FlickRelease.point`); durante a confirmação do polegar esticado (fase
+      `pending`) a posição da mão não atualiza a mira.
+    - **Detector sem `handDirection`.** Saem do detector `handDirection` e o
+      campo `direction` de leitura e de soltura (a orientação da mão não é mais
+      usada). `flickShot` é substituído por `flickPower(release, config)`, que
+      devolve `{ power, speed }` (força de 0 a 1 e velocidade do tiro de 300 a
+      1100 unid/s) ou `null` quando o veredito não é `confirmed`; a rodada
+      compõe a velocidade final = direção da mira vezes `speed`. O resultado
+      `sem direção` vira `sem mira` (estalo confirmado sem arrasto suficiente,
+      sem tiro). O resto do detector (armar 1,05; estica 1,2 por 3 amostras;
+      subida mínima 0,4; escala de força 3 a 20; veto de palma aberta 0,8; guia
+      de etapas) NÃO muda.
+    - **Tela e guia.** O texto de orientação do estalo passa a pedir afastar a
+      mão do alvo até a seta apontar para onde quer atirar e então esticar o
+      polegar de uma vez; a etapa 2 do guia vira "Mire como na pinça: afaste a
+      mão do alvo e a seta mostra para onde a bolinha vai."; a dica para `sem
+mira` é "Faltou arrasto: afaste mais a mão do alvo, até a seta aparecer,
+      antes de esticar o polegar."
+- **Razão:** Palavras do maintainer depois de testar o estalo: "a usabilidade
+  para mirar está muito ruim" e "a mira da pinça até está ok, o principal
+  problema é no modo de tiro estalo". A mira pela orientação da mão exige girar
+  o punho para mudar a direção, o que ficou ruim de usar. A mira relativa da
+  pinça, que o maintainer já aprovou, reaproveita um gesto que funciona bem;
+  manter a FORÇA no polegar preserva a distinção entre os modos sem manter a
+  mira difícil de usar.
+- **Honestidade obrigatória:** NADA disto foi testado ao vivo. A convenção de
+  estilingue (afastar a mão do alvo), o ganho `aimScale` 1,5 e o arrasto mínimo
+  de 30 são os valores da pinça e podem não ser os melhores para o estalo; a
+  usabilidade da mira pela orientação da mão não foi medida (é relato do
+  maintainer, não medição). Se o maintainer achar a convenção contraintuitiva,
+  inverter é uma mudança pequena. O Gate 3 (T014) segue pendente do teste
+  manual do maintainer no Chrome desktop.
+- **Alternativas rejeitadas:** Manter a direção pela orientação da mão (CQ-002)
+  — o maintainer relatou que mirar assim ficou ruim de usar; usar a mira
+  relativa TAMBÉM para a força (apagaria a distinção entre os modos, já
+  rejeitado na CQ-001); abandonar o modo estalo (a issue #72 pede torná-lo
+  jogável).
+- **Seções atualizadas em `spec.md`:** frontmatter (`summary`, `updated_at`),
+  Resumo, Problema, Objetivos, Fora de escopo, Atores, US-001, US-002, US-004,
+  US-006 e critérios, FR-001, FR-003, FR-006, FR-012, edge cases, H-04,
+  critérios de sucesso e a tabela "Distinção entre os modos".
+
 ## Hipóteses remanescentes
 
 - Os limiares do gatilho (`armRatio` = 1,05; `extendRatio` = 1,2; `confirmSamples` = 3; `minRise` = 0,4; `baseWindowMs` = 250 ms) são palpites calibrados em DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s (H-01).
 - A faixa 3 a 20 da escala de força vem só da amplitude observada (estalos reais de 5 a 10 razão/s); não se sabe quais estalos foram fracos ou fortes (H-02).
 - A taxa real da câmera medida foi de cerca de 15 quadros/s (H-03); o painel de quadros novos por segundo é o que mede isso.
-- A direção pela orientação da mão pode não corresponder ao estalo real (H-04); mantida porque a seta de prévia deixa ajustar a mão; alternativas ficam como pergunta aberta.
+- A mira do estalo passou a ser relativa, como a da pinça (CQ-011, substituindo a CQ-002): a direção vem do deslocamento da mão desde a âncora (ganho `aimScale` 1,5, arrasto mínimo 30), não mais da orientação da mão. O ganho e o arrasto mínimo são os valores da pinça e podem não ser os melhores para o estalo; a usabilidade não foi medida (é relato do maintainer) e nada foi testado ao vivo (H-04).
 - Numa subida de 1 a 2 quadros a velocidade de abertura é limitada pela taxa de quadros, não pela força do polegar; por isso o gatilho passou a exigir a razão esticada por vários quadros em vez de uma subida rápida (H-05).
 - Limitação conhecida não resolvida: a razão polegar-indicador sozinha não distingue abrir a mão de esticar o polegar, então uma mão fechada que se abre pode confirmar um estalo (1 caso no replay do vídeo A).
 - Os gestos prontos do MediaPipe (`Closed_Fist`, `Thumb_Up`) não reconheceram a pose do estalo na conferência offline, então o gesto entra só como veto de palma aberta (pontuação >= 0,8) e diagnóstico, não como gatilho; o veto não foi medido contra a mão se abrindo de verdade e pode não ajudar ou cancelar um estalo real (H-06).
@@ -280,4 +354,4 @@ aberta`): se alguma das `confirmSamples` (3) amostras de confirmação tiver o
 - **Data:** `2026-10-27`
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** Mensagem do maintainer na sessão do dashboard em 2026-10-27 ("Tu precisa estruturar essas distinções e aplicar adequadamente a cada modo" e "pode fazer então, abre um PR") e issue 72 do repositório.
-- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. A recalibração do 2º teste (CQ-009, 2026-10-28) e a troca para o reconhecedor de gestos, o guia de etapas e o veto de palma aberta (CQ-010, 2026-10-28) são emendas da MESMA entrega do #72 (mesma branch); os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72 permanecem válidos e não foram reabertos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.
+- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. A recalibração do 2º teste (CQ-009, 2026-10-28), a troca para o reconhecedor de gestos, o guia de etapas e o veto de palma aberta (CQ-010, 2026-10-28) e a mudança da mira do estalo para a mira relativa (CQ-011, 2026-10-28) são emendas da MESMA entrega do #72 (mesma branch); os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72 permanecem válidos e não foram reabertos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.

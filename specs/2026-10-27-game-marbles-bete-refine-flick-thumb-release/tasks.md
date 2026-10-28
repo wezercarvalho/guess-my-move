@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão.
-- Estado desta spec: `implementing`. As Fases 1 a 4 (T001 a T012) descrevem a 1ª implementação deste refino e estão concluídas; a Fase 5 (T015 a T021) é a emenda da recalibração do 2º teste (CQ-009), também concluída, e SUBSTITUI os parâmetros/gatilho descritos nas Fases 1 a 3 (armar por `armRatio`, gatilho por razão esticada sustentada, escala 3 a 20, detector que não compõe o de pinça, rodada sem exigir pinça aberta antes). A Fase 6 (T022 a T026) é a emenda do reconhecedor de gestos, do guia de etapas e do veto de palma aberta (CQ-010), também concluída. A validação (T013) foi reexecutada após as emendas. Só a última tarefa (T014, teste manual do maintainer e Gate 3) segue PENDENTE e depende do maintainer.
+- Estado desta spec: `implementing`. As Fases 1 a 4 (T001 a T012) descrevem a 1ª implementação deste refino e estão concluídas; a Fase 5 (T015 a T021) é a emenda da recalibração do 2º teste (CQ-009), também concluída, e SUBSTITUI os parâmetros/gatilho descritos nas Fases 1 a 3 (armar por `armRatio`, gatilho por razão esticada sustentada, escala 3 a 20, detector que não compõe o de pinça, rodada sem exigir pinça aberta antes). A Fase 6 (T022 a T026) é a emenda do reconhecedor de gestos, do guia de etapas e do veto de palma aberta (CQ-010), também concluída. A Fase 7 (T027 a T029) é a emenda da mira relativa do estalo (CQ-011), também concluída, e SUBSTITUI a direção pela orientação da mão descrita nas Fases 1 a 5 (a direção passa a ser a mira relativa da pinça; `handDirection` e o campo `direction` saem; `flickShot` vira `flickPower`; o resultado `sem direção` vira `sem mira`). A validação (T013) foi reexecutada após as emendas. Só a última tarefa (T014, teste manual do maintainer e Gate 3) segue PENDENTE e depende do maintainer.
 
 ## Fase 1 — Detector de estalo: direção, gatilho e força logarítmica (packages/marbles)
 
@@ -49,6 +49,12 @@
 - [x] T025 [US-006] [FR-012] [NFR-005] Escrever testes falhando e implementar o `FlickGuide` (`apps/web/src/marbles/FlickGuide.tsx`) e o `flickStep` (`flickStep.ts`): lista ordenada "Etapas do estalo", etapa atual por `aria-current="step"` mapeada de `state` + `phase`, dica por `aria-live="polite"` para `fraco demais`/`não sustentado`/`mão aberta`/`sem direção`; montar no `MarblesScreen` no modo estalo, em `FlickGuide.test.tsx` e `MarblesScreen.test.tsx`, e confirmar verde
 - [x] T026 [US-004] [FR-006] Atualizar o `MarblesController` e o `MarblesDebugPanel` em `apps/web/src/marbles` para a linha "Gesto reconhecido" (nome e pontuação, ou traço) e o novo resultado `mão aberta` no `FlickOutcome`, em `marblesController.test.ts` e `MarblesScreen.test.tsx`, e confirmar verde
 
+## Fase 7 — Mira relativa do estalo (emenda, CQ-011; já CONCLUÍDA)
+
+- [x] T027 [US-001] [US-002] [FR-001] [FR-002] Reescrever os testes (test-first) e implementar em `packages/marbles/src/flick.ts`: remover `handDirection` e o campo `direction` (de `FlickReading` e `FlickRelease`); a posição da mão passa a ser a base do dedo médio (landmark 9) espelhada e `FlickRelease.point` guarda a última posição armada (a mira trava aí; na fase `pending` não atualiza); trocar `flickShot` por `flickPower(release, config)` devolvendo `{ power, speed }` ou `null` fora de `confirmed`; ajustar `index.ts`, `packages/marbles/test/flick.test.ts` e `flick-replay.test.ts`, e confirmar verde
+- [x] T028 [US-001] [US-002] [FR-001] [FR-003] Implementar a mira relativa em `packages/marbles/src/round.ts`: `observeFlickReading` ancora na posição da mão ao armar, publica a direção de prévia (deslocamento × `aimScale` 1,5, da pinça virtual até a bolinha), exige arrasto >= `minPull` (30) e compõe a velocidade do tiro = direção da mira × `speed`; cancela como `sem mira` quando o arrasto é curto; o `snapshot().flick` expõe só a direção de prévia (sem elástico); atualizar `packages/marbles/test/round.test.ts` (modo pinça inalterado), e confirmar verde
+- [x] T029 [US-004] [US-006] [FR-006] [FR-007] [FR-012] Atualizar a tela e o painel em `apps/web/src/marbles`: o `FlickOutcome` troca `sem direção` por `sem mira`; os textos de orientação do estalo (`MarblesScreen`) e a etapa 2 e a dica de `sem mira` do `FlickGuide` passam a pedir afastar a mão do alvo para mirar; `fieldView` desenha só a seta de direção; atualizar `marblesController.test.ts`, `MarblesScreen.test.tsx`, `FlickGuide.test.tsx` e `fieldView.test.ts`, e confirmar verde
+
 ## Fase final — Convergência (PENDENTE)
 
 - [x] T013 [SC-001] [SC-005] [NFR-004] Executar `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`; quando o código estiver implementado, também `yarn check:all`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
@@ -71,7 +77,7 @@
 | FR-011    | T023, T024             | `mediapipeTracker.test.ts`, `prepare-assets.test.mjs` |
 | FR-012    | T025                   | `FlickGuide.test.tsx`, `MarblesScreen.test.tsx`       |
 
-Emenda (CQ-009): T015/T016 cobrem FR-002 e FR-003 com o detector novo, T017 o replay (SC-001), T018 FR-003 (rodada sem exigir pinça aberta antes), T019 FR-006, T020 FR-007 e T021 FR-010. Emenda (CQ-010): T022 cobre o veto `open_hand` (FR-002, FR-003), T023 o `GestureRecognizer` (FR-008, FR-011), T024 o ativo novo (FR-008, FR-011), T025 o guia de etapas (FR-012) e T026 a linha "Gesto reconhecido" e o resultado `mão aberta` (FR-006).
+Emenda (CQ-009): T015/T016 cobrem FR-002 e FR-003 com o detector novo, T017 o replay (SC-001), T018 FR-003 (rodada sem exigir pinça aberta antes), T019 FR-006, T020 FR-007 e T021 FR-010. Emenda (CQ-010): T022 cobre o veto `open_hand` (FR-002, FR-003), T023 o `GestureRecognizer` (FR-008, FR-011), T024 o ativo novo (FR-008, FR-011), T025 o guia de etapas (FR-012) e T026 a linha "Gesto reconhecido" e o resultado `mão aberta` (FR-006). Emenda (CQ-011): T027 e T028 cobrem FR-001 com a mira relativa (sem `handDirection`, `flickPower`, `release.point`, `aimScale`/`minPull`) e T029 FR-006/FR-007/FR-012 com `sem mira` e os textos de afastar a mão do alvo.
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -82,13 +88,14 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - T010 e T011 dependem de T009; T013 e T014 fecham a entrega.
 - Fase 5 (emenda CQ-009): T015/T016 antes de T017 e T018; T019 e T020 dependem de T016/T018; T013 foi reexecutada depois de T015 a T021.
 - Fase 6 (emenda CQ-010): T022 antes de T026 (o veto define o resultado `mão aberta`); T023 antes de T024 (o loader usa o modelo que o `prepare:assets` baixa) e T026 (o controlador lê o gesto do tracker); T025 depende de T022 (a fase do detector mapeia a etapa). T013 foi reexecutada depois de T022 a T026.
+- Fase 7 (emenda CQ-011): T027 (detector sem `handDirection`, `flickPower`, `release.point`) antes de T028 (a rodada usa `release.point` e `flickPower`) e T029 (a tela lê o novo `FlickOutcome`). T013 foi reexecutada depois de T027 a T029.
 
 ## Análise de consistência
 
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação do maintainer wezercarvalho
 - **Data:** `2026-10-28`
-- **Lacunas:** nenhuma. Todos os doze FR têm tarefa formal; SC-001 é coberto pelos testes das Fases 1 a 3 e pelo replay da Fase 5 (T017), e SC-006 pelos testes da Fase 6 (T023 a T026); SC-002 e SC-003 pela tarefa de evidência manual (T014); SC-004 pela T011 e SC-005 pela T013; NFR-001 pela pureza da direção, do detector (armar/candidato/confirmação) e da escala logarítmica, NFR-002 pelos textos sem afirmação de desempenho ou de correspondência da direção e com a ressalva de sobreajuste, NFR-003 pelo `aria-live` e pelo `fieldset`, NFR-004 pelos comandos finais e NFR-005 pelo `aria-current`/`aria-live` do guia e pela ressalva sobre os gestos prontos. As emendas CQ-009 (Fase 5) e CQ-010 (Fase 6) reescreveram o gatilho e a escala de força e acrescentaram o reconhecedor de gestos, o guia de etapas e o veto de palma aberta, aprovadas como parte da mesma entrega do #72; só a T014 (Gate 3) segue pendente.
+- **Lacunas:** nenhuma. Todos os doze FR têm tarefa formal; SC-001 é coberto pelos testes das Fases 1 a 3 e pelo replay da Fase 5 (T017), e SC-006 pelos testes da Fase 6 (T023 a T026); SC-002 e SC-003 pela tarefa de evidência manual (T014); SC-004 pela T011 e SC-005 pela T013; NFR-001 pela pureza da direção, do detector (armar/candidato/confirmação) e da escala logarítmica, NFR-002 pelos textos sem afirmação de desempenho ou de correspondência da direção e com a ressalva de sobreajuste, NFR-003 pelo `aria-live` e pelo `fieldset`, NFR-004 pelos comandos finais e NFR-005 pelo `aria-current`/`aria-live` do guia e pela ressalva sobre os gestos prontos. As emendas CQ-009 (Fase 5), CQ-010 (Fase 6) e CQ-011 (Fase 7) reescreveram o gatilho e a escala de força, acrescentaram o reconhecedor de gestos, o guia de etapas e o veto de palma aberta, e trocaram a direção pela orientação da mão pela mira relativa da pinça, aprovadas como parte da mesma entrega do #72; só a T014 (Gate 3) segue pendente.
 
 ## Gate 2 — Plano e tarefas aprovados
 
