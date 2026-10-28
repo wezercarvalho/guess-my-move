@@ -8,7 +8,7 @@
 - **Constituição:** `1.0.0`
 - **Iniciada em:** `2026-10-28`
 
-Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28 (como fatos) e o resultado das questões de clarificação. Os Gates 1 e 2 foram **aprovados antecipadamente** pelo maintainer em 2026-10-28 ("considere os gates aprovados"), que aceitou as recomendações de CQ-001 a CQ-005; todas estão **RESOLVIDAS** abaixo. A spec avança para o planejamento técnico (`plan.md` e `tasks.md`) e para a implementação test-first; a validação (`validation.md`) e o Gate 3 seguem ao fim, depois do código e da verificação visual, com o risco aceito de não haver teste ao vivo com a mão.
+Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28 (como fatos) e o resultado das questões de clarificação. Os Gates 1 e 2 foram **aprovados antecipadamente** pelo maintainer em 2026-10-28 ("considere os gates aprovados"), que aceitou as recomendações de CQ-001 a CQ-005; CQ-006 e CQ-007 são emendas de implementação registradas depois. Todas estão **RESOLVIDAS** abaixo. A spec avança para o planejamento técnico (`plan.md` e `tasks.md`) e para a implementação test-first; a validação (`validation.md`) e o Gate 3 seguem ao fim, depois do código e da verificação visual, com o risco aceito de não haver teste ao vivo com a mão.
 
 ### Decisões já tomadas pelo maintainer (2026-10-28, usadas como fatos)
 
@@ -80,6 +80,23 @@ Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28
 - **Alternativas rejeitadas:** baixar o `minRise` da mira (mudaria a sensação do jogo e a regra fixada no FR-003); elevar artificialmente todas as alturas (falsearia os dados OSM); nascer no chão (contraria o `spawnHeight` = 90 m da spec).
 - **Seções atualizadas em `spec.md`:** FR-002 (spawn), SC-001; `research.md` (distribuição de alturas e regra do spawn); `physics.ts`/`spawn.ts` no código.
 
+### CQ-007 — Duas mãos, pose em qualquer orientação, imersão e dicas na tela
+
+- **Data:** `2026-10-28`
+- **Impacto:** médio
+- **Pergunta:** depois de testar a versão anterior, o maintainer pediu que o jogo reconheça as **duas mãos** e a pose em **qualquer orientação** (a mão de lado: polegar, indicador e mindinho abertos, médio e anelar dobrados), e que a **mecânica de balançar como o Homem-Aranha** fique mais imersiva, com dicas na tela. Como atender sem mudar a arquitetura nem afirmar o que não foi medido?
+- **Decisão:** **RESOLVIDA** (emenda de implementação, 2026-10-28). Registrada depois da autorização geral do maintainer; os Gates 1 e 2 seguem **aprovados** e o estado da spec continua `validated`; o Gate 3 continua **aprovado com risco aceito pelo merge**. Mudanças:
+    1. **Duas mãos:** o reconhecedor passa a `numHands` 2 (`realTwoHandGestureLoader`, `HandTracker.detectAll`, usando até duas mãos). O lado vem da posição na tela espelhada (`handSide` em `packages/swing/src/pose.ts`). A mão **esquerda** lança a teia com desvio de **18°** à esquerda (`sideYaw`), a **direita** à direita, as **duas juntas** ao centro; passar a usar a outra mão lança uma teia nova do outro lado e encadeia balanços. O teclado espelha: **Espaço** centro, **Z** esquerda, **X** direita, setas olham. O lado é uma preferência: tenta o desvio inteiro, metade e o centro.
+    2. **Pose geométrica (`isWebPose`):** medida só por distâncias entre landmarks, independente da orientação e de qual mão. Indicador e mindinho esticados (ponta/base a partir do pulso >= **1,5**), médio e anelar dobrados (<= **1,3**), polegar aberto (ponta a >= **0,6** da palma, medida a partir da base do indicador). Vale também o rótulo `ILoveYou` do reconhecedor com score >= **0,7** (`webSignal`). Os limiares são **palpites**, validados só com landmarks sintéticos girados (0, 45, 90, 180, 270 graus, espelhados), **não com mão real**.
+    3. **Câmera mais imersiva:** a mão que faz a pose não gira a câmera; a outra mão gira (`steerFromHand`). Sem giro manual, a câmera passa a olhar aos poucos para onde o jogador se move (`headingFollow` 1,2 por s, velocidade horizontal mínima 8 m/s).
+    4. **Mira e teia no céu:** `minRise` 8 -> **25 m** e `minHorizontal` 12 -> **30 m** (arcos maiores, em vez de bater na fachada). **Teia no céu** quando nenhum prédio é alcançável (ponto 60 m à frente e 70 m acima, só até 220 m de altura; `ActiveWeb.virtual`); prédio alcançável sempre tem preferência. A prévia da mira é projetada na tela para cada mão antes de lançar (anel dourado quando à vista, seta na borda quando fora do quadro, rótulos "esq." e "dir."). A corda sai do pulso do lado que lançou e ficou mais fina.
+    5. **Área jogável (`playBounds`):** caixa dos prédios + **120 m**, nunca além dos limites do mapa, para o jogador não sair da área construída (antes a caixa do mapa ia a -1112 m em x).
+    6. **Dicas e guia:** `swingCue` (start, swing, release, throw, low, ground) alimenta a linha de status de uma frase, o guia "Como jogar" de 4 etapas, dicas de pose e de teclado, o medidor "Teia: esquerda/direita/centro/solta" no HUD e um contorno dourado (soltar) ou vermelho (perto do chão) no palco. Soltar na subida do arco (velocidade horizontal >= 12 m/s e subindo) é o que lança o jogador para longe.
+- **Razão:** reconhecer as duas mãos e a pose por geometria torna o gesto robusto a orientação e a qual mão, o desvio por lado e a troca de mão dão o encadeamento de balanços que faltava, e as dicas na tela mais a teia no céu e a área jogável menor tornam o primeiro balanço possível e a mecânica legível — tudo com valores de jogo e sem mudar a arquitetura.
+- **Alternativas rejeitadas:** manter uma só mão e o rótulo `ILoveYou` do reconhecedor (não reconhecia a pose de lado nem encadeava lados); baixar o `minRise` abaixo de 25 m (a teia batia na fachada); exigir teste ao vivo com a mão real antes do fecho (contraria CQ-004, risco já aceito).
+- **Seções atualizadas em `spec.md`:** FR-003 (mira e teia no céu), FR-005 (duas mãos, pose geométrica, lados), FR-006 (direção e acompanhamento da câmera); `plan.md` e `research.md` (duas mãos, pose, teia no céu, área jogável, dicas); `tasks.md` (T015 a T020); `validation.md` (seção da CQ-007). Código real: `packages/swing/src/pose.ts`, `cue.ts`, `web.ts`, `world.ts`, `physics.ts`, `cityIndex.ts`, `spawn.ts`; `apps/web/src/swing/swingController.ts`, `guide.ts`, `reticle.ts`, `cityRenderer.ts`, `SwingScreen.tsx`; `apps/web/src/tracker/mediapipeTracker.ts`.
+- **Não verificado:** nenhuma mão real nem as duas mãos ao vivo; os limiares da pose, o desvio de 18°, a teia no céu, a sensação de balanço e a dificuldade; fps numa GPU real.
+
 ## Hipóteses remanescentes
 
 - O reconhecedor do MediaPipe inclui a categoria `ILoveYou` e devolve um score por quadro, confirmado pelo modelo versionado (ver `research.md`); H-01.
@@ -98,6 +115,7 @@ Todas as questões abaixo foram decididas pelo maintainer na aprovação antecip
 - **CQ-004** — sem validação ao vivo com a mão; Gate 3 com risco aceito.
 - **CQ-005** — valores de jogo, sem alvo de fps nem afirmação de desempenho.
 - **CQ-006** — ponto de partida a y = 90 m e `findSpawn` preferindo um ponto de onde a teia alcança um prédio à frente (registrada na validação, antes do Gate 3).
+- **CQ-007** — duas mãos e pose geométrica em qualquer orientação, teia por lado e troca de mão, teia no céu, mira projetada na tela, dicas e guia, área jogável reduzida (emenda de implementação; Gates 1 e 2 aprovados, estado `validated`, Gate 3 aprovado com risco aceito pelo merge).
 
 ## Gate 1 — Clarificação aprovada
 

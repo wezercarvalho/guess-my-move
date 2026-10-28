@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão.
-- Estado desta spec: `validated`. CQs resolvidas (CQ-001 a CQ-006), plano, tarefas e checklists prontos; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-28 e o Gate 3 foi concedido pelo merge do PR da issue #76, com risco aceito (sem teste ao vivo com a mão real nem medição de fps numa GPU real). O código foi implementado test-first e todas as tarefas abaixo estão marcadas `[x]` com evidência registrada em `validation.md`.
+- Estado desta spec: `validated`. CQs resolvidas (CQ-001 a CQ-007), plano, tarefas e checklists prontos; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-28 e o Gate 3 foi concedido pelo merge do PR da issue #76, com risco aceito (sem teste ao vivo com a mão real nem medição de fps numa GPU real; a CQ-007 acrescenta pose, lados e teia no céu não medidos com mão real). O código foi implementado test-first e todas as tarefas abaixo (T001 a T020) estão marcadas `[x]` com evidência registrada em `validation.md`.
 
 ## Fase 1 — Pacote puro: tipos e vetores (packages/swing)
 
@@ -47,6 +47,15 @@
 ## Fase final — Convergência (Gate 3)
 
 - [x] T014 [SC-003] [SC-006] [NFR-003] [NFR-006] Fechar o Gate 3 com risco aceito: registrar em `validation.md` o veredito, o escopo aprovado, os riscos aceitos (aparência e desempenho ao vivo numa GPU real não medidos; sem validação com a mão real) e as observações, e atualizar o estado da spec para `validated` ao fim, sem afirmar desempenho sem medição
+
+## Fase 9 — Emenda CQ-007: duas mãos, pose, imersão e dicas
+
+- [x] T015 [US-001] [US-005] [FR-005] Duas mãos e pose geométrica: `packages/swing/src/pose.ts` (`isWebPose` por distâncias entre landmarks — indicador e mindinho >= 1,5, médio e anelar <= 1,3, polegar >= 0,6 da palma; `handSide`; `webSignal`), com testes de landmarks sintéticos girados (0, 45, 90, 180, 270 graus, espelhados); o reconhecedor passa a `numHands` 2 (`realTwoHandGestureLoader`, `apps/web/src/tracker/mediapipeTracker.ts` com `detectAll`, consumido por `swingController.detectAll(...).slice(0, 2)`). Evidência: testes de `pose` e `swingHands` verdes (sem mão real)
+- [x] T016 [US-001] [US-002] [FR-005] Lado da teia e troca de mão: a mão esquerda lança com desvio de 18° à esquerda (`sideYaw`), a direita à direita, as duas ao centro; passar a usar a outra mão lança uma teia nova do outro lado e encadeia balanços; teclado Espaço centro, Z esquerda, X direita; o lado é uma preferência (desvio inteiro, metade, centro). Evidência: testes de `world`/`swingController` e inspeção visual (Z esquerda, X direita no medidor)
+- [x] T017 [US-001] [US-004] [FR-002] [FR-003] Teia no céu e área jogável: `world.ts` prende num ponto no céu (60 m à frente, 70 m acima, até 220 m; `ActiveWeb.virtual`) quando nenhum prédio é alcançável, com preferência pelo prédio; `cityIndex.playBounds` = caixa dos prédios + 120 m, nunca além do mapa; `minRise` 8 -> 25 m e `minHorizontal` 12 -> 30 m. Evidência: testes de `web`, `world`, `cityIndex` e `spawn` verdes
+- [x] T018 [US-001] [US-005] [FR-006] [FR-007] Dicas e guia: `cue.ts` (`swingCue`) alimenta a linha de status de uma frase, o guia "Como jogar" de 4 etapas com a etapa atual destacada (`guide.ts`), o medidor "Teia: esquerda/direita/centro/solta" no HUD e o contorno dourado (soltar)/vermelho (perto do chão) no palco (`SwingScreen.tsx`); a mão que faz a pose não gira a câmera e a outra gira (`steerFromHand`), com acompanhamento do movimento (1,2 por s, acima de 8 m/s). Evidência: testes de `cue`, `guide` e `SwingScreen` verdes
+- [x] T019 [US-001] [FR-003] [FR-007] Mira projetada na tela: `reticle.ts` desenha a prévia para cada mão (anel dourado quando à vista, seta na borda quando fora do quadro, rótulos "esq." e "dir."); a corda sai do pulso do lado que lançou e ficou mais fina (`cityRenderer.ts`). Evidência: testes de `reticle` verdes e inspeção visual (anel e seta antes de lançar)
+- [x] T020 [SC-006] [NFR-003] [NFR-005] Documentação e gates da CQ-007: registrar a emenda em `clarification.md` (CQ-007), refletir em `spec.md` (FR-003, FR-005, FR-006), `plan.md` e `research.md`; atualizar `validation.md` (números de testes, seção da CQ-007 e riscos aceitos, inclusive pose e desvio não medidos com mão real; veredito "aprovado com risco aceito"); atualizar o `README.md` da raiz, o guia de arquitetura e o `PROJECT_SPEC.md`; rodar `yarn docs:format:fix`, `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`. Evidência: documentos atualizados e gates documentais verdes
 
 ## Cobertura
 

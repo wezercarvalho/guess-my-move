@@ -55,19 +55,41 @@ Os critérios que dependem da mão real na câmera do usuário e da aparência/d
 | ---------------------------- | ---------- | --------- | ------------------------------------------------------------------------- |
 | `yarn lint`                  | 2026-10-28 | PASS      | Oxlint type-aware, 0 avisos e 0 erros                                     |
 | `yarn typecheck`             | 2026-10-28 | PASS      | `tsc --build` sem erro em todos os workspaces                             |
-| `yarn test`                  | 2026-10-28 | PASS      | Vitest: core 68, marbles 111, swing 55, web 211; `node:test` do web 50    |
+| `yarn test`                  | 2026-10-28 | PASS      | Vitest: core 68, marbles 111, swing 101, web 232; `node:test` do web 50   |
 | `yarn test:gates`            | 2026-10-28 | PASS      | 231 testes                                                                |
 | `yarn security:dependencies` | 2026-10-28 | PASS      | nenhum achado em nenhum nível                                             |
 | `yarn build`                 | 2026-10-28 | PASS      | `prepare:assets` + `tsc --build` + `vite build`, saída em `apps/web/dist` |
 
 ## Medições e evidência visual (registradas como texto)
 
-- **Testes do pacote `@guess-my-move/swing`:** 55 testes em Vitest cobrindo `vec`, `cityIndex`, `web`, `physics`, `trigger`, `steering`, `spawn` e `world`, escritos test-first.
+- **Testes do pacote `@guess-my-move/swing`:** 101 testes em Vitest cobrindo `vec`, `cityIndex`, `web`, `physics`, `trigger`, `pose`, `cue`, `steering`, `spawn` e `world`, escritos test-first (os módulos `pose` e `cue` e a teia no céu entraram com a CQ-007).
 - **Inspeção visual (Chromium headless, WebGL por software, câmera simulada, build de produção por `http.server` em `127.0.0.1`, 1440x900, teclado Espaço no lugar do gesto, sem mão real):** a cidade de Midtown renderiza com prédios, janelas e ruas; o HUD mostra velocidade e altura; a atribuição "Dados do mapa © colaboradores do OpenStreetMap (ODbL)" aparece legível; sem rolagem horizontal; as linhas de velocidade aparecem com a velocidade (148 km/h observados); ao segurar Espaço o jogo começa e a teia prende (Teias: 1).
 - **Rede:** 10 requisições na tela do jogo, todas à própria origem (`127.0.0.1`); zero erros no console; nenhuma requisição a domínio de terceiros (o JSON da cidade e o Three.js saem da própria origem).
 - **Dados da cidade (`midtown.json`):** distribuição de alturas dos prédios baixa — mediana 17,6 m, p90 61,9 m, máximo 366 m, 556 prédios.
 - **Achados corrigidos nesta etapa (CQ-006):** o ponto de partida nascia no chão e foi corrigido para y = 90 m, como a spec manda. A 90 m, a mira assistida (ponto válido >= 8 m acima do jogador) só prenderia em prédios acima de ~98 m, que são poucos na distribuição acima; `findSpawn` passou a preferir o primeiro ponto livre de onde a teia, lançada logo ao começar, alcança um prédio à frente, caindo no primeiro ponto livre quando nenhum alcança. Os valores de jogo e a regra do ponto válido (FR-003) não mudaram; os Gates 1 e 2 seguem aprovados.
 - **Não medido:** fps, latência e suavidade do balanço numa GPU real (o headless usa WebGL por software, que não representa uma GPU); comportamento com a mão real e com o gesto ILoveYou na câmera do usuário; jogabilidade, dificuldade da mira da teia e do alcance (a mira assistida só prende em prédios >= 8 m acima do jogador); licença do modelo `gesture_recognizer.task`, não lida na fonte.
+
+## Emenda CQ-007 — duas mãos, pose em qualquer orientação, imersão e dicas
+
+Depois de testar a versão anterior, o maintainer pediu que o jogo reconheça as **duas mãos** e a pose de teia em **qualquer orientação** (a mão de lado: polegar, indicador e mindinho abertos, médio e anelar dobrados) e que a mecânica de balançar como o Homem-Aranha fique mais imersiva, com dicas na tela. A emenda foi implementada e documentada mantendo os Gates 1 e 2 aprovados, o estado `validated` e o Gate 3 aprovado com risco aceito pelo merge.
+
+**O que mudou (confirmado no código):**
+
+- **Duas mãos:** o reconhecedor passou a `numHands` 2 (`realTwoHandGestureLoader`, `apps/web/src/tracker/mediapipeTracker.ts` com `detectAll`; `swingController` usa `detectAll(...).slice(0, 2)`). O lado vem da posição na tela espelhada (`handSide`): a mão esquerda lança com desvio de 18° à esquerda (`sideYaw: degrees(18)`), a direita à direita, as duas ao centro; passar a usar a outra mão lança uma teia nova do outro lado e encadeia balanços. Teclado: Espaço centro, Z esquerda, X direita, setas olham. O lado é uma preferência (desvio inteiro, metade e o centro).
+- **Pose geométrica (`isWebPose` em `packages/swing/src/pose.ts`):** medida só por distâncias entre landmarks, independente da orientação e da mão — indicador e mindinho esticados (ponta/base do pulso >= 1,5), médio e anelar dobrados (<= 1,3), polegar aberto (ponta a >= 0,6 da palma). Vale também o rótulo `ILoveYou` do reconhecedor com score >= 0,7 (`webSignal`). Os limiares são palpites, validados só com landmarks sintéticos girados (0, 45, 90, 180, 270 graus, espelhados), **não com mão real**.
+- **Câmera mais imersiva:** a mão que faz a pose não gira a câmera; a outra mão gira (`steerFromHand`). Sem giro manual, a câmera acompanha o movimento (`headingFollow: 1,2` por s, `headingMinSpeed: 8` m/s).
+- **Mira e teia no céu:** `minRise` 8 -> 25 m e `minHorizontal` 12 -> 30 m (`DEFAULT_WEB`); teia no céu quando nenhum prédio é alcançável (`skyWeb: { distance: 60, rise: 70, maxAltitude: 220 }`, `ActiveWeb.virtual` em `world.ts`), com preferência pelo prédio. A prévia da mira é projetada na tela para cada mão (`reticle.ts`: anel dourado à vista, seta na borda fora do quadro, rótulos "esq." e "dir."). A corda sai do pulso do lado que lançou e ficou mais fina.
+- **Área jogável (`playBounds`):** caixa dos prédios + 120 m (`PLAY_MARGIN = 120` em `cityIndex.ts`), nunca além dos limites do mapa (antes a caixa do mapa ia a -1112 m em x).
+- **Dicas e guia:** `swingCue` (start, swing, release, throw, low, ground) alimenta a linha de status de uma frase, o guia "Como jogar" de 4 etapas com a etapa atual destacada (`guide.ts`), o medidor "Teia: esquerda/direita/centro/solta" no HUD e o contorno dourado (soltar)/vermelho (perto do chão) no palco. Soltar na subida do arco (velocidade horizontal >= 12 m/s e subindo) é o que lança o jogador para longe.
+
+**Evidência real:**
+
+- `yarn lint` 0 avisos/erros; `yarn typecheck` ok; testes core 68, marbles 111, swing 101, web 232 mais 50 de `node:test`; `yarn build` ok.
+- Chromium headless (WebGL por software, câmera simulada, teclado) a 1440x900: Z lançou à esquerda e X à direita (medidor "esquerda"/"direita"); o status mudou para "Balançando. Segure a pose."; a etapa 3 do guia ficou destacada; a mira dourada (anel e seta) aparece antes de lançar; 10 requisições, todas à própria origem; zero erros no console.
+- Disponibilidade da teia na cidade real (posições, alturas e direções aleatórias, só com prédios, sem céu): em alturas 5/20/40/70/100 m a teia ao centro existia em 18/15/11/7/6% dos casos e por algum dos lados em 28/23/18/12/10%. Antes de reduzir a área jogável eram 14/10/9/8/4% e 23/16/13/10/9%. Por isso a teia no céu.
+- Jogador automático ideal (segue as dicas da tela: lança, segura, solta na subida, sem girar a câmera) em 90 s simulados, depois da teia no céu: alternando esquerda/direita percorreu 600 m com pico de 147 km/h; só ao centro, 448 m com pico de 124 km/h. É uma simulação idealizada sem direção, **não** representa um jogador humano.
+
+**Não verificado (risco aceito):** nenhuma mão real nem as duas mãos ao vivo; os limiares da pose, o desvio de 18°, a teia no céu, a sensação de balanço e a dificuldade; fps numa GPU real.
 
 ## Validações estruturais e documentais
 
@@ -84,7 +106,7 @@ Os critérios que dependem da mão real na câmera do usuário e da aparência/d
 | I. Intenção antes da implementação          | PASS      | Gates 1 e 2 aprovados antecipadamente; clarificação (CQ-001 a CQ-006) e plano registrados antes do código.                   |
 | II. Uma fonte vigente                       | PASS      | Esta spec é a fonte vigente da entrega; catálogo atualizado para `validated`.                                                |
 | III. Rastreabilidade                        | PASS      | Matriz cobre os nove FR; `sdd:check` valida cobertura e links.                                                               |
-| IV. Test-first e incremental                | PASS      | Cada módulo do pacote e as telas têm teste escrito antes da implementação; 55 testes do pacote, 211 + 50 no web.             |
+| IV. Test-first e incremental                | PASS      | Cada módulo do pacote e as telas têm teste escrito antes da implementação; 101 testes do pacote, 232 + 50 no web.            |
 | V. Evidência honesta                        | PASS      | Nada afirma fps, latência, precisão nem aparência final; a falta de teste ao vivo com a mão e a GPU real é declarada.        |
 | VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para terceiros; Three.js e cidade servidos pelo app; sem persistência de imagem; dados OSM sob ODbL com atribuição. |
 | VII. Neutralidade e contexto sob demanda    | PASS      | README, guia de arquitetura e PROJECT_SPEC atualizados; nenhuma marca, personagem ou ativo de terceiros nos arquivos.        |
@@ -98,15 +120,16 @@ Os critérios que dependem da mão real na câmera do usuário e da aparência/d
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                                                         | Impacto                                                            | Responsável | Aceite                                   |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------- | ---------------------------------------- |
-| Nunca testado com a mão real nem numa GPU real                                                          | Aparência, desempenho e resposta ao vivo podem diferir             | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Gesto ILoveYou em outras câmeras não exercitado                                                         | O reconhecimento pode variar com câmera, iluminação e pessoa       | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Jogabilidade e dificuldade da mira da teia e do alcance não medidas (prende só em prédios >= 8 m acima) | A diversão e a dificuldade do primeiro balanço não foram avaliadas | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Anel externo simples nos multipolígonos OSM e pátios internos preenchidos                               | Geometria aproximada de alguns prédios                             | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Alturas ausentes estimadas (andares × 3,3 m, padrão 15 m)                                               | Alturas de parte dos prédios são estimadas, não medidas            | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Dados OSM sob ODbL com atribuição                                                                       | Exige manter a atribuição visível na tela                          | maintainer  | aceito por wezercarvalho em `2026-10-28` |
-| Licença do modelo `gesture_recognizer.task` não lida na fonte                                           | Redistribuição do modelo não confirmada (o ativo não é versionado) | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Limitação/risco                                                                                         | Impacto                                                                                                              | Responsável | Aceite                                   |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- |
+| Nunca testado com a mão real nem numa GPU real                                                          | Aparência, desempenho e resposta ao vivo podem diferir                                                               | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Gesto ILoveYou em outras câmeras não exercitado                                                         | O reconhecimento pode variar com câmera, iluminação e pessoa                                                         | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Jogabilidade e dificuldade da mira da teia e do alcance não medidas (prende só em prédios >= 8 m acima) | A diversão e a dificuldade do primeiro balanço não foram avaliadas                                                   | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Anel externo simples nos multipolígonos OSM e pátios internos preenchidos                               | Geometria aproximada de alguns prédios                                                                               | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Alturas ausentes estimadas (andares × 3,3 m, padrão 15 m)                                               | Alturas de parte dos prédios são estimadas, não medidas                                                              | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Dados OSM sob ODbL com atribuição                                                                       | Exige manter a atribuição visível na tela                                                                            | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Pose geométrica, desvio de 18° por lado e teia no céu não medidos com mão real (CQ-007)                 | Os limiares, os lados e a sensação de balanço foram validados só com landmarks sintéticos girados e teclado headless | maintainer  | aceito por wezercarvalho em `2026-10-28` |
+| Licença do modelo `gesture_recognizer.task` não lida na fonte                                           | Redistribuição do modelo não confirmada (o ativo não é versionado)                                                   | maintainer  | aceito por wezercarvalho em `2026-10-28` |
 
 ## Gate 3 — Convergência validada
 
