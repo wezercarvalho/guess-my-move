@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createFlickDetector, flickShot } from '../src/flick.js'
+import { createFlickDetector, flickPower } from '../src/flick.js'
 import { type Point } from '../src/pinch.js'
 import { FIST_MOVING_SESSION, THUMB_FLICK_SESSION, type Sample } from './fixtures/flick-sessions.js'
 
@@ -24,7 +24,7 @@ function replay(session: readonly Sample[]) {
             found.push({
                 t: t / 1000,
                 verdict: reading.release.verdict,
-                power: flickShot(reading.release)?.power ?? null,
+                power: flickPower(reading.release)?.power ?? null,
             })
         }
     }

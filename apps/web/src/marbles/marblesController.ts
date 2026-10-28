@@ -13,7 +13,7 @@ import {
     createBeteRound,
     createFlickDetector,
     createPinchDetector,
-    flickShot,
+    flickPower,
 } from '@guess-my-move/marbles'
 
 import { drawHand } from '../round/handOverlay.js'
@@ -40,14 +40,13 @@ export type FlickOutcome =
     | 'fraco demais'
     | 'não sustentado'
     | 'mão aberta'
-    | 'sem direção'
+    | 'sem mira'
 
-function flickOutcome(release: FlickRelease): FlickOutcome {
-    if (flickShot(release)) return 'disparado'
+function flickOutcome(release: FlickRelease, fired: boolean): FlickOutcome {
     if (release.verdict === 'weak') return 'fraco demais'
     if (release.verdict === 'unsustained') return 'não sustentado'
     if (release.verdict === 'open_hand') return 'mão aberta'
-    return 'sem direção'
+    return fired ? 'disparado' : 'sem mira'
 }
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
@@ -327,15 +326,17 @@ export class MarblesController {
                     )
                     this.reading = reading
                     this.flickReading = reading
+                    const shotsBefore = this.round.snapshot().shots
+                    this.round.observeFlick(reading, now)
                     if (reading.release) {
+                        const fired = this.round.snapshot().shots > shotsBefore
                         this.lastFlick = {
                             openSpeed: reading.release.openSpeed,
                             riseMs: reading.release.riseMs,
-                            power: flickShot(reading.release)?.power ?? null,
-                            result: flickOutcome(reading.release),
+                            power: fired ? (flickPower(reading.release)?.power ?? null) : null,
+                            result: flickOutcome(reading.release, fired),
                         }
                     }
-                    this.round.observeFlick(reading, now)
                 } else {
                     this.flickReading = null
                     this.reading = this.pinch.update(hand?.landmarks ?? null, aspect)

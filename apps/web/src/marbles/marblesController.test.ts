@@ -301,11 +301,16 @@ describe('modeFromSearch', () => {
 describe('MarblesController: modo estalo (alpha)', () => {
     /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
     const STEP = 67
-    const tucked = (ratio = 0.8) => pinchHand({ ratio, x: 300, y: 300 })
+    /** Onde a mão arma no campo; a mira é relativa a este ponto. */
+    const HOME = 300
+    /** Mão puxada 80 unidades para a esquerda: com o ganho de 1,5, atira para a direita (alvo). */
+    const PULLED = 220
+    const tucked = (ratio = 0.8, x = PULLED) => pinchHand({ ratio, x, y: 300 })
 
-    /** Polegar preso contra o indicador por alguns quadros, com a mão apontando para cima. */
+    /** Polegar preso contra o indicador e a mão afastada do alvo, como o estilingue da pinça. */
     function arm(h: ReturnType<typeof harness>) {
-        h.run(tucked(), 3, STEP)
+        h.run(tucked(0.8, HOME), 1, STEP)
+        h.run(tucked(0.8, PULLED), 2, STEP)
     }
 
     it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
@@ -316,14 +321,16 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(h.controller.getSnapshot().mode).toBe('flick')
     })
 
-    it('com o polegar preso a mão arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
+    it('com o polegar preso a mão arma e a seta aponta para onde a mão afastada manda o tiro (para o alvo)', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('aiming')
-        expect(round.flick?.direction.y).toBeCloseTo(-1, 6)
+        expect(round.flick?.direction.x).toBeCloseTo(1, 6)
+        expect(round.flick?.direction.y).toBeCloseTo(0, 6)
+        expect(round.aim).toBeNull()
         expect(debug.flick.armed).toBe(true)
     })
 
@@ -343,7 +350,19 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.lastPower).toBeCloseTo(Math.log(speed / 3) / Math.log(20 / 3), 3)
         expect(debug.flick.armed).toBe(false)
         h.run(null, 4, STEP)
-        expect(h.controller.getSnapshot().round.shooter.y).toBeLessThan(300)
+        expect(h.controller.getSnapshot().round.shooter.x).toBeGreaterThan(150)
+    })
+
+    it('estalo confirmado sem afastar a mão (sem arrasto) não dispara e registra "sem mira"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        h.run(tucked(0.8, HOME), 3, STEP)
+        h.run(tucked(1.5, HOME), 3, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(debug.flick.lastResult).toBe('sem mira')
+        expect(debug.flick.lastPower).toBeNull()
     })
 
     it('uma oscilação que sobe e volta no quadro seguinte não dispara e registra "não sustentado"', async () => {
@@ -364,7 +383,8 @@ describe('MarblesController: modo estalo (alpha)', () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
-        h.run(tucked(1.0), 3, STEP)
+        h.run(tucked(1.0, HOME), 1, STEP)
+        h.run(tucked(1.0, PULLED), 2, STEP)
         h.run(tucked(1.25), 1, STEP)
         const { round, debug } = h.controller.getSnapshot()
         expect(round.shots).toBe(0)
@@ -409,7 +429,7 @@ describe('MarblesController: modo estalo (alpha)', () => {
         h.controller.setMode('flick')
         expect(h.controller.getSnapshot().debug.flick.gesture).toBeNull()
         expect(h.controller.getSnapshot().debug.flick.phase).toBe('idle')
-        h.run({ ...tucked(), gesture: { name: 'Closed_Fist', score: 0.8 } }, 3, STEP)
+        h.run({ ...tucked(0.8, HOME), gesture: { name: 'Closed_Fist', score: 0.8 } }, 3, STEP)
         let flick = h.controller.getSnapshot().debug.flick
         expect(flick.gesture).toEqual({ name: 'Closed_Fist', score: 0.8 })
         expect(flick.phase).toBe('armed')

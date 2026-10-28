@@ -5,7 +5,7 @@ import { type FlickOutcome } from './marblesController.js'
 
 const STEPS = [
     'Feche a mão, com o polegar preso contra o indicador.',
-    'Aponte a mão para o alvo: a seta no campo mostra a direção.',
+    'Mire como na pinça: afaste a mão do alvo e a seta mostra para onde a bolinha vai.',
     'Estique o polegar para cima de uma vez e deixe-o esticado.',
     'A bolinha rola. A força vem da rapidez com que o polegar esticou.',
 ] as const
@@ -17,7 +17,8 @@ const HINTS: Partial<Record<FlickOutcome, string>> = {
         'O polegar voltou cedo: deixe-o esticado até a bolinha sair (cerca de um quarto de segundo).',
     'mão aberta':
         'Parece a mão se abrindo: mantenha o punho fechado e estique só o polegar.',
-    'sem direção': 'Não consegui ler a direção da mão: mostre a mão inteira para a câmera.',
+    'sem mira':
+        'Faltou arrasto: afaste mais a mão do alvo, até a seta aparecer, antes de esticar o polegar.',
 }
 
 /**

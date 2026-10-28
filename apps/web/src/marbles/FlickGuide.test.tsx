@@ -33,7 +33,7 @@ describe('FlickGuide', () => {
         const items = within(list).getAllByRole('listitem')
         expect(items).toHaveLength(4)
         expect(items[0]).toHaveTextContent(/feche a mão.*polegar preso/i)
-        expect(items[1]).toHaveTextContent(/aponte/i)
+        expect(items[1]).toHaveTextContent(/mire como na pinça.*afaste a mão do alvo/i)
         expect(items[2]).toHaveTextContent(/estique o polegar/i)
         expect(items[3]).toHaveTextContent(/bolinha/i)
         expect(items.map((item) => item.getAttribute('aria-current'))).toEqual([
@@ -63,8 +63,8 @@ describe('FlickGuide', () => {
         rerender(<FlickGuide state="ready" phase="idle" lastResult="fraco demais" />)
         expect(hint).toHaveTextContent(/de uma vez/i)
 
-        rerender(<FlickGuide state="ready" phase="idle" lastResult="sem direção" />)
-        expect(hint).toHaveTextContent(/direção da mão/i)
+        rerender(<FlickGuide state="ready" phase="idle" lastResult="sem mira" />)
+        expect(hint).toHaveTextContent(/afaste mais a mão do alvo/i)
     })
 
     it('depois de um estalo disparado ou sem estalo anterior não há dica de erro', () => {

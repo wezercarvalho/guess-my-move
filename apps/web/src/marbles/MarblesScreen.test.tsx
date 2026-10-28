@@ -263,7 +263,7 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }))
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }))
         expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(alpha\)/i)
         expect(screen.getByTestId('game-status')).toHaveTextContent(/polegar preso.*estique/i)
         expect(screen.getByText('Armado')).toBeInTheDocument()
@@ -290,14 +290,15 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
     })
 
-    it('armado, orienta a apontar a mão e esticar o polegar; o polegar esticado e mantido dispara', async () => {
+    it('armado, orienta a afastar a mão do alvo e esticar o polegar; o polegar esticado e mantido dispara', async () => {
         const h = harness()
         renderScreen(h)
         await readyToPlay()
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 3, 67)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/aponte.*estique o polegar/i)
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 3, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/afaste a mão do alvo.*estique o polegar/i)
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 3, 67)
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
         expect(screen.getByText('disparado')).toBeInTheDocument()
         expect(screen.getByText('Força do último estalo').nextElementSibling).toHaveTextContent(/%/)
@@ -319,11 +320,12 @@ describe('MarblesScreen: modo de tiro', () => {
                 .findIndex((item) => item.getAttribute('aria-current') === 'step')
         expect(current()).toBe(0)
 
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 3, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
         expect(current()).toBe(1)
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 1, 67)
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
         expect(current()).toBe(2)
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 2, 67)
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 2, 67)
         expect(current()).toBe(3)
     })
 
@@ -336,7 +338,7 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.getByText('Gesto reconhecido').nextElementSibling).toHaveTextContent(
             'Closed_Fist (84%)',
         )
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 1, 67)
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
         h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 1, 67)
         expect(screen.getByTestId('flick-hint')).toHaveTextContent(/deixe-o esticado/i)
     })
@@ -346,8 +348,9 @@ describe('MarblesScreen: modo de tiro', () => {
         renderScreen(h)
         await readyToPlay()
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 3, 67)
-        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 3, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
+        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 3, 67)
         fireEvent.click(screen.getByRole('radio', { name: /pinça/i }))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
         expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()

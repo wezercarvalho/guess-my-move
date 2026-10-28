@@ -295,24 +295,28 @@ describe('createBeteRound: tiro, erro e acerto', () => {
 })
 
 describe('createBeteRound: modo estalo (alpha)', () => {
-    const RIGHT = { x: 1, y: 0 }
+    /** Onde a mão arma: (200, 300) no campo de 800 x 600. */
+    const ANCHOR = { x: 0.25, y: 0.5 }
+    /** 80 unidades à esquerda do ponto de armar: com o ganho de 1,5, um arrasto de 120 que atira para a direita (alvo). */
+    const PULL_LEFT = { x: 0.15, y: 0.5 }
 
-    /** Leitura do estalo: `closed` significa armado; `release` só no quadro da soltura. */
+    /** Leitura do estalo: `armed` é a mão armada, `pending` é a confirmação do polegar esticado; `release` só no quadro da soltura. */
     const flick = (opts: {
         armed?: boolean
+        pending?: boolean
         visible?: boolean
-        direction?: { x: number; y: number } | null
+        at?: { x: number; y: number }
         release?: FlickRelease | null
     }): FlickReading => {
         const visible = opts.visible ?? true
+        const armed = visible && (opts.armed ?? false)
         return {
             handVisible: visible,
-            closed: visible && (opts.armed ?? false),
-            phase: visible && (opts.armed ?? false) ? 'armed' : 'idle',
+            closed: armed,
+            phase: armed ? (opts.pending ? 'pending' : 'armed') : 'idle',
             gesture: null,
-            ratio: visible ? ((opts.armed ?? false) ? 0.8 : 1.4) : null,
-            point: visible ? { x: 0.5, y: 0.5 } : null,
-            direction: visible ? (opts.direction === undefined ? RIGHT : opts.direction) : null,
+            ratio: visible ? (armed ? 0.8 : 1.4) : null,
+            point: visible ? (opts.at ?? ANCHOR) : null,
             release: opts.release ?? null,
         }
     }
@@ -320,37 +324,47 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         verdict: 'confirmed',
         openSpeed: 8,
         riseMs: 67,
-        direction: RIGHT,
+        point: PULL_LEFT,
         ...overrides,
     })
 
-    function armedRound() {
+    /** Mão armada no ponto de armar e já puxada para a esquerda. */
+    function aimingRound() {
         const round = createBeteRound()
         round.cameraReady()
         round.observeFlick(flick({ armed: true }), 0)
-        round.observeFlick(flick({ armed: true }), 16)
+        round.observeFlick(flick({ armed: true, at: PULL_LEFT }), 16)
         return round
     }
 
-    it('arma assim que a mão está armada e mostra a direção da mão, sem elástico', () => {
-        const round = armedRound()
-        expect(round.state).toBe('aiming')
-        const snap = round.snapshot()
-        expect(snap.flick?.direction).toEqual(RIGHT)
-        expect(snap.aim).toBeNull()
-    })
-
-    it('a direção de pré-visualização acompanha a mão enquanto armado', () => {
-        const round = armedRound()
-        round.observeFlick(flick({ armed: true, direction: { x: 0, y: -1 } }), 32)
-        expect(round.snapshot().flick?.direction).toEqual({ x: 0, y: -1 })
-    })
-
-    it('uma mão já armada ao aparecer inicia a mira, sem exigir que o polegar tenha sido visto esticado', () => {
+    it('arma assim que a mão está armada, sem exigir a pinça vista aberta, e ainda sem arrasto não há seta', () => {
         const round = createBeteRound()
         round.cameraReady()
         round.observeFlick(flick({ armed: true }), 0)
         expect(round.state).toBe('aiming')
+        expect(round.snapshot().flick).toBeNull()
+        expect(round.snapshot().aim).toBeNull()
+    })
+
+    it('a seta acompanha o deslocamento da mão, como o estilingue da pinça, e não há elástico', () => {
+        const round = aimingRound()
+        const snap = round.snapshot()
+        expect(snap.flick?.direction.x).toBeCloseTo(1, 9)
+        expect(snap.flick?.direction.y).toBeCloseTo(0, 9)
+        expect(snap.aim).toBeNull()
+
+        round.observeFlick(flick({ armed: true, at: { x: 0.25, y: 0.3 } }), 32)
+        const up = round.snapshot().flick?.direction
+        expect(up?.x).toBeCloseTo(0, 9)
+        expect(up?.y).toBeCloseTo(1, 9)
+    })
+
+    it('sem arrasto suficiente (abaixo de 30 unidades) não há seta', () => {
+        const round = createBeteRound()
+        round.cameraReady()
+        round.observeFlick(flick({ armed: true }), 0)
+        round.observeFlick(flick({ armed: true, at: { x: 0.2375, y: 0.5 } }), 16)
+        expect(round.snapshot().flick).toBeNull()
     })
 
     it('uma mão esticada, sem armar, não inicia a mira', () => {
@@ -359,30 +373,29 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         round.observeFlick(flick({ armed: false }), 0)
         round.observeFlick(flick({ armed: false }), 16)
         expect(round.state).toBe('ready')
-        expect(round.snapshot().flick).toBeNull()
     })
 
     it('ignora o estalo enquanto a câmera não está pronta', () => {
         const round = createBeteRound()
         round.observeFlick(flick({ armed: true }), 0)
-        round.observeFlick(flick({ armed: true }), 16)
         expect(round.state).toBe('idle')
     })
 
-    it('a força não depende do arrasto da mão: arrastar não muda a velocidade do estalo', () => {
-        const still = armedRound()
-        still.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
-        const dragged = armedRound()
-        dragged.observeFlick(flick({ armed: true }), 32)
-        dragged.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
-        still.advance(100)
-        dragged.advance(100)
-        expect(dragged.snapshot().shooter.x).toBeCloseTo(still.snapshot().shooter.x, 9)
+    it('durante a confirmação do polegar a mão perturbada não mexe na mira', () => {
+        const round = aimingRound()
+        round.observeFlick(flick({ armed: true, pending: true, at: { x: 0.9, y: 0.9 } }), 48)
+        const direction = round.snapshot().flick?.direction
+        expect(direction?.x).toBeCloseTo(1, 9)
+        expect(direction?.y).toBeCloseTo(0, 9)
     })
 
-    it('estalo rápido dispara: conta o tiro e a bolinha de tiro se move na direção da mão', () => {
-        const round = armedRound()
-        round.observeFlick(flick({ armed: false, release: release({ openSpeed: 8 }) }), 48)
+    it('estalo confirmado dispara: conta o tiro e a bolinha vai na direção da mira, travada antes do polegar subir', () => {
+        const round = aimingRound()
+        // No quadro da soltura a mão já foi parar longe, mas a mira vale a posição travada.
+        round.observeFlick(
+            flick({ armed: false, at: { x: 0.9, y: 0.9 }, release: release({ openSpeed: 8 }) }),
+            48,
+        )
         expect(round.state).toBe('rolling')
         expect(round.snapshot().shots).toBe(1)
         expect(round.snapshot().flick).toBeNull()
@@ -392,22 +405,36 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         expect(shooter.y).toBeCloseTo(300, 6)
     })
 
-    it('a força vem da velocidade com que o polegar solta: fraca não chega ao alvo e forte acerta', () => {
-        const weak = armedRound()
+    it('a força vem do polegar e não do arrasto: arrastar mais não muda a velocidade', () => {
+        const short = aimingRound()
+        short.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
+        const long = createBeteRound()
+        long.cameraReady()
+        long.observeFlick(flick({ armed: true }), 0)
+        const far = { x: 0.05, y: 0.5 }
+        long.observeFlick(flick({ armed: true, at: far }), 16)
+        long.observeFlick(flick({ armed: false, release: release({ openSpeed: 12, point: far }) }), 48)
+        short.advance(100)
+        long.advance(100)
+        expect(long.snapshot().shooter.x).toBeCloseTo(short.snapshot().shooter.x, 9)
+    })
+
+    it('a força vem da velocidade com que o polegar estica: fraca não chega ao alvo e forte acerta', () => {
+        const weak = aimingRound()
         weak.observeFlick(flick({ armed: false, release: release({ openSpeed: 4 }) }), 48)
         runUntil(weak, () => weak.state !== 'rolling')
         expect(weak.state).toBe('ready')
 
-        const strong = armedRound()
+        const strong = aimingRound()
         strong.observeFlick(flick({ armed: false, release: release({ openSpeed: 20 }) }), 48)
         runUntil(strong, () => strong.state !== 'rolling')
         expect(strong.state).toBe('hit')
         expect(strong.snapshot().hitShots).toBe(1)
     })
 
-    it('estalo fraco ou não sustentado cancela sem contar tiro', () => {
-        for (const verdict of ['weak', 'unsustained'] as const) {
-            const round = armedRound()
+    it('estalo fraco, não sustentado ou mão aberta cancela sem contar tiro', () => {
+        for (const verdict of ['weak', 'unsustained', 'open_hand'] as const) {
+            const round = aimingRound()
             round.observeFlick(flick({ armed: false, release: release({ verdict }) }), 48)
             expect(round.state).toBe('ready')
             expect(round.snapshot().shots).toBe(0)
@@ -415,19 +442,21 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         }
     })
 
-    it('estalo sem direção medida cancela', () => {
-        const round = armedRound()
-        round.observeFlick(flick({ armed: false, release: release({ direction: null }) }), 48)
+    it('estalo confirmado sem arrasto suficiente cancela, sem contar tiro', () => {
+        const round = createBeteRound()
+        round.cameraReady()
+        round.observeFlick(flick({ armed: true }), 0)
+        round.observeFlick(flick({ armed: false, release: release({ point: ANCHOR }) }), 48)
         expect(round.state).toBe('ready')
         expect(round.snapshot().shots).toBe(0)
     })
 
     it('erro: a bolinha de tiro volta ao início e o jogador tenta de novo', () => {
-        const round = armedRound()
-        round.observeFlick(
-            flick({ armed: false, release: release({ openSpeed: 8, direction: { x: 0, y: 1 } }) }),
-            48,
-        )
+        const round = createBeteRound()
+        round.cameraReady()
+        round.observeFlick(flick({ armed: true }), 0)
+        const up = { x: 0.25, y: 0.3 }
+        round.observeFlick(flick({ armed: false, release: release({ point: up }) }), 48)
         runUntil(round, () => round.state !== 'rolling')
         expect(round.state).toBe('ready')
         expect(round.snapshot().shooter).toEqual({ x: 150, y: 300 })
@@ -435,36 +464,37 @@ describe('createBeteRound: modo estalo (alpha)', () => {
     })
 
     it('perder a mão por mais de 300 ms cancela; por menos, mantém', () => {
-        const kept = armedRound()
+        const kept = aimingRound()
         kept.observeFlick(flick({ visible: false }), 100)
-        kept.observeFlick(flick({ armed: true }), 200)
+        kept.observeFlick(flick({ armed: true, at: PULL_LEFT }), 200)
         expect(kept.state).toBe('aiming')
 
-        const lost = armedRound()
+        const lost = aimingRound()
         lost.observeFlick(flick({ visible: false }), 100)
         lost.observeFlick(flick({ visible: false }), 400)
         expect(lost.state).toBe('ready')
         expect(lost.snapshot().shots).toBe(0)
     })
 
-    it('se o detector zerou o armado (mão aberta, sem soltura), a mira é cancelada', () => {
-        const round = armedRound()
+    it('se o detector zerou o armado sem soltura (mão esticada), a mira é cancelada', () => {
+        const round = aimingRound()
         round.observeFlick(flick({ armed: false }), 32)
         expect(round.state).toBe('ready')
         expect(round.snapshot().shots).toBe(0)
     })
 
     it('enquanto as bolinhas rolam, o estalo é ignorado', () => {
-        const round = armedRound()
+        const round = aimingRound()
         round.observeFlick(flick({ armed: false, release: release() }), 48)
         round.observeFlick(flick({ armed: false }), 64)
         round.observeFlick(flick({ armed: true }), 80)
         expect(round.state).toBe('rolling')
     })
 
-    it('no modo pinça o snapshot não tem direção de estalo', () => {
+    it('no modo pinça o snapshot não tem seta de estalo', () => {
         const round = readyRound()
         aimAt(round, 50, 300)
         expect(round.snapshot().flick).toBeNull()
+        expect(round.snapshot().aim).not.toBeNull()
     })
 })

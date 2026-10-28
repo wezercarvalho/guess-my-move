@@ -6,105 +6,56 @@ import {
     type FlickRelease,
     type HandGesture,
     createFlickDetector,
-    flickShot,
-    handDirection,
+    flickPower,
 } from '../src/flick.js'
 import { type Point } from '../src/pinch.js'
 
-const WRIST = 0
 const THUMB_TIP = 4
 const INDEX_TIP = 8
-const MIDDLE_MCP = 9
 
 /**
- * Mão com 21 pontos: escala (pulso até a base do médio) de 0,2, apontando
- * `angleDeg` graus a partir de "para cima" (positivo = para a direita da imagem).
+ * Mão com 21 pontos: escala (pulso até a base do médio) de 0,2, a base do médio
+ * em (`x`, `y`) da imagem (sem espelhar) e a razão pedida entre as pontas.
  */
-function hand(opts: { ratio?: number; angleDeg?: number; aspect?: number } = {}): Point[] {
-    const { ratio = 0.8, angleDeg = 0, aspect = 1 } = opts
-    const scale = 0.2
-    const radians = (angleDeg * Math.PI) / 180
+function hand(opts: { ratio?: number; x?: number; y?: number } = {}): Point[] {
+    const { ratio = 0.8, x = 0.5, y = 0.5 } = opts
     const points: Point[] = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5 }))
-    points[WRIST] = { x: 0.5, y: 0.8 }
-    points[MIDDLE_MCP] = {
-        x: 0.5 + (scale * Math.sin(radians)) / aspect,
-        y: 0.8 - scale * Math.cos(radians),
-    }
-    const gap = (ratio * scale) / aspect
-    points[THUMB_TIP] = { x: 0.5 - gap / 2, y: 0.5 }
-    points[INDEX_TIP] = { x: 0.5 + gap / 2, y: 0.5 }
+    points[0] = { x, y: y + 0.2 }
+    points[9] = { x, y }
+    const gap = ratio * 0.2
+    points[THUMB_TIP] = { x: x - gap / 2, y: y - 0.1 }
+    points[INDEX_TIP] = { x: x + gap / 2, y: y - 0.1 }
     return points
 }
-
-describe('handDirection', () => {
-    it('mão apontando para cima na imagem lança para cima no campo', () => {
-        const direction = handDirection(hand({ angleDeg: 0 }), 1)
-        expect(direction?.x).toBeCloseTo(0, 9)
-        expect(direction?.y).toBeCloseTo(-1, 9)
-    })
-
-    it('é espelhada: apontar para a direita da imagem é a esquerda do campo', () => {
-        const direction = handDirection(hand({ angleDeg: 90 }), 1)
-        expect(direction?.x).toBeCloseTo(-1, 9)
-        expect(direction?.y).toBeCloseTo(0, 9)
-    })
-
-    it('apontar para a esquerda da imagem é a direita do campo, e para baixo é para baixo', () => {
-        const left = handDirection(hand({ angleDeg: -90 }), 1)
-        expect(left?.x).toBeCloseTo(1, 9)
-        const down = handDirection(hand({ angleDeg: 180 }), 1)
-        expect(down?.y).toBeCloseTo(1, 9)
-    })
-
-    it('corrige a proporção da imagem: 45 graus continua sendo 45 graus com proporção 2', () => {
-        const direction = handDirection(hand({ angleDeg: 45, aspect: 2 }), 2)
-        expect(direction?.x).toBeCloseTo(-Math.SQRT1_2, 6)
-        expect(direction?.y).toBeCloseTo(-Math.SQRT1_2, 6)
-    })
-
-    it('devolve um vetor unitário', () => {
-        const direction = handDirection(hand({ angleDeg: 30 }), 1)
-        expect(Math.hypot(direction?.x ?? 0, direction?.y ?? 0)).toBeCloseTo(1, 9)
-    })
-
-    it('devolve null sem os 21 pontos, com vetor degenerado ou proporção inválida', () => {
-        expect(handDirection(hand().slice(0, 20), 1)).toBeNull()
-        const flat = hand()
-        flat[MIDDLE_MCP] = { ...(flat[WRIST]) }
-        expect(handDirection(flat, 1)).toBeNull()
-        expect(handDirection(hand(), 0)).toBeNull()
-        expect(handDirection(hand(), Number.NaN)).toBeNull()
-    })
-})
 
 /** Alimenta o detector com pares [tempo em ms, razão] e devolve as leituras. */
 function feed(
     detector: FlickDetector,
     samples: ReadonlyArray<readonly [number, number]>,
-    angleDeg = 0,
     gesture: HandGesture | null = null,
 ) {
-    return samples.map(([t, ratio]) => detector.update(hand({ ratio, angleDeg }), 1, t, gesture))
+    return samples.map(([t, ratio]) => detector.update(hand({ ratio }), 1, t, gesture))
 }
 
 /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
 const FRAME = 67
 
 describe('createFlickDetector: armar', () => {
-    it('arma com a razão baixa (<= 1,05) e expõe a direção da mão', () => {
+    it('arma com a razão baixa (<= 1,05) e expõe a posição espelhada da mão (base do dedo médio)', () => {
         const detector = createFlickDetector()
-        const reading = detector.update(hand({ ratio: 0.8, angleDeg: 0 }), 1, 0)
+        const reading = detector.update(hand({ ratio: 0.8, x: 0.3, y: 0.4 }), 1, 0)
         expect(reading.handVisible).toBe(true)
         expect(reading.closed).toBe(true)
-        expect(reading.direction?.y).toBeCloseTo(-1, 9)
+        expect(reading.point?.x).toBeCloseTo(0.7, 9) // espelhado: 1 - 0,3
+        expect(reading.point?.y).toBeCloseTo(0.4, 9)
         expect(reading.release).toBeNull()
     })
 
-    it('mantém o ponto médio espelhado e a razão, como o detector de pinça', () => {
-        const reading = createFlickDetector().update(hand({ ratio: 0.6 }), 1, 0)
-        expect(reading.ratio).toBeCloseTo(0.6, 9)
-        expect(reading.point?.x).toBeCloseTo(0.5, 9)
-        expect(reading.point?.y).toBeCloseTo(0.5, 9)
+    it('a razão é a mesma do detector de pinça e a posição não depende do polegar', () => {
+        const apart = createFlickDetector().update(hand({ ratio: 0.6 }), 1, 0)
+        expect(apart.ratio).toBeCloseTo(0.6, 9)
+        const stretched = createFlickDetector().update(hand({ ratio: 1.9 }), 1, 0)
+        expect(stretched.point).toEqual(apart.point)
     })
 
     it('a pinça apertada de antes (razão <= 0,35) também arma', () => {
@@ -144,7 +95,6 @@ describe('createFlickDetector: armar', () => {
             phase: 'idle',
             ratio: null,
             point: null,
-            direction: null,
             gesture: null,
             release: null,
         })
@@ -195,7 +145,7 @@ describe('createFlickDetector: estalo', () => {
         expect(readings[2]?.release).toBeNull()
         expect(readings[3]?.release).toBeNull()
         expect(readings[4]?.release?.verdict).toBe('unsustained')
-        expect(readings[4]?.release && flickShot(readings[4].release)).toBeNull()
+        expect(readings[4]?.release && flickPower(readings[4].release)).toBeNull()
     })
 
     it('uma subida de um só quadro que volta no quadro seguinte é não sustentada', () => {
@@ -257,15 +207,15 @@ describe('createFlickDetector: estalo', () => {
         expect(release.riseMs).toBe(2 * FRAME)
     })
 
-    it('a direção do tiro é a medida na base da subida, não a do fim do estalo', () => {
+    it('a mira trava na última posição armada, antes do cruzamento, e não na do fim do estalo', () => {
         const detector = createFlickDetector()
-        detector.update(hand({ ratio: 0.8, angleDeg: 90 }), 1, 0)
-        detector.update(hand({ ratio: 0.8, angleDeg: 90 }), 1, FRAME)
-        detector.update(hand({ ratio: 1.5, angleDeg: 0 }), 1, 2 * FRAME)
-        detector.update(hand({ ratio: 1.6, angleDeg: 0 }), 1, 3 * FRAME)
-        const release = detector.update(hand({ ratio: 1.5, angleDeg: 0 }), 1, 4 * FRAME).release
-        expect(release?.direction?.x).toBeCloseTo(-1, 6)
-        expect(release?.direction?.y).toBeCloseTo(0, 6)
+        detector.update(hand({ ratio: 0.8, x: 0.3, y: 0.4 }), 1, 0)
+        detector.update(hand({ ratio: 0.8, x: 0.3, y: 0.4 }), 1, FRAME)
+        detector.update(hand({ ratio: 1.5, x: 0.6, y: 0.7 }), 1, 2 * FRAME)
+        detector.update(hand({ ratio: 1.6, x: 0.6, y: 0.7 }), 1, 3 * FRAME)
+        const release = detector.update(hand({ ratio: 1.5, x: 0.6, y: 0.7 }), 1, 4 * FRAME).release
+        expect(release?.point.x).toBeCloseTo(0.7, 6)
+        expect(release?.point.y).toBeCloseTo(0.4, 6)
     })
 
     it('depois de confirmar, o detector só dispara de novo ao rearmar com a razão baixa', () => {
@@ -345,12 +295,11 @@ describe('createFlickDetector: estalo', () => {
                 [2 * FRAME, 1.6],
                 [3 * FRAME, 1.5],
             ],
-            0,
             palm,
         )
         const release = readings[3]?.release as FlickRelease
         expect(release.verdict).toBe('open_hand')
-        expect(flickShot(release)).toBeNull()
+        expect(flickPower(release)).toBeNull()
     })
 
     it('polegar para cima, punho ou nenhum gesto não cancelam; palma aberta com pontuação baixa (0,63, como nos estalos reais) também não', () => {
@@ -370,7 +319,6 @@ describe('createFlickDetector: estalo', () => {
                     [2 * FRAME, 1.6],
                     [3 * FRAME, 1.5],
                 ],
-                0,
                 gesture,
             )
             expect(readings[3]?.release?.verdict).toBe('confirmed')
@@ -413,73 +361,66 @@ describe('createFlickDetector: estalo', () => {
     })
 })
 
-describe('flickShot: força pelo polegar, em escala logarítmica', () => {
+describe('flickPower: força pelo polegar, em escala logarítmica', () => {
     const release = (overrides: Partial<FlickRelease> = {}): FlickRelease => ({
         verdict: 'confirmed',
         openSpeed: 8,
         riseMs: 67,
-        direction: { x: 1, y: 0 },
+        point: { x: 0.5, y: 0.5 },
         ...overrides,
     })
 
     it('mapeia 3 a 20 razão/s para 300 a 1100 unid/s, em escala logarítmica', () => {
-        const low = flickShot(release({ openSpeed: 3 }))
+        const low = flickPower(release({ openSpeed: 3 }))
         expect(low?.power).toBeCloseTo(0, 9)
-        expect(low?.velocity.x).toBeCloseTo(300, 6)
-        const high = flickShot(release({ openSpeed: 20 }))
+        expect(low?.speed).toBeCloseTo(300, 6)
+        const high = flickPower(release({ openSpeed: 20 }))
         expect(high?.power).toBeCloseTo(1, 9)
-        expect(high?.velocity.x).toBeCloseTo(1100, 6)
-        const middle = flickShot(release({ openSpeed: Math.sqrt(3 * 20) }))
+        expect(high?.speed).toBeCloseTo(1100, 6)
+        const middle = flickPower(release({ openSpeed: Math.sqrt(3 * 20) }))
         expect(middle?.power).toBeCloseTo(0.5, 9)
-        expect(middle?.velocity.x).toBeCloseTo(700, 6)
+        expect(middle?.speed).toBeCloseTo(700, 6)
     })
 
     it('a força cresce com a velocidade e dobrar a velocidade soma sempre o mesmo à força', () => {
-        const a = flickShot(release({ openSpeed: 4 }))?.power ?? 0
-        const b = flickShot(release({ openSpeed: 8 }))?.power ?? 0
-        const c = flickShot(release({ openSpeed: 16 }))?.power ?? 0
+        const a = flickPower(release({ openSpeed: 4 }))?.power ?? 0
+        const b = flickPower(release({ openSpeed: 8 }))?.power ?? 0
+        const c = flickPower(release({ openSpeed: 16 }))?.power ?? 0
         expect(b).toBeGreaterThan(a)
         expect(c).toBeGreaterThan(b)
         expect(b - a).toBeCloseTo(c - b, 9)
     })
 
     it('limita abaixo e acima da escala sem cancelar o tiro confirmado', () => {
-        expect(flickShot(release({ openSpeed: 0.5 }))?.power).toBe(0)
-        expect(flickShot(release({ openSpeed: 500 }))?.power).toBe(1)
-        expect(flickShot(release({ openSpeed: 0 }))?.power).toBe(0)
+        expect(flickPower(release({ openSpeed: 0.5 }))?.power).toBe(0)
+        expect(flickPower(release({ openSpeed: 500 }))?.power).toBe(1)
+        expect(flickPower(release({ openSpeed: 0 }))?.power).toBe(0)
     })
 
     it('os estalos reais medidos (de 5 a 10 razão/s) caem no meio da escala', () => {
-        const weak = flickShot(release({ openSpeed: 5 }))?.power ?? 0
-        const strong = flickShot(release({ openSpeed: 10 }))?.power ?? 0
+        const weak = flickPower(release({ openSpeed: 5 }))?.power ?? 0
+        const strong = flickPower(release({ openSpeed: 10 }))?.power ?? 0
         expect(weak).toBeGreaterThan(0.2)
         expect(weak).toBeLessThan(0.35)
         expect(strong).toBeGreaterThan(0.55)
         expect(strong).toBeLessThan(0.7)
     })
 
-    it('aponta na direção da mão', () => {
-        const shot = flickShot(release({ openSpeed: 20, direction: { x: 0, y: -1 } }))
-        expect(shot?.velocity.x).toBeCloseTo(0, 9)
-        expect(shot?.velocity.y).toBeCloseTo(-1100, 6)
-    })
-
-    it('cancela quando o estalo é fraco, não foi sustentado ou não há direção', () => {
-        expect(flickShot(release({ verdict: 'weak' }))).toBeNull()
-        expect(flickShot(release({ verdict: 'unsustained' }))).toBeNull()
-        expect(flickShot(release({ verdict: 'open_hand' }))).toBeNull()
-        expect(flickShot(release({ direction: null }))).toBeNull()
+    it('cancela quando o estalo é fraco, não foi sustentado ou foi a mão se abrindo', () => {
+        expect(flickPower(release({ verdict: 'weak' }))).toBeNull()
+        expect(flickPower(release({ verdict: 'unsustained' }))).toBeNull()
+        expect(flickPower(release({ verdict: 'open_hand' }))).toBeNull()
     })
 
     it('aceita parâmetros próprios', () => {
-        const shot = flickShot(release({ openSpeed: 100 }), {
+        const strength = flickPower(release({ openSpeed: 100 }), {
             powerLowSpeed: 10,
             powerHighSpeed: 1000,
             minShotSpeed: 100,
             maxShotSpeed: 500,
         })
-        expect(shot?.power).toBeCloseTo(0.5, 9)
-        expect(shot?.velocity.x).toBeCloseTo(300, 6)
+        expect(strength?.power).toBeCloseTo(0.5, 9)
+        expect(strength?.speed).toBeCloseTo(300, 6)
     })
 
     it('os padrões: arma em 1,05, estica em 1,2 por 3 amostras, subida mínima de 0,4, palma aberta cancela e escala de 3 a 20', () => {

@@ -3,18 +3,18 @@
  * preso contra o indicador ("armada") e o estalo é o polegar se esticando de
  * uma vez: a razão polegar-indicador (distância entre as pontas dividida pela
  * escala da mão) sobe de uma faixa baixa para uma faixa alta e FICA alta por
- * alguns quadros. Funções puras, sem DOM, sem relógio próprio e sem MediaPipe:
- * o tempo entra pelos argumentos. Os números padrão são palpites calibrados
+ * alguns quadros. A mira (a direção) é relativa, como na pinça, e vive na
+ * rodada; aqui só se mede o estalo e a posição da mão antes dele. Funções
+ * puras, sem DOM, sem relógio próprio e sem MediaPipe: o tempo entra pelos
+ * argumentos. Os números padrão são palpites calibrados
  * em duas gravações de uma única pessoa e uma webcam de cerca de 15 quadros
  * novos por segundo (issue #72); não são medição de desempenho.
  */
-import { type Vec } from './physics.js'
 import { type Point, pinchRatio } from './pinch.js'
 
-const LANDMARK_COUNT = 21
-const WRIST = 0
 const THUMB_TIP = 4
 const INDEX_TIP = 8
+/** Base do dedo médio: parada enquanto o polegar se mexe, serve de posição da mão. */
 const MIDDLE_FINGER_MCP = 9
 
 /** Parâmetros do estalo. */
@@ -84,8 +84,8 @@ export interface FlickRelease {
     openSpeed: number
     /** Tempo do mínimo recente até o cruzamento (ms). */
     riseMs: number
-    /** Direção da mão no mínimo recente, antes de o estalo perturbá-la. */
-    direction: Vec | null
+    /** Posição da mão (normalizada e espelhada) na última amostra armada, antes do cruzamento: a mira trava aqui. */
+    point: Point
 }
 
 /** Leitura da pinça e da direção da mão; `closed` significa armado (ou candidato em confirmação). */
@@ -96,9 +96,8 @@ export interface FlickReading {
     phase: FlickPhase
     /** Distância entre as pontas dividida pela escala da mão; `null` sem mão. */
     ratio: number | null
-    /** Ponto médio das pontas, normalizado (0 a 1) e espelhado em x; `null` sem mão. */
+    /** Posição da mão (base do dedo médio), normalizada (0 a 1) e espelhada em x; `null` sem mão. */
     point: Point | null
-    direction: Vec | null
     /** Gesto pronto reconhecido no quadro, se houver. */
     gesture: HandGesture | null
     release: FlickRelease | null
@@ -115,28 +114,10 @@ export interface FlickDetector {
     reset(): void
 }
 
-/**
- * Orientação da mão no plano da imagem: do pulso à base do dedo médio, com x
- * corrigido pela proporção da imagem e espelhado (como o preview), em vetor
- * unitário do campo. Devolve `null` sem os 21 pontos, com vetor degenerado ou
- * proporção inválida.
- */
-export function handDirection(landmarks: readonly Point[], aspect: number): Vec | null {
-    if (landmarks.length < LANDMARK_COUNT || !Number.isFinite(aspect) || aspect <= 0) return null
-    const wrist = landmarks[WRIST]
-    const middle = landmarks[MIDDLE_FINGER_MCP]
-    if (!wrist || !middle) return null
-    const dx = (middle.x - wrist.x) * aspect
-    const dy = middle.y - wrist.y
-    const length = Math.hypot(dx, dy)
-    if (!(length > 1e-6)) return null
-    return { x: -dx / length, y: dy / length }
-}
-
 interface Sample {
     t: number
     ratio: number
-    direction: Vec | null
+    point: Point
     openHand: boolean
 }
 
@@ -182,9 +163,10 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
 
     function finish(verdict: FlickVerdict, riseMs: number): FlickRelease {
         const openSpeed = peakSlope([...rise, ...run])
-        const direction = base?.direction ?? null
+        // A mira trava na última posição armada, antes do cruzamento.
+        const point = history[history.length - 1].point
         clear()
-        return { verdict, openSpeed, riseMs, direction }
+        return { verdict, openSpeed, riseMs, point }
     }
 
     return {
@@ -200,18 +182,19 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
                     phase: 'idle',
                     ratio: null,
                     point: null,
-                    direction: null,
                     gesture: null,
                     release: null,
                 }
             }
 
-            const direction = handDirection(landmarks, aspect)
+            // A posição da mão é a base do dedo médio, que não se move com o polegar.
+            const knuckle = landmarks[MIDDLE_FINGER_MCP] ?? thumb
+            const point = { x: 1 - knuckle.x, y: knuckle.y }
             const openHand =
                 gesture !== null &&
                 gesture.name === cfg.openHandGesture &&
                 gesture.score >= cfg.gestureMinScore
-            const sample: Sample = { t: nowMs, ratio, direction, openHand }
+            const sample: Sample = { t: nowMs, ratio, point, openHand }
             const confirmedVerdict = (): FlickVerdict =>
                 run.some((item) => item.openHand) ? 'open_hand' : 'confirmed'
             let release: FlickRelease | null = null
@@ -256,8 +239,7 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
                 closed: phase !== 'idle',
                 phase,
                 ratio,
-                point: { x: 1 - (thumb.x + index.x) / 2, y: (thumb.y + index.y) / 2 },
-                direction,
+                point,
                 gesture,
                 release,
             }
@@ -268,31 +250,31 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
     }
 }
 
-/** Tiro calculado a partir de um estalo. */
-export interface FlickShot {
-    velocity: Vec
+/** Força de um estalo confirmado. */
+export interface FlickPower {
     /** Força relativa, de 0 a 1. */
     power: number
+    /** Velocidade do tiro (unid/s), de `minShotSpeed` a `maxShotSpeed`. */
+    speed: number
 }
 
 /**
- * Converte um estalo em tiro: a força vem da velocidade com que o polegar se
- * estica (a subida da razão), numa escala logarítmica de `powerLowSpeed` a
- * `powerHighSpeed`, e a velocidade do tiro vai linearmente de `minShotSpeed` a
- * `maxShotSpeed`. A direção é a da mão. Devolve `null` (tiro cancelado) para
- * estalo fraco, não sustentado, mão aberta ou sem direção.
+ * Converte um estalo em força: a velocidade com que o polegar se estica (a
+ * subida da razão) numa escala logarítmica de `powerLowSpeed` a
+ * `powerHighSpeed` dá a força, e a velocidade do tiro vai linearmente de
+ * `minShotSpeed` a `maxShotSpeed`. A direção NÃO vem daqui: é da mira da
+ * rodada. Devolve `null` (tiro cancelado) para estalo fraco, não sustentado ou
+ * mão aberta.
  */
-export function flickShot(
+export function flickPower(
     release: FlickRelease,
     config: Partial<FlickConfig> = {},
-): FlickShot | null {
+): FlickPower | null {
     const cfg: FlickConfig = { ...DEFAULT_FLICK, ...config }
-    const { direction } = release
-    if (release.verdict !== 'confirmed' || !direction) return null
+    if (release.verdict !== 'confirmed') return null
 
     const span = Math.log(cfg.powerHighSpeed / cfg.powerLowSpeed)
     const raw = span > 0 ? Math.log(release.openSpeed / cfg.powerLowSpeed) / span : 1
     const power = Math.min(Math.max(Number.isFinite(raw) ? raw : 0, 0), 1)
-    const speed = cfg.minShotSpeed + power * (cfg.maxShotSpeed - cfg.minShotSpeed)
-    return { velocity: { x: direction.x * speed, y: direction.y * speed }, power }
+    return { power, speed: cfg.minShotSpeed + power * (cfg.maxShotSpeed - cfg.minShotSpeed) }
 }
