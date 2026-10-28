@@ -9,16 +9,16 @@ import {
     DrawerPanel,
     DrawerToggle,
     Eyebrow,
-    Notice,
     Panel,
     SegmentedControl,
     useDrawer,
 } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
+import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { drawField } from './fieldView.js'
-import { FlickGuide } from './FlickGuide.js'
 import { MarblesDebugPanel } from './MarblesDebugPanel.js'
 import { type MarblesMode } from './marblesController.js'
+import { ShotGuide } from './ShotGuide.js'
 import { type MarblesDeps, useMarblesGame } from './useMarblesGame.js'
 
 export interface MarblesScreenProps {
@@ -35,6 +35,7 @@ const SHOT_MODES = [
     { value: 'flick', label: 'Estalo (alpha)' },
 ] as const satisfies readonly { value: MarblesMode; label: string }[]
 
+/** Uma linha de status: o que fazer agora. Os detalhes ficam no guia ("Como jogar"). */
 function statusText(
     round: Round,
     tracker: TrackerStatus,
@@ -43,33 +44,23 @@ function statusText(
 ): string {
     switch (round.state) {
         case 'idle':
-            return tracker === 'loading'
-                ? 'Carregando o detector de mão…'
-                : 'Ative a câmera para jogar.'
+            return tracker === 'loading' ? 'Carregando o detector…' : 'Ative a câmera para jogar.'
         case 'ready':
-            if (handVisible && mode === 'flick') {
-                return 'Estalo (alpha): feche a mão com o polegar preso contra o indicador, afaste a mão do alvo para mirar (como o estilingue da pinça) e estique o polegar de uma vez, deixando-o esticado. A força vem da rapidez com que o polegar estica.'
-            }
-            return handVisible
-                ? 'Mão à vista! Faça a pinça em qualquer ponto, arraste a mão para longe do alvo e abra os dedos para atirar.'
-                : 'Não estou vendo a sua mão. Mostre-a inteira para a câmera, com a palma voltada para ela, na altura do peito e com boa luz.'
+            if (!handVisible) return 'Mostre a mão inteira para a câmera.'
+            return mode === 'flick' ? 'Mão à vista. Feche a mão.' : 'Mão à vista. Feche a pinça.'
         case 'aiming':
-            if (mode === 'flick') {
-                return 'Armado! Afaste a mão do alvo até a seta apontar para onde quer atirar e estique o polegar de uma vez, deixando-o esticado: quanto mais rápido, mais forte o tiro.'
-            }
-            return round.aim?.shot
-                ? 'Arraste para trás e abra a pinça para atirar.'
-                : 'Puxe mais para trás: com esse arrasto curto o tiro será cancelado.'
+            if (mode === 'flick') return 'Armado. Mire e estique o polegar.'
+            return round.aim?.shot ? 'Mira pronta. Abra os dedos.' : 'Mirando: afaste mais a mão.'
         case 'rolling':
-            return 'A bolinha está rolando…'
-        case 'hit':
-            return `Acertou o alvo em ${round.hitShots ?? round.shots} ${
-                (round.hitShots ?? round.shots) === 1 ? 'tiro' : 'tiros'
-            }!`
+            return 'Bolinha rolando…'
+        case 'hit': {
+            const shots = round.hitShots ?? round.shots
+            return `Acertou em ${shots} ${shots === 1 ? 'tiro' : 'tiros'}!`
+        }
         case 'camera_denied':
-            return 'O jogo não pode começar sem a câmera.'
+            return 'Sem câmera não há jogo. Libere o acesso no navegador.'
         case 'tracker_error':
-            return 'O jogo parou por falha do detector. Use “Nova rodada” para tentar de novo.'
+            return 'O detector falhou. Use “Nova rodada”.'
     }
 }
 
@@ -107,20 +98,10 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
     return (
         <div className="marbles-screen">
             <header className="marbles-header">
-                <div className="marbles-headline">
-                    <p className="marbles-brand">
-                        INTERSECT <b>LOGIC</b>
-                    </p>
-                    <Eyebrow>Bolinhas de gude · bete solo</Eyebrow>
-                    <h1>Bolinhas de gude: bete</h1>
-                </div>
+                <Eyebrow>Bete solo</Eyebrow>
+                <h1>Bolinhas de gude</h1>
                 <p className="marbles-lead">
-                    Ative a câmera e atire a bolinha azul no alvo vermelho com a mão, no menor
-                    número de tiros. No modo Pinça (padrão), feche polegar e indicador em qualquer
-                    ponto, com a mão que preferir, arraste para longe do alvo, como um
-                    estilingue, e abra os dedos. O modo Estalo (alpha) imita o tiro real: com o
-                    polegar preso contra o indicador, afaste a mão do alvo para mirar e estique o
-                    polegar de uma vez; a força vem da rapidez com que ele estica.
+                    Acerte o alvo vermelho com a bolinha azul, no menor número de tiros.
                 </p>
             </header>
 
@@ -163,7 +144,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                         </p>
                         {round.state === 'tracker_error' && (
                             <p className="round-error" role="alert">
-                                O detector de mão falhou: {round.failureReason}
+                                Motivo: {round.failureReason}
                             </p>
                         )}
                         <Button variant="secondary" onClick={game.newRound} disabled={!canRestart}>
@@ -175,20 +156,18 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                         videoRef={videoRef}
                         overlay={<HandOverlay canvasRef={overlayRef} />}
                     />
-                    <Notice>
-                        <strong>Privacidade:</strong> o reconhecimento da mão roda no seu
-                        navegador. Nenhuma imagem da câmera é enviada, gravada ou registrada.
-                    </Notice>
-                    {game.mode === 'flick' && (
-                        <Panel raised aria-label="Guia do estalo">
-                            <Eyebrow>Passo a passo</Eyebrow>
-                            <FlickGuide
-                                state={round.state}
-                                phase={game.debug.flick.phase}
-                                lastResult={game.debug.flick.lastResult}
-                            />
-                        </Panel>
-                    )}
+                    <Panel raised aria-label="Como jogar">
+                        <Eyebrow>Como jogar</Eyebrow>
+                        <ShotGuide
+                            mode={game.mode}
+                            state={round.state}
+                            phase={game.debug.flick.phase}
+                            shotReady={round.aim?.shot != null}
+                            handVisible={game.debug.handVisible}
+                            lastResult={game.debug.flick.lastResult}
+                        />
+                    </Panel>
+                    <PrivacyNotice />
                 </div>
             </div>
 

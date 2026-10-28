@@ -106,7 +106,7 @@ function renderScreen(h: ReturnType<typeof harness>, getUserMedia?: () => Promis
 async function readyToPlay() {
     fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
     await waitFor(() => {
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/não estou vendo a sua mão/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/mostre a mão inteira/i)
     })
 }
 
@@ -114,11 +114,11 @@ const open = (x: number, y: number) => pinchHand({ ratio: OPEN_RATIO, x, y })
 const closed = (x: number, y: number) => pinchHand({ ratio: CLOSED_RATIO, x, y })
 
 describe('MarblesScreen', () => {
-    it('mostra a marca, o título, o aviso de privacidade, o campo, o contador e o botão de depuração', () => {
+    it('mostra o título, o aviso de privacidade, o campo, o contador e o botão de depuração, sem marca', () => {
         renderScreen(harness())
-        expect(screen.getByText(/intersect/i, { selector: '.marbles-brand' })).toBeInTheDocument()
+        expect(screen.queryByText(/intersect/i)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: /bolinhas de gude/i })).toBeInTheDocument()
-        expect(screen.getByRole('note')).toHaveTextContent(/nenhuma imagem/i)
+        expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
         expect(screen.getByLabelText(/campo do jogo/i)).toBeInTheDocument()
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
         expect(screen.getByRole('button', { name: /depuração/i })).toBeInTheDocument()
@@ -160,20 +160,19 @@ describe('MarblesScreen', () => {
         expect(screen.getByTestId('game-status')).toHaveAttribute('aria-live', 'polite')
     })
 
-    it('com a mão à vista, explica como atirar', async () => {
+    it('com a mão à vista, o status é uma linha curta com a próxima ação', async () => {
         const h = harness()
         renderScreen(h)
         await readyToPlay()
         h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/em qualquer ponto/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a pinça.')
     })
 
-    it('sem a mão à vista, orienta a mostrá-la inteira, com a palma para a câmera', async () => {
+    it('sem a mão à vista, o status pede a mão e a dica orienta a posição', async () => {
         renderScreen(harness())
         await readyToPlay()
-        const status = screen.getByTestId('game-status')
-        expect(status).toHaveTextContent(/palma/i)
-        expect(status).toHaveTextContent(/altura do peito/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Mostre a mão inteira para a câmera.')
+        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/palma para a câmera.*altura do peito.*boa luz/i)
     })
 
     it('mostra o campo e a câmera lado a lado no mesmo layout', () => {
@@ -202,7 +201,7 @@ describe('MarblesScreen', () => {
         renderScreen(harness(), denied)
         fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
         await waitFor(() => {
-            expect(screen.getByTestId('game-status')).toHaveTextContent(/sem a câmera/i)
+            expect(screen.getByTestId('game-status')).toHaveTextContent(/sem câmera não há jogo/i)
         })
     })
 
@@ -211,7 +210,7 @@ describe('MarblesScreen', () => {
         renderScreen(harness({ createTracker: failing }))
         fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
         const alert = await screen.findByRole('alert')
-        expect(alert).toHaveTextContent('O detector de mão falhou: modelo ausente')
+        expect(alert).toHaveTextContent('Motivo: modelo ausente')
     })
 
     it('durante a mira mostra o aviso de tiro e desenha as bolinhas no campo', async () => {
@@ -221,7 +220,7 @@ describe('MarblesScreen', () => {
         h.run(open(100, 300))
         h.run(closed(150, 300))
         h.run(closed(60, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/abra a pinça/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Mira pronta. Abra os dedos.')
         expect(arcSpy).toHaveBeenCalled()
     })
 
@@ -254,12 +253,12 @@ describe('MarblesScreen', () => {
         h.run(open(20, 300))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
         h.run(null, 120, 16)
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Acertou o alvo em 1 tiro!')
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Acertou em 1 tiro!')
 
         fireEvent.click(screen.getByRole('button', { name: /nova rodada/i }))
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
         h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/em qualquer ponto/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a pinça.')
     })
 })
 
@@ -291,8 +290,7 @@ describe('MarblesScreen: modo de tiro', () => {
 
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
         h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }))
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/estalo \(alpha\)/i)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/polegar preso.*estique/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a mão.')
         expect(screen.getByText('Armado')).toBeInTheDocument()
         expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()
         expect(screen.getByText('Duração da subida')).toBeInTheDocument()
@@ -324,7 +322,7 @@ describe('MarblesScreen: modo de tiro', () => {
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
         h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
         h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/afaste a mão do alvo.*estique o polegar/i)
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Armado. Mire e estique o polegar.')
         h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 3, 67)
         expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
         expect(screen.getByText('disparado')).toBeInTheDocument()
@@ -332,15 +330,16 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.getByText('disparado').closest('[aria-live]')).not.toBeNull()
     })
 
-    it('no estalo mostra o guia das etapas, que acompanha o movimento; na pinça não aparece', async () => {
+    it('o guia "Como jogar" existe nos dois modos e, no estalo, acompanha o movimento', async () => {
         const h = harness()
         renderScreen(h)
         await readyToPlay()
-        expect(screen.queryByRole('list', { name: /etapas do estalo/i })).not.toBeInTheDocument()
+        const pinchItems = within(screen.getByRole('list', { name: /como jogar/i })).getAllByRole('listitem')
+        expect(pinchItems[0]).toHaveTextContent(/feche a pinça/i)
 
         fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        const list = screen.getByRole('list', { name: /etapas do estalo/i })
-        expect(within(list).getAllByRole('listitem')).toHaveLength(4)
+        const list = screen.getByRole('list', { name: /como jogar/i })
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3)
         const current = () =>
             within(list)
                 .getAllByRole('listitem')
@@ -353,7 +352,9 @@ describe('MarblesScreen: modo de tiro', () => {
         h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
         expect(current()).toBe(2)
         h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 2, 67)
-        expect(current()).toBe(3)
+        // O tiro saiu: a bolinha rola e nenhuma etapa fica destacada.
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Bolinha rolando…')
+        expect(current()).toBe(-1)
     })
 
     it('mostra o gesto reconhecido na depuração e a dica quando o estalo é não sustentado', async () => {
@@ -367,7 +368,7 @@ describe('MarblesScreen: modo de tiro', () => {
         )
         h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
         h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 1, 67)
-        expect(screen.getByTestId('flick-hint')).toHaveTextContent(/deixe-o esticado/i)
+        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/segure o polegar esticado/i)
     })
 
     it('voltar para a pinça reinicia a rodada', async () => {

@@ -1,8 +1,8 @@
 /*
- * Tokens de design: identidade escura com dourado, lida do CSS publicado em
- * intersectlogic.com. Os valores marcados como "derivado" não vêm do site:
+ * Tokens de design: identidade escura com dourado, a partir do site de
+ * referência do maintainer. Os valores marcados como "derivado" não vêm dele:
  * foram escolhidos aqui e medidos (contraste WCAG) em
- * specs/2026-10-28-frontend-design-system-adopt-intersect-dark-gold/research.md.
+ * specs/2026-10-28-frontend-design-system-adopt-dark-gold/research.md.
  */
 :root {
     color-scheme: dark;
@@ -35,7 +35,6 @@
     --weight-bold: 700;
     --tracking-display: -0.055em;
     --tracking-eyebrow: 0.2em;
-    --tracking-brand: 0.17em;
     --size-body: 1rem;
     --size-small: 0.875rem;
     --size-caption: 0.75rem;

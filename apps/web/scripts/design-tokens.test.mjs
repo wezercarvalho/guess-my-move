@@ -60,7 +60,6 @@ const REQUIRED = [
     'weight-bold',
     'tracking-display',
     'tracking-eyebrow',
-    'tracking-brand',
     'size-body',
     'size-small',
     'size-caption',

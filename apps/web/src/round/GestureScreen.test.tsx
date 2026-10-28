@@ -151,8 +151,8 @@ describe('GestureScreen — antes de começar', () => {
     it('informa que o processamento é local e não envia imagens', () => {
         const h = harness({})
         renderScreen(h)
-        expect(screen.getByRole('note')).toHaveTextContent(/no seu navegador/i)
-        expect(screen.getByRole('note')).toHaveTextContent(/nenhuma imagem/i)
+        expect(screen.getByRole('note')).toHaveTextContent(/no navegador/i)
+        expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
     })
 
     it('desabilita Começar sem câmera e não carrega o detector', () => {

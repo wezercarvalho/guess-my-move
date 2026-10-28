@@ -12,35 +12,9 @@
 }
 
 .marbles-header {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: minmax(0, 1fr);
-    align-items: end;
-}
-
-@media (min-width: 960px) {
-    .marbles-header {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-        gap: var(--space-7);
-    }
-}
-
-.marbles-headline {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-}
-
-.marbles-brand {
-    margin: 0 0 var(--space-2);
-    font-family: var(--font-display);
-    font-size: 0.9375rem;
-    font-weight: var(--weight-bold);
-    letter-spacing: var(--tracking-brand);
-}
-
-.marbles-brand b {
-    color: var(--gold-bright);
+    gap: var(--space-2);
 }
 
 .marbles-header h1 {
@@ -53,9 +27,7 @@
 
 .marbles-lead {
     margin: 0;
-    max-width: 62ch;
     color: var(--muted);
-    font-size: var(--size-small);
 }
 
 /* Campo grande à esquerda; coluna estreita à direita com a câmera pequena e o guia. */
@@ -174,15 +146,15 @@
     }
 }
 
-/* Guia do estalo. */
-.flick-hint {
+/* Guia "Como jogar". */
+.guide-hint {
     margin: var(--space-3) 0 0;
     min-height: 1.5em;
     color: var(--danger);
     font-size: var(--size-small);
 }
 
-.flick-hint:empty {
+.guide-hint:empty {
     margin: 0;
     min-height: 0;
 }

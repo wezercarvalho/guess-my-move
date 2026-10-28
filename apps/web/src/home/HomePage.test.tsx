@@ -24,7 +24,7 @@ describe('HomePage', () => {
     it('o card das bolinhas de gude leva a marbles.html', () => {
         render(<HomePage />)
         const card = screen.getByRole('article', { name: /bolinhas de gude/i })
-        expect(within(card).getByText(/pinça/i)).toBeInTheDocument()
+        expect(within(card).getByText(/bolinha azul/i)).toBeInTheDocument()
         expect(within(card).getByRole('link', { name: /jogar/i })).toHaveAttribute(
             'href',
             'marbles.html',
@@ -33,6 +33,6 @@ describe('HomePage', () => {
 
     it('avisa que tudo roda no navegador, sem enviar imagens', () => {
         render(<HomePage />)
-        expect(screen.getByRole('note')).toHaveTextContent(/nenhuma imagem/i)
+        expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
     })
 })
