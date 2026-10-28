@@ -325,8 +325,8 @@ mira` é "Faltou arrasto: afaste mais a mão do alvo, até a seta aparecer,
   de 30 são os valores da pinça e podem não ser os melhores para o estalo; a
   usabilidade da mira pela orientação da mão não foi medida (é relato do
   maintainer, não medição). Se o maintainer achar a convenção contraintuitiva,
-  inverter é uma mudança pequena. O Gate 3 (T014) segue pendente do teste
-  manual do maintainer no Chrome desktop.
+  inverter é uma mudança pequena. O Gate 3 (T014) foi concedido pelo merge do PR #73, sem teste
+  manual do maintainer.
 - **Alternativas rejeitadas:** Manter a direção pela orientação da mão (CQ-002)
   — o maintainer relatou que mirar assim ficou ruim de usar; usar a mira
   relativa TAMBÉM para a força (apagaria a distinção entre os modos, já
