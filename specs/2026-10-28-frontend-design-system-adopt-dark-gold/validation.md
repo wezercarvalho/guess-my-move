@@ -1,4 +1,4 @@
-# Validação — 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+# Validação — 2026-10-28-frontend-design-system-adopt-dark-gold
 
 ## Estado
 
@@ -11,27 +11,28 @@
 
 ## Resumo do resultado
 
-A entrega adota um design system pequeno (tokens CSS e componentes base React) com a identidade escura com dourado do site da referência (Intersect Logic, do próprio maintainer) e refaz a tela das bolinhas. Os tokens vivem em `apps/web/src/design/tokens.css` (cores, tipografia Space Grotesk/DM Sans com fallback, escala de 4px, tamanhos fluidos com `clamp`, raio 0, movimento 0.2s, elevação -3px, foco outline 2px `--gold-bright` offset 5px, borda de controle `--control-border` #77756d); as fontes próprias (`dm-sans-latin.woff2`, `space-grotesk-latin.woff2`) são servidas pelo app por `@font-face` com `font-display: swap` e caminho relativo, com os avisos `OFL-DM-Sans.txt` e `OFL-Space-Grotesk.txt` ao lado. Os componentes base são `Button` (primary/secondary/text), `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl` e a gaveta `DrawerToggle` + `DrawerPanel` com o hook `useDrawer`, exportados por `index.ts`. O `apps/web/src/styles.css` importa os três CSS do design e redireciona as variáveis antigas `--cor-*` e `--raio` para os tokens, de modo que o menu inicial e o jogo de cartas herdam paleta e fontes sem mudar de layout nem de comportamento. A tela das bolinhas foi refeita com a marca "INTERSECT LOGIC" em texto, campo grande à esquerda (largura limitada pela altura da janela, 4:3), coluna lateral estreita com câmera pequena, contador, status, aviso de privacidade como `Notice` e o guia de etapas pelo `Steps`, o seletor de modo como `SegmentedControl` e a depuração recolhida por padrão, aberta pelo botão "Depuração" na barra do campo.
+A entrega adota um design system pequeno (tokens CSS e componentes base React) com a identidade escura com dourado do site de referência do maintainer e refaz a tela das bolinhas. Os tokens vivem em `apps/web/src/design/tokens.css` (cores, tipografia Space Grotesk/DM Sans com fallback, escala de 4px, tamanhos fluidos com `clamp`, raio 0, movimento 0.2s, elevação -3px, foco outline 2px `--gold-bright` offset 5px, borda de controle `--control-border` #77756d); as fontes próprias (`dm-sans-latin.woff2`, `space-grotesk-latin.woff2`) são servidas pelo app por `@font-face` com `font-display: swap` e caminho relativo, com os avisos `OFL-DM-Sans.txt` e `OFL-Space-Grotesk.txt` ao lado. Os componentes base são `Button` (primary/secondary/text), `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl` e a gaveta `DrawerToggle` + `DrawerPanel` com o hook `useDrawer`, exportados por `index.ts`. O `apps/web/src/styles.css` importa os três CSS do design e redireciona as variáveis antigas `--cor-*` e `--raio` para os tokens, de modo que o menu inicial e o jogo de cartas herdam paleta e fontes sem mudar de layout nem de comportamento. A tela das bolinhas foi refeita com campo grande à esquerda (largura limitada pela altura da janela, 4:3), coluna lateral estreita com câmera pequena, contador, status, aviso de privacidade como `Notice` e o guia de etapas pelo `Steps`, o seletor de modo como `SegmentedControl` e a depuração recolhida por padrão, aberta pelo botão "Depuração" na barra do campo.
 
 As licenças OFL 1.1 das duas fontes foram lidas na fonte e permitem versionar e redistribuir os binários pelo app com o aviso ao lado (H-02 fechada). O token de borda de controle foi fixado e medido (H-04 fechada). A verificação visual foi feita em Chromium headless com câmera simulada nas larguras 1440, 900 e 390 e registrada como texto em `research.md`. Os gates automatizados passam. **A aparência ao vivo no Chrome desktop do maintainer NÃO foi verificada antes do merge:** o maintainer pediu para considerar os gates aprovados e conferir o PR, e o Gate 3 foi concedido pelo merge, com o risco aceito, como no PR #73.
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 14 (T001 a T014)
+- **Concluídas:** 15 (T001 a T015)
 - **Pendentes:** 0 (T014 fechada pelo Gate 3 concedido no merge, sem teste manual ao vivo)
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
 
-| Requisito | Tarefas          | Evidência                                                                                                                                                                                                                      | Resultado |
-| --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| FR-001    | T001, T002, T012 | `apps/web/scripts/design-tokens.test.mjs` (13 asserções): variáveis semânticas exigidas presentes em `tokens.css`, raio 0, foco e movimento, e contrastes recalculados pela fórmula da WCAG (texto 4,5:1; borda e foco 3:1)    | PASS      |
-| FR-002    | T003, T012       | `design-tokens.test.mjs`: cada `@font-face` aponta para arquivo existente e nenhum `url()` tem `http`/`https`; os woff2 e os avisos OFL versionados em `apps/web/src/design/fonts/`; SHA-256 conferidos em `research.md`       | PASS      |
-| FR-003    | T006, T007, T012 | testes existentes de `home` e do jogo de cartas (`round`/`card`) verdes em `yarn check:all`; `styles.css` importa os tokens e redireciona `--cor-*` e `--raio`; verificação visual: menu e cartas herdam paleta e fontes       | PASS      |
-| FR-004    | T004, T005, T012 | 18 testes de componente em `apps/web/src/design` (`Button`, `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl`, gaveta `DrawerToggle`/`DrawerPanel`/`useDrawer`): variantes, foco, reduced-motion, teclado e `aria`     | PASS      |
-| FR-005    | T008, T009, T012 | `MarblesScreen.test.tsx`: marca em texto, duas colunas em tela larga e uma em tela estreita sem rolagem, `SegmentedControl` no modo, botão "Depuração" abre a gaveta recolhida; verificação visual nas larguras 1440, 900, 390 | PASS      |
-| FR-006    | T007, T010, T012 | testes de lógica das bolinhas (`packages/marbles`) e do jogo de cartas (`packages/core`) verdes sem regressão em `yarn check:all`; busca no código sem requisição a terceiros                                                  | PASS      |
-| FR-007    | T004, T005, T012 | testes de componente: foco visível pelo token em cada controle, ordem previsível, `SegmentedControl` por teclado e gaveta com `aria-expanded`/`aria-controls`; o teste de tokens exige foco e borda de controle 3:1            | PASS      |
+| Requisito | Tarefas          | Evidência                                                                                                                                                                                                                                                                                  | Resultado |
+| --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| FR-001    | T001, T002, T012 | `apps/web/scripts/design-tokens.test.mjs` (13 asserções): variáveis semânticas exigidas presentes em `tokens.css`, raio 0, foco e movimento, e contrastes recalculados pela fórmula da WCAG (texto 4,5:1; borda e foco 3:1)                                                                | PASS      |
+| FR-002    | T003, T012       | `design-tokens.test.mjs`: cada `@font-face` aponta para arquivo existente e nenhum `url()` tem `http`/`https`; os woff2 e os avisos OFL versionados em `apps/web/src/design/fonts/`; SHA-256 conferidos em `research.md`                                                                   | PASS      |
+| FR-003    | T006, T007, T012 | testes existentes de `home` e do jogo de cartas (`round`/`card`) verdes em `yarn check:all`; `styles.css` importa os tokens e redireciona `--cor-*` e `--raio`; verificação visual: menu e cartas herdam paleta e fontes                                                                   | PASS      |
+| FR-004    | T004, T005, T012 | 18 testes de componente em `apps/web/src/design` (`Button`, `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl`, gaveta `DrawerToggle`/`DrawerPanel`/`useDrawer`): variantes, foco, reduced-motion, teclado e `aria`                                                                 | PASS      |
+| FR-005    | T008, T009, T012 | `MarblesScreen.test.tsx`: cabeçalho sem marca, duas colunas em tela larga e uma em tela estreita sem rolagem, `SegmentedControl` no modo, botão "Depuração" abre a gaveta recolhida; verificação visual nas larguras 1440, 900, 390                                                        | PASS      |
+| FR-006    | T007, T010, T012 | testes de lógica das bolinhas (`packages/marbles`) e do jogo de cartas (`packages/core`) verdes sem regressão em `yarn check:all`; busca no código sem requisição a terceiros                                                                                                              | PASS      |
+| FR-007    | T004, T005, T012 | testes de componente: foco visível pelo token em cada controle, ordem previsível, `SegmentedControl` por teclado e gaveta com `aria-expanded`/`aria-controls`; o teste de tokens exige foco e borda de controle 3:1                                                                        | PASS      |
+| FR-008    | T015             | `guideSteps.test.tsx` e testes de tela: frase de apoio, status de uma linha com a próxima ação, guia "Como jogar" nos dois modos com a etapa atual por `aria-current`, dicas curtas, aviso de privacidade com a mesma redação nas três telas e nenhum nome da referência de design na tela | PASS      |
 
 ## Histórias e critérios de aceitação
 
@@ -68,7 +69,7 @@ O critério que depende da aparência ao vivo no desktop do maintainer (SC-003 n
 ## Validações estruturais e documentais
 
 - **Links e catálogo:** `yarn sdd:check` passa; `specs/README.md` lista esta spec como `validated`.
-- **Cobertura:** os sete FR têm tarefa formal e uma linha de evidência PASS própria (matriz acima); `sdd:check` valida cobertura e links.
+- **Cobertura:** os oito FR têm tarefa formal e uma linha de evidência PASS própria (matriz acima); `sdd:check` valida cobertura e links.
 - **Privacidade e fronteira:** nenhum `url()` com `http`/`https` nos CSS do design; fontes servidas pela própria origem; a entrega muda apresentação e layout, não regras de jogo; `apps/` e `packages/` de código não foram alterados nesta entrega documental.
 - **UTF-8 e acentuação:** conferidos.
 - **Nomes dos componentes:** o texto original falava em "DebugDrawer"; os nomes reais (`DrawerToggle`, `DrawerPanel`, `useDrawer`) foram corrigidos em `tasks.md` e em `spec.md` (FR-004).
@@ -79,7 +80,7 @@ O critério que depende da aparência ao vivo no desktop do maintainer (SC-003 n
 | ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | I. Intenção antes da implementação          | PASS      | Gates 1 e 2 aprovados antecipadamente; clarificação (CQ-001 a CQ-006) e plano registrados antes do código.                            |
 | II. Uma fonte vigente                       | PASS      | Esta spec é a fonte vigente desta entrega; catálogo atualizado para `validated`.                                                      |
-| III. Rastreabilidade                        | PASS      | Matriz cobre os sete FR; `sdd:check` valida cobertura e links.                                                                        |
+| III. Rastreabilidade                        | PASS      | Matriz cobre os oito FR; `sdd:check` valida cobertura e links.                                                                        |
 | IV. Test-first e incremental                | PASS      | Teste de tokens e testes de componente escritos falhando antes da implementação (T001, T004); 18 de componente e 13 em Node.          |
 | V. Evidência honesta                        | PASS      | Nada afirma acessibilidade comprovada, desempenho ou aparência final; a falta de teste ao vivo e os itens não medidos são declarados. |
 | VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para terceiros; fontes servidas pelo app; sem persistência nem chave; licenças OFL lidas antes de versionar.                 |
@@ -108,6 +109,6 @@ O critério que depende da aparência ao vivo no desktop do maintainer (SC-003 n
 - **Veredito:** aprovado com risco aceito
 - **Aprovador:** wezercarvalho (maintainer), pelo merge do PR da issue #74 na `main`
 - **Data:** `2026-10-28`
-- **Escopo aprovado:** FR-001 a FR-007 e os artefatos da spec, com o código em `apps/web/` (tokens, fontes próprias, componentes base em `apps/web/src/design/` e a tela das bolinhas refeita); menu e jogo de cartas herdam só paleta e fontes
+- **Escopo aprovado:** FR-001 a FR-008 e os artefatos da spec, com o código em `apps/web/` (tokens, fontes próprias, componentes base em `apps/web/src/design/` e a tela das bolinhas refeita); menu e jogo de cartas herdam só paleta e fontes
 - **Riscos aceitos:** a aparência ao vivo no Chrome desktop do maintainer não foi verificada antes do merge; só o Chromium foi exercitado (Firefox e Safari não verificados); os tokens vêm de uma leitura do site; os woff2 não foram comparados byte a byte com o repositório `google/fonts`; o contraste sobre o campo do canvas e a acessibilidade com leitores de tela reais não foram medidos
 - **Observações:** o Gate 3 foi concedido pelo merge, sem teste manual ao vivo, a pedido do maintainer ("pode considerar os gates aprovados"), como no PR #73. As licenças OFL 1.1 das fontes foram lidas na fonte e permitem a redistribuição (H-02 fechada); o token de borda de controle foi fixado e medido (H-04 fechada). A convergência aprovada é entre código, spec e testes (incluindo a verificação visual em Chromium headless), não a aparência final ao vivo. A issue #74 fecha, nesta primeira entrega, com este registro; o redesenho de layout do menu e do jogo de cartas segue fora de escopo.

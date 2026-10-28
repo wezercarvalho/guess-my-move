@@ -1,4 +1,4 @@
-# Tarefas — 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+# Tarefas — 2026-10-28-frontend-design-system-adopt-dark-gold
 
 ## Convenções
 
@@ -27,7 +27,7 @@
 
 ## Fase 4 — Tela das bolinhas e testes (apps/web/src/marbles)
 
-- [x] T008 [US-001] [US-002] [FR-005] Escrever/atualizar os testes falhando em `apps/web/src/marbles` (`MarblesScreen.test.tsx`): cabeçalho com a marca "INTERSECT LOGIC" em texto e o título; duas colunas em tela larga (campo grande + coluna estreita com câmera pequena, contador, status, guia e ações) e uma coluna em tela média/estreita sem rolagem horizontal; `SegmentedControl` no seletor de modo; botão "Depuração" na barra do campo que abre a gaveta (`DrawerToggle`/`DrawerPanel`) recolhida por padrão; os testes existentes que leem o painel passam a clicar no botão antes; aviso de privacidade como `Notice`; confirmar a falha esperada
+- [x] T008 [US-001] [US-002] [FR-005] Escrever/atualizar os testes falhando em `apps/web/src/marbles` (`MarblesScreen.test.tsx`): cabeçalho com o título; duas colunas em tela larga (campo grande + coluna estreita com câmera pequena, contador, status, guia e ações) e uma coluna em tela média/estreita sem rolagem horizontal; `SegmentedControl` no seletor de modo; botão "Depuração" na barra do campo que abre a gaveta (`DrawerToggle`/`DrawerPanel`) recolhida por padrão; os testes existentes que leem o painel passam a clicar no botão antes; aviso de privacidade como `Notice`; confirmar a falha esperada
 - [x] T009 [US-001] [US-002] [FR-005] Implementar a tela refeita em `apps/web/src/marbles` com os componentes base e a `CameraPanel` compacta só por CSS (sem alterar o componente compartilhado com o jogo de cartas), e confirmar os testes verdes
 - [x] T010 [US-006] [FR-006] [NFR-004] Confirmar que o comportamento de jogo (bolinhas e cartas) e os testes de lógica seguem verdes sem regressão, e verificar por busca no código que nenhuma requisição (inclusive fontes) vai a domínio de terceiros
 
@@ -35,6 +35,10 @@
 
 - [x] T011 [US-001] [US-005] [SC-003] [NFR-005] Rodar a inspeção visual em Chromium headless com câmera simulada nas larguras 1440, 900 e 390 (campo grande e câmera pequena em 1440, sem rolagem horizontal em nenhuma largura, depuração recolhida por padrão, sem movimento em `prefers-reduced-motion`) e registrar o resultado como TEXTO em `validation.md`, sem salvar imagens no repositório
 - [x] T012 [FR-001] [FR-002] [FR-003] [FR-004] [FR-005] [FR-006] [FR-007] [NFR-006] Atualizar o `README.md` da raiz, o guia de arquitetura `docs/development-context/architecture/architecture-guide.md`, o `docs/product/PROJECT_SPEC.md` e o `specs/README.md` para descrever o design system (tokens, fontes próprias, componentes base) e a tela das bolinhas refeita, declarando as pendências sem medição (licenças OFL, aparência ao vivo), e incluir `apps/web/scripts/design-tokens.test.mjs` no script `test` de `apps/web/package.json`
+
+## Fase 6 — Textos enxutos e sem o nome da referência (CQ-007)
+
+- [x] T015 [US-001] [FR-008] [FR-005] Reescrever os textos das telas: frase de apoio no topo da tela das bolinhas, status de uma linha com a próxima ação, guia "Como jogar" com as etapas de cada modo (`guideSteps.ts`, `ShotGuide.tsx`) e dicas curtas, aviso de privacidade único (`PrivacyNotice`) no menu, nas cartas e nas bolinhas, cartões do menu com uma frase; remover o nome da referência de design da tela, do código e dos documentos (inclusive o nome desta pasta); atualizar os testes (`guideSteps.test.tsx`, `MarblesScreen.test.tsx`, `HomePage.test.tsx`, `GestureScreen.test.tsx`)
 
 ## Fase final — Convergência
 
@@ -52,6 +56,7 @@
 | FR-005    | T008, T009, T012 | `MarblesScreen.test.tsx`; teste visual nas 3 larguras |
 | FR-006    | T007, T010, T012 | testes de lógica e de componente verdes               |
 | FR-007    | T004, T005, T012 | testes de componente; teste de tokens (foco >= 3:1)   |
+| FR-008    | T015             | `guideSteps.test.tsx`; testes de tela                 |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -68,7 +73,7 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação antecipada do maintainer wezercarvalho
 - **Data:** `2026-10-28`
-- **Lacunas:** nenhuma. Todos os sete FR têm tarefa formal (FR-001 em T001/T002, FR-002 em T003, FR-003 em T006/T007, FR-004 em T004/T005, FR-005 em T008/T009, FR-006 em T007/T010, FR-007 em T004/T005). SC-001 e SC-002 são cobertos pelo teste de tokens (T001) e pelos testes de componente (T004/T005); SC-003 pela verificação visual (T011); SC-004 pelos testes de lógica verdes (T010); SC-005 pelos gates (T013); SC-006 pela tabela de contrastes e pelo mapa de variáveis em `research.md`. NFR-001 pela medição de contraste no teste de tokens, NFR-002/NFR-003 pelos testes de componente (reduced-motion, teclado, `aria`), NFR-004 pela ausência de `url()` http/https e pela busca no código, NFR-005 pela verificação visual registrada como texto, NFR-006 pelas pendências declaradas e NFR-007 pelos comandos finais. As tarefas de código ficam `[ ]` porque o maintainer implementa; esta entrega documental fecha os Gates 1 e 2 e deixa o Gate 3 para depois do código e do teste visual.
+- **Lacunas:** nenhuma. Todos os oito FR têm tarefa formal (FR-001 em T001/T002, FR-002 em T003, FR-003 em T006/T007, FR-004 em T004/T005, FR-005 em T008/T009/T015, FR-008 em T015, FR-006 em T007/T010, FR-007 em T004/T005). SC-001 e SC-002 são cobertos pelo teste de tokens (T001) e pelos testes de componente (T004/T005); SC-003 pela verificação visual (T011); SC-004 pelos testes de lógica verdes (T010); SC-005 pelos gates (T013); SC-006 pela tabela de contrastes e pelo mapa de variáveis em `research.md`. NFR-001 pela medição de contraste no teste de tokens, NFR-002/NFR-003 pelos testes de componente (reduced-motion, teclado, `aria`), NFR-004 pela ausência de `url()` http/https e pela busca no código, NFR-005 pela verificação visual registrada como texto, NFR-006 pelas pendências declaradas e NFR-007 pelos comandos finais. As tarefas de código ficam `[ ]` porque o maintainer implementa; esta entrega documental fecha os Gates 1 e 2 e deixa o Gate 3 para depois do código e do teste visual.
 
 ## Gate 2 — Plano e tarefas aprovados
 

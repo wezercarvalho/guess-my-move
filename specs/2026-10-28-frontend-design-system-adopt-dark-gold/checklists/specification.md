@@ -1,4 +1,4 @@
-# Checklist de especificação — 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+# Checklist de especificação — 2026-10-28-frontend-design-system-adopt-dark-gold
 
 - **Spec:** `../spec.md`
 - **Revisor:** kirocrew (agente)

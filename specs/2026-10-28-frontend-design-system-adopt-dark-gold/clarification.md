@@ -1,4 +1,4 @@
-# Clarificação — 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+# Clarificação — 2026-10-28-frontend-design-system-adopt-dark-gold
 
 ## Contexto
 
@@ -12,7 +12,7 @@ Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28
 
 ### Decisões já tomadas pelo maintainer (2026-10-28, usadas como fatos)
 
-- **D-01 — Identidade:** escura com dourado, igual ao site da referência (a Intersect Logic, do próprio maintainer). Incorporada no Resumo, no Problema, em FR-001 e em FR-002.
+- **D-01 — Identidade:** escura com dourado, igual ao site da referência (do próprio maintainer). Incorporada no Resumo, no Problema, em FR-001 e em FR-002.
 - **D-02 — Tela das bolinhas:** campo grande e câmera pequena. Incorporada em US-001, FR-005 e SC-003.
 - **D-03 — Painel de depuração:** recolhido por padrão, abre por um botão. Incorporada em US-002, FR-005 e FR-004 (gaveta).
 - **D-04 — Primeira entrega:** tokens, componentes base e a tela das bolinhas; o menu inicial e o jogo de cartas ficam fora do redesenho de layout. Incorporada no Resumo, em Fora de escopo e em FR-003/FR-006.
@@ -56,11 +56,11 @@ Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28
 
 - **Data:** `2026-10-28`
 - **Impacto:** baixo
-- **Pergunta:** A marca no cabeçalho deve ser o texto "INTERSECT LOGIC" em Space Grotesk (como no site), sem imagem, ou deve aguardar um logotipo?
-- **Decisão:** **RESOLVIDA** — aprovada pelo maintainer em 2026-10-28. A marca no cabeçalho é o **texto "INTERSECT LOGIC"** em Space Grotesk, sem imagem, coerente com o "sem logotipo e imagens" do escopo.
-- **Razão:** o site usa a marca como texto; não há logotipo nesta entrega (fora de escopo).
+- **Pergunta:** O cabeçalho deve ter uma marca em texto?
+- **Decisão:** **SUPERADA pela CQ-007** — o maintainer pediu em 2026-10-28 que o nome da referência de design não apareça em lugar nenhum; o cabeçalho não leva marca.
+- **Razão:** o nome do site era só uma sugestão de onde se basear.
 - **Alternativas rejeitadas:** aguardar um arquivo de logotipo (atrasa a entrega sem necessidade).
-- **Seções atualizadas em `spec.md`:** Fora de escopo, FR-001 (tipografia da marca).
+- **Seções atualizadas em `spec.md`:** Fora de escopo, FR-001 (tipografia).
 
 ### CQ-005 — Botão de depuração: lugar e persistência do estado aberto
 
@@ -82,6 +82,16 @@ Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28
 - **Alternativas rejeitadas:** derivar sucesso/erro do dourado (confunde com o destaque e reprova sobre papel).
 - **Seções atualizadas em `spec.md`:** FR-001, NFR-001, Edge cases.
 
+### CQ-007 — Textos enxutos e sem o nome da referência de design
+
+- **Data:** `2026-10-28`
+- **Impacto:** médio
+- **Pergunta:** Como reduzir a explicação das telas e o que fazer com o nome da referência de design?
+- **Decisão:** **RESOLVIDA** — pedida pelo maintainer em 2026-10-28, com o PR do design system aberto. (1) O nome da referência de design não aparece em lugar nenhum (tela, código, documentos e nome da pasta da spec); era só uma sugestão de onde se basear, então o cabeçalho não leva marca. (2) A comunicação é curta e objetiva: o parágrafo explicativo do topo vira uma frase; o status vira uma linha com a próxima ação; o passo a passo vira o guia "Como jogar" (etapas do modo, a atual destacada) nos dois modos; o que corrigir vira dica curta; o aviso de privacidade tem a mesma redação curta em todas as telas; os cartões do menu têm uma frase cada.
+- **Razão:** texto longo escondia a próxima ação; dica no momento certo comunica melhor que descrição geral.
+- **Alternativas rejeitadas:** manter os textos longos e só encolher a fonte; esconder a explicação atrás de um botão.
+- **Seções atualizadas em `spec.md`:** FR-008, Fora de escopo.
+
 ## Hipóteses remanescentes
 
 - As licenças OFL 1.1 de DM Sans e Space Grotesk foram lidas na fonte em 2026-10-28 e permitem versionar e redistribuir os woff2 pelo app (resultado em `research.md`); H-02 fechada (CQ-001).
@@ -97,9 +107,10 @@ Todas as questões abaixo foram decididas pelo maintainer na aprovação antecip
 - **CQ-001** — entrega das fontes: opção **A** (versionar os woff2 em `apps/web/src/design/fonts` com aviso OFL), leitura das licenças OFL pendente para a implementação.
 - **CQ-002** — menu e cartas **herdam só paleta e fontes**, sem mudar layout nem comportamento.
 - **CQ-003** — câmera pequena em **coluna estreita à direita** do campo, **abaixo** em tela estreita.
-- **CQ-004** — marca no cabeçalho como **texto "INTERSECT LOGIC"**.
+- **CQ-004** — marca no cabeçalho: superada pela CQ-007 (o cabeçalho não leva marca).
 - **CQ-005** — botão de depuração **na barra do campo**; estado aberto **não persiste**.
 - **CQ-006** — cores semânticas: **manter #2ecc71 (sucesso) e #ff6b6b (erro)**.
+- **CQ-007** — textos enxutos (status de uma linha, guia "Como jogar", dicas curtas) e sem o nome da referência de design; decidida depois do Gate 1, na revisão do PR.
 
 ## Gate 1 — Clarificação aprovada
 

@@ -1,4 +1,4 @@
-# Pesquisa — 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+# Pesquisa — 2026-10-28-frontend-design-system-adopt-dark-gold
 
 ## Pergunta
 
@@ -6,7 +6,7 @@ Como adotar um design system pequeno (tokens CSS e componentes base React) com a
 
 ## Tokens lidos do site da referência (fatos)
 
-Valores lidos do CSS publicado do site da Intersect Logic (intersectlogic.com) em 2026-10-28. São fatos observados nessa leitura (H-01).
+Valores lidos do CSS publicado do site de referência do maintainer em 2026-10-28. São fatos observados nessa leitura (H-01).
 
 ### Cores
 
@@ -34,7 +34,6 @@ Valores lidos do CSS publicado do site da Intersect Logic (intersectlogic.com) e
 | h1             | tamanho `clamp(48px, 5.3vw, 76px)`                                   |
 | corpo          | DM Sans                                                              |
 | rótulo eyebrow | Space Grotesk 600, 12px, caixa-alta, rastreamento 0.2em, cor dourada |
-| marca          | "INTERSECT LOGIC" em Space Grotesk 700, 15px, rastreamento 0.17em    |
 
 ### Forma e movimento
 

@@ -1,11 +1,11 @@
 ---
-id: 2026-10-28-frontend-design-system-adopt-intersect-dark-gold
+id: 2026-10-28-frontend-design-system-adopt-dark-gold
 title: Adotar um design system escuro com dourado e refazer a tela das bolinhas
-slug: frontend-design-system-adopt-intersect-dark-gold
+slug: frontend-design-system-adopt-dark-gold
 strategy: sdd
 domain: frontend
 capability: design-system
-objective: adopt-intersect-dark-gold
+objective: adopt-dark-gold
 summary: Adota um design system pequeno (tokens CSS e componentes base React) com a identidade escura com dourado da referência de design pedida pelo maintainer — fundo quase preto, papel claro, dourado de destaque, Space Grotesk nos títulos, DM Sans no corpo, cantos retos e botão dourado quadrado — servindo as duas fontes pelo próprio app sem CDN. As variáveis antigas cor-asterisco e raio passam a apontar para os tokens novos, de modo que o menu inicial e o jogo de cartas herdam paleta e fontes sem mudar de layout nem de comportamento. A tela das bolinhas é refeita com campo grande, câmera pequena, guia, contador, status e ações junto ao campo e o painel de depuração recolhido por padrão, abrindo por um botão com estado anunciado, responsiva nas larguras larga, média e estreita sem rolagem horizontal. Primeira entrega da issue 74; o redesenho do menu inicial e do jogo de cartas fica de fora. Gates 1 e 2 aprovados antecipadamente pelo maintainer; código implementado, verificação visual registrada e Gate 3 concedido pelo merge do PR (risco aceito); validada, sem afirmar acessibilidade, desempenho ou aparência final sem medição.
 status: validated
 owners:
@@ -16,7 +16,6 @@ aliases:
     - design system
     - tokens de design
     - identidade escura com dourado
-    - intersect logic
     - dourado
     - Space Grotesk
     - DM Sans
@@ -49,7 +48,7 @@ updated_at: 2026-10-28
 
 ## Resumo
 
-O app hoje usa uma paleta azul sobre azul-escuro, cantos arredondados (`--raio` 10px), a fonte do sistema e uma coluna de 720px; a tela das bolinhas empilha cabeçalho, aviso de privacidade, seletor de modo, guia de etapas, campo 800x600, contador, status, botão de nova rodada, câmera e um painel de depuração com cerca de 20 linhas sempre visível. O maintainer avaliou esse layout como "muito ruim" (avaliação dele, não medição) e pediu a identidade escura com dourado da referência de design (o site da Intersect Logic, intersectlogic.com, do próprio maintainer): fundo quase preto, papel claro, dourado de destaque, Space Grotesk nos títulos, DM Sans no corpo, cantos retos e botão dourado quadrado.
+O app hoje usa uma paleta azul sobre azul-escuro, cantos arredondados (`--raio` 10px), a fonte do sistema e uma coluna de 720px; a tela das bolinhas empilha cabeçalho, aviso de privacidade, seletor de modo, guia de etapas, campo 800x600, contador, status, botão de nova rodada, câmera e um painel de depuração com cerca de 20 linhas sempre visível. O maintainer avaliou esse layout como "muito ruim" (avaliação dele, não medição) e pediu a identidade escura com dourado da referência de design (o site de referência do maintainer): fundo quase preto, papel claro, dourado de destaque, Space Grotesk nos títulos, DM Sans no corpo, cantos retos e botão dourado quadrado.
 
 Esta spec entrega um **design system pequeno** em duas partes e aplica-o à tela das bolinhas. (1) **Tokens** como variáveis CSS em arquivo próprio, com nomes semânticos — cores (tinta, papel, dourado, dourado claro, hover do botão, apagado, texto secundário sobre papel, borda de rodapé, borda de controle a medir, sucesso, erro), tipografia (famílias, pesos, rastreamento, tamanhos), escala de espaçamento, forma com raio zero, movimento, foco e bordas de controle. As variáveis antigas `--cor-*` e `--raio` passam a apontar para os tokens novos, de modo que o menu inicial e o jogo de cartas **herdam paleta e fontes** sem mudar de layout nem de comportamento (a forma exata dessa herança é a CQ-002, a confirmar no Gate 1). As fontes DM Sans e Space Grotesk são **servidas pelo próprio app**, sem CDN nem requisição a terceiros, com `font-display: swap` e fallback de sistema. (2) **Componentes base** React em `apps/web/src/design/` — só os que a tela das bolinhas usa: botão (primário dourado, secundário, de texto), painel, rótulo "eyebrow", aviso, etapas do guia, seletor de modo como controle segmentado acessível e gaveta de depuração com botão e `aria-expanded`/`aria-controls`.
 
@@ -61,7 +60,7 @@ O CSS atual (`apps/web/src/styles.css`, cerca de 324 linhas) define `--cor-fundo
 
 O maintainer avaliou o layout atual como "muito ruim". Isso é **avaliação dele, não medição**: não há número que descreva "ruim". O que é **fato observável** no app: a tela das bolinhas (`apps/web/src/marbles/MarblesScreen.tsx`, `marbles.css`, `FlickGuide.tsx`, `MarblesDebugPanel.tsx`, com `CameraPanel` em `apps/web/src/camera`) empilha verticalmente cabeçalho, aviso de privacidade, seletor de modo, guia de etapas, campo 800x600, contador, status, botão de nova rodada, câmera e um painel de depuração com cerca de 20 linhas; o painel de depuração fica sempre visível e ocupa espaço mesmo fora de calibração. O menu inicial (`apps/web/src/home`) e o jogo de cartas (`cards.html`, `apps/web/src/round`, `card`) usam o mesmo `styles.css`.
 
-A referência de design pedida é o site da Intersect Logic (do próprio maintainer). Dos tokens lidos do CSS publicado dele (`styles.css` do site), são fatos: fundo `--ink` #090909 e papel `--paper` #f6f4ef; dourado `--gold` #c99400 e `--gold-bright` #e0aa08, com hover do botão #f1c52d; apagado `--muted` #aaa8a0 e texto secundário sobre papel #686760; borda de rodapé #292929; títulos em Space Grotesk (peso 500, rastreamento -0.055em, entrelinha 0.99, tamanho `clamp(48px,5.3vw,76px)` no h1), corpo em DM Sans, rótulo "eyebrow" em Space Grotesk 600 12px caixa-alta com rastreamento 0.2em dourado, e a marca "INTERSECT LOGIC" em Space Grotesk 700 15px com rastreamento 0.17em; cantos retos (sem border-radius), botão dourado quadrado (padding 16px 20px, texto tinta, peso 700, 14px) que sobe 3px no hover numa transição de 0.2s; foco visível com outline 2px dourado-claro e offset 5px; seções alternando tinta e papel. As fontes do site são servidas como arquivos próprios (woff2 variável, pesos 400 a 700, subset latin).
+A referência de design pedida é o site do próprio maintainer. Dos tokens lidos do CSS publicado dele (`styles.css` do site), são fatos: fundo `--ink` #090909 e papel `--paper` #f6f4ef; dourado `--gold` #c99400 e `--gold-bright` #e0aa08, com hover do botão #f1c52d; apagado `--muted` #aaa8a0 e texto secundário sobre papel #686760; borda de rodapé #292929; títulos em Space Grotesk (peso 500, rastreamento -0.055em, entrelinha 0.99, tamanho `clamp(48px,5.3vw,76px)` no h1), corpo em DM Sans, rótulo "eyebrow" em Space Grotesk 600 12px caixa-alta com rastreamento 0.2em dourado.17em; cantos retos (sem border-radius), botão dourado quadrado (padding 16px 20px, texto tinta, peso 700, 14px) que sobe 3px no hover numa transição de 0.2s; foco visível com outline 2px dourado-claro e offset 5px; seções alternando tinta e papel. As fontes do site são servidas como arquivos próprios (woff2 variável, pesos 400 a 700, subset latin).
 
 Há um risco de contraste concreto: pela fórmula oficial da WCAG, o dourado #c99400 sobre papel #f6f4ef dá apenas 2,47:1, que **reprova** para texto — logo o dourado não pode ser usado como cor de texto sobre papel. As bordas puramente decorativas (como #292929 sobre a tinta, 1,37:1) são aceitáveis, mas a borda de um controle interativo precisa de pelo menos 3:1, então é preciso um token de borda de controle mais claro, ainda a medir.
 
@@ -79,7 +78,7 @@ Há um risco de contraste concreto: pela fórmula oficial da WCAG, o dourado #c9
 
 - Redesenhar o layout do menu inicial (`apps/web/src/home`) e do jogo de cartas (`apps/web/src/round`, `card`, `cards.html`): nesta entrega eles só herdam a paleta e as fontes, sem mudar de layout nem de comportamento.
 - Tema claro: a identidade desta entrega é escura com dourado; um tema claro alternável fica de fora.
-- Logotipo e imagens: a marca no cabeçalho é texto, sem arquivo de imagem; nenhuma imagem ou vídeo é adicionado.
+- Logotipo, marca no cabeçalho e imagens: nenhum arquivo de imagem é adicionado e o cabeçalho não leva marca; nenhuma imagem ou vídeo é adicionado.
 - Mudar a lógica de jogo (bolinhas ou cartas), a física, o detector de gestos ou o fluxo da rodada.
 - Novas dependências (bibliotecas de UI, de ícones ou de fontes por pacote npm) sem aprovação explícita no Gate 1.
 - Afirmar acessibilidade comprovada, desempenho (tempo de carga das fontes, fluidez) ou a aparência final sem a medição correspondente.
@@ -87,7 +86,7 @@ Há um risco de contraste concreto: pela fórmula oficial da WCAG, o dourado #c9
 ## Atores
 
 - **Jogador:** usa a tela das bolinhas refeita (campo grande, câmera pequena) e, quando quer, abre a gaveta de depuração; percebe a nova identidade visual no app inteiro.
-- **Maintainer:** aprova a identidade e o escopo (Gate 1), confere a tela das bolinhas no Chrome desktop, decide as questões de clarificação em aberto (entrega das fontes, herança do menu e cartas, posição da câmera, marca no cabeçalho, botão de depuração, cores semânticas).
+- **Maintainer:** aprova a identidade e o escopo (Gate 1), confere a tela das bolinhas no Chrome desktop, decide as questões de clarificação em aberto (entrega das fontes, herança do menu e cartas, posição da câmera, botão de depuração, cores semânticas).
 - **Pessoa usuária de teclado:** navega por todos os controles (botões, seletor de modo, gaveta de depuração) com foco visível dourado e ordem previsível.
 - **Pessoa com movimento reduzido:** tem a elevação do botão e as transições desligadas por `prefers-reduced-motion`.
 - **Menu inicial e jogo de cartas:** telas existentes que herdam a paleta e as fontes pelos tokens, sem mudança de layout nem de comportamento.
@@ -161,13 +160,14 @@ Como maintainer, quero confirmar que o app não faz requisição a domínio de t
 
 ## Requisitos funcionais
 
-- **FR-001:** O app DEVE definir os tokens de design como variáveis CSS com nomes semânticos em um arquivo próprio: cores (tinta, papel, dourado, dourado claro, hover do botão, apagado, texto secundário sobre papel, borda de rodapé, borda de controle, sucesso, erro), tipografia (família de título Space Grotesk, família de corpo DM Sans, pesos, rastreamentos e tamanhos, incluindo o rótulo "eyebrow" e a marca), uma escala de espaçamento, a forma com raio zero (equivalente ao `--raio` passar a 0), o movimento (duração e elevação do botão), o foco (cor, espessura e offset do outline) e as bordas de controle. Os valores DEVEM vir dos lidos do site da referência; a borda de controle DEVE ter contraste de pelo menos 3:1 contra o fundo adjacente.
+- **FR-001:** O app DEVE definir os tokens de design como variáveis CSS com nomes semânticos em um arquivo próprio: cores (tinta, papel, dourado, dourado claro, hover do botão, apagado, texto secundário sobre papel, borda de rodapé, borda de controle, sucesso, erro), tipografia (família de título Space Grotesk, família de corpo DM Sans, pesos, rastreamentos e tamanhos, incluindo o rótulo "eyebrow"), uma escala de espaçamento, a forma com raio zero (equivalente ao `--raio` passar a 0), o movimento (duração e elevação do botão), o foco (cor, espessura e offset do outline) e as bordas de controle. Os valores DEVEM vir dos lidos do site da referência; a borda de controle DEVE ter contraste de pelo menos 3:1 contra o fundo adjacente.
 - **FR-002:** As fontes DM Sans e Space Grotesk DEVEM ser servidas pelo próprio app (arquivos locais), sem CDN nem requisição a terceiros, declaradas por `@font-face` com `font-display: swap` e com fallback de sistema; nenhum `url()` do CSS dos tokens DEVE conter `http` ou `https`.
 - **FR-003:** As variáveis antigas `--cor-fundo`, `--cor-superficie`, `--cor-texto`, `--cor-texto-suave`, `--cor-acento`, `--cor-acento-texto`, `--cor-erro`, `--cor-ativo` e `--raio` DEVEM passar a apontar para os tokens novos, de modo que o menu inicial e o jogo de cartas herdem a paleta e as fontes sem mudar de layout nem de comportamento. A forma exata dessa herança (herdar só paleta e fontes, recomendado; ou manter o menu e as cartas 100% inalterados por escopo de variáveis) é a CQ-002, a confirmar no Gate 1.
 - **FR-004:** O app DEVE criar em `apps/web/src/design/` os componentes base React que a tela das bolinhas usa, e só esses: botão primário dourado, botão secundário e botão de texto; painel; rótulo "eyebrow"; aviso; etapas do guia; seletor de modo como controle segmentado acessível; e gaveta de depuração com um botão que expõe `aria-expanded` e aponta o conteúdo por `aria-controls`. Os componentes implementados são `Button`, `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl` e a gaveta `DrawerToggle` + `DrawerPanel` com o hook `useDrawer` (o botão fica na barra do campo e o painel abaixo do layout), exportados por `index.ts`.
 - **FR-005:** A tela das bolinhas DEVE ser refeita com o campo grande ocupando a maior parte da largura útil, a câmera pequena numa janela estreita, e o guia, o contador, o status e as ações junto ao campo; o painel de depuração DEVE começar recolhido e abrir e fechar por um botão com o estado anunciado; o layout DEVE ser responsivo nas larguras larga, média e estreita sem rolagem horizontal.
 - **FR-006:** O comportamento de jogo (bolinhas e jogo de cartas) e os testes de lógica NÃO DEVEM mudar: os testes existentes de lógica e de componente das bolinhas e do jogo de cartas DEVEM continuar passando; esta entrega muda apresentação e layout, não regras de jogo.
 - **FR-007:** O foco de teclado DEVE ser visível em todo controle interativo, com um outline dourado-claro e offset vindo do token de foco; a ordem de foco DEVE ser previsível e o seletor de modo e a gaveta de depuração DEVEM ser operáveis por teclado com papéis e estados anunciados.
+- **FR-008:** Os textos das telas DEVEM ser curtos e objetivos: a tela das bolinhas DEVE ter uma frase de apoio no topo, uma linha de status com a próxima ação e um guia "Como jogar" com as etapas do modo (a atual destacada por `aria-current`) nos dois modos, com dicas curtas do que corrigir no lugar de parágrafos explicativos; o aviso de privacidade DEVE ter a mesma redação curta no menu, nas cartas e nas bolinhas; e o nome da referência de design NÃO DEVE aparecer em nenhuma tela.
 
 ## Requisitos não funcionais
 
