@@ -3,8 +3,8 @@
     display: inline-block;
     margin: 1rem 1.25rem 0;
     padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    color: #4f9cff;
+    border-radius: 0;
+    color: #e0aa08;
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     text-decoration: none;
 }

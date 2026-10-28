@@ -1,0 +1,20 @@
+/*
+ * Fontes servidas pelo próprio app (nenhuma requisição a terceiros). Arquivos
+ * woff2 variáveis (400 a 700, subset latin) das famílias DM Sans e Space Grotesk,
+ * ambas sob a SIL Open Font License 1.1 (veja os arquivos OFL-*.txt desta pasta).
+ */
+@font-face {
+    font-family: 'DM Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('./fonts/dm-sans-latin.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Space Grotesk';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('./fonts/space-grotesk-latin.woff2') format('woff2');
+}

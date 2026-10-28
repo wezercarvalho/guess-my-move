@@ -1,5 +1,7 @@
 import { useId } from 'react'
 
+import { PrivacyNotice } from '../shared/PrivacyNotice.js'
+
 interface GameCardProps {
     title: string
     description: string
@@ -26,26 +28,23 @@ export function HomePage() {
         <main className="app">
             <header className="app-header">
                 <h1>Guess My Move</h1>
-                <p>Escolha um jogo. A câmera e o reconhecimento da mão funcionam no seu navegador.</p>
+                <p>Escolha um jogo.</p>
             </header>
 
-            <p className="privacy-notice" role="note">
-                <strong>Privacidade:</strong> nenhuma imagem da câmera é enviada, gravada ou
-                registrada.
-            </p>
+            <PrivacyNotice />
 
             <div className="game-cards">
                 <GameCard
                     title="Jogo de cartas"
-                    description="Veja a carta (Acenar), aperte Começar e faça o gesto diante da câmera. O app reconhece o aceno pelo movimento da sua mão."
+                    description="Faça o gesto da carta (Acenar) diante da câmera."
                     href="cards.html"
-                    action="Jogar o jogo de cartas"
+                    action="Jogar cartas"
                 />
                 <GameCard
                     title="Bolinhas de gude: bete"
-                    description="Faça a pinça com a mão, arraste para trás e abra os dedos para atirar a bolinha azul no alvo vermelho."
+                    description="Atire a bolinha azul no alvo vermelho com a mão."
                     href="marbles.html"
-                    action="Jogar bolinhas de gude"
+                    action="Jogar bolinhas"
                 />
             </div>
         </main>

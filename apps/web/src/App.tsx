@@ -11,10 +11,7 @@ export function App() {
         <main className="app">
             <header className="app-header">
                 <h1>Guess My Move</h1>
-                <p>
-                    Ative a câmera, aperte Começar e faça o gesto da carta. O app
-                    reconhece o movimento da sua mão no próprio navegador.
-                </p>
+                <p>Ative a câmera, aperte Começar e faça o gesto da carta.</p>
             </header>
 
             <GestureScreen card={acenarCard} />

@@ -6,6 +6,7 @@ import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
 import { CardView } from '../card/CardView.js'
 import { DebugPanel } from './DebugPanel.js'
+import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { HandOverlay } from './HandOverlay.js'
 import { type GestureRoundDeps, useGestureRound } from './useGestureRound.js'
 
@@ -48,10 +49,7 @@ export function GestureScreen({ card, cameraGetUserMedia, deps }: GestureScreenP
 
     return (
         <div className="gesture-screen">
-            <p className="privacy-notice" role="note">
-                <strong>Privacidade:</strong> o reconhecimento do gesto roda no seu
-                navegador. Nenhuma imagem da câmera é enviada, gravada ou registrada.
-            </p>
+            <PrivacyNotice />
 
             <CardView card={publicCard} />
             <CameraPanel

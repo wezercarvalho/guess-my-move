@@ -71,6 +71,10 @@ yarn preview   # serve o build localmente
 
 Os núcleos são puros (sem DOM, câmera ou MediaPipe): `packages/core` expõe `handAngleDeg`, `evaluateOscillation`, `createRound`, a carta e `toPublicCard`; `packages/marbles` expõe `stepBodies`, `createPinchDetector`, `computeShot`, `createFlickDetector`, `flickPower` e `createBeteRound`. O detector, o desenho e as telas ficam só em `apps/web`.
 
+### Design system (escuro com dourado)
+
+A pasta `apps/web/src/design/` traz um design system pequeno com a identidade escura com dourado do site de referência do maintainer: tokens CSS em `tokens.css` (cores, tipografia Space Grotesk/DM Sans, escala de espaçamento, raio 0, movimento, foco e borda de controle), as duas fontes próprias servidas pelo app por `@font-face` (`fonts.css`, `fonts/*.woff2`, sem CDN, com os avisos OFL ao lado) e os componentes base React que a tela das bolinhas usa — `Button`, `Panel`, `Eyebrow`, `Notice`, `Steps`, `SegmentedControl` e a gaveta `DrawerToggle`/`DrawerPanel` com o hook `useDrawer`. O `styles.css` importa os três CSS do design e redireciona as variáveis antigas (`--cor-*`, `--raio`) para os tokens, então o menu inicial e o jogo de cartas herdam a paleta e as fontes sem mudar de layout. A tela das bolinhas foi refeita com campo grande, câmera pequena numa coluna lateral, o guia "Como jogar" (etapas do modo e dicas curtas) e a depuração recolhida por padrão; os textos das telas são curtos, com uma linha de status. Contrastes medidos pela fórmula da WCAG; nenhuma afirmação de acessibilidade ou aparência final sem medição — a aparência ao vivo depende do teste do maintainer. Spec: [`specs/2026-10-28-frontend-design-system-adopt-dark-gold/`](specs/2026-10-28-frontend-design-system-adopt-dark-gold/spec.md).
+
 ## Scripts
 
 | Script                       | O que faz                                                         |

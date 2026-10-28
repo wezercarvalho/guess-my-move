@@ -10,7 +10,7 @@
         "build": "yarn prepare:assets && tsc --build && vite build",
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
-        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs"
+        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",
