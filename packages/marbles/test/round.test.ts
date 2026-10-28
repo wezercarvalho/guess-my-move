@@ -308,16 +308,16 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         return {
             handVisible: visible,
             closed: visible && (opts.armed ?? false),
-            ratio: visible ? ((opts.armed ?? false) ? 0.2 : 0.8) : null,
+            ratio: visible ? ((opts.armed ?? false) ? 0.8 : 1.4) : null,
             point: visible ? { x: 0.5, y: 0.5 } : null,
             direction: visible ? (opts.direction === undefined ? RIGHT : opts.direction) : null,
             release: opts.release ?? null,
         }
     }
     const release = (overrides: Partial<FlickRelease> = {}): FlickRelease => ({
-        fast: true,
-        openSpeed: 5,
-        riseMs: 40,
+        verdict: 'confirmed',
+        openSpeed: 8,
+        riseMs: 67,
         direction: RIGHT,
         ...overrides,
     })
@@ -325,12 +325,12 @@ describe('createBeteRound: modo estalo (alpha)', () => {
     function armedRound() {
         const round = createBeteRound()
         round.cameraReady()
-        round.observeFlick(flick({ armed: false }), 0)
+        round.observeFlick(flick({ armed: true }), 0)
         round.observeFlick(flick({ armed: true }), 16)
         return round
     }
 
-    it('arma ao fechar depois de vista aberta e mostra a direção da mão, sem elástico', () => {
+    it('arma assim que a mão está armada e mostra a direção da mão, sem elástico', () => {
         const round = armedRound()
         expect(round.state).toBe('aiming')
         const snap = round.snapshot()
@@ -344,28 +344,35 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         expect(round.snapshot().flick?.direction).toEqual({ x: 0, y: -1 })
     })
 
-    it('uma pinça já armada ao aparecer não inicia a mira', () => {
+    it('uma mão já armada ao aparecer inicia a mira, sem exigir que o polegar tenha sido visto esticado', () => {
         const round = createBeteRound()
         round.cameraReady()
         round.observeFlick(flick({ armed: true }), 0)
-        round.observeFlick(flick({ armed: true }), 16)
+        expect(round.state).toBe('aiming')
+    })
+
+    it('uma mão esticada, sem armar, não inicia a mira', () => {
+        const round = createBeteRound()
+        round.cameraReady()
+        round.observeFlick(flick({ armed: false }), 0)
+        round.observeFlick(flick({ armed: false }), 16)
         expect(round.state).toBe('ready')
         expect(round.snapshot().flick).toBeNull()
     })
 
     it('ignora o estalo enquanto a câmera não está pronta', () => {
         const round = createBeteRound()
-        round.observeFlick(flick({ armed: false }), 0)
+        round.observeFlick(flick({ armed: true }), 0)
         round.observeFlick(flick({ armed: true }), 16)
         expect(round.state).toBe('idle')
     })
 
     it('a força não depende do arrasto da mão: arrastar não muda a velocidade do estalo', () => {
         const still = armedRound()
-        still.observeFlick(flick({ armed: false, release: release({ openSpeed: 50 }) }), 48)
+        still.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
         const dragged = armedRound()
         dragged.observeFlick(flick({ armed: true }), 32)
-        dragged.observeFlick(flick({ armed: false, release: release({ openSpeed: 50 }) }), 48)
+        dragged.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
         still.advance(100)
         dragged.advance(100)
         expect(dragged.snapshot().shooter.x).toBeCloseTo(still.snapshot().shooter.x, 9)
@@ -373,7 +380,7 @@ describe('createBeteRound: modo estalo (alpha)', () => {
 
     it('estalo rápido dispara: conta o tiro e a bolinha de tiro se move na direção da mão', () => {
         const round = armedRound()
-        round.observeFlick(flick({ armed: false, release: release({ openSpeed: 5 }) }), 48)
+        round.observeFlick(flick({ armed: false, release: release({ openSpeed: 8 }) }), 48)
         expect(round.state).toBe('rolling')
         expect(round.snapshot().shots).toBe(1)
         expect(round.snapshot().flick).toBeNull()
@@ -385,23 +392,25 @@ describe('createBeteRound: modo estalo (alpha)', () => {
 
     it('a força vem da velocidade com que o polegar solta: fraca não chega ao alvo e forte acerta', () => {
         const weak = armedRound()
-        weak.observeFlick(flick({ armed: false, release: release({ openSpeed: 12 }) }), 48)
+        weak.observeFlick(flick({ armed: false, release: release({ openSpeed: 4 }) }), 48)
         runUntil(weak, () => weak.state !== 'rolling')
         expect(weak.state).toBe('ready')
 
         const strong = armedRound()
-        strong.observeFlick(flick({ armed: false, release: release({ openSpeed: 100 }) }), 48)
+        strong.observeFlick(flick({ armed: false, release: release({ openSpeed: 20 }) }), 48)
         runUntil(strong, () => strong.state !== 'rolling')
         expect(strong.state).toBe('hit')
         expect(strong.snapshot().hitShots).toBe(1)
     })
 
-    it('estalo lento ou fraco cancela sem contar tiro', () => {
-        const slow = armedRound()
-        slow.observeFlick(flick({ armed: false, release: release({ fast: false }) }), 48)
-        expect(slow.state).toBe('ready')
-        expect(slow.snapshot().shots).toBe(0)
-        expect(slow.snapshot().flick).toBeNull()
+    it('estalo fraco ou não sustentado cancela sem contar tiro', () => {
+        for (const verdict of ['weak', 'unsustained'] as const) {
+            const round = armedRound()
+            round.observeFlick(flick({ armed: false, release: release({ verdict }) }), 48)
+            expect(round.state).toBe('ready')
+            expect(round.snapshot().shots).toBe(0)
+            expect(round.snapshot().flick).toBeNull()
+        }
     })
 
     it('estalo sem direção medida cancela', () => {
@@ -414,7 +423,7 @@ describe('createBeteRound: modo estalo (alpha)', () => {
     it('erro: a bolinha de tiro volta ao início e o jogador tenta de novo', () => {
         const round = armedRound()
         round.observeFlick(
-            flick({ armed: false, release: release({ openSpeed: 5, direction: { x: 0, y: 1 } }) }),
+            flick({ armed: false, release: release({ openSpeed: 8, direction: { x: 0, y: 1 } }) }),
             48,
         )
         runUntil(round, () => round.state !== 'rolling')

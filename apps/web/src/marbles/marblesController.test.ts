@@ -299,12 +299,13 @@ describe('modeFromSearch', () => {
 })
 
 describe('MarblesController: modo estalo (alpha)', () => {
-    const STEP = 16
+    /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
+    const STEP = 67
+    const tucked = (ratio = 0.8) => pinchHand({ ratio, x: 300, y: 300 })
 
-    /** Pinça aberta, fechada (armada) por alguns quadros e a razão final dada, com a mão apontando para cima. */
+    /** Polegar preso contra o indicador por alguns quadros, com a mão apontando para cima. */
     function arm(h: ReturnType<typeof harness>) {
-        h.run(open(300, 300), 2, STEP)
-        h.run(closed(300, 300), 3, STEP)
+        h.run(tucked(), 3, STEP)
     }
 
     it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
@@ -315,7 +316,7 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(h.controller.getSnapshot().mode).toBe('flick')
     })
 
-    it('fechar a pinça arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
+    it('com o polegar preso a mão arma e publica a direção da mão (apontando para cima, o tiro sobe)', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
@@ -326,51 +327,48 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.armed).toBe(true)
     })
 
-    it('abrir rápido dispara; a velocidade de abertura e o resultado aparecem na depuração', async () => {
+    it('esticar o polegar e mantê-lo esticado dispara; a velocidade e o resultado aparecem na depuração', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        h.run(tucked(1.5), 3, STEP)
         const { round, debug } = h.controller.getSnapshot()
         expect(round.state).toBe('rolling')
         expect(round.shots).toBe(1)
         expect(debug.flick.lastResult).toBe('disparado')
-        expect(debug.flick.lastOpenSpeed).toBeCloseTo((0.9 - 0.2) / 0.016, 1)
-        // Força na escala logarítmica de 10 a 200 razão/s: ln(43,75 / 10) / ln(20), cerca de 49%.
-        expect(debug.flick.lastPower).toBeCloseTo(Math.log(43.75 / 10) / Math.log(20), 3)
+        const speed = (1.5 - 0.8) / (STEP / 1000)
+        expect(debug.flick.lastOpenSpeed).toBeCloseTo(speed, 1)
+        // Força na escala logarítmica de 3 a 20 razão/s.
+        expect(debug.flick.lastPower).toBeCloseTo(Math.log(speed / 3) / Math.log(20 / 3), 3)
         expect(debug.flick.armed).toBe(false)
         h.run(null, 4, STEP)
         expect(h.controller.getSnapshot().round.shooter.y).toBeLessThan(300)
     })
 
-    it('abrir devagar cancela, sem contar tiro, e registra "lento demais"', async () => {
+    it('uma oscilação que sobe e volta no quadro seguinte não dispara e registra "não sustentado"', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        for (let ratio = 0.215; ratio < 0.75; ratio += 0.015) {
-            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
-        }
+        h.run(tucked(1.5), 1, STEP)
+        h.run(tucked(0.8), 1, STEP)
         const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('ready')
         expect(round.shots).toBe(0)
-        expect(debug.flick.lastResult).toBe('lento demais')
+        expect(round.state).toBe('ready')
+        expect(debug.flick.lastResult).toBe('não sustentado')
         expect(debug.flick.lastPower).toBeNull()
     })
 
-    it('abertura dentro do prazo mas devagar demais registra "fraco demais"', async () => {
+    it('uma subida pequena (a razão só derivou até o limite) registra "fraco demais"', async () => {
         const h = harness()
         await h.ready()
         h.controller.setMode('flick')
-        arm(h)
-        // Cinco passos de 16 ms (80 ms) com inclinações abaixo de 2 razão/s.
-        for (const ratio of [0.399, 0.429, 0.459, 0.489, 0.519, 0.5501]) {
-            h.run(pinchHand({ ratio, x: 300, y: 300 }), 1, STEP)
-        }
+        h.run(tucked(1.0), 3, STEP)
+        h.run(tucked(1.25), 1, STEP)
         const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('ready')
         expect(round.shots).toBe(0)
+        expect(round.state).toBe('ready')
         expect(debug.flick.lastResult).toBe('fraco demais')
     })
 
@@ -379,14 +377,13 @@ describe('MarblesController: modo estalo (alpha)', () => {
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        h.run(tucked(1.8), 3, STEP)
         const strong = h.controller.getSnapshot().debug.flick.lastPower
         h.controller.newRound()
-        h.run(open(300, 300), 2, STEP)
-        h.run(closed(300, 300), 3, STEP)
-        // Subida em dois passos de 16 ms: o pico fica bem abaixo do salto de um quadro só.
-        h.run(pinchHand({ ratio: 0.45, x: 300, y: 300 }), 1, STEP)
-        h.run(pinchHand({ ratio: 0.6, x: 300, y: 300 }), 1, STEP)
+        arm(h)
+        // Subida em dois passos: o pico fica abaixo do salto de um quadro só.
+        h.run(tucked(1.3), 1, STEP)
+        h.run(tucked(1.5), 2, STEP)
         const weaker = h.controller.getSnapshot().debug.flick.lastPower
         expect(strong).not.toBeNull()
         expect(weaker).not.toBeNull()
@@ -398,7 +395,7 @@ describe('MarblesController: modo estalo (alpha)', () => {
         await h.ready()
         h.controller.setMode('flick')
         arm(h)
-        h.run(pinchHand({ ratio: 0.9, x: 300, y: 300 }), 1, STEP)
+        h.run(tucked(1.5), 3, STEP)
         expect(h.controller.getSnapshot().round.shots).toBe(1)
         h.controller.setMode('pinch')
         const { round, debug } = h.controller.getSnapshot()
@@ -408,7 +405,7 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(debug.flick.lastResult).toBeNull()
     })
 
-    it('no modo estalo a pinça comum não faz nada além de armar; no modo pinça o estalo não existe', async () => {
+    it('no modo pinça a pinça comum arma o elástico e o estalo não existe', async () => {
         const h = harness()
         await h.ready()
         h.run(open(300, 300), 2, STEP)

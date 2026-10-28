@@ -1,7 +1,6 @@
 import {
     type BeteRound,
     type BeteSnapshot,
-    DEFAULT_FLICK,
     DEFAULT_PHYSICS,
     type FlickDetector,
     type FlickRelease,
@@ -33,13 +32,13 @@ export function modeFromSearch(search: string): MarblesMode {
 }
 
 /** O que aconteceu no último estalo, para a depuração. */
-export type FlickOutcome = 'disparado' | 'lento demais' | 'fraco demais' | 'sem direção'
+export type FlickOutcome = 'disparado' | 'fraco demais' | 'não sustentado' | 'sem direção'
 
 function flickOutcome(release: FlickRelease): FlickOutcome {
     if (flickShot(release)) return 'disparado'
-    if (!release.direction) return 'sem direção'
-    if (release.riseMs > DEFAULT_FLICK.slowMs) return 'lento demais'
-    return 'fraco demais'
+    if (release.verdict === 'weak') return 'fraco demais'
+    if (release.verdict === 'unsustained') return 'não sustentado'
+    return 'sem direção'
 }
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */

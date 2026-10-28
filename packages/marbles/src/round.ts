@@ -180,10 +180,9 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
     function observeFlickReading(reading: FlickReading, nowMs: number): void {
         const visible = reading.handVisible
         const armedNow = reading.closed && visible
-        const openNow = visible && !reading.closed
 
         if (state === 'ready') {
-            if (armedNow && prevOpen) {
+            if (armedNow) {
                 flickDirection = reading.direction
                 lastSeenMs = nowMs
                 state = 'aiming'
@@ -200,12 +199,11 @@ export function createBeteRound(overrides: Partial<BeteConfig> = {}): BeteRound 
                 } else if (armedNow) {
                     flickDirection = reading.direction
                 } else {
-                    // O detector zerou o armado sem soltura (por exemplo, a mão sumiu e voltou aberta).
+                    // O detector zerou o armado sem soltura (por exemplo, a mão sumiu e voltou esticada).
                     cancelAim()
                 }
             }
         }
-        prevOpen = openNow
     }
 
     function resetPositions(): void {

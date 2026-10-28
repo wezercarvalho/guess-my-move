@@ -1,70 +1,83 @@
 /**
- * Estalo do polegar (modo alpha do bete): para a câmera, uma pinça que ABRE
- * RÁPIDO. Funções puras, sem DOM, sem relógio próprio e sem MediaPipe: o tempo
- * entra pelos argumentos. Os números padrão são palpites apoiados em uma
- * única sessão de teste (issues #68 e #72).
+ * Estalo do polegar (modo alpha do bete). A mão fica fechada com o polegar
+ * preso contra o indicador ("armada") e o estalo é o polegar se esticando de
+ * uma vez: a razão polegar-indicador (distância entre as pontas dividida pela
+ * escala da mão) sobe de uma faixa baixa para uma faixa alta e FICA alta por
+ * alguns quadros. Funções puras, sem DOM, sem relógio próprio e sem MediaPipe:
+ * o tempo entra pelos argumentos. Os números padrão são palpites calibrados
+ * em duas gravações de uma única pessoa e uma webcam de cerca de 15 quadros
+ * novos por segundo (issue #72); não são medição de desempenho.
  */
 import { type Vec } from './physics.js'
-import {
-    DEFAULT_PINCH,
-    type PinchConfig,
-    type PinchReading,
-    type Point,
-    createPinchDetector,
-} from './pinch.js'
+import { type Point, pinchRatio } from './pinch.js'
 
 const LANDMARK_COUNT = 21
 const WRIST = 0
+const THUMB_TIP = 4
+const INDEX_TIP = 8
 const MIDDLE_FINGER_MCP = 9
 
-/** Parâmetros do estalo, além da histerese da pinça. */
-export interface FlickConfig extends PinchConfig {
-    /** A subida da razão começa na última amostra com razão menor ou igual a este valor. */
-    riseStartRatio: number
-    /** Uma subida mais longa que isto (ms) é abertura lenta e cancela o tiro. */
-    slowMs: number
-    /** Velocidade de abertura (razão/s) mínima para valer como estalo; abaixo disso a abertura é fraca e cancela. */
-    minOpenSpeed: number
+/** Parâmetros do estalo. */
+export interface FlickConfig {
+    /** A mão arma com a razão menor ou igual a este valor. */
+    armRatio: number
+    /** Razão a partir da qual o polegar conta como esticado; a subida até aqui é um estalo candidato. */
+    extendRatio: number
+    /** Amostras seguidas (a primeira é a que cruzou `extendRatio`) que devem ficar esticadas para confirmar o estalo. */
+    confirmSamples: number
+    /** Subida mínima da razão, do mínimo recente até o cruzamento; abaixo disso a mão só derivou e o estalo é fraco. */
+    minRise: number
+    /** Janela (ms) antes do cruzamento em que se procura o mínimo da razão (a base da subida). */
+    baseWindowMs: number
+    /** Quanto histórico (ms) o detector guarda enquanto armado. */
+    historyMs: number
     /**
      * Escala da força (razão/s), logarítmica: a velocidade de abertura `powerLowSpeed`
-     * dá força 0 e `powerHighSpeed` dá força 1. Os extremos vêm da amplitude vista
-     * no primeiro teste real (9 a 199 razão/s), não de uma calibração.
+     * dá força 0 e `powerHighSpeed` dá força 1.
      */
     powerLowSpeed: number
     powerHighSpeed: number
     /** Velocidade do tiro (unid/s) na força mínima e na máxima. */
     minShotSpeed: number
     maxShotSpeed: number
-    /** Quanto histórico (ms) o detector guarda enquanto armado. */
-    historyMs: number
 }
 
 export const DEFAULT_FLICK: FlickConfig = {
-    ...DEFAULT_PINCH,
-    riseStartRatio: 0.4,
-    slowMs: 80,
-    minOpenSpeed: 2,
-    powerLowSpeed: 10,
-    powerHighSpeed: 200,
+    armRatio: 1.05,
+    extendRatio: 1.2,
+    confirmSamples: 3,
+    minRise: 0.4,
+    baseWindowMs: 250,
+    historyMs: 400,
+    powerLowSpeed: 3,
+    powerHighSpeed: 20,
     minShotSpeed: 300,
     maxShotSpeed: 1100,
-    historyMs: 400,
 }
 
-/** Medição de uma abertura da pinça. */
+/** Como terminou um estalo candidato. */
+export type FlickVerdict = 'confirmed' | 'weak' | 'unsustained'
+
+/** Medição de um estalo candidato (o polegar cruzou `extendRatio`). */
 export interface FlickRelease {
-    /** Duração da subida e velocidade dentro dos limites do estalo. */
-    fast: boolean
+    /** `confirmed`: subiu e ficou esticado; `weak`: subida pequena; `unsustained`: voltou a fechar antes de confirmar. */
+    verdict: FlickVerdict
     /** Pico da inclinação da razão entre amostras consecutivas da subida (razão/s). */
     openSpeed: number
-    /** Tempo do início da subida até cruzar a abertura (ms). */
+    /** Tempo do mínimo recente até o cruzamento (ms). */
     riseMs: number
-    /** Direção da mão no início da subida, antes de o estalo perturbá-la. */
+    /** Direção da mão no mínimo recente, antes de o estalo perturbá-la. */
     direction: Vec | null
 }
 
-/** Leitura da pinça mais a direção da mão; `closed` significa armado. */
-export type FlickReading = PinchReading & {
+/** Leitura da pinça e da direção da mão; `closed` significa armado (ou candidato em confirmação). */
+export interface FlickReading {
+    handVisible: boolean
+    closed: boolean
+    /** Distância entre as pontas dividida pela escala da mão; `null` sem mão. */
+    ratio: number | null
+    /** Ponto médio das pontas, normalizado (0 a 1) e espelhado em x; `null` sem mão. */
+    point: Point | null
     direction: Vec | null
     release: FlickRelease | null
 }
@@ -99,78 +112,111 @@ interface Sample {
     direction: Vec | null
 }
 
-/** Mede a subida da razão a partir das amostras armadas mais a que cruzou a abertura. */
-function measureRelease(samples: readonly Sample[], cfg: FlickConfig): FlickRelease {
-    let start = 0
-    for (let i = samples.length - 1; i >= 0; i--) {
-        if (samples[i].ratio <= cfg.riseStartRatio) {
-            start = i
-            break
-        }
-    }
-    const first = samples[start]
-    const last = samples[samples.length - 1]
-
-    let openSpeed = 0
-    for (let i = start; i < samples.length - 1; i++) {
+/** Maior inclinação da razão (razão/s) entre amostras consecutivas. */
+function peakSlope(samples: readonly Sample[]): number {
+    let peak = 0
+    for (let i = 0; i < samples.length - 1; i++) {
         const a = samples[i]
         const b = samples[i + 1]
         const seconds = (b.t - a.t) / 1000
-        if (seconds > 0) openSpeed = Math.max(openSpeed, (b.ratio - a.ratio) / seconds)
+        if (seconds > 0) peak = Math.max(peak, (b.ratio - a.ratio) / seconds)
     }
-
-    const riseMs = last.t - first.t
-    return {
-        fast: riseMs <= cfg.slowMs && openSpeed >= cfg.minOpenSpeed,
-        openSpeed,
-        riseMs,
-        direction: first.direction,
-    }
+    return peak
 }
 
 /**
- * Detector de estalo: arma com a pinça fechada (histerese da pinça) e, ao
- * abrir, mede a velocidade e a duração da subida da razão. Perder a mão zera o
- * armado, então reaparecer com a pinça aberta nunca dispara.
+ * Detector de estalo: arma com a razão baixa e, quando a razão cruza
+ * `extendRatio` subindo pelo menos `minRise` acima do mínimo recente, abre um
+ * candidato. O candidato só vira estalo se as `confirmSamples` primeiras
+ * amostras seguirem esticadas: uma oscilação de rastreamento (a mão fechada em
+ * movimento) sobe e volta no quadro seguinte e não confirma. Perder a mão zera
+ * tudo, então reaparecer esticada nunca dispara.
  */
 export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDetector {
     const cfg: FlickConfig = { ...DEFAULT_FLICK, ...config }
-    const pinch = createPinchDetector({ closeRatio: cfg.closeRatio, openRatio: cfg.openRatio })
-    let armed = false
+    let phase: 'idle' | 'armed' | 'pending' = 'idle'
+    /** Amostras armadas, da mais antiga à mais nova (inclui o mínimo recente). */
     let history: Sample[] = []
+    /** Candidato: o mínimo recente e as amostras esticadas desde o cruzamento. */
+    let base: Sample | null = null
+    let run: Sample[] = []
+    let rise: Sample[] = []
+
+    const clear = (): void => {
+        phase = 'idle'
+        history = []
+        base = null
+        run = []
+        rise = []
+    }
+
+    function finish(verdict: FlickVerdict, riseMs: number): FlickRelease {
+        const openSpeed = peakSlope([...rise, ...run])
+        const direction = base?.direction ?? null
+        clear()
+        return { verdict, openSpeed, riseMs, direction }
+    }
 
     return {
         update(landmarks, aspect, nowMs) {
-            const reading = pinch.update(landmarks, aspect)
-            if (!reading.handVisible || reading.ratio === null || !landmarks) {
-                armed = false
-                history = []
-                return { ...reading, direction: null, release: null }
+            const ratio = landmarks ? pinchRatio(landmarks, aspect) : null
+            const thumb = landmarks?.[THUMB_TIP]
+            const index = landmarks?.[INDEX_TIP]
+            if (!landmarks || ratio === null || !thumb || !index) {
+                clear()
+                return { handVisible: false, closed: false, ratio: null, point: null, direction: null, release: null }
             }
 
             const direction = handDirection(landmarks, aspect)
-            const sample: Sample = { t: nowMs, ratio: reading.ratio, direction }
+            const sample: Sample = { t: nowMs, ratio, direction }
             let release: FlickRelease | null = null
 
-            if (reading.closed) {
-                if (!armed) {
-                    armed = true
-                    history = []
+            if (phase === 'pending') {
+                run.push(sample)
+                const first = run[0]
+                const riseMs = first.t - (base?.t ?? first.t)
+                if (ratio < cfg.extendRatio) {
+                    release = finish('unsustained', riseMs)
+                } else if (run.length >= cfg.confirmSamples) {
+                    release = finish('confirmed', riseMs)
                 }
+            } else if (phase === 'armed' && ratio >= cfg.extendRatio) {
+                const recent = history.filter((item) => item.t >= nowMs - cfg.baseWindowMs)
+                const pool = recent.length > 0 ? recent : history.slice(-1)
+                let low = pool[0]
+                for (const item of pool) if (item.ratio <= low.ratio) low = item
+                base = low
+                rise = history.filter((item) => item.t >= low.t)
+                run = [sample]
+                if (ratio - low.ratio < cfg.minRise) {
+                    release = finish('weak', nowMs - low.t)
+                } else if (run.length >= cfg.confirmSamples) {
+                    release = finish('confirmed', nowMs - low.t)
+                } else {
+                    phase = 'pending'
+                }
+            } else if (phase === 'armed') {
                 history.push(sample)
                 const oldest = nowMs - cfg.historyMs
                 history = history.filter((item) => item.t >= oldest)
-            } else if (armed) {
-                armed = false
-                release = measureRelease([...history, sample], cfg)
-                history = []
             }
-            return { ...reading, direction, release }
+
+            if (phase === 'idle' && ratio <= cfg.armRatio) {
+                phase = 'armed'
+                history = [sample]
+            }
+
+            return {
+                handVisible: true,
+                closed: phase !== 'idle',
+                ratio,
+                point: { x: 1 - (thumb.x + index.x) / 2, y: (thumb.y + index.y) / 2 },
+                direction,
+                release,
+            }
         },
         reset() {
-            pinch.reset()
-            armed = false
-            history = []
+            clear()
         },
     }
 }
@@ -183,11 +229,11 @@ export interface FlickShot {
 }
 
 /**
- * Converte um estalo em tiro: a força vem da velocidade com que o polegar solta
- * (a abertura da pinça), numa escala logarítmica de `powerLowSpeed` a
+ * Converte um estalo em tiro: a força vem da velocidade com que o polegar se
+ * estica (a subida da razão), numa escala logarítmica de `powerLowSpeed` a
  * `powerHighSpeed`, e a velocidade do tiro vai linearmente de `minShotSpeed` a
  * `maxShotSpeed`. A direção é a da mão. Devolve `null` (tiro cancelado) para
- * abertura lenta, fraca ou sem direção.
+ * estalo fraco, não sustentado ou sem direção.
  */
 export function flickShot(
     release: FlickRelease,
@@ -195,11 +241,11 @@ export function flickShot(
 ): FlickShot | null {
     const cfg: FlickConfig = { ...DEFAULT_FLICK, ...config }
     const { direction } = release
-    if (!release.fast || !direction || release.openSpeed < cfg.minOpenSpeed) return null
+    if (release.verdict !== 'confirmed' || !direction) return null
 
     const span = Math.log(cfg.powerHighSpeed / cfg.powerLowSpeed)
     const raw = span > 0 ? Math.log(release.openSpeed / cfg.powerLowSpeed) / span : 1
-    const power = Math.min(Math.max(raw, 0), 1)
+    const power = Math.min(Math.max(Number.isFinite(raw) ? raw : 0, 0), 1)
     const speed = cfg.minShotSpeed + power * (cfg.maxShotSpeed - cfg.minShotSpeed)
     return { velocity: { x: direction.x * speed, y: direction.y * speed }, power }
 }

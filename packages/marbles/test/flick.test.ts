@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
     DEFAULT_FLICK,
+    type FlickDetector,
     type FlickRelease,
     createFlickDetector,
     flickShot,
@@ -75,273 +76,324 @@ describe('handDirection', () => {
     })
 })
 
+/** Alimenta o detector com pares [tempo em ms, razão] e devolve as leituras. */
+function feed(detector: FlickDetector, samples: ReadonlyArray<readonly [number, number]>, angleDeg = 0) {
+    return samples.map(([t, ratio]) => detector.update(hand({ ratio, angleDeg }), 1, t))
+}
+
+/** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
+const FRAME = 67
+
 describe('createFlickDetector: armar', () => {
-    it('arma ao fechar a pinça (razão <= 0,35) e expõe a direção da mão', () => {
+    it('arma com a razão baixa (<= 1,05) e expõe a direção da mão', () => {
         const detector = createFlickDetector()
-        const reading = detector.update(hand({ ratio: 0.3 }), 1, 0)
-        expect(reading.closed).toBe(true)
+        const reading = detector.update(hand({ ratio: 0.8, angleDeg: 0 }), 1, 0)
         expect(reading.handVisible).toBe(true)
-        expect(reading.release).toBeNull()
+        expect(reading.closed).toBe(true)
         expect(reading.direction?.y).toBeCloseTo(-1, 9)
+        expect(reading.release).toBeNull()
     })
 
     it('mantém o ponto médio espelhado e a razão, como o detector de pinça', () => {
-        const detector = createFlickDetector()
-        const reading = detector.update(hand({ ratio: 0.5 }), 1, 0)
-        expect(reading.ratio).toBeCloseTo(0.5, 9)
+        const reading = createFlickDetector().update(hand({ ratio: 0.6 }), 1, 0)
+        expect(reading.ratio).toBeCloseTo(0.6, 9)
         expect(reading.point?.x).toBeCloseTo(0.5, 9)
+        expect(reading.point?.y).toBeCloseTo(0.5, 9)
     })
 
-    it('aberta, nunca dispara', () => {
+    it('a pinça apertada de antes (razão <= 0,35) também arma', () => {
+        expect(createFlickDetector().update(hand({ ratio: 0.2 }), 1, 0).closed).toBe(true)
+    })
+
+    it('com o polegar já esticado (razão > 1,05) não arma, e esticado nunca dispara', () => {
         const detector = createFlickDetector()
-        detector.update(hand({ ratio: 0.8 }), 1, 0)
-        const reading = detector.update(hand({ ratio: 1.2 }), 1, 16)
-        expect(reading.closed).toBe(false)
-        expect(reading.release).toBeNull()
+        const readings = feed(detector, [
+            [0, 1.4],
+            [FRAME, 1.5],
+            [2 * FRAME, 1.6],
+            [3 * FRAME, 1.5],
+        ])
+        for (const reading of readings) {
+            expect(reading.closed).toBe(false)
+            expect(reading.release).toBeNull()
+        }
+    })
+
+    it('entre 1,05 e 1,2 a mão armada continua armada, mas não arma sozinha', () => {
+        const idle = createFlickDetector().update(hand({ ratio: 1.1 }), 1, 0)
+        expect(idle.closed).toBe(false)
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 0.9],
+            [FRAME, 1.1],
+        ])
+        expect(readings[1]?.closed).toBe(true)
+    })
+
+    it('sem mão devolve leitura vazia', () => {
+        const reading = createFlickDetector().update(null, 1, 0)
+        expect(reading).toMatchObject({ handVisible: false, closed: false, ratio: null, point: null, direction: null, release: null })
     })
 })
 
-describe('createFlickDetector: soltura', () => {
-    /** Alimenta o detector com `[razão, instante, ângulo opcional]` e devolve a última leitura. */
-    function feed(steps: [number, number, number?][]) {
+describe('createFlickDetector: estalo', () => {
+    it('estalo real (0,84 -> 1,37 -> 2,03 -> 1,61): confirma na terceira amostra esticada, com velocidade de pico e subida', () => {
         const detector = createFlickDetector()
-        let last = detector.update(null, 1, 0)
-        for (const [ratio, t, angleDeg = 0] of steps) {
-            last = detector.update(hand({ ratio, angleDeg }), 1, t)
-        }
-        return { last, detector }
-    }
-
-    it('estalo rápido: mede a duração, a velocidade de pico e marca como rápido', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.3, 16],
-            [0.3, 32],
-            [0.45, 48],
-            [0.9, 64],
+        const readings = feed(detector, [
+            [0, 0.84],
+            [FRAME, 0.83],
+            [2 * FRAME, 1.37],
+            [3 * FRAME, 2.03],
+            [4 * FRAME, 1.61],
         ])
-        expect(last.release).not.toBeNull()
-        expect(last.release?.fast).toBe(true)
-        expect(last.release?.riseMs).toBeCloseTo(32, 6)
-        expect(last.release?.openSpeed).toBeCloseTo(0.45 / 0.016, 3)
-        expect(last.closed).toBe(false)
+        expect(readings[2]?.release).toBeNull()
+        expect(readings[3]?.release).toBeNull()
+        const release = readings[4]?.release as FlickRelease
+        expect(release.verdict).toBe('confirmed')
+        expect(release.openSpeed).toBeCloseTo((2.03 - 1.37) / (FRAME / 1000), 6)
+        expect(release.riseMs).toBe(FRAME)
     })
 
-    it('a velocidade de abertura é o pico entre amostras consecutivas da subida', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.38, 16],
-            [0.5, 32],
-            [0.56, 48],
-        ])
-        // Inclinações: 0,12/0,016 = 7,5 (de 0,38 a 0,5) e 0,06/0,016 = 3,75; o pico é 7,5.
-        expect(last.release?.openSpeed).toBeCloseTo(7.5, 3)
-    })
-
-    it('uma abertura em um único quadro conta como rápida', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.3, 16],
-            [0.9, 32],
-        ])
-        expect(last.release?.fast).toBe(true)
-        expect(last.release?.openSpeed).toBeCloseTo(0.6 / 0.016, 3)
-    })
-
-    it('uma subida de 37 ms, como a mais longa dos estalos reais medidos, ainda é rápida', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.3, 12],
-            [0.5, 24],
-            [0.9, 49],
-        ])
-        expect(last.release?.riseMs).toBeCloseTo(37, 6)
-        expect(last.release?.fast).toBe(true)
-    })
-
-    it('o limite é inclusivo em 80 ms; 81 ms e os 103 ms vistos no teste real não são rápidos', () => {
-        const atLimit = feed([
-            [0.3, 0],
-            [0.9, 80],
-        ])
-        expect(atLimit.last.release?.riseMs).toBeCloseTo(80, 6)
-        expect(atLimit.last.release?.fast).toBe(true)
-        const above = feed([
-            [0.3, 0],
-            [0.9, 81],
-        ])
-        expect(above.last.release?.fast).toBe(false)
-        const seen = feed([
-            [0.3, 0],
-            [0.45, 30],
-            [0.5, 60],
-            [0.9, 103],
-        ])
-        expect(seen.last.release?.riseMs).toBeCloseTo(103, 6)
-        expect(seen.last.release?.fast).toBe(false)
-    })
-
-    it('abertura lenta de verdade (centenas de ms) não é rápida, mesmo com um pico veloz no fim', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.39, 10],
-            [0.44, 200],
-            [0.5, 330],
-            [0.9, 346],
-        ])
-        expect(last.release?.riseMs).toBeCloseTo(336, 6)
-        expect(last.release?.openSpeed).toBeGreaterThan(DEFAULT_FLICK.minOpenSpeed)
-        expect(last.release?.fast).toBe(false)
-    })
-
-    it('abertura fraca (velocidade abaixo de 2 razão/s) não é rápida', () => {
-        const { last } = feed([
-            [0.3, 0],
-            [0.32, 16],
-            [0.34, 32],
-            [0.36, 48],
-            [0.38, 64],
-            [0.4, 80],
-            [0.42, 96],
-            [0.44, 112],
-            [0.46, 128],
-            [0.48, 144],
-            [0.5, 160],
-            [0.52, 176],
-            [0.54, 192],
-            [0.56, 208],
-        ])
-        expect(last.release).not.toBeNull()
-        expect(last.release?.openSpeed).toBeCloseTo(1.25, 2)
-        expect(last.release?.fast).toBe(false)
-    })
-
-    it('a direção do tiro é a medida no início da subida, não a do fim do estalo', () => {
-        const { last } = feed([
-            [0.3, 0, 0],
-            [0.3, 16, 0],
-            [0.3, 32, 0],
-            [0.45, 48, 90],
-            [0.9, 64, 90],
-        ])
-        // O início da subida (32 ms) ainda aponta para cima; o fim aponta para a direita da imagem.
-        expect(last.release?.direction?.y).toBeCloseTo(-1, 9)
-        expect(last.release?.direction?.x).toBeCloseTo(0, 9)
-    })
-
-    it('depois da soltura, o detector volta a desarmado e só dispara de novo ao rearmar', () => {
-        const { detector } = feed([
-            [0.3, 0],
-            [0.3, 16],
-            [0.9, 32],
-        ])
-        const open = detector.update(hand({ ratio: 1.0 }), 1, 48)
-        expect(open.closed).toBe(false)
-        expect(open.release).toBeNull()
-        detector.update(hand({ ratio: 0.3 }), 1, 64)
-        const again = detector.update(hand({ ratio: 0.9 }), 1, 80)
-        expect(again.release).not.toBeNull()
-    })
-
-    it('perder a mão zera o armado: reaparecer aberta não dispara', () => {
+    it('enquanto confirma, a mão continua armada; depois da confirmação, desarmada', () => {
         const detector = createFlickDetector()
-        detector.update(hand({ ratio: 0.3 }), 1, 0)
-        const lost = detector.update(null, 1, 16)
-        expect(lost).toMatchObject({ handVisible: false, closed: false, release: null })
-        const back = detector.update(hand({ ratio: 0.9 }), 1, 32)
-        expect(back.release).toBeNull()
+        const readings = feed(detector, [
+            [0, 0.8],
+            [FRAME, 1.5],
+            [2 * FRAME, 1.6],
+            [3 * FRAME, 1.5],
+        ])
+        expect(readings[1]?.closed).toBe(true)
+        expect(readings[2]?.closed).toBe(true)
+        expect(readings[3]?.release?.verdict).toBe('confirmed')
+        expect(readings[3]?.closed).toBe(false)
+    })
+
+    it('oscilação do rastreamento com a mão fechada em movimento (sobe e volta) não confirma', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 0.3],
+            [FRAME, 0.33],
+            [2 * FRAME, 1.35],
+            [3 * FRAME, 1.26],
+            [4 * FRAME, 1.05],
+        ])
+        expect(readings[2]?.release).toBeNull()
+        expect(readings[3]?.release).toBeNull()
+        expect(readings[4]?.release?.verdict).toBe('unsustained')
+        expect(readings[4]?.release && flickShot(readings[4].release)).toBeNull()
+    })
+
+    it('uma subida de um só quadro que volta no quadro seguinte é não sustentada', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 0.2],
+            [FRAME, 0.9],
+            [2 * FRAME, 1.5],
+            [3 * FRAME, 0.6],
+        ])
+        expect(readings[3]?.release?.verdict).toBe('unsustained')
+    })
+
+    it('depois de não sustentar, a razão baixa rearma a mão', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 0.5],
+            [FRAME, 1.4],
+            [2 * FRAME, 0.7],
+        ])
+        expect(readings[2]?.release?.verdict).toBe('unsustained')
+        expect(readings[2]?.closed).toBe(true)
+    })
+
+    it('subida pequena (a razão derivou até 1,2) é fraca e cancela', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 1.0],
+            [FRAME, 1.02],
+            [2 * FRAME, 1.25],
+        ])
+        expect(readings[2]?.release?.verdict).toBe('weak')
+        expect(readings[2]?.closed).toBe(false)
+    })
+
+    it('a base da subida é o mínimo recente: o valor baixo antigo, fora da janela, não conta', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 0.5],
+            [300, 1.0],
+            [367, 1.0],
+            [433, 1.3],
+        ])
+        expect(readings[3]?.release?.verdict).toBe('weak')
+    })
+
+    it('a base dentro da janela vale mesmo que a razão tenha voltado a subir um pouco antes do estalo', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 1.0],
+            [FRAME, 0.6],
+            [2 * FRAME, 0.9],
+            [3 * FRAME, 1.3],
+            [4 * FRAME, 1.4],
+            [5 * FRAME, 1.5],
+        ])
+        const release = readings[5]?.release as FlickRelease
+        expect(release.verdict).toBe('confirmed')
+        expect(release.riseMs).toBe(2 * FRAME)
+    })
+
+    it('a direção do tiro é a medida na base da subida, não a do fim do estalo', () => {
+        const detector = createFlickDetector()
+        detector.update(hand({ ratio: 0.8, angleDeg: 90 }), 1, 0)
+        detector.update(hand({ ratio: 0.8, angleDeg: 90 }), 1, FRAME)
+        detector.update(hand({ ratio: 1.5, angleDeg: 0 }), 1, 2 * FRAME)
+        detector.update(hand({ ratio: 1.6, angleDeg: 0 }), 1, 3 * FRAME)
+        const release = detector.update(hand({ ratio: 1.5, angleDeg: 0 }), 1, 4 * FRAME).release
+        expect(release?.direction?.x).toBeCloseTo(-1, 6)
+        expect(release?.direction?.y).toBeCloseTo(0, 6)
+    })
+
+    it('depois de confirmar, o detector só dispara de novo ao rearmar com a razão baixa', () => {
+        const detector = createFlickDetector()
+        const first = feed(detector, [
+            [0, 0.8],
+            [FRAME, 1.5],
+            [2 * FRAME, 1.6],
+            [3 * FRAME, 1.5],
+        ])
+        expect(first[3]?.release?.verdict).toBe('confirmed')
+        const stretched = feed(detector, [
+            [4 * FRAME, 1.5],
+            [5 * FRAME, 1.6],
+            [6 * FRAME, 1.7],
+        ])
+        for (const reading of stretched) expect(reading.release).toBeNull()
+        const second = feed(detector, [
+            [7 * FRAME, 0.8],
+            [8 * FRAME, 1.5],
+            [9 * FRAME, 1.6],
+            [10 * FRAME, 1.5],
+        ])
+        expect(second[3]?.release?.verdict).toBe('confirmed')
+    })
+
+    it('perder a mão zera o armado: reaparecer esticada não dispara', () => {
+        const detector = createFlickDetector()
+        detector.update(hand({ ratio: 0.8 }), 1, 0)
+        expect(detector.update(null, 1, FRAME).closed).toBe(false)
+        const readings = feed(detector, [
+            [2 * FRAME, 1.5],
+            [3 * FRAME, 1.6],
+            [4 * FRAME, 1.5],
+        ])
+        for (const reading of readings) expect(reading.release).toBeNull()
+    })
+
+    it('perder a mão no meio da confirmação descarta o candidato sem soltura', () => {
+        const detector = createFlickDetector()
+        detector.update(hand({ ratio: 0.8 }), 1, 0)
+        detector.update(hand({ ratio: 1.5 }), 1, FRAME)
+        detector.update(null, 1, 2 * FRAME)
+        const readings = feed(detector, [
+            [3 * FRAME, 1.6],
+            [4 * FRAME, 1.5],
+        ])
+        for (const reading of readings) expect(reading.release).toBeNull()
+    })
+
+    it('com confirmSamples = 1 confirma no cruzamento', () => {
+        const detector = createFlickDetector({ confirmSamples: 1 })
+        const readings = feed(detector, [
+            [0, 0.8],
+            [FRAME, 1.5],
+        ])
+        expect(readings[1]?.release?.verdict).toBe('confirmed')
     })
 
     it('reset volta ao estado inicial', () => {
         const detector = createFlickDetector()
-        detector.update(hand({ ratio: 0.3 }), 1, 0)
+        detector.update(hand({ ratio: 0.8 }), 1, 0)
         detector.reset()
-        expect(detector.update(hand({ ratio: 0.9 }), 1, 16).release).toBeNull()
+        expect(detector.update(hand({ ratio: 1.5 }), 1, FRAME).closed).toBe(false)
     })
 })
 
 describe('flickShot: força pelo polegar, em escala logarítmica', () => {
     const release = (overrides: Partial<FlickRelease> = {}): FlickRelease => ({
-        fast: true,
-        openSpeed: 50,
-        riseMs: 12,
-        direction: { x: 0, y: -1 },
+        verdict: 'confirmed',
+        openSpeed: 8,
+        riseMs: 67,
+        direction: { x: 1, y: 0 },
         ...overrides,
     })
 
-    it('mapeia 10 a 200 razão/s para 300 a 1100 unid/s, em escala logarítmica', () => {
-        const low = flickShot(release({ openSpeed: 10 }))
-        expect(low?.velocity.y).toBeCloseTo(-300, 6)
-        expect(low?.power).toBe(0)
-        // A média geométrica de 10 e 200 fica no meio da escala.
-        const mid = flickShot(release({ openSpeed: Math.sqrt(10 * 200) }))
-        expect(mid?.power).toBeCloseTo(0.5, 9)
-        expect(mid?.velocity.y).toBeCloseTo(-700, 6)
-        const top = flickShot(release({ openSpeed: 200 }))
-        expect(top?.velocity.y).toBeCloseTo(-1100, 6)
-        expect(top?.power).toBe(1)
+    it('mapeia 3 a 20 razão/s para 300 a 1100 unid/s, em escala logarítmica', () => {
+        const low = flickShot(release({ openSpeed: 3 }))
+        expect(low?.power).toBeCloseTo(0, 9)
+        expect(low?.velocity.x).toBeCloseTo(300, 6)
+        const high = flickShot(release({ openSpeed: 20 }))
+        expect(high?.power).toBeCloseTo(1, 9)
+        expect(high?.velocity.x).toBeCloseTo(1100, 6)
+        const middle = flickShot(release({ openSpeed: Math.sqrt(3 * 20) }))
+        expect(middle?.power).toBeCloseTo(0.5, 9)
+        expect(middle?.velocity.x).toBeCloseTo(700, 6)
     })
 
     it('a força cresce com a velocidade e dobrar a velocidade soma sempre o mesmo à força', () => {
-        const a = flickShot(release({ openSpeed: 20 }))?.power ?? NaN
-        const b = flickShot(release({ openSpeed: 40 }))?.power ?? NaN
-        const c = flickShot(release({ openSpeed: 80 }))?.power ?? NaN
+        const a = flickShot(release({ openSpeed: 4 }))?.power ?? 0
+        const b = flickShot(release({ openSpeed: 8 }))?.power ?? 0
+        const c = flickShot(release({ openSpeed: 16 }))?.power ?? 0
         expect(b).toBeGreaterThan(a)
         expect(c).toBeGreaterThan(b)
         expect(b - a).toBeCloseTo(c - b, 9)
     })
 
-    it('limita abaixo e acima da escala sem cancelar o tiro', () => {
-        const weak = flickShot(release({ openSpeed: 4 }))
-        expect(weak?.power).toBe(0)
-        expect(weak?.velocity.y).toBeCloseTo(-300, 6)
-        const strong = flickShot(release({ openSpeed: 900 }))
-        expect(strong?.power).toBe(1)
-        expect(strong?.velocity.y).toBeCloseTo(-1100, 6)
+    it('limita abaixo e acima da escala sem cancelar o tiro confirmado', () => {
+        expect(flickShot(release({ openSpeed: 0.5 }))?.power).toBe(0)
+        expect(flickShot(release({ openSpeed: 500 }))?.power).toBe(1)
+        expect(flickShot(release({ openSpeed: 0 }))?.power).toBe(0)
     })
 
-    it('os valores medidos no teste real (9,1 a 199 razão/s) cobrem quase toda a escala', () => {
-        const slowest = flickShot(release({ openSpeed: 9.1 }))
-        const fastest = flickShot(release({ openSpeed: 199 }))
-        expect(slowest?.power).toBe(0)
-        expect(fastest?.power).toBeGreaterThan(0.99)
-        // A mediana das 15 leituras (32,1) cai no meio da escala, não no teto como antes.
-        const median = flickShot(release({ openSpeed: 32.1 }))
-        expect(median?.power).toBeGreaterThan(0.3)
-        expect(median?.power).toBeLessThan(0.5)
+    it('os estalos reais medidos (de 5 a 10 razão/s) caem no meio da escala', () => {
+        const weak = flickShot(release({ openSpeed: 5 }))?.power ?? 0
+        const strong = flickShot(release({ openSpeed: 10 }))?.power ?? 0
+        expect(weak).toBeGreaterThan(0.2)
+        expect(weak).toBeLessThan(0.35)
+        expect(strong).toBeGreaterThan(0.55)
+        expect(strong).toBeLessThan(0.7)
     })
 
     it('aponta na direção da mão', () => {
-        const shot = flickShot(
-            release({ openSpeed: Math.sqrt(10 * 200), direction: { x: 0.6, y: -0.8 } }),
-        )
-        expect(shot?.velocity.x).toBeCloseTo(420, 6)
-        expect(shot?.velocity.y).toBeCloseTo(-560, 6)
+        const shot = flickShot(release({ openSpeed: 20, direction: { x: 0, y: -1 } }))
+        expect(shot?.velocity.x).toBeCloseTo(0, 9)
+        expect(shot?.velocity.y).toBeCloseTo(-1100, 6)
     })
 
-    it('cancela quando a abertura não foi rápida, é fraca (abaixo de 2 razão/s) ou não há direção', () => {
-        expect(flickShot(release({ fast: false }))).toBeNull()
-        expect(flickShot(release({ openSpeed: 1.5 }))).toBeNull()
+    it('cancela quando o estalo é fraco, não foi sustentado ou não há direção', () => {
+        expect(flickShot(release({ verdict: 'weak' }))).toBeNull()
+        expect(flickShot(release({ verdict: 'unsustained' }))).toBeNull()
         expect(flickShot(release({ direction: null }))).toBeNull()
     })
 
     it('aceita parâmetros próprios', () => {
-        const shot = flickShot(release({ openSpeed: 10 }), {
-            powerLowSpeed: 5,
-            powerHighSpeed: 20,
+        const shot = flickShot(release({ openSpeed: 100 }), {
+            powerLowSpeed: 10,
+            powerHighSpeed: 1000,
             minShotSpeed: 100,
-            maxShotSpeed: 200,
+            maxShotSpeed: 500,
         })
-        // 10 fica no meio de 5 a 20 em escala logarítmica.
         expect(shot?.power).toBeCloseTo(0.5, 9)
-        expect(shot?.velocity.y).toBeCloseTo(-150, 6)
+        expect(shot?.velocity.x).toBeCloseTo(300, 6)
     })
 
-    it('os padrões: gatilho de 80 ms, corte fraco em 2 razão/s e escala de 10 a 200', () => {
-        expect(DEFAULT_FLICK.slowMs).toBe(80)
-        expect(DEFAULT_FLICK.minOpenSpeed).toBe(2)
-        expect(DEFAULT_FLICK.powerLowSpeed).toBe(10)
-        expect(DEFAULT_FLICK.powerHighSpeed).toBe(200)
-        expect(DEFAULT_FLICK).not.toHaveProperty('maxOpenSpeed')
+    it('os padrões: arma em 1,05, estica em 1,2 por 3 amostras, subida mínima de 0,4 e escala de 3 a 20', () => {
+        expect(DEFAULT_FLICK.armRatio).toBe(1.05)
+        expect(DEFAULT_FLICK.extendRatio).toBe(1.2)
+        expect(DEFAULT_FLICK.confirmSamples).toBe(3)
+        expect(DEFAULT_FLICK.minRise).toBe(0.4)
+        expect(DEFAULT_FLICK.powerLowSpeed).toBe(3)
+        expect(DEFAULT_FLICK.powerHighSpeed).toBe(20)
+        expect(DEFAULT_FLICK.minShotSpeed).toBe(300)
+        expect(DEFAULT_FLICK.maxShotSpeed).toBe(1100)
     })
 })
