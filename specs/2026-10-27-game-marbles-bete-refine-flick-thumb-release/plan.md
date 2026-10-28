@@ -2,7 +2,7 @@
 
 ## Resumo técnico
 
-No pacote puro `@guess-my-move/marbles`, o detector de estalo (`flick.ts`) mantém a medição da direção pela orientação da mão (`handDirection`, pulso → base do dedo médio, espelhada) e a medição da velocidade de abertura de pico, e troca a conversão de força de linear para logarítmica em `flickShot`: `power = clamp(ln(v / powerLowSpeed) / ln(powerHighSpeed / powerLowSpeed), 0, 1)` e `velocidade = minShotSpeed + power × (maxShotSpeed − minShotSpeed)`; o parâmetro linear `maxOpenSpeed` sai e entram `powerLowSpeed` (10) e `powerHighSpeed` (200), mantendo `minShotSpeed` (300) e `maxShotSpeed` (1100); `slowMs` cai de 300 para 80 ms e `minOpenSpeed` segue 2. A rodada (`round.ts`) no modo estalo arma ao fechar depois de vista aberta, publica a direção de prévia, e `observeFlick` dispara o tiro no gatilho rápido com direção medida convertendo a velocidade de abertura em força logarítmica; cancela no lento, no fraco e no sem direção, e zera o armado na perda da mão. No app web, o laço de quadros do `MarblesController` passa a processar o detector só em quadros novos da câmera (`requestVideoFrameCallback` quando disponível, recuo para `video.currentTime` quando não) e a contar os quadros novos por segundo; o painel mostra "Quadros novos da câmera/s" nos dois modos e, no estalo, Armado, a velocidade e a duração da abertura, a FORÇA do último estalo (0 a 100%) e o resultado (`disparado`, `lento demais`, `fraco demais`, `sem direção`); a tela mantém a seta de direção a partir da bolinha e atualiza o texto de orientação. O modo pinça só muda por não reprocessar quadros repetidos; a física, o campo, o alvo e o jogo de cartas não mudam. A spec de criação do estalo passa a `superseded` e esta é a fonte vigente completa do modo estalo.
+No pacote puro `@guess-my-move/marbles`, o detector de estalo (`flick.ts`) deixa de compor o detector de pinça (só reaproveita `pinchRatio`) e passa a modelar o polegar se esticando de uma vez: arma com a razão <= `armRatio` (1,05); quando a razão chega a >= `extendRatio` (1,2), procura o mínimo da razão nos últimos `baseWindowMs` (250 ms) como base da subida, exige `razão − base >= minRise` (0,4) senão veredito `weak`, e confirma o estalo só se as `confirmSamples` (3) primeiras amostras ficarem >= `extendRatio`, senão veredito `unsustained`. A força usa a escala logarítmica em `flickShot` com `powerLowSpeed` 3 e `powerHighSpeed` 20 (antes 10 e 200), mantendo `minShotSpeed` (300) e `maxShotSpeed` (1100); a velocidade de abertura é o pico da inclinação da razão da base à última amostra de confirmação. Saem `slowMs`, `minOpenSpeed`, `riseStartRatio` e a histerese 0,35/0,55 do estalo; entram `armRatio`, `extendRatio`, `confirmSamples`, `minRise` e `baseWindowMs` (`historyMs` 400 mantido). A direção vem da orientação da mão (`handDirection`, pulso → base do dedo médio, espelhada) medida na base. A rodada (`round.ts`) no modo estalo começa a mira assim que a mão está armada (sem exigir a pinça vista aberta antes); `observeFlick` dispara ao confirmar o estalo com direção medida convertendo a velocidade de abertura em força logarítmica; cancela no fraco, no não sustentado e no sem direção, e zera o armado na perda da mão. O modo pinça NÃO muda. No app web, o laço de quadros do `MarblesController` processa o detector só em quadros novos da câmera (`requestVideoFrameCallback` quando disponível, recuo para `video.currentTime` quando não) e conta os quadros novos por segundo (taxa real medida de cerca de 15/s); o painel mostra "Quadros novos da câmera/s" nos dois modos e, no estalo, Armado, a velocidade da abertura, a FORÇA do último estalo (0 a 100%) e o resultado (`disparado`, `fraco demais`, `não sustentado`, `sem direção`); a tela mantém a seta de direção a partir da bolinha e atualiza o texto de orientação. O replay das duas séries gravadas (`flick-replay.test.ts`, fixture em `flick-sessions.ts`) protege contra regressão. A física, o campo, o alvo e o jogo de cartas não mudam. A spec de criação do estalo passa a `superseded` e esta é a fonte vigente completa do modo estalo.
 
 ## Contexto técnico
 
@@ -20,7 +20,7 @@ No pacote puro `@guess-my-move/marbles`, o detector de estalo (`flick.ts`) mant�
 | I. Intenção antes da implementação          | PASS      | Gates 1 e 2 aprovados antes do código; a correção de rumo (CQ-001) atualizou `spec.md` antes dos artefatos downstream.                |
 | II. Uma fonte vigente                       | PASS      | `spec.md` é a única fonte vigente e a completa do modo estalo; a spec de criação passa a `superseded`.                                |
 | III. Rastreabilidade                        | PASS      | Cada FR tem tarefa formal em `tasks.md` e linha na matriz de requisitos.                                                              |
-| IV. Test-first e incremental                | PASS      | Cada tarefa comportamental começa por teste falhando; o detector de estalo compõe o de pinça sem alterá-lo.                           |
+| IV. Test-first e incremental                | PASS      | Cada tarefa comportamental começa por teste falhando; o detector de estalo reaproveita `pinchRatio` sem compor o detector de pinça.   |
 | V. Evidência honesta                        | PASS      | NFR-002 e H-01 a H-05 limitam afirmações; os limiares e a faixa da escala são palpites de uma sessão e a viabilidade é do maintainer. |
 | VI. Fronteira, privacidade e segredos       | PASS      | Sem rede para imagem (FR-008); sem chaves; o refino não introduz novo dado sensível.                                                  |
 | VII. Neutralidade e contexto sob demanda    | PASS      | Nenhuma dependência de provedor de agente; contexto técnico atualizado em `docs/`.                                                    |
@@ -28,26 +28,28 @@ No pacote puro `@guess-my-move/marbles`, o detector de estalo (`flick.ts`) mant�
 
 ## Pesquisa e decisões
 
-- `research.md` — distinção entre as mecânicas (pinça regula força pela mão, estalo pelo polegar); direção pela orientação da mão; força pela velocidade de abertura numa escala logarítmica (`powerLowSpeed` 10, `powerHighSpeed` 200), removendo o teto linear `maxOpenSpeed`; `slowMs` de 300 para 80 ms; processamento só de quadros novos (`requestVideoFrameCallback` com recuo para `currentTime`); e a decisão de marcar a spec de criação do estalo como `superseded`.
+- `research.md` — distinção entre as mecânicas (pinça regula força pela mão, estalo pelo polegar esticando de uma vez); direção pela orientação da mão medida na base da subida; força pela velocidade de abertura numa escala logarítmica de 3 a 20 razão/s (antes 10 a 200); gatilho por razão esticada sustentada (`armRatio` 1,05, `extendRatio` 1,2, `minRise` 0,4, `confirmSamples` 3, `baseWindowMs` 250 ms) em lugar do gatilho por duração curta; o detector deixa de compor o de pinça; a rodada arma sem exigir pinça aberta antes; processamento só de quadros novos (`requestVideoFrameCallback` com recuo para `currentTime`, taxa real medida de cerca de 15/s); e a decisão de marcar a spec de criação do estalo como `superseded`.
 
 ## Estrutura afetada
 
 ```text
 packages/marbles/
   src/
-    flick.ts                              trocar a conversão de força de linear para log em flickShot; remover maxOpenSpeed; adicionar powerLowSpeed/powerHighSpeed; slowMs 300->80; manter handDirection, direção e velocidade de abertura
-    round.ts                              observeFlick dispara no gatilho rápido com direção medida e força log; cancela lento/fraco/sem direção; snapshot com direção de prévia
-    index.ts                              ajustar a API exportada (sem maxOpenSpeed; com powerLowSpeed/powerHighSpeed)
-    pinch.ts, shot.ts, physics.ts         reusados, NÃO alterados em comportamento
+    flick.ts                              detector reescrito: arma por armRatio; candidato por extendRatio; confirma por confirmSamples; força log 3..20 em flickShot; remover slowMs/minOpenSpeed/riseStartRatio/histerese; adicionar armRatio/extendRatio/confirmSamples/minRise/baseWindowMs; manter handDirection e a direção na base
+    round.ts                              observeFlick arma sem exigir pinça aberta antes; dispara ao confirmar com direção medida e força log; cancela fraco/não sustentado/sem direção; snapshot com direção de prévia
+    index.ts                              ajustar a API exportada (sem maxOpenSpeed/slowMs/minOpenSpeed; com os novos parâmetros; FlickVerdict)
+    pinch.ts (pinchRatio), shot.ts, physics.ts   reusados, NÃO alterados em comportamento
   test/
-    flick.test.ts                         testar escala log (extremos e meio), gatilho 80 ms/2 razão/s, velocidade de pico, direção, sem-direção; remover o teste do teto linear
-    round.test.ts                         casos de observeFlick com força log e cancelamento por lento/fraco/sem direção; casos do modo pinça inalterados
+    flick.test.ts                         testar armar/candidato/confirmação, escala log 3..20 (extremos e meio), fraco, não sustentado, sem direção, perda da mão; sem slowMs/maxOpenSpeed
+    flick-replay.test.ts                  replay das duas séries gravadas (vídeo A: 1 confirmado por volta de 8,97 s; vídeo B: 6 estalos, forças 0,26 a 0,93)
+    fixtures/flick-sessions.ts            séries lidas do painel (só números)
+    round.test.ts                         casos de observeFlick com força log e cancelamento por fraco/não sustentado/sem direção; casos do modo pinça inalterados
 apps/web/
   src/marbles/
-    marblesController.ts                  laço por quadro novo (rVFC com recuo para currentTime); contagem de quadros novos/s; força e resultado do último estalo
+    marblesController.ts                  laço por quadro novo (rVFC com recuo para currentTime); contagem de quadros novos/s; força e resultado do último estalo (disparado/fraco demais/não sustentado/sem direção)
     fieldView.ts                          manter a seta de direção a partir da bolinha enquanto armado
-    MarblesScreen.tsx                     texto de orientação do estalo; rótulo alpha mantido; aria-live
-    DebugPanel.tsx                        linha "Quadros novos da câmera/s"; FORÇA do último estalo (0 a 100%); resultado (disparado/lento demais/fraco demais/sem direção)
+    MarblesScreen.tsx                     texto de orientação do estalo (esticar o polegar de uma vez); rótulo alpha mantido; aria-live
+    DebugPanel.tsx                        linha "Quadros novos da câmera/s"; FORÇA do último estalo (0 a 100%); resultado (disparado/fraco demais/não sustentado/sem direção)
   src/card/, src/round/ do jogo de cartas  NÃO alterados
 README.md, docs/development-context/architecture/architecture-guide.md, docs/product/PROJECT_SPEC.md   atualizar
 specs/2026-10-27-game-marbles-bete-build-flick-beta/spec.md                                 status superseded + related_specs + seção Substituição
@@ -59,47 +61,47 @@ specs/README.md                                                                 
 
 ### Componentes e responsabilidades
 
-- **`flick.ts`** (pacote): o detector de estalo mantém a histerese e a razão da pinça, mede a subida (duração e velocidade de pico) e a direção pela orientação da mão no início da abertura; `flickShot` converte a soltura em `{ velocity, power } | null` pela escala logarítmica (não linear), devolvendo `null` quando lento, fraco ou sem direção.
-- **`round.ts`** (pacote): `observeFlick(reading, nowMs)` arma ao fechar depois de vista aberta; enquanto armado, publica a direção de prévia no snapshot; ao abrir, dispara o tiro no gatilho rápido com direção medida, passando ao `fire` a velocidade da força log; cancela no lento, no fraco, no sem direção e na perda > 300 ms; qualquer perda zera o armado.
-- **`marblesController.ts`** (web): o laço agenda com `requestVideoFrameCallback` quando existe e recua para `requestAnimationFrame` + comparação de `currentTime` quando não; processa o detector só por quadro novo; conta os quadros novos por segundo (janela de 1 s) e expõe no snapshot; mapeia a força (0 a 100%) e o resultado do último estalo (`disparado`, `lento demais`, `fraco demais`, `sem direção`).
-- **tela** (web): `fieldView` desenha a seta de direção a partir da bolinha enquanto armado; `MarblesScreen` atualiza a orientação e mantém o rótulo alpha e o `aria-live`; `DebugPanel` ganha a taxa da câmera e a força do último estalo.
+- **`flick.ts`** (pacote): o detector de estalo reaproveita `pinchRatio` (sem compor o detector de pinça), arma com a razão <= `armRatio`, procura o mínimo da razão nos últimos `baseWindowMs` como base, confirma o estalo quando a razão fica >= `extendRatio` por `confirmSamples` amostras, e mede a direção pela orientação da mão na base; `flickShot` converte a soltura em `{ velocity, power } | null` pela escala logarítmica de 3 a 20, devolvendo `null` quando o veredito é `weak`, `unsustained` ou sem direção.
+- **`round.ts`** (pacote): `observeFlick(reading, nowMs)` começa a mira assim que a mão está armada (sem exigir pinça aberta antes); enquanto armado, publica a direção de prévia no snapshot; ao confirmar o estalo, dispara o tiro com direção medida, passando ao `fire` a velocidade da força log; cancela no fraco, no não sustentado, no sem direção e na perda > 300 ms; qualquer perda zera o armado. O modo pinça segue exigindo a pinça vista aberta antes.
+- **`marblesController.ts`** (web): o laço agenda com `requestVideoFrameCallback` quando existe e recua para `requestAnimationFrame` + comparação de `currentTime` quando não; processa o detector só por quadro novo; conta os quadros novos por segundo (janela de 1 s) e expõe no snapshot; mapeia a força (0 a 100%) e o resultado do último estalo (`disparado`, `fraco demais`, `não sustentado`, `sem direção`).
+- **tela** (web): `fieldView` desenha a seta de direção a partir da bolinha enquanto armado; `MarblesScreen` atualiza a orientação (esticar o polegar de uma vez) e mantém o rótulo alpha e o `aria-live`; `DebugPanel` ganha a taxa da câmera e a força do último estalo.
 
 ### Contratos e dados
 
-- A soltura do estalo mantém a direção, a classificação do gatilho (`fast`), a velocidade de abertura e a duração da subida.
-- `flickShot` passa a aplicar a escala logarítmica; `maxOpenSpeed` sai de `FlickConfig`, `powerLowSpeed` e `powerHighSpeed` entram; `minShotSpeed` e `maxShotSpeed` ficam.
+- A soltura do estalo (`FlickRelease`) tem `verdict` (`confirmed` | `weak` | `unsustained`), a velocidade de abertura de pico, a duração da subida (da base ao cruzamento) e a direção medida na base.
+- `flickShot` aplica a escala logarítmica de 3 a 20; `maxOpenSpeed`, `slowMs`, `minOpenSpeed` e `riseStartRatio` saem de `FlickConfig`, `armRatio`, `extendRatio`, `confirmSamples`, `minRise` e `baseWindowMs` entram; `powerLowSpeed`, `powerHighSpeed`, `minShotSpeed`, `maxShotSpeed` e `historyMs` ficam.
 - O tiro do modo estalo tem a direção da orientação da mão e a velocidade da força log; é passado ao `fire` da rodada.
-- `snapshot()` do controlador passa a expor os quadros novos da câmera por segundo, a FORÇA do último estalo (0 a 100%) e o resultado (`disparado`, `lento demais`, `fraco demais`, `sem direção`).
-- `DEFAULT_FLICK`: histerese herdada (0,35/0,55), `slowMs` 80 ms, `minOpenSpeed` 2 razão/s, `powerLowSpeed` 10, `powerHighSpeed` 200, `minShotSpeed` 300, `maxShotSpeed` 1100, perda 300 ms; sem `maxOpenSpeed`.
+- `snapshot()` do controlador expõe os quadros novos da câmera por segundo, a FORÇA do último estalo (0 a 100%) e o resultado (`disparado`, `fraco demais`, `não sustentado`, `sem direção`).
+- `DEFAULT_FLICK`: `armRatio` 1,05, `extendRatio` 1,2, `confirmSamples` 3, `minRise` 0,4, `baseWindowMs` 250 ms, `historyMs` 400 ms, `powerLowSpeed` 3, `powerHighSpeed` 20, `minShotSpeed` 300, `maxShotSpeed` 1100; perda 300 ms; sem `maxOpenSpeed`/`slowMs`/`minOpenSpeed`.
 
 ### Fluxo
 
 1. O laço processa o detector só quando a câmera entrega um quadro novo (rVFC, recuo para `currentTime`); o painel conta os quadros novos por segundo.
-2. No modo estalo, a pinça que fecha depois de vista aberta arma; enquanto armado, a direção pela orientação da mão é publicada e a tela mostra a seta a partir da bolinha.
-3. Ao abrir, o detector mede a duração e a velocidade de pico da subida e classifica o gatilho (rápido ou não).
-4. Gatilho rápido com direção medida dispara o tiro: direção da orientação da mão, velocidade pela força log da velocidade de abertura; a física avança; o primeiro contato leva a `hit`.
-5. Gatilho lento, fraco, sem direção ou perda da mão > 300 ms cancela; qualquer perda zera o armado. O painel registra a força e o resultado do último estalo.
+2. No modo estalo, a mão com a razão <= `armRatio` arma; enquanto armado, a direção pela orientação da mão é publicada e a tela mostra a seta a partir da bolinha.
+3. Quando a razão chega a >= `extendRatio`, o detector procura o mínimo recente (base) e abre um candidato; se a subida da base for < `minRise`, veredito `weak`.
+4. O candidato só confirma se a razão ficar >= `extendRatio` por `confirmSamples` amostras; ao confirmar com direção medida, dispara o tiro: direção da orientação da mão na base, velocidade pela força log da velocidade de abertura; a física avança; o primeiro contato leva a `hit`.
+5. Uma volta abaixo de `extendRatio` antes de confirmar dá `unsustained`; sem direção medida dá `sem direção`; a perda da mão > 300 ms cancela; qualquer perda zera o armado. O painel registra a força e o resultado do último estalo.
 
 ## Mapeamento de requisitos
 
-| Requisito | Abordagem                                                                                               | Evidência planejada                           |
-| --------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| FR-001    | `handDirection` (pulso → base do médio, espelhada) mantido; seta de direção a partir da bolinha         | `flick.test.ts`, `fieldView.test.ts`          |
-| FR-002    | `flickShot` com escala log (`powerLowSpeed`/`powerHighSpeed`); remover `maxOpenSpeed`                   | `flick.test.ts`                               |
-| FR-003    | Gatilho rápido (`slowMs` 80, `minOpenSpeed` 2) com direção dispara; cancela lento/fraco/sem direção     | `flick.test.ts`, `round.test.ts`              |
-| FR-004    | Perda > 300 ms cancela; qualquer perda zera o armado                                                    | `round.test.ts`                               |
-| FR-005    | Laço por quadro novo: rVFC quando disponível, recuo para `currentTime`                                  | testes do controlador em jsdom                |
-| FR-006    | Painel com "Quadros novos da câmera/s", força (0 a 100%) e resultado do último estalo                   | testes do controlador e do painel             |
-| FR-007    | Texto de orientação; rótulo alpha; seletor de modo; seta de direção a partir da bolinha                 | `MarblesScreen.test.tsx`, `fieldView.test.ts` |
-| FR-008    | Sem rede para imagem; aviso de privacidade                                                              | busca no código e inspeção de rede            |
-| FR-009    | Modo pinça (salvo quadros repetidos) e jogo de cartas sem mudança; pinça não usa velocidade de abertura | testes existentes verdes                      |
-| FR-010    | Atualizar README, guia de arquitetura, PROJECT_SPEC e catálogo; marcar a antiga superseded              | `yarn docs:format:check`, `yarn sdd:check`    |
+| Requisito | Abordagem                                                                                                                                | Evidência planejada                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| FR-001    | `handDirection` (pulso → base do médio, espelhada) na base da subida; seta de direção a partir da bolinha                                | `flick.test.ts`, `fieldView.test.ts`                     |
+| FR-002    | `flickShot` com escala log de 3 a 20 (`powerLowSpeed` 3/`powerHighSpeed` 20); remover `maxOpenSpeed`                                     | `flick.test.ts`                                          |
+| FR-003    | Gatilho por razão esticada sustentada (`armRatio`, `extendRatio`, `minRise`, `confirmSamples`); cancela fraco/não sustentado/sem direção | `flick.test.ts`, `round.test.ts`, `flick-replay.test.ts` |
+| FR-004    | Perda > 300 ms cancela; qualquer perda zera o armado                                                                                     | `round.test.ts`                                          |
+| FR-005    | Laço por quadro novo: rVFC quando disponível, recuo para `currentTime`                                                                   | testes do controlador em jsdom                           |
+| FR-006    | Painel com "Quadros novos da câmera/s", força (0 a 100%) e resultado do último estalo                                                    | testes do controlador e do painel                        |
+| FR-007    | Texto de orientação; rótulo alpha; seletor de modo; seta de direção a partir da bolinha                                                  | `MarblesScreen.test.tsx`, `fieldView.test.ts`            |
+| FR-008    | Sem rede para imagem; aviso de privacidade                                                                                               | busca no código e inspeção de rede                       |
+| FR-009    | Modo pinça (salvo quadros repetidos) e jogo de cartas sem mudança; pinça não usa velocidade de abertura                                  | testes existentes verdes                                 |
+| FR-010    | Atualizar README, guia de arquitetura, PROJECT_SPEC e catálogo; marcar a antiga superseded                                               | `yarn docs:format:check`, `yarn sdd:check`               |
 
 ## Estratégia test-first
 
-1. Escrever os testes do detector de estalo para a escala logarítmica (extremos `v<=10`→0, `v>=200`→1, e um ponto no meio), o gatilho (80 ms, 2 razão/s), a velocidade de pico, a direção e o cancelamento por sem-direção, e o teste que prova a remoção de `maxOpenSpeed`, confirmando a falha esperada;
-2. implementar em `flick.ts` (escala log em `flickShot`, `powerLowSpeed`/`powerHighSpeed`, remover `maxOpenSpeed`, `slowMs` 80), e confirmar verde;
-3. escrever os testes de `observeFlick` (disparo no gatilho rápido com direção e força log, cancelamento por lento/fraco/sem direção, perda da mão) sem alterar os casos do modo pinça, implementar na rodada, e confirmar verde;
+1. Escrever os testes do detector de estalo para o armar (`armRatio`), o candidato (`extendRatio`, `minRise`), a confirmação (`confirmSamples`) com os vereditos `weak` e `unsustained`, a escala logarítmica de 3 a 20 (extremos `v<=3`→0, `v>=20`→1, e um ponto no meio), a velocidade de pico, a direção na base, o cancelamento por sem-direção e a perda da mão, e o teste que prova a remoção de `maxOpenSpeed`/`slowMs`, confirmando a falha esperada; escrever também o replay das duas séries gravadas (`flick-replay.test.ts` com a fixture `flick-sessions.ts`);
+2. implementar em `flick.ts` (armar/candidato/confirmação, escala log 3 a 20 em `flickShot`, `armRatio`/`extendRatio`/`confirmSamples`/`minRise`/`baseWindowMs`, remover `maxOpenSpeed`/`slowMs`/`minOpenSpeed`/`riseStartRatio`), e confirmar verde;
+3. escrever os testes de `observeFlick` (disparo ao confirmar o estalo com direção e força log, cancelamento por fraco/não sustentado/sem direção, perda da mão, e armar sem exigir pinça aberta antes) sem alterar os casos do modo pinça, implementar na rodada, e confirmar verde;
 4. no `apps/web`, escrever os testes do controlador (laço por quadro novo com rVFC e recuo para `currentTime`, contagem de quadros novos/s, força e resultado) e da tela (orientação, seta de direção, linhas do painel), e implementar;
 5. verificar privacidade por busca no código e inspeção de rede no Chromium; confirmar os testes do modo pinça e do jogo de cartas sem mudança de comportamento;
 6. marcar a spec de criação do estalo como `superseded` e atualizar a documentação e o catálogo;
@@ -107,26 +109,26 @@ specs/README.md                                                                 
 
 ## Riscos, rollout e rollback
 
-| Risco                                                            | Mitigação                                                                | Rollback/contingência                       |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------- |
-| `slowMs` de 80 ms cancela estalos legítimos numa webcam lenta    | Limiar exposto no painel; resultado "lento demais"; é palpite (H-01)     | Elevar `slowMs`                             |
-| A faixa 10 a 200 da escala log não corresponder à força real     | Força mostrada em % no painel; é palpite da amplitude observada (H-02)   | Recalibrar `powerLowSpeed`/`powerHighSpeed` |
-| A direção pela orientação da mão não corresponder ao estalo real | Seta de prévia deixa ajustar a mão; declarado como incerteza (H-04)      | Avaliar alternativas de direção (futuro)    |
-| `requestVideoFrameCallback` ausente ou instável no navegador     | Recuo para a comparação de `currentTime`; testes em jsdom cobrem o recuo | Manter só o recuo por `currentTime`         |
-| A taxa real da câmera revelar poucas amostras por estalo         | Painel mostra a taxa real; lacuna declarada (H-03, H-05)                 | Registrar a lacuna na validação             |
+| Risco                                                                       | Mitigação                                                                                              | Rollback/contingência                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `armRatio`/`extendRatio`/`confirmSamples` não casam com outra mão ou webcam | Limiares expostos no painel; vereditos `fraco demais`/`não sustentado`; palpite de duas sessões (H-01) | Recalibrar os limiares                      |
+| A faixa 3 a 20 da escala log não corresponder à força real                  | Força mostrada em % no painel; é palpite da amplitude observada (H-02)                                 | Recalibrar `powerLowSpeed`/`powerHighSpeed` |
+| A direção pela orientação da mão não corresponder ao estalo real            | Seta de prévia deixa ajustar a mão; declarado como incerteza (H-04)                                    | Avaliar alternativas de direção (futuro)    |
+| `requestVideoFrameCallback` ausente ou instável no navegador                | Recuo para a comparação de `currentTime`; testes em jsdom cobrem o recuo                               | Manter só o recuo por `currentTime`         |
+| A taxa real da câmera revelar poucas amostras por estalo                    | Painel mostra a taxa real; lacuna declarada (H-03, H-05)                                               | Registrar a lacuna na validação             |
 
 ## Constitution Check — pós-design
 
-| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                  |
-| ------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
-| I. Intenção antes da implementação          | PASS      | O design não introduz comportamento fora de `spec.md`.                                                |
-| II. Uma fonte vigente                       | PASS      | O plano referencia IDs; a spec antiga vira `superseded` para não duplicar o comportamento vigente.    |
-| III. Rastreabilidade                        | PASS      | Matriz de requisitos acima e cobertura em `tasks.md`.                                                 |
-| IV. Test-first e incremental                | PASS      | Estratégia test-first; o detector de estalo compõe o de pinça; mudanças pequenas e reversíveis.       |
-| V. Evidência honesta                        | PASS      | Nenhum desempenho, correspondência de direção ou viabilidade afirmado; limiares e faixa são palpites. |
-| VI. Fronteira, privacidade e segredos       | PASS      | Processamento local; sem imagem em rede, log ou disco.                                                |
-| VII. Neutralidade e contexto sob demanda    | PASS      | Sem regra específica de provedor de agente.                                                           |
-| VIII. Clareza, preservação, operação segura | PASS      | UTF-8 e acentuação; modo pinça (salvo quadros repetidos) e arquivos fora do escopo preservados.       |
+| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                                         |
+| ------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| I. Intenção antes da implementação          | PASS      | O design não introduz comportamento fora de `spec.md`.                                                                       |
+| II. Uma fonte vigente                       | PASS      | O plano referencia IDs; a spec antiga vira `superseded` para não duplicar o comportamento vigente.                           |
+| III. Rastreabilidade                        | PASS      | Matriz de requisitos acima e cobertura em `tasks.md`.                                                                        |
+| IV. Test-first e incremental                | PASS      | Estratégia test-first; o detector de estalo reaproveita `pinchRatio` sem compor o de pinça; mudanças pequenas e reversíveis. |
+| V. Evidência honesta                        | PASS      | Nenhum desempenho, correspondência de direção ou viabilidade afirmado; limiares e faixa são palpites.                        |
+| VI. Fronteira, privacidade e segredos       | PASS      | Processamento local; sem imagem em rede, log ou disco.                                                                       |
+| VII. Neutralidade e contexto sob demanda    | PASS      | Sem regra específica de provedor de agente.                                                                                  |
+| VIII. Clareza, preservação, operação segura | PASS      | UTF-8 e acentuação; modo pinça (salvo quadros repetidos) e arquivos fora do escopo preservados.                              |
 
 ## Complexidade e desvios
 

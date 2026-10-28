@@ -92,13 +92,94 @@ As decisões CQ-001 a CQ-008 refletem o refino do modo estalo (alpha) do bete ap
 - **Alternativas rejeitadas:** Deixar a antiga `validated` e só relacionar (texto vigente contraditório); reescrever a antiga no lugar (apagaria o histórico da decisão de criação, que o Git deve preservar).
 - **Seções atualizadas em `spec.md`:** frontmatter (`supersedes`, `related_specs`), Resumo, FR-010; e a spec antiga (`status`, `related_specs`, seção `## Substituição`) e `specs/README.md`.
 
+### CQ-009 — Calibração do estalo com o 2º teste: armar pela razão baixa não serve para a pose real
+
+- **Data:** `2026-10-28`
+- **Impacto:** crítico
+- **Pergunta:** O gatilho desenhado em CQ-003 a CQ-005 (armar fechando a pinça vista
+  aberta antes, histerese 0,35/0,55, duração da subida <= `slowMs` 80 ms,
+  `minOpenSpeed` 2 razão/s, escala de força 10 a 200) sustenta a pose real do
+  estalo, à vista dos números do 2º teste do maintainer?
+- **Decisão:** NÃO; o gatilho foi recalibrado. Esta é uma **emenda da mesma
+  entrega** (issue #72, mesma branch `feat/72-refina-estalo`), não uma spec nova:
+  os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72
+  continuam valendo. O estalo passa a ser modelado como o polegar se **esticando
+  de uma vez** a partir da mão fechada com o polegar preso contra o indicador, e
+  NÃO mais como a pinça fechada que abre rápido. Mudanças:
+    - **Armar pela razão baixa, não pela histerese da pinça.** A mão arma com a
+      razão <= `armRatio` (1,05) e continua armada enquanto a razão fica abaixo de
+      `extendRatio`. O detector de estalo deixa de compor o detector de pinça (só
+      reaproveita `pinchRatio`); saem a histerese 0,35/0,55, `closeRatio`/`openRatio`,
+      `riseStartRatio` (0,4), `slowMs` (80) e `minOpenSpeed` (2).
+    - **Gatilho por razão esticada sustentada, não por duração curta.** Estando
+      armada, quando a razão chega a >= `extendRatio` (1,2) procura-se o mínimo da
+      razão nos últimos `baseWindowMs` (250 ms) — a base da subida. Se
+      `razão − base < minRise` (0,4), veredito `fraco demais` (`weak`), cancela. O
+      candidato só vira estalo se as `confirmSamples` (3) primeiras amostras seguidas
+      (cerca de 200 ms a 15 quadros/s) ficarem >= `extendRatio`; se alguma voltar
+      abaixo de 1,2, veredito `não sustentado` (`unsustained`), cancela e rearma se a
+      razão estiver <= `armRatio`. O resultado `lento demais` sai.
+    - **Força numa escala de 3 a 20 razão/s.** `powerLowSpeed` cai de 10 para 3 e
+      `powerHighSpeed` de 200 para 20; a velocidade de abertura é o pico da inclinação
+      da razão da base até a última amostra de confirmação. `minShotSpeed` (300) e
+      `maxShotSpeed` (1100) ficam. A bolinha só alcança o alvo com força >= cerca de
+      0,31 (velocidade de abertura >= cerca de 5,4 razão/s).
+    - **Rodada arma sem exigir pinça aberta antes** (`round.ts`): no modo estalo a
+      mira começa assim que a mão está armada, porque a pose de estalo fica armada
+      logo após o tiro e exigir "aberta antes" desperdiçava o primeiro estalo. O modo
+      pinça NÃO muda (continua exigindo a pinça vista aberta).
+- **Evidência (2º teste, lida quadro a quadro do painel; só números):** taxa real
+  da câmera de 14,6 a 15,3 quadros novos/s (cerca de 15, cerca de 67 ms entre
+  amostras), então o limite anterior de 80 ms só aceitava a subida de um quadro.
+  Vídeo A (cerca de 16 s): mão FECHADA em movimento, sem estalo, gerou 9 disparos
+  falsos no critério antigo — com o punho fechado a razão fica em 0,05 a 0,35
+  (armada pela pinça) e oscilações do rastreamento a fazem saltar para 0,8 a 1,4
+  num único quadro, que o antigo <= 0,35 depois >= 0,55 aceitava. Vídeo B (cerca de
+  37 s): seis estalos nítidos (cerca de 21,5; 25,8; 28,1; 30,3; 32,2 e 34,2 s) com
+  base 0,6 a 1,0 e pico 1,4 a 2,0, razão >= 1,2 por pelo menos 3 amostras
+  (cerca de 0,7 a 1 s); as tentativas anteriores a 12,1 s usavam outra pose
+  (polegar contra a ponta do indicador, razão 0,05 a 0,4, subindo no máximo a
+  cerca de 1,0) e NÃO disparam no novo critério. As velocidades de abertura dos
+  estalos reais (5 a 10 razão/s) são iguais ou menores que as dos disparos falsos
+  do vídeo A (6 a 19 razão/s): a velocidade NÃO separa estalo de oscilação; o que
+  separa é a razão ficar esticada por vários quadros. Os números foram conferidos
+  em 6 instantes contra leitura manual (0,59; 0,48; 0,79; 1,37; 1,17; 1,06, iguais);
+  a série lida está em `packages/marbles/test/fixtures/flick-sessions.ts`.
+- **Razão:** Com cerca de 15 quadros/s, um limite de duração de 80 ms só aceitava a
+  subida de um quadro, e a oscilação do rastreamento da mão fechada sobe num quadro
+  tão rápido quanto um estalo — a duração e a velocidade não separam os dois casos.
+  O que separa é a razão ficar ESTICADA por vários quadros, que a oscilação não
+  sustenta. Armar pela pinça fechada (razão <= 0,35) também não servia: na pose real
+  de estalo a razão fica em 0,6 a 1,0 (polegar preso contra o indicador dobrado) e
+  nunca chega a <= 0,35, então a mão nunca armava; armar com `armRatio` 1,05 cobre
+  essa pose. A escala 10 a 200 colocava toda a faixa real (5 a 10 razão/s) perto de
+  força 0; 3 a 20 espalha a faixa observada entre 0 e 1.
+- **Alternativas rejeitadas:** Manter o gatilho por duração curta (<= 80 ms) — a
+  cerca de 15 quadros/s não distingue estalo de oscilação de um quadro; manter o
+  armar pela pinça fechada (<= 0,35) — a pose real de estalo nunca arma; manter a
+  escala 10 a 200 — satura em força 0 para a faixa real de 5 a 10 razão/s.
+- **Limitação conhecida (replay das duas séries, `flick-replay.test.ts`):** no vídeo
+  A, dos 9 disparos falsos sobrou 1 confirmado (cerca de 8,97 s), que é a mão se
+  abrindo depois do punho — a razão sozinha não distingue abrir a mão de esticar o
+  polegar; não resolvido. No vídeo B, os seis estalos confirmam (cerca de 22, 26,
+  28, 30, 32 e 34 s), com forças de 0,26 a 0,93. Os limiares foram escolhidos
+  olhando DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s; o replay
+  protege contra regressão mas não prova o estalo com outra mão, outra webcam ou ao
+  vivo. Nenhum estalo ao vivo foi testado após esta mudança (Gate 3 / T014 segue
+  pendente do teste do maintainer).
+- **Seções atualizadas em `spec.md`:** frontmatter (`summary`, `updated_at`),
+  Resumo, Problema, Objetivos, Atores, US-001, US-002, US-004 e critérios, FR-001,
+  FR-002, FR-003, FR-004, FR-006, FR-007, edge cases, H-01, H-02, H-03, H-05,
+  critérios de sucesso e a tabela "Distinção entre os modos".
+
 ## Hipóteses remanescentes
 
-- Os limiares do gatilho (`slowMs` = 80 ms, `minOpenSpeed` = 2 razão/s, histerese herdada) são palpites de uma sessão de cerca de 40 s (H-01).
-- A faixa 10 a 200 da escala de força vem só da amplitude observada; não se sabe quais estalos foram fracos ou fortes (H-02).
-- A taxa de 86 quadros/s pode ser maior que a taxa real da câmera (H-03); o painel de quadros novos por segundo é o que mede isso.
+- Os limiares do gatilho (`armRatio` = 1,05; `extendRatio` = 1,2; `confirmSamples` = 3; `minRise` = 0,4; `baseWindowMs` = 250 ms) são palpites calibrados em DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s (H-01).
+- A faixa 3 a 20 da escala de força vem só da amplitude observada (estalos reais de 5 a 10 razão/s); não se sabe quais estalos foram fracos ou fortes (H-02).
+- A taxa real da câmera medida foi de cerca de 15 quadros/s (H-03); o painel de quadros novos por segundo é o que mede isso.
 - A direção pela orientação da mão pode não corresponder ao estalo real (H-04); mantida porque a seta de prévia deixa ajustar a mão; alternativas ficam como pergunta aberta.
-- Numa abertura de um quadro, a velocidade é limitada pela taxa de quadros (H-05); uma webcam de 30 quadros/s pode dar poucas amostras por estalo.
+- Numa subida de 1 a 2 quadros a velocidade de abertura é limitada pela taxa de quadros, não pela força do polegar; por isso o gatilho passou a exigir a razão esticada por vários quadros em vez de uma subida rápida (H-05).
+- Limitação conhecida não resolvida: a razão polegar-indicador sozinha não distingue abrir a mão de esticar o polegar, então uma mão fechada que se abre pode confirmar um estalo (1 caso no replay do vídeo A).
 
 ## Gate 1 — Clarificação aprovada
 
@@ -107,4 +188,4 @@ As decisões CQ-001 a CQ-008 refletem o refino do modo estalo (alpha) do bete ap
 - **Data:** `2026-10-27`
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** Mensagem do maintainer na sessão do dashboard em 2026-10-27 ("Tu precisa estruturar essas distinções e aplicar adequadamente a cada modo" e "pode fazer então, abre um PR") e issue 72 do repositório.
-- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.
+- **Observações:** Aprovação antecipada no chat, após a correção de rumo (CQ-001), a partir dos números do primeiro teste lidos no painel. A recalibração do 2º teste (CQ-009, 2026-10-28) é uma emenda da MESMA entrega do #72 (mesma branch); os Gates 1 e 2 já aprovados de forma antecipada pelo maintainer para o #72 permanecem válidos e não foram reabertos. O Gate 3 continua dependendo do teste manual do maintainer no Chrome desktop.

@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão.
-- Estado desta spec: `implementing`. TODAS as tarefas estão PENDENTES; o agente principal as marca conforme concluir, e a última (teste manual do maintainer e Gate 3) depende dele.
+- Estado desta spec: `implementing`. As Fases 1 a 4 (T001 a T012) descrevem a 1ª implementação deste refino e estão concluídas; a Fase 5 (T015 a T021) é a emenda da recalibração do 2º teste (CQ-009), também concluída, e SUBSTITUI os parâmetros/gatilho descritos nas Fases 1 a 3 (armar por `armRatio`, gatilho por razão esticada sustentada, escala 3 a 20, detector que não compõe o de pinça, rodada sem exigir pinça aberta antes). A validação (T013) foi reexecutada após a emenda. Só a última tarefa (T014, teste manual do maintainer e Gate 3) segue PENDENTE e depende do maintainer.
 
 ## Fase 1 — Detector de estalo: direção, gatilho e força logarítmica (packages/marbles)
 
@@ -31,6 +31,16 @@
 
 - [x] T012 [FR-010] Atualizar o `README.md` da raiz, o guia de arquitetura `docs/development-context/architecture/architecture-guide.md`, o `docs/product/PROJECT_SPEC.md` e o `specs/README.md` para descrever o estalo como mecânica distinta da pinça (direção pela orientação da mão, força logarítmica pela velocidade de abertura, gatilho rápido) e o processamento só de quadros novos; marcar a spec `2026-10-27-game-marbles-bete-build-flick-beta` como `superseded` (status, `related_specs`, seção `## Substituição`) e refletir no catálogo
 
+## Fase 5 — Recalibração do estalo com o 2º teste (emenda, CQ-009; já CONCLUÍDA)
+
+- [x] T015 [US-001] [US-002] [FR-002] [FR-003] Reescrever os testes (test-first) em `packages/marbles/test/flick.test.ts` para o detector novo: armar por `armRatio` (1,05); candidato por `extendRatio` (1,2) com base no mínimo dos últimos `baseWindowMs` (250 ms); veredito `weak` quando a subida da base < `minRise` (0,4); confirmação por `confirmSamples` (3) amostras e veredito `unsustained` quando a razão volta abaixo de 1,2 antes de confirmar; escala log de 3 a 20 razão/s (extremos e meio); sem `slowMs`/`minOpenSpeed`/`maxOpenSpeed`/histerese
+- [x] T016 [US-001] [US-002] [FR-002] [FR-003] Implementar o detector novo em `packages/marbles/src/flick.ts`: fases `idle`/`armed`/`pending`, `FlickVerdict` (`confirmed`/`weak`/`unsustained`), base, confirmação e `peakSlope`; reaproveitar `pinchRatio` sem compor o detector de pinça; ajustar `index.ts`, e confirmar verde
+- [x] T017 [SC-001] Criar a fixture `packages/marbles/test/fixtures/flick-sessions.ts` (as duas séries lidas do painel quadro a quadro, só números) e o replay `packages/marbles/test/flick-replay.test.ts`: vídeo A (mão fechada em movimento) sobra 1 confirmado por volta de 8,97 s e >= 5 não sustentados sem tiro; vídeo B seis estalos confirmados (cerca de 22, 26, 28, 30, 32 e 34 s) com forças diferentes (0,26 a 0,93)
+- [x] T018 [US-001] [FR-003] Ajustar `observeFlickReading` em `packages/marbles/src/round.ts` para armar a mira assim que a mão está armada, SEM exigir a pinça vista aberta antes (modo pinça inalterado), atualizar `packages/marbles/test/round.test.ts`, e confirmar verde
+- [x] T019 [US-003] [US-004] [FR-006] Atualizar o `MarblesController` e o painel em `apps/web/src/marbles` para o novo `FlickOutcome` (`disparado`, `fraco demais`, `não sustentado`, `sem direção`, sem `lento demais`) mapeado pelo `verdict`, com os testes do controlador e do painel, e confirmar verde
+- [x] T020 [US-004] [FR-007] Atualizar os textos de orientação do estalo em `apps/web/src/marbles/MarblesScreen.tsx` ("feche a mão com o polegar preso contra o indicador... estique o polegar de uma vez, deixando-o esticado"; "Armado! ... estique o polegar de uma vez, deixando-o esticado"), manter o rótulo "Estalo (alpha)", atualizar `MarblesScreen.test.tsx`, e confirmar verde
+- [x] T021 [FR-010] Reescrever a documentação (clarification CQ-009, `spec.md`, `plan.md`, `research.md`, `tasks.md`, `validation.md`, `README.md`, guia de arquitetura, `PROJECT_SPEC.md`, `specs/README.md`) para o detector novo, com a ressalva de sobreajuste e o Gate 3 mantido pendente
+
 ## Fase final — Convergência (PENDENTE)
 
 - [x] T013 [SC-001] [SC-005] [NFR-004] Executar `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`; quando o código estiver implementado, também `yarn check:all`, `yarn test:gates` e `yarn security:dependencies`, e registrar `validation.md`
@@ -49,7 +59,9 @@
 | FR-007    | T008, T009             | `MarblesScreen.test.tsx`, `fieldView.test.ts`   |
 | FR-008    | T010                   | busca no código e inspeção de rede              |
 | FR-009    | T011                   | testes do modo pinça e do jogo de cartas verdes |
-| FR-010    | T012                   | `yarn docs:format:check`, `yarn sdd:check`      |
+| FR-010    | T012, T021             | `yarn docs:format:check`, `yarn sdd:check`      |
+
+Emenda (CQ-009): T015/T016 cobrem FR-002 e FR-003 com o detector novo, T017 o replay (SC-001), T018 FR-003 (rodada sem exigir pinça aberta antes), T019 FR-006, T020 FR-007 e T021 FR-010.
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -58,13 +70,14 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - A Fase 1 (`flick.ts`) antes da Fase 2 (`round.ts`); ambas antes da Fase 3 web.
 - T012 pode andar em paralelo com T006 a T011.
 - T010 e T011 dependem de T009; T013 e T014 fecham a entrega.
+- Fase 5 (emenda CQ-009): T015/T016 antes de T017 e T018; T019 e T020 dependem de T016/T018; T013 foi reexecutada depois de T015 a T021.
 
 ## Análise de consistência
 
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação do maintainer wezercarvalho
-- **Data:** `2026-10-27`
-- **Lacunas:** nenhuma. Todos os dez FR têm tarefa formal; SC-001 é coberto pelos testes das Fases 1 a 3; SC-002 e SC-003 pela tarefa de evidência manual (T014); SC-004 pela T011 e SC-005 pela T013; NFR-001 pela pureza da direção, do classificador de gatilho e da escala logarítmica, NFR-002 pelos textos sem afirmação de desempenho ou de correspondência da direção, NFR-003 pelo `aria-live` e pelo `fieldset`, e NFR-004 pelos comandos finais. A spec está em `implementing`: todas as tarefas seguem pendentes, incluindo a implementação, a validação (T013) e o Gate 3 (T014).
+- **Data:** `2026-10-28`
+- **Lacunas:** nenhuma. Todos os dez FR têm tarefa formal; SC-001 é coberto pelos testes das Fases 1 a 3 e pelo replay da Fase 5 (T017); SC-002 e SC-003 pela tarefa de evidência manual (T014); SC-004 pela T011 e SC-005 pela T013; NFR-001 pela pureza da direção, do detector (armar/candidato/confirmação) e da escala logarítmica, NFR-002 pelos textos sem afirmação de desempenho ou de correspondência da direção e com a ressalva de sobreajuste, NFR-003 pelo `aria-live` e pelo `fieldset`, e NFR-004 pelos comandos finais. A emenda da recalibração (CQ-009, Fase 5) reescreveu o gatilho e a escala de força e foi aprovada como parte da mesma entrega do #72; só a T014 (Gate 3) segue pendente.
 
 ## Gate 2 — Plano e tarefas aprovados
 

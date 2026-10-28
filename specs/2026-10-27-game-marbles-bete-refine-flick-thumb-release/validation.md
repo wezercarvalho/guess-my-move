@@ -5,36 +5,38 @@
 - **Spec:** `spec.md`
 - **Status:** em andamento
 - **Constituição:** 1.0.0
-- **Data:** `2026-10-27`
+- **Data:** `2026-10-28`
 - **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho pendente (Gate 3)
 - **Commit:** a registrar no fechamento do Gate 3
 
 ## Resumo do resultado
 
-Implementação concluída e gates automatizados verdes; o Gate 3 e o teste manual do maintainer (T014) continuam pendentes. O estalo é uma mecânica distinta da pinça: a direção vem da orientação da mão (pulso à base do dedo médio, espelhada, medida no início da abertura) e a força, da velocidade com que o polegar solta, numa escala logarítmica de 10 a 200 razão/s (antes linear de 2 a 8, que saturava). O gatilho rápido caiu de 300 para 80 ms. A pinça não mudou: direção e força vêm do arrasto. O laço processa o detector só por quadro novo da câmera (`requestVideoFrameCallback`, com recuo para `currentTime`) e o painel mostra os quadros novos da câmera por segundo e, no estalo, a força do último estalo. Os testes cobrem tudo sem câmera; no Chromium da VPS com câmera simulada o caminho `requestVideoFrameCallback` funcionou. Nenhum estalo foi exercitado com mão nesta versão; a viabilidade e a correspondência da direção ao estalo real continuam desconhecidas.
+Implementação concluída e gates automatizados verdes; o Gate 3 e o teste manual do maintainer (T014) continuam pendentes. Após o 2º teste do maintainer, o detector foi recalibrado (CQ-009): o estalo é o polegar se esticando de uma vez a partir da mão fechada com o polegar preso contra o indicador, não a pinça fechada que abre rápido. A mão arma com a razão <= `armRatio` (1,05); o estalo dispara quando a razão chega a >= `extendRatio` (1,2), sobe pelo menos `minRise` (0,4) acima do mínimo dos últimos `baseWindowMs` (250 ms) e fica esticada por `confirmSamples` (3) amostras; `fraco demais` (subida pequena), `não sustentado` (volta antes de confirmar) e `sem direção` cancelam. A direção vem da orientação da mão (pulso à base do dedo médio, espelhada, medida na base da subida) e a força, da velocidade de abertura, numa escala logarítmica de 3 a 20 razão/s (antes 10 a 200, que colocava a faixa real de 5 a 10 perto de força 0). Saíram `slowMs`, `minOpenSpeed`, `riseStartRatio` e a histerese da pinça; o detector deixou de compor o de pinça. A pinça não mudou: direção e força vêm do arrasto, e continua exigindo a pinça vista aberta antes. O laço processa o detector só por quadro novo da câmera (`requestVideoFrameCallback`, com recuo para `currentTime`), e a taxa real medida foi de cerca de 15 quadros/s. O replay das duas séries gravadas (`flick-replay.test.ts`) protege contra regressão. **Nenhum estalo foi exercitado com mão viva nesta recalibração**; a viabilidade, a correspondência da direção ao estalo real e o comportamento com outra mão ou webcam continuam desconhecidos (sobreajuste a duas sessões de uma pessoa).
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 13 (T001 a T013)
+- **Concluídas:** 20 (T001 a T013 e a emenda T015 a T021)
 - **Pendentes:** 1 (T014, teste manual do maintainer e Gate 3)
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
 
-| Requisito | Tarefas    | Evidência                                                                                                                                                             | Resultado |
-| --------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| FR-001    | T001, T003 | `flick.test.ts` (orientação da mão, direção no início da subida) e `round.test.ts` (prévia acompanha a mão; arrasto não muda a velocidade do estalo)                  | PASS      |
-| FR-002    | T001, T002 | `flick.test.ts`: escala logarítmica de 10 a 200 razão/s para 300 a 1100 unid/s, extremos, média geométrica no meio, leituras reais de 9,1 a 199, sem `maxOpenSpeed`   | PASS      |
-| FR-003    | T001, T004 | `flick.test.ts` (37 ms rápido, 80 ms limite, 81 e 103 ms lentos, fraco) e `round.test.ts` (dispara, cancela por lento, fraco e sem direção)                           | PASS      |
-| FR-004    | T004, T005 | `round.test.ts` (perda da mão por mais e menos de 300 ms; detector que zera o armado) e `flick.test.ts` (perder a mão zera o armado)                                  | PASS      |
-| FR-005    | T006, T007 | `marblesController.test.ts`: só processa por quadro novo com e sem `requestVideoFrameCallback`; cancela a espera ao parar                                             | PASS      |
-| FR-006    | T007, T009 | `marblesController.test.ts` e `MarblesScreen.test.tsx`: taxa da câmera nos dois modos; força e resultado (`disparado`, `lento demais`, `fraco demais`, `sem direção`) | PASS      |
-| FR-007    | T008, T009 | `MarblesScreen.test.tsx` (orientação, rótulo alpha, seletor) e `fieldView.test.ts` (seta de direção, sem elástico da pinça)                                           | PASS      |
-| FR-008    | T010       | busca no código sem `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.` nem persistência; Chromium: 52 requisições, todas GET para a própria origem                   | PASS      |
-| FR-009    | T011       | testes da pinça em `packages/marbles` e do jogo de cartas passam (`yarn check:all`); a pinça segue regulada pelo arrasto                                              | PASS      |
-| FR-010    | T012       | README, guia de arquitetura, `PROJECT_SPEC.md` e `specs/README.md` atualizados; `yarn docs:format:check` e `yarn sdd:check`                                           | PASS      |
+| Requisito | Tarefas          | Evidência                                                                                                                                                                                                                                | Resultado |
+| --------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| FR-001    | T001, T003       | `flick.test.ts` (orientação da mão, direção no início da subida) e `round.test.ts` (prévia acompanha a mão; arrasto não muda a velocidade do estalo)                                                                                     | PASS      |
+| FR-002    | T015, T016       | `flick.test.ts`: escala logarítmica de 3 a 20 razão/s para 300 a 1100 unid/s, extremos, média geométrica no meio, sem `maxOpenSpeed`                                                                                                     | PASS      |
+| FR-003    | T015, T016, T018 | `flick.test.ts` (armar por `armRatio`; candidato por `extendRatio`; `weak` por subida < `minRise`; `unsustained` por volta antes de confirmar) e `round.test.ts` (dispara ao confirmar; cancela por fraco, não sustentado e sem direção) | PASS      |
+| FR-004    | T004, T016       | `round.test.ts` (perda da mão por mais e menos de 300 ms; detector que zera o armado) e `flick.test.ts` (perder a mão zera o armado)                                                                                                     | PASS      |
+| FR-005    | T006, T007       | `marblesController.test.ts`: só processa por quadro novo com e sem `requestVideoFrameCallback`; cancela a espera ao parar                                                                                                                | PASS      |
+| FR-006    | T019             | `marblesController.test.ts` e `MarblesScreen.test.tsx`: taxa da câmera nos dois modos; força e resultado (`disparado`, `fraco demais`, `não sustentado`, `sem direção`)                                                                  | PASS      |
+| FR-007    | T008, T020       | `MarblesScreen.test.tsx` (orientação "estique o polegar de uma vez", rótulo alpha, seletor) e `fieldView.test.ts` (seta de direção, sem elástico da pinça)                                                                               | PASS      |
+| FR-008    | T010             | busca no código sem `fetch`, `XMLHttpRequest`, `sendBeacon`, `console.` nem persistência; Chromium: 52 requisições, todas GET para a própria origem                                                                                      | PASS      |
+| FR-009    | T011, T018       | testes da pinça em `packages/marbles` e do jogo de cartas passam (`yarn check:all`); a pinça segue regulada pelo arrasto e exigindo a pinça vista aberta antes                                                                           | PASS      |
+| FR-010    | T012, T021       | README, guia de arquitetura, `PROJECT_SPEC.md` e `specs/README.md` atualizados; `yarn docs:format:check` e `yarn sdd:check`                                                                                                              | PASS      |
 
-NFR-002 segue em aberto até o teste do maintainer: os textos não afirmam desempenho nem viabilidade e declaram os limiares como palpites.
+O replay das duas séries gravadas (T017, `flick-replay.test.ts`) é a evidência de regressão: vídeo A (mão fechada em movimento) deixa 1 confirmado (cerca de 8,97 s) e >= 5 não sustentados sem tiro; vídeo B confirma os seis estalos (cerca de 22, 26, 28, 30, 32 e 34 s) com forças de 0,26 a 0,93.
+
+NFR-002 segue em aberto até o teste do maintainer: os textos não afirmam desempenho nem viabilidade e declaram os limiares (faixa 3 a 20, `armRatio`/`extendRatio`/`confirmSamples`) como palpites ajustados a duas sessões de uma pessoa (sobreajuste).
 
 ## Histórias e critérios de aceitação
 
@@ -64,8 +66,10 @@ Critérios que dependem de mão real (SC-002, SC-003) e da câmera do maintainer
 - **Protocolo e amostra:** a página `marbles.html?mode=estalo&delegate=cpu` no Chromium headless de uma VPS compartilhada, com a câmera simulada pelo dispositivo falso do Chromium (`--use-fake-device-for-media-stream`, sem mão no quadro). Uma execução de cerca de 9 s.
 - **Taxa da câmera:** o painel mostrou 18,3 quadros novos da câmera por segundo, com `requestVideoFrameCallback` disponível e 148 quadros processados no total; o dispositivo falso é nominalmente de 20 quadros por segundo. Isto só mostra que a contagem funciona; não é a taxa da webcam do maintainer.
 - **Rede:** 52 requisições, todas GET para a própria origem, nenhuma com corpo e nenhuma externa.
-- **Leitura de origem do refino:** a sessão de teste do maintainer (cerca de 40 s, Chrome desktop, câmera real) registrou 15 aberturas, velocidade de abertura de 9,1 a 199 razão/s, subida de 11 a 13 ms em 8 delas, 103 e 192 ms em duas, cerca de 86 quadros processados por segundo e latência mediana de 9 ms; 8 tiros e nenhum acerto. Foi lida do painel em vídeo de tela, que não faz parte do repositório.
-- **Limitações:** nenhuma medição do estalo com a escala logarítmica de força; a taxa real da webcam do maintainer continua desconhecida; os limiares são palpites de uma única sessão.
+- **Leitura de origem do refino (1º teste):** a 1ª sessão de teste do maintainer (cerca de 40 s, Chrome desktop, câmera real) registrou 15 aberturas, velocidade de abertura de 9,1 a 199 razão/s, subida de 11 a 13 ms em 8 delas, 103 e 192 ms em duas, cerca de 86 quadros processados por segundo e latência mediana de 9 ms; 8 tiros e nenhum acerto. Foi lida do painel em vídeo de tela, que não faz parte do repositório.
+- **Rodada de calibração (2º teste, origem da recalibração CQ-009; só números, lidos quadro a quadro do painel):** a taxa real da webcam foi de 14,6 a 15,3 quadros novos/s (cerca de 15; cerca de 67 ms entre amostras). Vídeo A (cerca de 16 s, mão FECHADA em movimento, sem estalo): 9 disparos no critério antigo — razão em 0,05 a 0,35 com saltos para 0,8 a 1,4 num quadro; velocidade de abertura 6 a 19 razão/s; subida de um quadro (55 a 73 ms). Vídeo B (cerca de 37 s): das tentativas anteriores a 12,1 s (polegar contra a ponta do indicador, razão 0,05 a 0,4, subindo no máximo a cerca de 1,0) nenhuma dispara no novo critério; dos 12,1 s ao fim a razão ficou em 0,6 a 1,0 subindo para 1,2 a 2,0; seis estalos nítidos em torno de 21,5; 25,8; 28,1; 30,3; 32,2 e 34,2 s, com base 0,6 a 1,0, pico 1,4 a 2,0, razão >= 1,2 por pelo menos 3 amostras (cerca de 0,7 a 1 s) e velocidade de abertura de 5 a 10 razão/s. Os números foram conferidos em 6 instantes contra leitura manual (0,59; 0,48; 0,79; 1,37; 1,17; 1,06, iguais). A série está na fixture `packages/marbles/test/fixtures/flick-sessions.ts`. Os vídeos não fazem parte do repositório.
+- **Replay (regressão, sem câmera):** vídeo A deixa 1 estalo confirmado (cerca de 8,97 s, a mão se abrindo depois do punho) e os demais como não sustentados sem tiro; vídeo B confirma os seis estalos (cerca de 22, 26, 28, 30, 32 e 34 s) com forças de 0,26 a 0,93.
+- **Limitações:** nenhuma medição ao vivo do estalo com o detector recalibrado; o estalo não foi exercitado com mão viva após a recalibração; os limiares são palpites ajustados a DUAS sessões de UMA pessoa e UMA webcam de cerca de 15 quadros/s (sobreajuste), e a razão sozinha não distingue abrir a mão de esticar o polegar.
 
 ## Validações estruturais e documentais
 
@@ -83,19 +87,20 @@ Critérios que dependem de mão real (SC-002, SC-003) e da câmera do maintainer
 
 ## Convergência
 
-- **Divergências encontradas:** a primeira versão desta entrega tirou do estalo a direção pela mão e a força pelo polegar e o deixou quase igual à pinça; o maintainer apontou que a força do estalo é regulada pelo polegar e que a mecânica é distinta. A spec foi reescrita (CQ-001) e a pasta renomeada de `refine-flick-relative-aim` para `refine-flick-thumb-release` antes do merge. A causa do problema original era a escala linear de 2 a 8 razão/s, que saturava; o maintainer confirmou que fez estalos de forças diferentes de propósito. A hipótese de que o laço relia quadros repetidos da câmera continua sem confirmação.
-- **Artefatos reabertos:** `spec.md`, `clarification.md`, `research.md`, `plan.md`, `tasks.md` e `checklists/specification.md`.
-- **Reexecuções:** os gates completos rodaram depois da reescrita e das últimas mudanças de código.
+- **Divergências encontradas:** a primeira versão desta entrega tirou do estalo a direção pela mão e a força pelo polegar e o deixou quase igual à pinça; o maintainer apontou que a força do estalo é regulada pelo polegar e que a mecânica é distinta. A spec foi reescrita (CQ-001) e a pasta renomeada de `refine-flick-relative-aim` para `refine-flick-thumb-release`. A 1ª implementação armava pela pinça fechada e disparava por uma subida curta (<= 80 ms) com força em escala 10 a 200. O 2º teste mostrou que, a cerca de 15 quadros/s, isso disparava falso com a mão fechada em movimento e nunca armava a pose real do estalo (polegar preso contra o indicador, razão 0,6 a 1,0). O detector foi recalibrado (CQ-009): armar por `armRatio`, gatilho por razão esticada sustentada (`extendRatio`/`minRise`/`confirmSamples`), escala 3 a 20, sem compor o detector de pinça, e a rodada arma sem exigir a pinça vista aberta antes. A hipótese de reprocessamento de quadros (H-03) foi confirmada: a taxa real é de cerca de 15/s.
+- **Artefatos reabertos:** `spec.md`, `clarification.md` (CQ-009), `research.md`, `plan.md`, `tasks.md` (Fase 5) e `validation.md`.
+- **Reexecuções:** os gates automatizados (`yarn docs:format:check`, `yarn sdd:check`, `yarn test:sdd`) rodaram de novo depois da recalibração e da atualização dos documentos.
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                            | Impacto                                                         | Responsável | Aceite   |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------- | -------- |
-| Estalo com direção pela mão e força logarítmica não testado com a mão      | Viabilidade da issue #72 desconhecida                           | maintainer  | pendente |
-| `slowMs` de 80 ms e `minOpenSpeed` de 2 razão/s são palpites de uma sessão | Pode cancelar estalos legítimos ou passar aberturas lentas      | maintainer  | pendente |
-| A faixa 10 a 200 da escala de força vem só da amplitude observada          | A força pode não corresponder ao esforço real do polegar (H-02) | maintainer  | pendente |
-| A direção pela orientação da mão pode não corresponder ao estalo real      | O tiro pode não ir aonde o jogador quer (H-04)                  | maintainer  | pendente |
-| Taxa real da câmera ainda não medida                                       | Hipótese de reprocessamento (H-03) aberta                       | maintainer  | pendente |
+| Limitação/risco                                                                      | Impacto                                                                                 | Responsável | Aceite   |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ----------- | -------- |
+| Estalo com direção pela mão e força logarítmica não testado com a mão                | Viabilidade da issue #72 desconhecida                                                   | maintainer  | pendente |
+| `armRatio`/`extendRatio`/`confirmSamples` são palpites de duas sessões de uma pessoa | Pode cancelar estalos legítimos ou passar oscilações com outra mão/webcam (sobreajuste) | maintainer  | pendente |
+| A faixa 3 a 20 da escala de força vem só da amplitude observada                      | A força pode não corresponder ao esforço real do polegar (H-02)                         | maintainer  | pendente |
+| A direção pela orientação da mão pode não corresponder ao estalo real                | O tiro pode não ir aonde o jogador quer (H-04)                                          | maintainer  | pendente |
+| A razão sozinha não distingue abrir a mão de esticar o polegar                       | Uma mão fechada que se abre pode confirmar um estalo falso (vídeo A)                    | maintainer  | pendente |
+| Comportamento com outra webcam (taxa real medida de cerca de 15/s aqui)              | Número de amostras por estalo muda com a taxa de quadros (H-05)                         | maintainer  | pendente |
 
 ## Gate 3 — Convergência validada
 
