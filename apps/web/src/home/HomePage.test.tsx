@@ -8,7 +8,7 @@ describe('HomePage', () => {
         render(<HomePage />)
         expect(screen.getByRole('heading', { level: 1, name: /guess my move/i })).toBeInTheDocument()
         const cards = screen.getAllByRole('article')
-        expect(cards).toHaveLength(2)
+        expect(cards).toHaveLength(3)
     })
 
     it('o card do jogo de cartas leva a cards.html', () => {
@@ -28,6 +28,16 @@ describe('HomePage', () => {
         expect(within(card).getByRole('link', { name: /jogar/i })).toHaveAttribute(
             'href',
             'marbles.html',
+        )
+    })
+
+    it('o card do Arranha-Teia leva a swing.html', () => {
+        render(<HomePage />)
+        const card = screen.getByRole('article', { name: /arranha-teia/i })
+        expect(within(card).getByText(/eu te amo/i)).toBeInTheDocument()
+        expect(within(card).getByRole('link', { name: /jogar/i })).toHaveAttribute(
+            'href',
+            'swing.html',
         )
     })
 

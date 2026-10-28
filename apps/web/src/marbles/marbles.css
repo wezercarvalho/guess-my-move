@@ -1,10 +1,4 @@
 /* Estilos exclusivos do bete; tokens e componentes vêm de ../design e o restante de ../styles.css. */
-.app.app-wide {
-    max-width: 1360px;
-    padding: var(--space-4) var(--space-5) var(--space-7);
-    gap: var(--space-4);
-}
-
 .marbles-screen {
     display: flex;
     flex-direction: column;

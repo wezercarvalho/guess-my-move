@@ -1,0 +1,167 @@
+/* Estilos exclusivos do Arranha-Teia; tokens e componentes vêm de ../design e o restante de ../styles.css. */
+.swing-screen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.swing-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.swing-header h1 {
+    margin: 0;
+    font-size: var(--size-title);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
+}
+
+.swing-lead {
+    margin: 0;
+    color: var(--muted);
+}
+
+/* Cidade grande à esquerda; coluna estreita à direita com a câmera pequena e o guia. */
+.swing-layout {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+@media (min-width: 960px) {
+    .swing-layout {
+        grid-template-columns: minmax(0, 1fr) 17.5rem;
+    }
+}
+
+.swing-stage-panel {
+    gap: var(--space-3);
+}
+
+.swing-stage {
+    position: relative;
+    /* Cabe na janela: a largura é limitada pela altura disponível, mantendo 16:9. */
+    width: min(100%, calc((100dvh - 14rem) * 16 / 9));
+    min-width: min(100%, 20rem);
+    align-self: center;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line);
+    background: #14110f;
+    overflow: hidden;
+}
+
+.swing-scene,
+.swing-effects {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.swing-effects {
+    pointer-events: none;
+}
+
+.swing-hud {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
+    display: flex;
+    gap: var(--space-5);
+    margin: 0;
+    padding: var(--space-2) var(--space-4);
+    background: rgb(9 9 9 / 60%);
+}
+
+.swing-hud dt {
+    color: var(--gold-bright);
+    font-size: var(--size-small);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+}
+
+.swing-hud dd {
+    margin: 0;
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: var(--size-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.swing-credit {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--size-small);
+}
+
+.swing-round {
+    gap: var(--space-3);
+}
+
+.swing-counter {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--size-heading);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: tabular-nums;
+}
+
+.swing-distance,
+.swing-keys {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--size-small);
+}
+
+.swing-round .round-status {
+    margin: 0;
+    color: var(--paper);
+    font-size: var(--size-small);
+}
+
+.swing-round .ds-button {
+    align-self: flex-start;
+}
+
+.swing-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+}
+
+/* Câmera pequena: o painel compartilhado com os outros jogos é reduzido só aqui, por CSS. */
+.swing-side .camera-panel {
+    padding: var(--space-4);
+    gap: var(--space-3);
+    border: 1px solid var(--line);
+}
+
+.swing-side .camera-panel h2 {
+    font-size: var(--size-body);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    font-weight: var(--weight-semibold);
+    color: var(--gold-bright);
+}
+
+.swing-side .camera-preview-wrapper {
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+}
+
+.swing-side .camera-preview {
+    max-height: none;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 959px) {
+    .swing-side {
+        max-width: 18rem;
+    }
+}

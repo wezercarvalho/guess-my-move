@@ -23,9 +23,16 @@ test('marbles.html carrega o bete e volta ao menu', () => {
     assert.match(page, /href="\.\/"/)
 })
 
+test('swing.html carrega o Arranha-Teia e volta ao menu', () => {
+    const page = read('swing.html')
+    assert.match(page, /\/src\/swing\/main\.tsx/)
+    assert.match(page, /href="\.\/"/)
+})
+
 test('o Vite tem uma entrada para cada página', () => {
     const config = read('vite.config.ts')
     assert.match(config, /main: 'index\.html'/)
     assert.match(config, /cards: 'cards\.html'/)
     assert.match(config, /marbles: 'marbles\.html'/)
+    assert.match(config, /swing: 'swing\.html'/)
 })

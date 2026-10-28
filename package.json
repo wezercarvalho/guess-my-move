@@ -10,7 +10,8 @@
     "workspaces": [
         "apps/web",
         "packages/core",
-        "packages/marbles"
+        "packages/marbles",
+        "packages/swing"
     ],
     "scripts": {
         "typecheck": "yarn workspaces foreach --all --topological run typecheck",
