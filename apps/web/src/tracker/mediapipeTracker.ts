@@ -1,4 +1,4 @@
-import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision'
+import { FilesetResolver, GestureRecognizer, HandLandmarker } from '@mediapipe/tasks-vision'
 
 import {
     type HandTracker,
@@ -6,12 +6,18 @@ import {
     type TrackerDelegate,
 } from './handTracker.js'
 
-/** Parte do `HandLandmarker` usada aqui; permite simular o MediaPipe nos testes. */
+/**
+ * Parte do `HandLandmarker` (ou do `GestureRecognizer`, que devolve também os gestos)
+ * usada aqui; permite simular o MediaPipe nos testes.
+ */
 export interface HandLandmarkerLike {
     detectForVideo(
         video: HTMLVideoElement,
         timestampMs: number,
-    ): { landmarks: readonly (readonly { x: number; y: number }[])[] }
+    ): {
+        landmarks: readonly (readonly { x: number; y: number }[])[]
+        gestures?: readonly (readonly { categoryName: string; score: number }[])[]
+    }
     close(): void
 }
 
@@ -24,6 +30,7 @@ export interface MediaPipeLoader {
 /** Caminhos servidos pelo próprio app (preparados por `yarn prepare:assets`). */
 const WASM_PATH = `${import.meta.env.BASE_URL}mediapipe/wasm`
 const MODEL_PATH = `${import.meta.env.BASE_URL}mediapipe/hand_landmarker.task`
+const GESTURE_MODEL_PATH = `${import.meta.env.BASE_URL}mediapipe/gesture_recognizer.task`
 
 /** Carregador real: arquivos locais do app, uma mão, modo de vídeo. */
 export const realMediaPipeLoader: MediaPipeLoader = {
@@ -37,6 +44,32 @@ export const realMediaPipeLoader: MediaPipeLoader = {
                 numHands: 1,
             },
         ),
+}
+
+/**
+ * Carregador do reconhecedor de gestos (jogo das bolinhas): os mesmos landmarks do
+ * `HandLandmarker`, mais o gesto pronto (punho, palma aberta, polegar para cima…).
+ * O jogo de cartas segue com o `realMediaPipeLoader`.
+ */
+export const realGestureLoader: MediaPipeLoader = {
+    load: () => FilesetResolver.forVisionTasks(WASM_PATH),
+    create: async (fileset, delegate) => {
+        const recognizer = await GestureRecognizer.createFromOptions(
+            fileset as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
+            {
+                baseOptions: { modelAssetPath: GESTURE_MODEL_PATH, delegate },
+                runningMode: 'VIDEO',
+                numHands: 1,
+            },
+        )
+        return {
+            detectForVideo: (video, timestampMs) =>
+                recognizer.recognizeForVideo(video, timestampMs),
+            close: () => {
+                recognizer.close()
+            },
+        }
+    },
 }
 
 /** Preferência de delegate: automática (GPU com recuo para CPU) ou forçada. */
@@ -90,8 +123,13 @@ export async function createMediaPipeHandTracker(
     return {
         delegate,
         detect(video, timestampMs): TrackedHand | null {
-            const first = active.detectForVideo(video, timestampMs).landmarks[0]
-            return first ? { landmarks: first } : null
+            const result = active.detectForVideo(video, timestampMs)
+            const first = result.landmarks[0]
+            if (!first) return null
+            const top = result.gestures?.[0]?.[0]
+            return top
+                ? { landmarks: first, gesture: { name: top.categoryName, score: top.score } }
+                : { landmarks: first }
         },
         close() {
             active.close()

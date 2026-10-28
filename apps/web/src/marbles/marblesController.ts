@@ -3,7 +3,10 @@ import {
     type BeteSnapshot,
     DEFAULT_PHYSICS,
     type FlickDetector,
+    type FlickPhase,
+    type FlickReading,
     type FlickRelease,
+    type HandGesture,
     type PinchDetector,
     type PinchReading,
     type Vec,
@@ -32,12 +35,18 @@ export function modeFromSearch(search: string): MarblesMode {
 }
 
 /** O que aconteceu no último estalo, para a depuração. */
-export type FlickOutcome = 'disparado' | 'fraco demais' | 'não sustentado' | 'sem direção'
+export type FlickOutcome =
+    | 'disparado'
+    | 'fraco demais'
+    | 'não sustentado'
+    | 'mão aberta'
+    | 'sem direção'
 
 function flickOutcome(release: FlickRelease): FlickOutcome {
     if (flickShot(release)) return 'disparado'
     if (release.verdict === 'weak') return 'fraco demais'
     if (release.verdict === 'unsustained') return 'não sustentado'
+    if (release.verdict === 'open_hand') return 'mão aberta'
     return 'sem direção'
 }
 
@@ -72,6 +81,10 @@ export interface MarblesDebug {
     /** Números do estalo (só têm sentido no modo estalo). */
     flick: {
         armed: boolean
+        /** Etapa do estalo: sem armar, armado (polegar preso) ou confirmando o polegar esticado. */
+        phase: FlickPhase
+        /** Gesto pronto que o reconhecedor viu no último quadro (punho, palma aberta, polegar para cima…). */
+        gesture: HandGesture | null
         /** Pico da velocidade de abertura do último estalo, em razão por segundo. */
         lastOpenSpeed: number | null
         lastRiseMs: number | null
@@ -141,6 +154,7 @@ export class MarblesController {
     private frames = 0
     private latencies: number[] = []
     private reading: PinchReading | null = null
+    private flickReading: FlickReading | null = null
     private delegate: TrackerDelegate | null = null
     private summary = summarizeLatency([])
     private lastSummaryAt = 0
@@ -214,6 +228,7 @@ export class MarblesController {
         this.flick.reset()
         this.lastFlick = null
         this.reading = null
+        this.flickReading = null
         this.frames = 0
         this.latencies = []
         if (this.trackerStatus === 'error') this.trackerStatus = 'idle'
@@ -304,8 +319,14 @@ export class MarblesController {
                 this.frames++
                 const aspect = video.videoWidth / video.videoHeight
                 if (this.mode === 'flick') {
-                    const reading = this.flick.update(hand?.landmarks ?? null, aspect, now)
+                    const reading = this.flick.update(
+                        hand?.landmarks ?? null,
+                        aspect,
+                        now,
+                        hand?.gesture ?? null,
+                    )
                     this.reading = reading
+                    this.flickReading = reading
                     if (reading.release) {
                         this.lastFlick = {
                             openSpeed: reading.release.openSpeed,
@@ -316,6 +337,7 @@ export class MarblesController {
                     }
                     this.round.observeFlick(reading, now)
                 } else {
+                    this.flickReading = null
                     this.reading = this.pinch.update(hand?.landmarks ?? null, aspect)
                     this.round.observePinch(this.reading, now)
                 }
@@ -447,6 +469,8 @@ export class MarblesController {
                 handVisible: this.reading?.handVisible ?? false,
                 flick: {
                     armed: this.mode === 'flick' && (this.reading?.closed ?? false),
+                    phase: this.mode === 'flick' ? (this.flickReading?.phase ?? 'idle') : 'idle',
+                    gesture: this.mode === 'flick' ? (this.flickReading?.gesture ?? null) : null,
                     lastOpenSpeed: this.lastFlick?.openSpeed ?? null,
                     lastRiseMs: this.lastFlick?.riseMs ?? null,
                     lastPower: this.lastFlick?.power ?? null,

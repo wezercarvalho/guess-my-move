@@ -77,3 +77,37 @@
 .mode-picker label {
     cursor: pointer;
 }
+
+/* Guia das etapas do estalo. */
+.flick-steps {
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--cor-texto-suave);
+}
+
+.flick-step {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border-left: 4px solid transparent;
+}
+
+.flick-step-current {
+    color: var(--cor-texto);
+    font-weight: 600;
+    background: rgba(79, 156, 255, 0.16);
+    border-left-color: var(--cor-acento);
+}
+
+.flick-hint {
+    margin: 0.5rem 0 0;
+    min-height: 1.5em;
+    color: var(--cor-erro);
+}
+
+.flick-hint:empty {
+    margin: 0;
+    min-height: 0;
+}

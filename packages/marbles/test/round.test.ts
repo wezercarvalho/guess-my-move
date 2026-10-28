@@ -308,6 +308,8 @@ describe('createBeteRound: modo estalo (alpha)', () => {
         return {
             handVisible: visible,
             closed: visible && (opts.armed ?? false),
+            phase: visible && (opts.armed ?? false) ? 'armed' : 'idle',
+            gesture: null,
             ratio: visible ? ((opts.armed ?? false) ? 0.8 : 1.4) : null,
             point: visible ? { x: 0.5, y: 0.5 } : null,
             direction: visible ? (opts.direction === undefined ? RIGHT : opts.direction) : null,

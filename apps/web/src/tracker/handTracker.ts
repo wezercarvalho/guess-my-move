@@ -6,6 +6,8 @@ export type TrackerDelegate = 'GPU' | 'CPU'
 /** Mão detectada em um quadro: 21 landmarks normalizados (0 a 1). */
 export interface TrackedHand {
     landmarks: readonly HandLandmark[]
+    /** Gesto pronto reconhecido (só quando o detector é o reconhecedor de gestos). */
+    gesture?: { name: string; score: number } | null
 }
 
 /**

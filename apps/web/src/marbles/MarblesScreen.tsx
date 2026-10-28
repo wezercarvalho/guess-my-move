@@ -6,6 +6,7 @@ import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { drawField } from './fieldView.js'
+import { FlickGuide } from './FlickGuide.js'
 import { MarblesDebugPanel } from './MarblesDebugPanel.js'
 import { type MarblesMode } from './marblesController.js'
 import { type MarblesDeps, useMarblesGame } from './useMarblesGame.js'
@@ -134,6 +135,13 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                             Estalo (alpha)
                         </label>
                     </fieldset>
+                    {game.mode === 'flick' && (
+                        <FlickGuide
+                            state={round.state}
+                            phase={game.debug.flick.phase}
+                            lastResult={game.debug.flick.lastResult}
+                        />
+                    )}
                     <canvas
                         ref={fieldRef}
                         className="marbles-field"

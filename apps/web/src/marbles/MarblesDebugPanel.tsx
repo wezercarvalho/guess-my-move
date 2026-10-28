@@ -70,6 +70,12 @@ export function MarblesDebugPanel({
                     <>
                         <dt>Armado</dt>
                         <dd>{yesNo(debug.flick.armed)}</dd>
+                        <dt>Gesto reconhecido</dt>
+                        <dd>
+                            {debug.flick.gesture === null
+                                ? DASH
+                                : `${debug.flick.gesture.name} (${Math.round(debug.flick.gesture.score * 100)}%)`}
+                        </dd>
                         <dt>Velocidade da abertura</dt>
                         <dd>
                             {debug.flick.lastOpenSpeed === null

@@ -304,6 +304,43 @@ describe('MarblesScreen: modo de tiro', () => {
         expect(screen.getByText('disparado').closest('[aria-live]')).not.toBeNull()
     })
 
+    it('no estalo mostra o guia das etapas, que acompanha o movimento; na pinça não aparece', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        expect(screen.queryByRole('list', { name: /etapas do estalo/i })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        const list = screen.getByRole('list', { name: /etapas do estalo/i })
+        expect(within(list).getAllByRole('listitem')).toHaveLength(4)
+        const current = () =>
+            within(list)
+                .getAllByRole('listitem')
+                .findIndex((item) => item.getAttribute('aria-current') === 'step')
+        expect(current()).toBe(0)
+
+        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 3, 67)
+        expect(current()).toBe(1)
+        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 1, 67)
+        expect(current()).toBe(2)
+        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 2, 67)
+        expect(current()).toBe(3)
+    })
+
+    it('mostra o gesto reconhecido na depuração e a dica quando o estalo é não sustentado', async () => {
+        const h = harness()
+        renderScreen(h)
+        await readyToPlay()
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        h.run({ ...pinchHand({ ratio: 0.8, x: 400, y: 300 }), gesture: { name: 'Closed_Fist', score: 0.84 } }, 3, 67)
+        expect(screen.getByText('Gesto reconhecido').nextElementSibling).toHaveTextContent(
+            'Closed_Fist (84%)',
+        )
+        h.run(pinchHand({ ratio: 1.5, x: 400, y: 300 }), 1, 67)
+        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 1, 67)
+        expect(screen.getByTestId('flick-hint')).toHaveTextContent(/deixe-o esticado/i)
+    })
+
     it('voltar para a pinça reinicia a rodada', async () => {
         const h = harness()
         renderScreen(h)

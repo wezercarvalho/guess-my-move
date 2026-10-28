@@ -31,6 +31,10 @@ export interface FlickConfig {
     baseWindowMs: number
     /** Quanto histórico (ms) o detector guarda enquanto armado. */
     historyMs: number
+    /** Gesto pronto que, visto durante a confirmação, indica a mão se abrindo (e não o polegar esticando) e cancela o estalo. */
+    openHandGesture: string
+    /** Pontuação mínima (0 a 1) do gesto pronto para ele valer. */
+    gestureMinScore: number
     /**
      * Escala da força (razão/s), logarítmica: a velocidade de abertura `powerLowSpeed`
      * dá força 0 e `powerHighSpeed` dá força 1.
@@ -49,18 +53,32 @@ export const DEFAULT_FLICK: FlickConfig = {
     minRise: 0.4,
     baseWindowMs: 250,
     historyMs: 400,
+    openHandGesture: 'Open_Palm',
+    gestureMinScore: 0.8,
     powerLowSpeed: 3,
     powerHighSpeed: 20,
     minShotSpeed: 300,
     maxShotSpeed: 1100,
 }
 
+/** Gesto pronto reconhecido pelo MediaPipe no quadro (por exemplo `Closed_Fist`, `Open_Palm`, `Thumb_Up`). */
+export interface HandGesture {
+    name: string
+    score: number
+}
+
+/** Etapa do detector: sem armar, armado (polegar preso) ou confirmando o polegar esticado. */
+export type FlickPhase = 'idle' | 'armed' | 'pending'
+
 /** Como terminou um estalo candidato. */
-export type FlickVerdict = 'confirmed' | 'weak' | 'unsustained'
+export type FlickVerdict = 'confirmed' | 'weak' | 'unsustained' | 'open_hand'
 
 /** Medição de um estalo candidato (o polegar cruzou `extendRatio`). */
 export interface FlickRelease {
-    /** `confirmed`: subiu e ficou esticado; `weak`: subida pequena; `unsustained`: voltou a fechar antes de confirmar. */
+    /**
+     * `confirmed`: subiu e ficou esticado; `weak`: subida pequena; `unsustained`: voltou a fechar
+     * antes de confirmar; `open_hand`: subiu e ficou esticado, mas o gesto pronto foi palma aberta.
+     */
     verdict: FlickVerdict
     /** Pico da inclinação da razão entre amostras consecutivas da subida (razão/s). */
     openSpeed: number
@@ -74,17 +92,26 @@ export interface FlickRelease {
 export interface FlickReading {
     handVisible: boolean
     closed: boolean
+    /** Etapa do detector, para guiar o jogador na tela. */
+    phase: FlickPhase
     /** Distância entre as pontas dividida pela escala da mão; `null` sem mão. */
     ratio: number | null
     /** Ponto médio das pontas, normalizado (0 a 1) e espelhado em x; `null` sem mão. */
     point: Point | null
     direction: Vec | null
+    /** Gesto pronto reconhecido no quadro, se houver. */
+    gesture: HandGesture | null
     release: FlickRelease | null
 }
 
 export interface FlickDetector {
-    /** `aspect` é largura/altura da imagem; `nowMs` é um relógio monotônico. */
-    update(landmarks: readonly Point[] | null, aspect: number, nowMs: number): FlickReading
+    /** `aspect` é largura/altura da imagem; `nowMs` é um relógio monotônico; `gesture` é o gesto pronto do quadro, se houver. */
+    update(
+        landmarks: readonly Point[] | null,
+        aspect: number,
+        nowMs: number,
+        gesture?: HandGesture | null,
+    ): FlickReading
     reset(): void
 }
 
@@ -110,6 +137,7 @@ interface Sample {
     t: number
     ratio: number
     direction: Vec | null
+    openHand: boolean
 }
 
 /** Maior inclinação da razão (razão/s) entre amostras consecutivas. */
@@ -129,12 +157,14 @@ function peakSlope(samples: readonly Sample[]): number {
  * `extendRatio` subindo pelo menos `minRise` acima do mínimo recente, abre um
  * candidato. O candidato só vira estalo se as `confirmSamples` primeiras
  * amostras seguirem esticadas: uma oscilação de rastreamento (a mão fechada em
- * movimento) sobe e volta no quadro seguinte e não confirma. Perder a mão zera
+ * movimento) sobe e volta no quadro seguinte e não confirma. Se o gesto pronto
+ * reconhecido nessas amostras for palma aberta, é a mão se abrindo e o estalo
+ * também é cancelado. Perder a mão zera
  * tudo, então reaparecer esticada nunca dispara.
  */
 export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDetector {
     const cfg: FlickConfig = { ...DEFAULT_FLICK, ...config }
-    let phase: 'idle' | 'armed' | 'pending' = 'idle'
+    let phase: FlickPhase = 'idle'
     /** Amostras armadas, da mais antiga à mais nova (inclui o mínimo recente). */
     let history: Sample[] = []
     /** Candidato: o mínimo recente e as amostras esticadas desde o cruzamento. */
@@ -158,17 +188,32 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
     }
 
     return {
-        update(landmarks, aspect, nowMs) {
+        update(landmarks, aspect, nowMs, gesture = null) {
             const ratio = landmarks ? pinchRatio(landmarks, aspect) : null
             const thumb = landmarks?.[THUMB_TIP]
             const index = landmarks?.[INDEX_TIP]
             if (!landmarks || ratio === null || !thumb || !index) {
                 clear()
-                return { handVisible: false, closed: false, ratio: null, point: null, direction: null, release: null }
+                return {
+                    handVisible: false,
+                    closed: false,
+                    phase: 'idle',
+                    ratio: null,
+                    point: null,
+                    direction: null,
+                    gesture: null,
+                    release: null,
+                }
             }
 
             const direction = handDirection(landmarks, aspect)
-            const sample: Sample = { t: nowMs, ratio, direction }
+            const openHand =
+                gesture !== null &&
+                gesture.name === cfg.openHandGesture &&
+                gesture.score >= cfg.gestureMinScore
+            const sample: Sample = { t: nowMs, ratio, direction, openHand }
+            const confirmedVerdict = (): FlickVerdict =>
+                run.some((item) => item.openHand) ? 'open_hand' : 'confirmed'
             let release: FlickRelease | null = null
 
             if (phase === 'pending') {
@@ -178,7 +223,7 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
                 if (ratio < cfg.extendRatio) {
                     release = finish('unsustained', riseMs)
                 } else if (run.length >= cfg.confirmSamples) {
-                    release = finish('confirmed', riseMs)
+                    release = finish(confirmedVerdict(), riseMs)
                 }
             } else if (phase === 'armed' && ratio >= cfg.extendRatio) {
                 const recent = history.filter((item) => item.t >= nowMs - cfg.baseWindowMs)
@@ -191,7 +236,7 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
                 if (ratio - low.ratio < cfg.minRise) {
                     release = finish('weak', nowMs - low.t)
                 } else if (run.length >= cfg.confirmSamples) {
-                    release = finish('confirmed', nowMs - low.t)
+                    release = finish(confirmedVerdict(), nowMs - low.t)
                 } else {
                     phase = 'pending'
                 }
@@ -209,9 +254,11 @@ export function createFlickDetector(config: Partial<FlickConfig> = {}): FlickDet
             return {
                 handVisible: true,
                 closed: phase !== 'idle',
+                phase,
                 ratio,
                 point: { x: 1 - (thumb.x + index.x) / 2, y: (thumb.y + index.y) / 2 },
                 direction,
+                gesture,
                 release,
             }
         },
@@ -233,7 +280,7 @@ export interface FlickShot {
  * estica (a subida da razão), numa escala logarítmica de `powerLowSpeed` a
  * `powerHighSpeed`, e a velocidade do tiro vai linearmente de `minShotSpeed` a
  * `maxShotSpeed`. A direção é a da mão. Devolve `null` (tiro cancelado) para
- * estalo fraco, não sustentado ou sem direção.
+ * estalo fraco, não sustentado, mão aberta ou sem direção.
  */
 export function flickShot(
     release: FlickRelease,

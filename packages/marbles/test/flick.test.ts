@@ -4,6 +4,7 @@ import {
     DEFAULT_FLICK,
     type FlickDetector,
     type FlickRelease,
+    type HandGesture,
     createFlickDetector,
     flickShot,
     handDirection,
@@ -77,8 +78,13 @@ describe('handDirection', () => {
 })
 
 /** Alimenta o detector com pares [tempo em ms, razão] e devolve as leituras. */
-function feed(detector: FlickDetector, samples: ReadonlyArray<readonly [number, number]>, angleDeg = 0) {
-    return samples.map(([t, ratio]) => detector.update(hand({ ratio, angleDeg }), 1, t))
+function feed(
+    detector: FlickDetector,
+    samples: ReadonlyArray<readonly [number, number]>,
+    angleDeg = 0,
+    gesture: HandGesture | null = null,
+) {
+    return samples.map(([t, ratio]) => detector.update(hand({ ratio, angleDeg }), 1, t, gesture))
 }
 
 /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
@@ -132,7 +138,16 @@ describe('createFlickDetector: armar', () => {
 
     it('sem mão devolve leitura vazia', () => {
         const reading = createFlickDetector().update(null, 1, 0)
-        expect(reading).toMatchObject({ handVisible: false, closed: false, ratio: null, point: null, direction: null, release: null })
+        expect(reading).toMatchObject({
+            handVisible: false,
+            closed: false,
+            phase: 'idle',
+            ratio: null,
+            point: null,
+            direction: null,
+            gesture: null,
+            release: null,
+        })
     })
 })
 
@@ -301,6 +316,86 @@ describe('createFlickDetector: estalo', () => {
         for (const reading of readings) expect(reading.release).toBeNull()
     })
 
+    it('a etapa acompanha o estalo: idle, armed, pending e de volta a idle', () => {
+        const detector = createFlickDetector()
+        const readings = feed(detector, [
+            [0, 1.4],
+            [FRAME, 0.8],
+            [2 * FRAME, 1.5],
+            [3 * FRAME, 1.6],
+            [4 * FRAME, 1.5],
+        ])
+        expect(readings.map((reading) => reading.phase)).toEqual([
+            'idle',
+            'armed',
+            'pending',
+            'pending',
+            'idle',
+        ])
+    })
+
+    it('palma aberta durante a confirmação é a mão se abrindo: não dispara', () => {
+        const detector = createFlickDetector()
+        const palm: HandGesture = { name: 'Open_Palm', score: 0.95 }
+        const readings = feed(
+            detector,
+            [
+                [0, 0.8],
+                [FRAME, 1.5],
+                [2 * FRAME, 1.6],
+                [3 * FRAME, 1.5],
+            ],
+            0,
+            palm,
+        )
+        const release = readings[3]?.release as FlickRelease
+        expect(release.verdict).toBe('open_hand')
+        expect(flickShot(release)).toBeNull()
+    })
+
+    it('polegar para cima, punho ou nenhum gesto não cancelam; palma aberta com pontuação baixa (0,63, como nos estalos reais) também não', () => {
+        for (const gesture of [
+            { name: 'Thumb_Up', score: 0.9 },
+            { name: 'Closed_Fist', score: 0.9 },
+            { name: 'None', score: 0.9 },
+            { name: 'Open_Palm', score: 0.63 },
+            null,
+        ]) {
+            const detector = createFlickDetector()
+            const readings = feed(
+                detector,
+                [
+                    [0, 0.8],
+                    [FRAME, 1.5],
+                    [2 * FRAME, 1.6],
+                    [3 * FRAME, 1.5],
+                ],
+                0,
+                gesture,
+            )
+            expect(readings[3]?.release?.verdict).toBe('confirmed')
+        }
+    })
+
+    it('uma palma aberta em qualquer amostra da confirmação basta para cancelar', () => {
+        const detector = createFlickDetector()
+        detector.update(hand({ ratio: 0.8 }), 1, 0, { name: 'Closed_Fist', score: 0.9 })
+        detector.update(hand({ ratio: 1.5 }), 1, FRAME, { name: 'None', score: 0.8 })
+        detector.update(hand({ ratio: 1.6 }), 1, 2 * FRAME, { name: 'Open_Palm', score: 0.9 })
+        const release = detector.update(hand({ ratio: 1.5 }), 1, 3 * FRAME, {
+            name: 'Thumb_Up',
+            score: 0.8,
+        }).release
+        expect(release?.verdict).toBe('open_hand')
+    })
+
+    it('a leitura devolve o gesto do quadro', () => {
+        const gesture: HandGesture = { name: 'Closed_Fist', score: 0.7 }
+        const reading = createFlickDetector().update(hand({ ratio: 0.8 }), 1, 0, gesture)
+        expect(reading.gesture).toEqual(gesture)
+        expect(createFlickDetector().update(hand({ ratio: 0.8 }), 1, 0).gesture).toBeNull()
+    })
+
     it('com confirmSamples = 1 confirma no cruzamento', () => {
         const detector = createFlickDetector({ confirmSamples: 1 })
         const readings = feed(detector, [
@@ -372,6 +467,7 @@ describe('flickShot: força pelo polegar, em escala logarítmica', () => {
     it('cancela quando o estalo é fraco, não foi sustentado ou não há direção', () => {
         expect(flickShot(release({ verdict: 'weak' }))).toBeNull()
         expect(flickShot(release({ verdict: 'unsustained' }))).toBeNull()
+        expect(flickShot(release({ verdict: 'open_hand' }))).toBeNull()
         expect(flickShot(release({ direction: null }))).toBeNull()
     })
 
@@ -386,7 +482,9 @@ describe('flickShot: força pelo polegar, em escala logarítmica', () => {
         expect(shot?.velocity.x).toBeCloseTo(300, 6)
     })
 
-    it('os padrões: arma em 1,05, estica em 1,2 por 3 amostras, subida mínima de 0,4 e escala de 3 a 20', () => {
+    it('os padrões: arma em 1,05, estica em 1,2 por 3 amostras, subida mínima de 0,4, palma aberta cancela e escala de 3 a 20', () => {
+        expect(DEFAULT_FLICK.openHandGesture).toBe('Open_Palm')
+        expect(DEFAULT_FLICK.gestureMinScore).toBe(0.8)
         expect(DEFAULT_FLICK.armRatio).toBe(1.05)
         expect(DEFAULT_FLICK.extendRatio).toBe(1.2)
         expect(DEFAULT_FLICK.confirmSamples).toBe(3)

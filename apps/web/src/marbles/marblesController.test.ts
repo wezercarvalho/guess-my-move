@@ -390,6 +390,35 @@ describe('MarblesController: modo estalo (alpha)', () => {
         expect(weaker ?? 0).toBeLessThan(strong ?? 0)
     })
 
+    it('palma aberta durante a confirmação é a mão se abrindo: não dispara e registra "mão aberta"', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        arm(h)
+        const palm = { ...tucked(1.5), gesture: { name: 'Open_Palm', score: 0.9 } }
+        h.run(palm, 3, STEP)
+        const { round, debug } = h.controller.getSnapshot()
+        expect(round.shots).toBe(0)
+        expect(debug.flick.lastResult).toBe('mão aberta')
+        expect(debug.flick.lastPower).toBeNull()
+    })
+
+    it('a depuração mostra o gesto reconhecido e a etapa do estalo', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('flick')
+        expect(h.controller.getSnapshot().debug.flick.gesture).toBeNull()
+        expect(h.controller.getSnapshot().debug.flick.phase).toBe('idle')
+        h.run({ ...tucked(), gesture: { name: 'Closed_Fist', score: 0.8 } }, 3, STEP)
+        let flick = h.controller.getSnapshot().debug.flick
+        expect(flick.gesture).toEqual({ name: 'Closed_Fist', score: 0.8 })
+        expect(flick.phase).toBe('armed')
+        h.run(tucked(1.5), 1, STEP)
+        flick = h.controller.getSnapshot().debug.flick
+        expect(flick.phase).toBe('pending')
+        expect(flick.gesture).toBeNull()
+    })
+
     it('trocar de modo reinicia a rodada e zera o armado', async () => {
         const h = harness()
         await h.ready()

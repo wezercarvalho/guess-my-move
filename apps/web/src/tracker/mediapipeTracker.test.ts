@@ -83,6 +83,37 @@ describe('createMediaPipeHandTracker', () => {
         expect(empty.detect(video, 66)).toBeNull()
     })
 
+    it('com o reconhecedor de gestos, devolve também o gesto de maior pontuação da primeira mão', async () => {
+        const hand = [{ x: 0.1, y: 0.2 }]
+        const detectForVideo = vi.fn(() => ({
+            landmarks: [hand],
+            gestures: [
+                [
+                    { categoryName: 'Thumb_Up', score: 0.91 },
+                    { categoryName: 'None', score: 0.05 },
+                ],
+            ],
+        }))
+        const instance: HandLandmarkerLike = { detectForVideo, close: vi.fn() }
+        const tracker = await createMediaPipeHandTracker(
+            loaderWith(() => Promise.resolve(instance)).loader,
+        )
+        expect(tracker.detect(video, 33)).toEqual({
+            landmarks: hand,
+            gesture: { name: 'Thumb_Up', score: 0.91 },
+        })
+    })
+
+    it('sem gestos na resposta, a mão vem sem o campo gesture', async () => {
+        const hand = [{ x: 0.1, y: 0.2 }]
+        const detectForVideo = vi.fn(() => ({ landmarks: [hand], gestures: [] }))
+        const instance: HandLandmarkerLike = { detectForVideo, close: vi.fn() }
+        const tracker = await createMediaPipeHandTracker(
+            loaderWith(() => Promise.resolve(instance)).loader,
+        )
+        expect(tracker.detect(video, 33)).toEqual({ landmarks: hand })
+    })
+
     it('close libera o detector', async () => {
         const mp = landmarker()
         const tracker = await createMediaPipeHandTracker(
