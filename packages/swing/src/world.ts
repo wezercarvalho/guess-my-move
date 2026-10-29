@@ -37,6 +37,17 @@ export interface SwingInput {
     pull?: SlotFlags
     yawRate: number
     pitchRate: number
+    /**
+     * Desvio do olhar pela cabeça neste passo (guinada e inclinação, em radianos), somado
+     * direto ao olhar — já é um ângulo, não uma taxa. É a variação de um quadro para o outro,
+     * calculada na camada web a partir do rastreador de rosto. Ausente = sem rosto / teclado.
+     */
+    lookDelta?: { yaw: number; pitch: number }
+    /**
+     * A cabeça está comandando o olhar agora (fora da zona morta ou voltando ao neutro). Com
+     * isso ligado, o acompanhamento automático não sobrescreve o olhar neste passo.
+     */
+    lookActive?: boolean
 }
 
 export interface SwingWorld {
@@ -166,7 +177,15 @@ export function createSwingWorld(
 
     function step(input: SwingInput, dt: number): StepEvents {
         state.yaw += input.yawRate * config.yawRate * dt
-        if (state.started && input.yawRate === 0) followHeading(dt, input.pitchRate === 0)
+        // A cabeça soma um desvio direto ao olhar (já é um ângulo, não uma taxa).
+        if (input.lookDelta) {
+            state.yaw += input.lookDelta.yaw
+            state.pitch += input.lookDelta.pitch
+        }
+        // O acompanhamento automático só entra quando nem o teclado nem a cabeça comandam o olhar.
+        if (state.started && input.yawRate === 0 && !input.lookActive) {
+            followHeading(dt, input.pitchRate === 0 && !input.lookActive)
+        }
         state.pitch = Math.max(
             -config.pitchLimit,
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),

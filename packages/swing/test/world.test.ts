@@ -137,4 +137,46 @@ describe('createSwingWorld', () => {
         expect(world.state.stats.webs).toBe(0)
         expect(world.state.position.y).toBe(DEFAULT_SWING.spawnHeight)
     })
+
+    it('a cabeça soma um desvio ao olhar (guinada e inclinação) direto, sem virar taxa', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.yaw = 0
+        world.state.pitch = 0
+        world.step({ held: {}, yawRate: 0, pitchRate: 0, lookDelta: { yaw: 0.3, pitch: 0.1 } }, 1 / 120)
+        expect(world.state.yaw).toBeCloseTo(0.3, 5)
+        expect(world.state.pitch).toBeCloseTo(0.1, 5)
+    })
+
+    it('o desvio da cabeça respeita o limite de inclinação', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.pitch = 0
+        world.step({ held: {}, yawRate: 0, pitchRate: 0, lookDelta: { yaw: 0, pitch: 10 } }, 1 / 120)
+        expect(world.state.pitch).toBeCloseTo(DEFAULT_SWING.pitchLimit, 5)
+    })
+
+    it('com a cabeça ativa, o acompanhamento automático não sobrescreve o olhar', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.started = true
+        world.state.position.y = 80
+        world.state.yaw = 0
+        // Movimento forte para a direita (+X): o follow puxaria o yaw para ~PI/2.
+        world.state.velocity = { x: 30, y: 0, z: 0 }
+        for (let i = 0; i < 30; i++) {
+            world.step({ held: {}, yawRate: 0, pitchRate: 0, lookDelta: { yaw: 0, pitch: 0 }, lookActive: true }, 1 / 120)
+        }
+        // A cabeça (desvio zero + ativa) mantém o olhar onde está; o follow não entra.
+        expect(Math.abs(world.state.yaw)).toBeLessThan(0.05)
+    })
+
+    it('sem a cabeça ativa, o acompanhamento automático segue funcionando', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.started = true
+        world.state.position.y = 80
+        world.state.yaw = 0
+        world.state.velocity = { x: 30, y: 0, z: 0 }
+        for (let i = 0; i < 60; i++) {
+            world.step({ held: {}, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        }
+        expect(world.state.yaw).toBeGreaterThan(0.3)
+    })
 })
