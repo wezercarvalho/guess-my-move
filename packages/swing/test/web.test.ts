@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest'
+
+import { createCityIndex } from '../src/cityIndex.js'
+import { DEFAULT_WEB, pickAnchor } from '../src/web.js'
+import { box, cityOf } from './helpers.js'
+
+const RIGHT = Math.PI / 2
+const TEN_DEGREES = (10 * Math.PI) / 180
+
+describe('pickAnchor', () => {
+    it('prende na parede à frente e acima, pelo primeiro raio que acerta', () => {
+        const index = createCityIndex(cityOf(box(40, -5, 50, 5, 80)))
+        const anchor = pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)
+        expect(anchor).not.toBeNull()
+        expect(anchor?.x).toBeCloseTo(40)
+        // O raio de 60° (10° da câmera + 50°) passa por cima dos 80 m; o de 48° acerta a parede.
+        expect(anchor?.y).toBeCloseTo(30 + 40 * Math.tan((48 * Math.PI) / 180), 0)
+    })
+
+    it('devolve null quando não há prédio no alcance', () => {
+        const index = createCityIndex(cityOf())
+        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)).toBeNull()
+    })
+
+    it('ignora o acerto que está abaixo do mínimo de subida', () => {
+        const index = createCityIndex(cityOf(box(40, -5, 50, 5, 300)))
+        const config = { ...DEFAULT_WEB, pitchOffsets: [(2 * Math.PI) / 180] }
+        // 12° no total a 40 m de distância sobe só 8,5 m, menos que o mínimo de 12 m.
+        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES, config)).toBeNull()
+    })
+
+    it('ignora o acerto perto demais na horizontal', () => {
+        const index = createCityIndex(cityOf(box(5, -5, 10, 5, 200)))
+        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)).toBeNull()
+    })
+
+    it('ignora o que está além do alcance', () => {
+        const x0 = DEFAULT_WEB.range + 20
+        const index = createCityIndex(cityOf(box(x0, -5, x0 + 10, 5, 400)))
+        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)).toBeNull()
+    })
+
+    it('cai no raio mais baixo quando os mais altos passam por cima', () => {
+        // Prédio de 75 m a 100 m: os raios de 60° a 25° passam por cima; só o de +6° (16° no total) acerta a parede.
+        const index = createCityIndex(cityOf(box(100, -60, 110, 60, 75)))
+        const anchor = pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)
+        expect(anchor?.x).toBeCloseTo(100)
+        expect(anchor?.y).toBeCloseTo(30 + 100 * Math.tan((16 * Math.PI) / 180), 0)
+    })
+})

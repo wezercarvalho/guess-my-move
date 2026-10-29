@@ -149,3 +149,35 @@ describe('delegate forçado', () => {
         expect(delegatePreferenceFromSearch('?delegate=outro')).toBe('auto')
     })
 })
+
+describe('detectAll (várias mãos)', () => {
+    const hand = (x: number) => Array.from({ length: 21 }, () => ({ x, y: 0.5 }))
+
+    it('devolve todas as mãos, cada uma com o seu gesto', async () => {
+        const detectForVideo = vi.fn(() => ({
+            landmarks: [hand(0.2), hand(0.8)],
+            gestures: [[{ categoryName: 'ILoveYou', score: 0.9 }], [{ categoryName: 'Open_Palm', score: 0.8 }]],
+        }))
+        const loader: MediaPipeLoader = {
+            load: vi.fn().mockResolvedValue({}),
+            create: vi.fn().mockResolvedValue({ detectForVideo, close: vi.fn() }),
+        }
+        const tracker = await createMediaPipeHandTracker(loader)
+        const hands = tracker.detectAll?.(video, 1) ?? []
+        expect(hands).toHaveLength(2)
+        expect(hands[0]?.gesture).toEqual({ name: 'ILoveYou', score: 0.9 })
+        expect(hands[1]?.gesture).toEqual({ name: 'Open_Palm', score: 0.8 })
+        // `detect` segue devolvendo só a primeira mão.
+        expect(tracker.detect(video, 2)?.landmarks[0]?.x).toBe(0.2)
+    })
+
+    it('sem mãos devolve lista vazia', async () => {
+        const mp = landmarker([])
+        const loader: MediaPipeLoader = {
+            load: vi.fn().mockResolvedValue({}),
+            create: vi.fn().mockResolvedValue(mp.instance),
+        }
+        const tracker = await createMediaPipeHandTracker(loader)
+        expect(tracker.detectAll?.(video, 1)).toEqual([])
+    })
+})

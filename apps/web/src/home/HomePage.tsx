@@ -46,6 +46,12 @@ export function HomePage() {
                     href="marbles.html"
                     action="Jogar bolinhas"
                 />
+                <GameCard
+                    title="Arranha-Teia"
+                    description="Balance entre os prédios de Midtown e lance a teia com o gesto “eu te amo”."
+                    href="swing.html"
+                    action="Jogar Arranha-Teia"
+                />
             </div>
         </main>
     )
