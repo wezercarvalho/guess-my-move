@@ -50,9 +50,9 @@
 
 ## Fase 7 — Modo Cova (issue #91)
 
-- [ ] T024 [US-006] [FR-010] Escrever o teste falhando de `packages/marbles/test/cova.test.ts` (entrada na cova ativa com centro dentro do raio e velocidade < 120 unid/s, inclusive parada; acima passa sem entrar; covas que não são a ativa não capturam; a bolinha de tiro permanece onde parou) e confirmar a falha esperada
-- [ ] T025 [US-006] [FR-010] Implementar `packages/marbles/src/modes/cova/` (3 covas numeradas raio 22, bolinha raio 14, em ordem, só a ativa captura; ao entrar fixa no centro, sai da simulação e a próxima cova fica ativa; a condição é avaliada a cada passo e na parada; 3 layouts fixos, um por rodada, iguais para os dois) e passar o teste de entrada e permanência
-- [ ] T026 [US-006] [FR-010] [FR-011] Escrever e passar os testes do Cova contra a meta (até 9 tiros; 3 covas em até 6 = vitória e encerra; 7 a 9 = empate; sem completar = derrota) e contra o bot (cada um com a sua bolinha, vez alternada, até 9 tiros cada; resultado por completar > menos tiros > mais covas, com os empates definidos; ponto de chegada do bot = centro da cova ativa com a velocidade que para nele), e declarar o `helpText` do Cova
+- [x] T024 [US-006] [FR-010] Escrever o teste falhando de `packages/marbles/test/hole.test.ts` (entrada na cova ativa com centro dentro do raio e velocidade < 120 unid/s, inclusive parada; acima passa sem entrar; covas que não são a ativa não capturam; a bolinha de tiro permanece onde parou) e confirmar a falha esperada
+- [x] T025 [US-006] [FR-010] Implementar `packages/marbles/src/modes/hole/` (3 covas numeradas raio 22, bolinha raio 14, em ordem, só a ativa captura; ao entrar fixa no centro, sai da simulação e a próxima cova fica ativa; a condição é avaliada a cada passo e na parada; 3 layouts fixos, um por rodada, iguais para os dois) e passar o teste de entrada e permanência
+- [x] T026 [US-006] [FR-010] [FR-011] Escrever e passar os testes do Cova contra a meta (até 9 tiros; 3 covas em até 6 = vitória e encerra; 7 a 9 = empate; sem completar = derrota) e contra o bot (cada um com a sua bolinha, vez alternada, até 9 tiros cada; resultado por completar > menos tiros > mais covas, com os empates definidos — `resolveBotRound`; ponto de chegada do bot = centro da cova ativa com a velocidade que para nele — `botAimPoint` + `speedToStop`), e declarar o `helpText` do Cova
 
 ## Fase 8 — Ajuda de cada modo na tela (issue #93)
 

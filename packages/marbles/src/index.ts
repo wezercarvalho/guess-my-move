@@ -86,10 +86,19 @@ export {
     createTriangleMode,
     triangleBotAimPoint,
 } from './modes/triangle/index.js'
+export {
+    DEFAULT_HOLE_CONFIG,
+    DEFAULT_HOLE_MODE,
+    type HoleConfig,
+    type HoleMode,
+    type HoleProgress,
+    createHoleMode,
+} from './modes/hole/index.js'
 
 import { type Mode } from './match/index.js'
 import { DEFAULT_BETE_MODE } from './modes/bete/index.js'
 import { DEFAULT_TRIANGLE_MODE } from './modes/triangle/index.js'
+import { DEFAULT_HOLE_MODE } from './modes/hole/index.js'
 
 /** Uma entrada do registro de modos para a interface montar o seletor. */
 export interface ModeEntry {
@@ -108,4 +117,5 @@ export interface ModeEntry {
 export const modes: readonly ModeEntry[] = [
     { id: 'bete', name: DEFAULT_BETE_MODE.name, mode: DEFAULT_BETE_MODE },
     { id: 'triangle', name: DEFAULT_TRIANGLE_MODE.name, mode: DEFAULT_TRIANGLE_MODE },
+    { id: 'hole', name: DEFAULT_HOLE_MODE.name, mode: DEFAULT_HOLE_MODE },
 ]
