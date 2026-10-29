@@ -46,6 +46,8 @@ export interface HintInput {
     handVisible: boolean
     /** Alguma mão está segurando a pose de teia. */
     gestureHeld: boolean
+    /** O jogador está agarrado a uma parede (escalando). */
+    gripped: boolean
     lastThrow: 'hit' | 'miss' | null
     cue: SwingCue
 }
@@ -56,11 +58,13 @@ export function guideHint({
     trackerStatus,
     handVisible,
     gestureHeld,
+    gripped,
     lastThrow,
     cue,
 }: HintInput): string {
-    if (trackerStatus === 'error') return 'O detector falhou. Use Espaço, Z, X, C e as setas.'
-    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam cada lado (juntos, as duas), C puxa, setas olham.'
+    if (trackerStatus === 'error') return 'O detector falhou. Use Espaço, Z, X, C, V e as setas.'
+    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam cada lado (juntos, as duas), C puxa, V agarra na parede, setas olham/sobem.'
+    if (gripped) return 'Na parede: mãos abertas, alterne para subir. Puxe a mão para soltar.'
     if (trackerStatus === 'loading') return 'Carregando o detector…'
     if (lastThrow === 'miss') return 'A teia errou. Lance de novo, olhando para a cidade.'
     if (!handVisible) return 'Mostre a mão inteira para a câmera.'
@@ -69,4 +73,9 @@ export function guideHint({
         return 'Polegar, indicador e mindinho abertos; médio e anelar dobrados. Vale em qualquer ângulo.'
     }
     return ''
+}
+
+/** Linha de status quando o jogador está agarrado à parede. */
+export function gripStatusLine(): string {
+    return 'Agarrado. Alterne as mãos para subir; puxe para soltar.'
 }

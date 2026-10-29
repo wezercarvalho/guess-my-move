@@ -8,11 +8,15 @@ import {
     type WebSide,
     type WebTrigger,
     DEFAULT_SWING,
+    DEFAULT_GRIP,
+    climbSignal,
     createCityIndex,
     createSwingWorld,
     createWebTrigger,
     handMetrics,
     handSide,
+    isOpenPalm,
+    pullBackSignal,
     swingCue,
     webSignal,
 } from '@guess-my-move/swing'
@@ -37,6 +41,8 @@ export interface SwingHud {
     webAttached: boolean
     /** Lados das teias presas (-1 esquerda, 0 centro, 1 direita); vazio sem teia. */
     webSides: WebSide[]
+    /** Agarrado a uma parede (escalando). */
+    gripped: boolean
     /** O primeiro gesto de teia já aconteceu; antes disso o jogador espera no início. */
     started: boolean
 }
@@ -70,6 +76,10 @@ export interface HandDebug {
     /** Gesto que o jogo entendeu (a geometria decide primeiro), se algum. */
     signal: string | null
     metrics: HandMetrics | null
+    /** Palma aberta (candidata a agarrar a parede). */
+    openPalm: boolean
+    /** A mão foi puxada para trás neste quadro (sinal de soltar da parede). */
+    pullBack: boolean
 }
 
 export interface SwingSnapshot {
@@ -103,7 +113,7 @@ const STALE_HAND_MS = 500
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha desconhecida.'
 
-const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSides: [], started: false }
+const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSides: [], gripped: false, started: false }
 
 /**
  * Orquestra o mundo do jogo, o desenho 3D, a câmera com o detector de mão e o teclado,
@@ -144,8 +154,20 @@ export class SwingController {
     private pulls = { left: false, right: false }
     private lastHandAt = 0
     private held = { left: false, right: false }
+    /** Mãos abertas em contato com a parede: agarrar daquele lado. */
+    private grabs = { left: false, right: false }
+    /** Sinal de escalada da câmera (-1 a 1), do movimento alternado das mãos. */
+    private climb = 0
+    /** Puxar a mão para trás (afastar da câmera): soltar da parede. */
+    private releaseGrip = false
+    /** Posição anterior do pulso de cada mão (y para a escalada, z para soltar). */
+    private prevWrist: { left: { y: number; z: number } | null; right: { y: number; z: number } | null } = {
+        left: null,
+        right: null,
+    }
     private readonly sideKeys = { left: 'z', right: 'x' }
     private readonly pullKey = 'c'
+    private readonly grabKey = 'v'
     private lastThrow: 'hit' | 'miss' | null = null
     private counted = { webs: 0, misses: 0 }
     private lastVideoTime = -1
@@ -236,6 +258,10 @@ export class SwingController {
         this.triggers.right.reset()
         this.held = { left: false, right: false }
         this.pulls = { left: false, right: false }
+        this.grabs = { left: false, right: false }
+        this.climb = 0
+        this.releaseGrip = false
+        this.prevWrist = { left: null, right: null }
         this.lastThrow = null
         this.counted = { webs: 0, misses: 0 }
         this.emit()
@@ -306,6 +332,10 @@ export class SwingController {
         this.hand = null
         this.hands = []
         this.handDebug = []
+        this.grabs = { left: false, right: false }
+        this.climb = 0
+        this.releaseGrip = false
+        this.prevWrist = { left: null, right: null }
         const now = this.env.now()
         this.applyTriggers({ left: null, right: null }, now)
         const overlay = this.surfaces.getOverlay()
@@ -334,6 +364,22 @@ export class SwingController {
         this.lastNow = now
 
         this.readHand(now)
+        const touchingWall = world.state.touchingWall
+        const gripped = world.state.grip !== null
+        // Precedência da palma aberta: só agarra em contato com a parede; senão a palma segue
+        // soltando a teia. A tecla V agarra (centro) enquanto segurada.
+        const grabKey = this.keys.has(this.grabKey)
+        const grab =
+            touchingWall || gripped
+                ? {
+                      left: this.grabs.left,
+                      right: this.grabs.right,
+                      center: grabKey,
+                  }
+                : { center: grabKey && touchingWall }
+        // Escalada: a câmera dá o movimento alternado; agarrado, as setas sobem/descem também.
+        const keyClimb = gripped ? this.keyAxis('ArrowUp', 'ArrowDown') : 0
+        const climb = Math.abs(this.climb) > Math.abs(keyClimb) ? this.climb : keyClimb
         const input: SwingInput = {
             // Cada mão segura a própria teia; Espaço é a teia do centro (teclado).
             held: {
@@ -345,9 +391,13 @@ export class SwingController {
             pull: this.keys.has(this.pullKey)
                 ? { left: true, center: true, right: true }
                 : { left: this.pulls.left, right: this.pulls.right },
-            // A câmera é automática (segue o movimento); as setas só ajustam o olhar.
+            // Mãos abertas em contato com a parede agarram; V agarra pelo teclado.
+            grab,
+            climb,
+            release: this.releaseGrip,
+            // A câmera é automática (segue o movimento); as setas só ajustam o olhar (fora do agarre).
             yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
-            pitchRate: this.keyAxis('ArrowUp', 'ArrowDown'),
+            pitchRate: gripped ? 0 : this.keyAxis('ArrowUp', 'ArrowDown'),
         }
         world.advance(input, dt)
         this.noteThrow(world)
@@ -448,8 +498,10 @@ export class SwingController {
     }
 
     /**
-     * O gesto de teia de cada lado da tela. Com duas mãos, a mais à esquerda da tela
-     * espelhada é a esquerda; com uma, vale o lado em que ela aparece.
+     * O gesto de teia de cada lado da tela, e os sinais do agarre. Com duas mãos, a mais à
+     * esquerda da tela espelhada é a esquerda; com uma, vale o lado em que ela aparece. Além
+     * do gesto de teia, lê a palma aberta (candidata a agarrar), o deslocamento vertical do
+     * pulso de cada mão (escalada, movimento alternado) e o afastamento da câmera (soltar).
      */
     private signalsBySide(hands: TrackedHand[]): {
         left: TriggerGesture | null
@@ -460,6 +512,11 @@ export class SwingController {
             right: null,
         }
         this.handDebug = []
+        const openPalm = { left: false, right: false }
+        const wrist: { left: { y: number; z: number } | null; right: { y: number; z: number } | null } = {
+            left: null,
+            right: null,
+        }
         // A imagem da câmera é invertida: o maior x cru fica mais à esquerda na tela.
         const order = hands
             .map((tracked, index) => ({ tracked, index, x: tracked.landmarks[9]?.x ?? 0.5 }))
@@ -468,13 +525,32 @@ export class SwingController {
             const side = order.length === 2 ? (position === 0 ? 'left' : 'right') : handSide(tracked.landmarks)
             const signal = webSignal(tracked.landmarks, tracked.gesture)
             signals[side] = signal
+            const palmOpen = isOpenPalm(tracked.landmarks)
+            openPalm[side] = palmOpen
+            const w = tracked.landmarks[0] as { x: number; y: number; z?: number } | undefined
+            if (w) wrist[side] = { y: w.y, z: w.z ?? 0 }
+            // Afastamento da câmera desta mão (profundidade z), para o sinal de soltar.
+            const prev = this.prevWrist[side]
+            const dz = prev && w ? (w.z ?? 0) - prev.z : 0
             this.handDebug.push({
                 side: side === 'left' ? 'esq.' : 'dir.',
                 label: tracked.gesture?.name ?? null,
                 signal: signal?.name ?? null,
                 metrics: handMetrics(tracked.landmarks),
+                openPalm: palmOpen,
+                pullBack: dz > DEFAULT_GRIP.pullBackThreshold,
             })
         })
+
+        // Escalada: movimento alternado das duas mãos (deslocamento vertical do pulso).
+        const dyLeft = this.prevWrist.left && wrist.left ? wrist.left.y - this.prevWrist.left.y : 0
+        const dyRight = this.prevWrist.right && wrist.right ? wrist.right.y - this.prevWrist.right.y : 0
+        const dzLeft = this.prevWrist.left && wrist.left ? wrist.left.z - this.prevWrist.left.z : 0
+        const dzRight = this.prevWrist.right && wrist.right ? wrist.right.z - this.prevWrist.right.z : 0
+        this.climb = climbSignal(dyLeft, dyRight)
+        this.releaseGrip = pullBackSignal(dzLeft, dzRight)
+        this.grabs = openPalm
+        this.prevWrist = wrist
         return signals
     }
 
@@ -547,6 +623,7 @@ export class SwingController {
                   distance: Math.round(state.stats.distance),
                   webAttached: state.webs.length > 0,
                   webSides: state.webs.map((web) => web.side),
+                  gripped: state.grip !== null,
                   started: state.started,
               }
             : EMPTY_HUD
@@ -570,5 +647,5 @@ export class SwingController {
 }
 
 /** Teclas que o jogo usa (e que não devem rolar a página). */
-const CONTROL_KEYS = new Set([' ', 'z', 'x', 'c', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+const CONTROL_KEYS = new Set([' ', 'z', 'x', 'c', 'v', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
 

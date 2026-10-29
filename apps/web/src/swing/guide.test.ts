@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { STEPS, currentStep, gripStatusLine, guideHint, statusLine } from './guide.js'
 
 const ok = {
     cameraActive: true,
     trackerStatus: 'ready' as const,
     handVisible: true,
     gestureHeld: true,
+    gripped: false,
     lastThrow: null,
     cue: 'swing' as const,
 }
@@ -73,5 +74,23 @@ describe('guideHint', () => {
 
     it('na subida do arco, lembra de soltar', () => {
         expect(guideHint({ ...ok, cue: 'release' })).toMatch(/palma aberta/i)
+    })
+
+    it('agarrado, explica como subir e soltar', () => {
+        const hint = guideHint({ ...ok, gripped: true })
+        expect(hint).toMatch(/alterne/i)
+        expect(hint).toMatch(/puxe a mão/i)
+    })
+
+    it('o teclado sem câmera menciona V para agarrar', () => {
+        const hint = guideHint({ ...ok, cameraActive: false, trackerStatus: 'idle' })
+        expect(hint).toMatch(/V agarra/)
+    })
+})
+
+describe('gripStatusLine', () => {
+    it('diz que está agarrado e como subir/soltar', () => {
+        expect(gripStatusLine()).toMatch(/agarrado/i)
+        expect(gripStatusLine()).toMatch(/subir/i)
     })
 })

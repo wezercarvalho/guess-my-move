@@ -22,6 +22,10 @@ export function SwingDebugPanel({ hands }: { hands: readonly HandDebug[] }) {
                         <dd>{hand.signal ?? '—'}</dd>
                         <dt>Rótulo do reconhecedor</dt>
                         <dd>{hand.label ?? '—'}</dd>
+                        <dt>Palma aberta (agarrar)</dt>
+                        <dd>{hand.openPalm ? 'sim' : 'não'}</dd>
+                        <dt>Puxou para trás (soltar)</dt>
+                        <dd>{hand.pullBack ? 'sim' : 'não'}</dd>
                         {hand.metrics ? (
                             <>
                                 <dt>Indicador</dt>

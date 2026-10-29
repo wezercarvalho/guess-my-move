@@ -6,7 +6,7 @@ import { useCamera } from '../camera/useCamera.js'
 import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { STEPS, currentStep, gripStatusLine, guideHint, statusLine } from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
@@ -20,6 +20,7 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
+    if (game.hud.gripped) return gripStatusLine()
     return statusLine(game.cue)
 }
 
@@ -75,6 +76,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         trackerStatus: game.trackerStatus,
         handVisible: game.handVisible,
         gestureHeld: game.gestureHeld,
+        gripped: game.hud.gripped,
         lastThrow: game.lastThrow,
         cue: game.cue,
     })
@@ -108,7 +110,9 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             </div>
                             <div>
                                 <dt>Teia</dt>
-                                <dd data-testid="hud-web">{webLabel(game.hud.webSides)}</dd>
+                                <dd data-testid="hud-web">
+                                    {game.hud.gripped ? 'Agarrado' : webLabel(game.hud.webSides)}
+                                </dd>
                             </div>
                         </dl>
                     </div>
