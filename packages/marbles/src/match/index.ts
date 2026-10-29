@@ -6,7 +6,7 @@
  * MediaPipe nem relógio: o acaso e o tempo entram pelo modo e pelas fontes de
  * tiro. A física (`stepBodies`, `isAtRest`) é reaproveitada intacta.
  */
-import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, isAtRest, stepBodies } from '../physics.js'
+import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, type Vec, isAtRest, stepBodies } from '../physics.js'
 
 /** O jogador ou o adversário automático. */
 export type Competitor = 'player' | 'opponent'
@@ -19,6 +19,18 @@ export type Outcome = 'win' | 'draw' | 'loss'
 
 /** Decisão de vez devolvida pelo modo: alterna, ou mantém com o competidor atual. */
 export type NextTurn = Competitor | 'keep'
+
+/**
+ * Geometria do modo para a tela desenhar além dos corpos: o círculo do
+ * triângulo e as covas (com a ativa destacada). É só apresentação — o motor não
+ * a usa. Ausente num modo que não tem geometria extra (o Bete).
+ */
+export interface FieldDecor {
+    /** Círculo do modo Triângulo (centro e raio). */
+    circle?: { x: number; y: number; radius: number }
+    /** Covas numeradas do modo Cova, na ordem; `active` é o índice da cova da vez. */
+    holes?: { positions: readonly Vec[]; radius: number; active: number }
+}
 
 /** Contexto que o motor entrega ao modo para avaliar o campo em repouso. */
 export interface EvaluationContext {
@@ -59,6 +71,12 @@ export interface Mode {
     name: string
     /** Ajuda não vazia, que cita vitória, derrota e empate. */
     helpText: string
+    /**
+     * Regras curtas por adversário para o painel "Como jogar" (no máximo 2
+     * frases cada), citando vitória, derrota e empate. Ausente = a tela cai no
+     * `helpText`.
+     */
+    rules?: { target: string; bot: string }
     /** Quantas rodadas tem a partida (padrão de produto: 3). */
     roundsPerMatch: number
     /** Campo inicial da rodada `n` (0..roundsPerMatch-1) para o adversário dado. */
@@ -86,6 +104,11 @@ export interface Mode {
      * alterna sempre.
      */
     nextTurn?(defaultAlternate: Competitor, yielded: number): NextTurn
+    /**
+     * Geometria extra para a tela desenhar (círculo, covas com a ativa), do
+     * ponto de vista do competidor da vez. Ausente = só os corpos do campo.
+     */
+    describe?(competitor: Competitor, opponent: Opponent): FieldDecor
 }
 
 /** Fonte do tiro: entrega o próximo vetor de velocidade, ou `null` quando não há tiro. */
