@@ -1,4 +1,14 @@
 export {
+    type AimConfig,
+    type AimController,
+    type AimInProgress,
+    type AimKind,
+    type AimOutcome,
+    type AimVec,
+    DEFAULT_AIM,
+    createAimController,
+} from './aim/index.js'
+export {
     DEFAULT_FLICK,
     type FlickConfig,
     type FlickDetector,
