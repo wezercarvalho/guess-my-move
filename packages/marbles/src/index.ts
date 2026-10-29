@@ -22,6 +22,15 @@ export {
     flickPower,
 } from './flick.js'
 export {
+    type BotConfig,
+    DEFAULT_BOT,
+    type PlanejadorDoBot,
+    type Vec2,
+    criarPlanejadorDoBot,
+    direcaoPara,
+    velocidadeParaParar,
+} from './bot/index.js'
+export {
     type Adversario,
     type Avaliacao,
     type Competidor,
