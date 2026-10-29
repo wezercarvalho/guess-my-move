@@ -133,7 +133,10 @@ export function createMatchSession(
     }
 
     function limitReached(competitor: Competitor): boolean {
-        return shotsSpent[competitor] >= mode.shotLimit(competitor, opponent)
+        return (
+            shotsSpent[competitor] >= mode.shotLimit(competitor, opponent) ||
+            (mode.isFinished?.(competitor) ?? false)
+        )
     }
 
     function roundExhausted(): boolean {

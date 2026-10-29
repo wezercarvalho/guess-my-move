@@ -97,6 +97,13 @@ export interface Mode {
      * cada passo). Ausente = o motor só rola e avalia no repouso.
      */
     onStep?(field: readonly Body[], competitor: Competitor, opponent: Opponent): Body[] | undefined
+    /**
+     * `true` quando o competidor já cumpriu o objetivo da rodada e não recebe
+     * mais vez (cova completa), mesmo com tiros sobrando. Sem isso ele seguiria
+     * atirando sem sentido e a contagem de tiros do desempate inflaria. Ausente
+     * = só o limite de tiros tira o competidor da disputa.
+     */
+    isFinished?(competitor: Competitor): boolean
     /** Avalia o campo em repouso após um tiro. */
     evaluate(context: EvaluationContext): Evaluation
     /**

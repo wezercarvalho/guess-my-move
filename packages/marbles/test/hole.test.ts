@@ -168,3 +168,51 @@ describe('modo Cova: ajuda', () => {
         expect(DEFAULT_HOLE_MODE.helpText).toBe(mode.helpText)
     })
 })
+
+describe('modo Cova: contra o bot, quem completou sai da disputa', () => {
+    /** Mira o centro da cova ativa de um competidor com a velocidade que para nela. */
+    function fonteDe(mode: ReturnType<typeof createHoleMode>, competitor: 'player' | 'opponent') {
+        return {
+            nextShot(field?: readonly Body[]) {
+                if (!field) return { x: 0, y: 0 }
+                return speedToStop(field[0].pos, mode.botAimPoint(competitor), DEFAULT_PHYSICS, cfg.marbleRadius)
+            },
+        }
+    }
+
+    it('o jogador que completou não recebe mais vez nem tem a contagem de tiros inflada', () => {
+        const mode = createHoleMode()
+        // O bot desperdiça o primeiro tiro e depois acerta as covas: completa em 4 tiros, o jogador em 3.
+        const perfeito = fonteDe(mode, 'opponent')
+        let tiros = 0
+        const bot = {
+            nextShot(field?: readonly Body[]) {
+                tiros++
+                return tiros === 1 ? { x: 0, y: 0 } : perfeito.nextShot(field)
+            },
+        }
+        const match = createMatch({
+            mode,
+            opponent: 'bot',
+            sources: { player: fonteDe(mode, 'player'), bot },
+            physics: DEFAULT_PHYSICS,
+        })
+        let guarda = 0
+        while (match.currentRound() === 0 && !match.finished() && guarda++ < 5000) match.nextStep()
+        // 3 tiros contra 4 do bot: vitória por menos tiros (com a contagem inflada seria empate).
+        expect(match.roundOutcomes()[0]).toBe('win')
+    })
+
+    it('o rendimento de cada tiro é só as covas feitas naquele tiro', () => {
+        const mode = createHoleMode()
+        const match = createMatch({
+            mode,
+            opponent: 'target',
+            sources: { player: fonteDe(mode, 'player') },
+            physics: DEFAULT_PHYSICS,
+        })
+        let guarda = 0
+        while (match.currentRound() === 0 && !match.finished() && guarda++ < 5000) match.nextStep()
+        expect(match.yieldOf('player')).toBe(cfg.holesPerRound)
+    })
+})

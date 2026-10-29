@@ -23,6 +23,12 @@ implementação das regras de vez, limite de tiros, avaliação, fim de rodada e
 a sessão do pacote. Um teste de equivalência prova que `createMatch` e a sessão quadro a
 quadro convergem para cada modo × adversário.
 
+Revisão pós-PR (2026-10-29): a Cova contra o bot deixava quem completou as 3 covas seguir
+recebendo vez, o que inflava a contagem de tiros do desempate (empate no lugar de vitória por
+menos tiros) e acumulava o rendimento. Corrigido test-first com `Mode.isFinished` (quem
+completou sai da disputa) e rendimento por tiro; título da página, cartão do menu e README
+passaram a descrever os três modos.
+
 Todos os cinco gates passam. **Veredito do agente: convergente, aguardando revisão do
 maintainer.** O Gate 3 fica PENDENTE do maintainer (não foi concedido pelo agente), com os
 riscos aceitos registrados abaixo: sem teste ao vivo com a mão real; valores de jogo iniciais
@@ -72,12 +78,12 @@ medição de fps.
 | Comando exato            | Data       | Resultado | Evidência/observação                                                                                                                    |
 | ------------------------ | ---------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `yarn check:static`      | 2026-10-29 | PASS      | `tsc` por workspace sem erro; oxlint: 0 avisos e 0 erros, 154 arquivos, 136 regras.                                                     |
-| `yarn test`              | 2026-10-29 | PASS      | Todos os workspaces verdes: core 68 (6 arquivos), marbles 144 (13), swing 127 (12), web vitest 233 (28) + web node:test 50 (15 suítes). |
+| `yarn test`              | 2026-10-29 | PASS      | Todos os workspaces verdes: core 68 (6 arquivos), marbles 146 (13), swing 127 (12), web vitest 233 (28) + web node:test 50 (15 suítes). |
 | `yarn build`             | 2026-10-29 | PASS      | `tsc --build` por workspace + `vite build`; 201 módulos transformados; aviso pré-existente de chunk > 500 kB no `swing` (não bloqueia). |
 | `yarn sdd:check`         | 2026-10-29 | PASS      | Catálogo, estados, gates, cobertura e links válidos (verificação estrutural somente leitura).                                           |
 | `yarn docs:format:check` | 2026-10-29 | PASS      | "All matched files use Prettier code style!" (após `yarn docs:format:fix` nas tabelas do PROJECT_SPEC.md).                              |
 
-Contagem total de testes: **622** (core 68 + marbles 144 + swing 127 + web vitest 233 + web
+Contagem total de testes: **624** (core 68 + marbles 146 + swing 127 + web vitest 233 + web
 node:test 50), todos verdes. O refactor desta etapa removeu `apps/web/src/marbles/matchSession.ts`
 (−322 linhas) e acrescentou `packages/marbles/src/match/session.ts` (+334 linhas, migração com
 dois acessores novos) e `packages/marbles/test/match-session-equivalence.test.ts` (+141 linhas);

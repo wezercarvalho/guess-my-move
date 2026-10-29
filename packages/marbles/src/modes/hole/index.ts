@@ -81,6 +81,8 @@ interface State {
     pos: Vec
     activeHole: number
     holesDone: number
+    /** Covas feitas quando o tiro corrente começou (para medir só o que ele rendeu). */
+    holesAtShotStart: number
     shots: number
     done: boolean
     enteredThisShot: boolean
@@ -116,6 +118,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
             pos: { ...cfg.shooterStart },
             activeHole: 0,
             holesDone: 0,
+            holesAtShotStart: 0,
             shots: 0,
             done: false,
             enteredThisShot: false,
@@ -211,7 +214,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
         }
         s.pos = { ...ball.pos }
 
-        const yielded = s.holesDone // acumulado de covas feitas, para o placar
+        const yielded = s.holesDone - s.holesAtShotStart // covas feitas só neste tiro
 
         const persisted: Body[] = [{ pos: { ...s.pos }, vel: { x: 0, y: 0 }, radius: cfg.marbleRadius }]
 
@@ -237,6 +240,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
     function prepareShot(_field: readonly Body[], competitor: Competitor): Body[] {
         const s = state[competitor]
         s.enteredThisShot = false
+        s.holesAtShotStart = s.holesDone
         return [{ pos: { ...s.pos }, vel: { x: 0, y: 0 }, radius: cfg.marbleRadius }]
     }
 
@@ -248,6 +252,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
         buildRound,
         shotLimit: () => cfg.shotLimit,
         prepareShot,
+        isFinished: (competitor) => state[competitor].done,
         onStep: (field, competitor) => onStep(field, competitor),
         evaluate,
         describe: (competitor) => ({
