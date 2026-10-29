@@ -35,8 +35,8 @@ export interface SwingHud {
     webs: number
     distance: number
     webAttached: boolean
-    /** Mão que lançou a teia presa (-1 esquerda, 0 centro, 1 direita); `null` sem teia. */
-    webSide: WebSide | null
+    /** Lados das teias presas (-1 esquerda, 0 centro, 1 direita); vazio sem teia. */
+    webSides: WebSide[]
     /** O primeiro gesto de teia já aconteceu; antes disso o jogador espera no início. */
     started: boolean
 }
@@ -103,7 +103,7 @@ const STALE_HAND_MS = 500
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha desconhecida.'
 
-const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSide: null, started: false }
+const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSides: [], started: false }
 
 /**
  * Orquestra o mundo do jogo, o desenho 3D, a câmera com o detector de mão e o teclado,
@@ -141,7 +141,7 @@ export class SwingController {
     private hand: TrackedHand | null = null
     private hands: TrackedHand[] = []
     private handDebug: HandDebug[] = []
-    private pulling = false
+    private pulls = { left: false, right: false }
     private lastHandAt = 0
     private held = { left: false, right: false }
     private readonly sideKeys = { left: 'z', right: 'x' }
@@ -235,7 +235,7 @@ export class SwingController {
         this.triggers.left.reset()
         this.triggers.right.reset()
         this.held = { left: false, right: false }
-        this.pulling = false
+        this.pulls = { left: false, right: false }
         this.lastThrow = null
         this.counted = { webs: 0, misses: 0 }
         this.emit()
@@ -334,13 +334,17 @@ export class SwingController {
         this.lastNow = now
 
         this.readHand(now)
-        const left = this.held.left || this.keys.has(this.sideKeys.left)
-        const right = this.held.right || this.keys.has(this.sideKeys.right)
-        const side: WebSide = left && right ? 0 : left ? -1 : right ? 1 : 0
         const input: SwingInput = {
-            webHeld: left || right || this.keys.has(' '),
-            webSide: side,
-            pull: this.pulling || this.keys.has(this.pullKey),
+            // Cada mão segura a própria teia; Espaço é a teia do centro (teclado).
+            held: {
+                left: this.held.left || this.keys.has(this.sideKeys.left),
+                right: this.held.right || this.keys.has(this.sideKeys.right),
+                center: this.keys.has(' '),
+            },
+            // O punho de cada mão puxa a teia dela; a tecla C puxa todas as presas.
+            pull: this.keys.has(this.pullKey)
+                ? { left: true, center: true, right: true }
+                : { left: this.pulls.left, right: this.pulls.right },
             // A câmera é automática (segue o movimento); as setas só ajustam o olhar.
             yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
             pitchRate: this.keyAxis('ArrowUp', 'ArrowDown'),
@@ -370,19 +374,20 @@ export class SwingController {
         this.counted = { webs, misses }
     }
 
-    /** Mostra, antes de lançar, onde a teia prenderia a partir de cada mão. */
+    /** Mostra, antes de lançar, onde a teia prenderia a partir de cada mão que está sem teia. */
     private drawTargets(
         context: CanvasRenderingContext2D,
         effects: HTMLCanvasElement,
         renderer: SwingRenderer,
         world: SwingWorld,
     ): void {
-        if (world.state.web || !renderer.project) return
+        if (!renderer.project) return
         const sides = [
             { side: -1 as const, label: 'esq.' },
             { side: 1 as const, label: 'dir.' },
         ]
         for (const { side, label } of sides) {
+            if (world.state.webs.some((web) => web.side === side)) continue
             const target = world.aim(side)
             const point = target ? renderer.project(target) : null
             if (point) drawReticle(context, reticlePlacement(point, effects.width, effects.height), label)
@@ -433,7 +438,7 @@ export class SwingController {
         const left = this.triggers.left.update(signals.left, now)
         const right = this.triggers.right.update(signals.right, now)
         this.held = { left: left.held, right: right.held }
-        this.pulling = left.pull || right.pull
+        this.pulls = { left: left.pull, right: right.pull }
     }
 
     private detectHands(tracker: HandTracker, video: HTMLVideoElement, now: number): TrackedHand[] {
@@ -540,8 +545,8 @@ export class SwingController {
                   altitude: Math.round(state.position.y),
                   webs: state.stats.webs,
                   distance: Math.round(state.stats.distance),
-                  webAttached: state.web !== null,
-                  webSide: state.web ? (state.web.side ?? 0) : null,
+                  webAttached: state.webs.length > 0,
+                  webSides: state.webs.map((web) => web.side),
                   started: state.started,
               }
             : EMPTY_HUD
@@ -554,7 +559,7 @@ export class SwingController {
             gestureHeld: this.held.left || this.held.right,
             held: { ...this.held },
             handsVisible: this.hands.length,
-            pulling: this.pulling,
+            pulling: this.pulls.left || this.pulls.right,
             handDebug: [...this.handDebug],
             cue: state ? swingCue(state) : 'start',
             lastThrow: this.lastThrow,

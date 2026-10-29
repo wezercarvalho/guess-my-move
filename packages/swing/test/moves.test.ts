@@ -7,8 +7,8 @@ import { box, cityOf } from './helpers.js'
 
 const DT = 1 / 120
 const PITCH = (10 * Math.PI) / 180
-const hold = { webHeld: true, yawRate: 0, pitchRate: 0 }
-const free = { webHeld: false, yawRate: 0, pitchRate: 0 }
+const hold = { held: { center: true }, yawRate: 0, pitchRate: 0 }
+const free = { held: {}, yawRate: 0, pitchRate: 0 }
 
 /** Prédio alto 60 m à frente (guinada 0 olha para -Z). */
 const tower = box(-30, -120, 30, -60, 200)
@@ -29,7 +29,7 @@ describe('lançar do chão', () => {
     it('sai do chão: a teia puxa o jogador para o alto', () => {
         const w = world()
         for (let i = 0; i < 180; i++) w.step(hold, DT)
-        expect(w.state.web).not.toBeNull()
+        expect(w.state.webs).toHaveLength(1)
         expect(w.state.position.y).toBeGreaterThan(15)
     })
 
@@ -48,7 +48,7 @@ describe('teia presa', () => {
         const w = world({ x: 0, y: 40, z: -20 })
         w.state.velocity = { x: 0, y: 0, z: -25 }
         for (let i = 0; i < 360; i++) w.step(hold, DT)
-        expect(w.state.web).not.toBeNull()
+        expect(w.state.webs).toHaveLength(1)
         expect(w.state.position.z).toBeGreaterThanOrEqual(-60 + DEFAULT_SWING.radius - 0.05)
         expect(w.state.position.y).toBeGreaterThan(40)
     })
@@ -56,9 +56,9 @@ describe('teia presa', () => {
     it('só solta quando o jogador pede', () => {
         const w = world({ x: 0, y: 40, z: -20 })
         for (let i = 0; i < 120; i++) w.step(hold, DT)
-        expect(w.state.web).not.toBeNull()
+        expect(w.state.webs).toHaveLength(1)
         w.step(free, DT)
-        expect(w.state.web).toBeNull()
+        expect(w.state.webs).toHaveLength(0)
     })
 })
 
@@ -67,29 +67,29 @@ describe('puxar', () => {
         const w = world({ x: 0, y: 40, z: 0 })
         w.step(hold, DT)
         const before = speedOf(w)
-        w.step({ ...hold, pull: true }, DT)
+        w.step({ ...hold, pull: { center: true } }, DT)
         const after = speedOf(w)
         expect(after - before).toBeGreaterThan(DEFAULT_SWING.pullImpulse * 0.6)
         // Segurar o punho não repete o impulso.
-        w.step({ ...hold, pull: true }, DT)
+        w.step({ ...hold, pull: { center: true } }, DT)
         expect(speedOf(w) - after).toBeLessThan(1)
-        expect(w.state.pulling).toBe(true)
+        expect(w.state.webs[0]?.pulling).toBe(true)
     })
 
     it('abrir e fechar de novo dá outro impulso', () => {
         const w = world({ x: 0, y: 40, z: 0 })
         w.step(hold, DT)
-        w.step({ ...hold, pull: true }, DT)
+        w.step({ ...hold, pull: { center: true } }, DT)
         w.step(hold, DT)
         const before = speedOf(w)
-        w.step({ ...hold, pull: true }, DT)
+        w.step({ ...hold, pull: { center: true } }, DT)
         expect(speedOf(w) - before).toBeGreaterThan(DEFAULT_SWING.pullImpulse * 0.6)
     })
 
     it('sem teia presa, o punho não faz nada', () => {
         const w = world({ x: 0, y: 40, z: 0 })
-        w.step({ ...free, pull: true }, DT)
-        expect(w.state.pulling).toBe(false)
+        w.step({ ...free, pull: { center: true } }, DT)
+        expect(w.state.webs).toHaveLength(0)
         expect(speedOf(w)).toBeLessThan(1)
     })
 })

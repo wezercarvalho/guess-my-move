@@ -5,7 +5,7 @@ import { type SwingTrackerStatus } from './swingController.js'
 /** Etapas do jogo, na ordem. A atual é destacada na tela. */
 export const STEPS = [
     'Pose de teia: polegar, indicador e mindinho abertos.',
-    'Segure a pose: a corda puxa e balança você.',
+    'Uma teia por mão: segure uma ou as duas.',
     'Punho fechado puxa. Palma aberta solta.',
     'Solte na subida para voar. Lance de novo.',
 ] as const
@@ -60,7 +60,7 @@ export function guideHint({
     cue,
 }: HintInput): string {
     if (trackerStatus === 'error') return 'O detector falhou. Use Espaço, Z, X, C e as setas.'
-    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam de lado, C puxa, setas olham.'
+    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam cada lado (juntos, as duas), C puxa, setas olham.'
     if (trackerStatus === 'loading') return 'Carregando o detector…'
     if (lastThrow === 'miss') return 'A teia errou. Lance de novo, olhando para a cidade.'
     if (!handVisible) return 'Mostre a mão inteira para a câmera.'

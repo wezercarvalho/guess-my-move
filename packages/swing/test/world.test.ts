@@ -61,36 +61,36 @@ describe('createSwingWorld', () => {
     it('ao começar, sai com a velocidade de partida para onde a câmera olha', () => {
         const world = createSwingWorld(createCityIndex(cityOf()))
         world.state.yaw = Math.PI / 2
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        world.step({ held: { center: true }, yawRate: 0, pitchRate: 0 }, 1 / 120)
         expect(world.state.velocity.x).toBeGreaterThan(DEFAULT_SWING.spawnSpeed * 0.9)
         expect(Math.abs(world.state.velocity.z)).toBeLessThan(0.5)
     })
 
     it('lança a teia ao apertar e prende no prédio à frente', () => {
         const world = worldWithTower()
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
-        expect(world.state.web).not.toBeNull()
-        expect(world.state.web?.anchor.x).toBeCloseTo(40)
+        world.step({ held: { center: true }, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        expect(world.state.webs).toHaveLength(1)
+        expect(world.state.webs[0]?.anchor.x).toBeCloseTo(40)
         expect(world.state.stats.webs).toBe(1)
     })
 
     it('solta a teia ao soltar e só lança de novo no próximo aperto', () => {
         const world = worldWithTower()
-        const hold = { webHeld: true, yawRate: 0, pitchRate: 0 }
+        const hold = { held: { center: true }, yawRate: 0, pitchRate: 0 }
         world.step(hold, 1 / 120)
-        world.step({ ...hold, webHeld: false }, 1 / 120)
-        expect(world.state.web).toBeNull()
+        world.step({ ...hold, held: {} }, 1 / 120)
+        expect(world.state.webs).toHaveLength(0)
         world.step(hold, 1 / 120)
-        expect(world.state.web).not.toBeNull()
+        expect(world.state.webs).toHaveLength(1)
         expect(world.state.stats.webs).toBe(2)
     })
 
     it('conta a teia que errou e não tenta de novo enquanto o gesto continua', () => {
         const world = createSwingWorld(createCityIndex(cityOf()), { ...DEFAULT_SWING, skyWeb: null })
-        const hold = { webHeld: true, yawRate: 0, pitchRate: 0 }
+        const hold = { held: { center: true }, yawRate: 0, pitchRate: 0 }
         world.step(hold, 1 / 120)
         world.step(hold, 1 / 120)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
         expect(world.state.stats.misses).toBe(1)
         expect(world.state.stats.webs).toBe(0)
     })
@@ -98,7 +98,7 @@ describe('createSwingWorld', () => {
     it('gira a câmera pelas taxas e limita a inclinação a 60°', () => {
         const world = createSwingWorld(createCityIndex(cityOf()))
         world.state.yaw = 0
-        for (let i = 0; i < 120; i++) world.step({ webHeld: false, yawRate: 1, pitchRate: 1 }, 1 / 120)
+        for (let i = 0; i < 120; i++) world.step({ held: {}, yawRate: 1, pitchRate: 1 }, 1 / 120)
         expect(world.state.yaw).toBeCloseTo(Math.PI / 2, 1)
         expect(world.state.pitch).toBeCloseTo(DEFAULT_SWING.pitchLimit)
     })
@@ -107,13 +107,13 @@ describe('createSwingWorld', () => {
         const world = createSwingWorld(createCityIndex(cityOf()))
         world.state.position.y = 50
         const start = { ...world.state.position }
-        for (let i = 0; i < 60; i++) world.step({ webHeld: false, yawRate: 1, pitchRate: 0 }, 1 / 120)
+        for (let i = 0; i < 60; i++) world.step({ held: {}, yawRate: 1, pitchRate: 0 }, 1 / 120)
         expect(world.state.started).toBe(false)
         expect(world.state.position).toEqual(start)
         expect(world.state.yaw).toBeGreaterThan(0.5)
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        world.step({ held: { center: true }, yawRate: 0, pitchRate: 0 }, 1 / 120)
         expect(world.state.started).toBe(true)
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        world.step({ held: { center: true }, yawRate: 0, pitchRate: 0 }, 1 / 120)
         expect(world.state.position.y).toBeLessThan(start.y)
     })
 
@@ -122,7 +122,7 @@ describe('createSwingWorld', () => {
         world.state.started = true
         world.state.position.y = 80
         world.state.velocity = { x: 0, y: 0, z: 0 }
-        world.advance({ webHeld: false, yawRate: 0, pitchRate: 0 }, 10)
+        world.advance({ held: {}, yawRate: 0, pitchRate: 0 }, 10)
         // Só 0,05 s de simulação: a queda chega a cerca de 1 m/s.
         expect(world.state.velocity.y).toBeLessThan(-0.9)
         expect(world.state.velocity.y).toBeGreaterThan(-1.1)
@@ -130,10 +130,10 @@ describe('createSwingWorld', () => {
 
     it('reset volta ao início e zera as estatísticas', () => {
         const world = worldWithTower()
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
+        world.step({ held: { center: true }, yawRate: 0, pitchRate: 0 }, 1 / 120)
         world.reset()
         expect(world.state.started).toBe(false)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
         expect(world.state.stats.webs).toBe(0)
         expect(world.state.position.y).toBe(DEFAULT_SWING.spawnHeight)
     })

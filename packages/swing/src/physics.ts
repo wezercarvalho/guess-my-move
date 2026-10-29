@@ -129,11 +129,13 @@ export interface SwingStats {
 /** Lado da mão que lança a teia: -1 esquerda, 0 centro (as duas mãos ou o teclado), 1 direita. */
 export type WebSide = -1 | 0 | 1
 
-/** A teia presa: ponto de ancoragem, comprimento atual da corda e a mão que a lançou. */
+/** Uma teia presa: ponto de ancoragem, comprimento atual da corda e a mão que a lançou. */
 export interface ActiveWeb {
     anchor: Vec3
     length: number
-    side?: WebSide
+    side: WebSide
+    /** O punho dessa mão está fechado: a corda puxa mais forte e recolhe mais rápido. */
+    pulling?: boolean
     /** Ponto no céu, sem prédio: a teia prende no ar. */
     virtual?: boolean
 }
@@ -143,11 +145,10 @@ export interface SwingState {
     velocity: Vec3
     yaw: number
     pitch: number
-    web: ActiveWeb | null
+    /** Teias presas, no máximo uma por lado (esquerda, centro, direita). */
+    webs: ActiveWeb[]
     /** Em pé no chão ou num telhado no último passo. */
     grounded: boolean
-    /** O punho está fechado com a teia presa: a corda puxa mais forte e recolhe mais rápido. */
-    pulling: boolean
     /** O jogo começou (primeiro gesto de teia); antes disso o jogador fica parado no início. */
     started: boolean
     stats: SwingStats
@@ -159,9 +160,8 @@ export function createSwingState(position: Vec3, yaw = 0, pitch = degrees(10)): 
         velocity: { x: 0, y: 0, z: 0 },
         yaw,
         pitch,
-        web: null,
+        webs: [],
         grounded: false,
-        pulling: false,
         started: false,
         stats: { distance: 0, webs: 0, misses: 0, topSpeed: 0 },
     }
@@ -185,17 +185,19 @@ export function stepPlayer(
     const { position, velocity } = state
     const before = { x: position.x, z: position.z }
 
-    if (state.web) {
-        const reel = state.pulling ? config.pullReel : config.reelSpeed
-        state.web.length = Math.max(config.minRope, state.web.length - reel * dt)
+    // Com mais de uma teia, a assistência de cada uma é dividida: duas cordas seguram, não aceleram em dobro.
+    const share = 1 / Math.max(1, state.webs.length)
+    for (const web of state.webs) {
+        const reel = web.pulling ? config.pullReel : config.reelSpeed
+        web.length = Math.max(config.minRope, web.length - reel * dt)
         // A corda não só limita a distância: ela puxa o jogador para o ponto de ancoragem.
-        const { anchor } = state.web
+        const { anchor } = web
         const ax = anchor.x - position.x
         const ay = anchor.y - position.y
         const az = anchor.z - position.z
         const away = Math.hypot(ax, ay, az)
         if (away > config.minRope) {
-            const pull = (state.pulling ? config.pullAssist : config.assist) * dt
+            const pull = (web.pulling ? config.pullAssist : config.assist) * share * dt
             velocity.x += (ax / away) * pull
             velocity.y += (ay / away) * pull
             velocity.z += (az / away) * pull
@@ -203,7 +205,7 @@ export function stepPlayer(
     }
 
     velocity.y -= config.gravity * dt
-    if (state.grounded && !state.web) {
+    if (state.grounded && state.webs.length === 0) {
         const forward = forwardFromAngles(state.yaw, 0)
         const blend = 1 - Math.exp(-config.groundBlend * dt)
         velocity.x += (forward.x * config.runSpeed - velocity.x) * blend
@@ -225,13 +227,15 @@ export function stepPlayer(
     position.y += velocity.y * dt
     position.z += velocity.z * dt
 
-    if (state.web) {
-        const { anchor, length } = state.web
-        const dx = position.x - anchor.x
-        const dy = position.y - anchor.y
-        const dz = position.z - anchor.z
-        const distance = Math.hypot(dx, dy, dz)
-        if (distance > length) {
+    // Cada corda limita a distância ao seu ponto. Com duas, uma segunda passada acerta o que a primeira desfez.
+    for (let pass = 0; pass < (state.webs.length > 1 ? 3 : 1); pass++) {
+        for (const web of state.webs) {
+            const { anchor, length } = web
+            const dx = position.x - anchor.x
+            const dy = position.y - anchor.y
+            const dz = position.z - anchor.z
+            const distance = Math.hypot(dx, dy, dz)
+            if (distance <= length) continue
             const nx = dx / distance
             const ny = dy / distance
             const nz = dz / distance
