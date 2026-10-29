@@ -11,12 +11,11 @@ import {
 } from '../src/match/index.js'
 import { type Body, DEFAULT_PHYSICS } from '../src/physics.js'
 import { createBeteMode } from '../src/modes/bete/index.js'
-import { createHoleMode, type HoleMode } from '../src/modes/hole/index.js'
+import { createHoleMode } from '../src/modes/hole/index.js'
 import {
     createTriangleMode,
     DEFAULT_TRIANGLE_CONFIG,
     triangleBotAimPoint,
-    type TriangleMode,
 } from '../src/modes/triangle/index.js'
 import { type Mode } from '../src/match/index.js'
 
@@ -42,8 +41,8 @@ interface SmokeMode {
 
 /** Fabrica as entradas de fumaça; cada modo é recriado por partida (estado por rodada). */
 function smokeModes(): SmokeMode[] {
-    const triangle = createTriangleMode() as TriangleMode
-    const hole = createHoleMode() as HoleMode
+    const triangle = createTriangleMode()
+    const hole = createHoleMode()
     return [
         {
             id: 'bete',
