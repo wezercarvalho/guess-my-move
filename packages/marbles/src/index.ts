@@ -47,6 +47,13 @@ export {
     createMatch,
 } from './match/index.js'
 export {
+    type MatchPhase,
+    type MatchSession,
+    type MatchSessionConfig,
+    type MatchSnapshot,
+    createMatchSession,
+} from './match/session.js'
+export {
     type Body,
     DEFAULT_PHYSICS,
     type PhysicsConfig,

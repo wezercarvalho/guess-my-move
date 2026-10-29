@@ -6,7 +6,8 @@
  * MediaPipe nem relógio: o acaso e o tempo entram pelo modo e pelas fontes de
  * tiro. A física (`stepBodies`, `isAtRest`) é reaproveitada intacta.
  */
-import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, type Vec, isAtRest, stepBodies } from '../physics.js'
+import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, type Vec } from '../physics.js'
+import { createMatchSession } from './session.js'
 
 /** O jogador ou o adversário automático. */
 export type Competitor = 'player' | 'opponent'
@@ -163,138 +164,93 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
         ...overrides,
     }
     const { mode, opponent, sources } = cfg
-    const other = (c: Competitor): Competitor => (c === 'player' ? 'opponent' : 'player')
-
-    let round = 0
-    let field: Body[] = mode.buildRound(0, opponent)
-    let turn: Competitor = startsRound(0)
-    let shotsSpent: Record<Competitor, number> = { player: 0, opponent: 0 }
-    const outcomes: Outcome[] = []
-    const yielded: Record<Competitor, number> = { player: 0, opponent: 0 }
-    let shotsSpentPrevious = 0
-    let over = false
 
     function startsRound(n: number): Competitor {
         if (opponent === 'target') return 'player'
         return n % 2 === 0 ? 'player' : 'opponent'
     }
 
-    function sourceOf(competitor: Competitor): ShotSource | undefined {
-        return competitor === 'player' ? sources.player : sources.bot
-    }
+    // Fonte de reserva do bot: quando a partida é contra a meta não há bot, mas
+    // a sessão sempre exige uma fonte. Nunca é consultada contra a meta.
+    const botSource: ShotSource = sources.bot ?? { nextShot: () => null }
 
-    function limitReached(competitor: Competitor): boolean {
-        return shotsSpent[competitor] >= mode.shotLimit(competitor, opponent)
-    }
+    // UMA só implementação das regras: a sessão passo a passo. O condutor "de
+    // uma vez" apenas pede o tiro do jogador à fonte dada e rola cada tiro até o
+    // repouso num passo só (`advance` com um intervalo grande o bastante).
+    const session = createMatchSession({
+        modeId: mode.name,
+        mode,
+        opponent,
+        bot: botSource,
+        physics: cfg.physics,
+        maxStepsPerShot: cfg.maxStepsPerShot,
+        // Intervalo amplo: rola a partida inteira de um tiro até o repouso por
+        // chamada de `advance`, sem fatiar por quadro.
+        maxAdvanceMs: Number.MAX_SAFE_INTEGER,
+    })
 
-    /** `true` quando todos os competidores da rodada esgotaram os tiros. */
-    function roundExhausted(): boolean {
-        if (opponent === 'target') return limitReached('player')
-        return limitReached('player') && limitReached('opponent')
-    }
+    // Sinaliza o fim quando a fonte do jogador seca antes de a partida acabar
+    // (equivale ao antigo `over = true` sem registrar rodadas restantes).
+    let starved = false
 
-    /** Rola a física até o repouso, acumulando os contatos de toda a rolagem. */
-    function rollToRest(competitor: Competitor): (readonly [number, number])[] {
-        const contacts: (readonly [number, number])[] = []
-        let steps = 0
-        while (!isAtRest(field, cfg.physics) && steps < cfg.maxStepsPerShot) {
-            const result = stepBodies(field, cfg.physics)
-            field = result.bodies
-            for (const pair of result.contacts) contacts.push(pair)
-            // O modo observa cada passo e pode fixar/retirar uma bolinha (cova).
-            if (mode.onStep) {
-                const replaced = mode.onStep(field, competitor, opponent)
-                if (replaced) field = replaced
-            }
-            steps++
+    /** Rola a física corrente até sair da fase `rolling` (um tiro inteiro). */
+    function rollToRest(): void {
+        // Cada `advance` gasta até `maxStepsPerShot` passos; poucas passagens
+        // bastam para qualquer rolagem real. A trava evita laço infinito se a
+        // rolagem nunca repousar dentro do orçamento de passos.
+        let guard = 0
+        while (session.snapshot().phase === 'rolling' && guard++ < 64) {
+            session.advance(Number.MAX_SAFE_INTEGER)
         }
-        return contacts
-    }
-
-    function nextTurnAfter(yieldedNow: number): Competitor {
-        if (opponent === 'target') return 'player'
-        const alternate = other(turn)
-        const decision: NextTurn = mode.nextTurn ? mode.nextTurn(alternate, yieldedNow) : alternate
-        const target: Competitor = decision === 'keep' ? turn : decision
-        // Pula quem já esgotou os tiros.
-        if (limitReached(target) && !limitReached(other(target))) return other(target)
-        return target
-    }
-
-    function endRound(outcome: Outcome): void {
-        outcomes.push(outcome)
-        shotsSpentPrevious = shotsSpent[turn]
-        round++
-        if (round >= mode.roundsPerMatch) {
-            over = true
-            return
-        }
-        field = mode.buildRound(round, opponent)
-        shotsSpent = { player: 0, opponent: 0 }
-        turn = startsRound(round)
     }
 
     function nextStep(): void {
-        if (over) return
+        if (starved) return
+        const phase = session.snapshot().phase
+        if (phase === 'match-over') return
 
-        // Quem tem a vez mas já esgotou os tiros é pulado; se os dois esgotaram, a rodada fecha.
-        if (limitReached(turn)) {
-            if (roundExhausted()) {
-                endRound('loss')
+        // Transição de rodada: encerra o `round-over` imediatamente, como o
+        // condutor antigo fazia dentro de `endRound`.
+        if (phase === 'round-over') {
+            session.beginNextRound()
+            return
+        }
+
+        if (phase === 'player-turn') {
+            // Prepara o campo da vez e lê o tiro do jogador da fonte dada.
+            session.shooter()
+            const shot = sources.player.nextShot(session.snapshot().field)
+            if (!shot) {
+                // Sem tiro do jogador: a rodada não é presa; a partida para.
+                starved = true
                 return
             }
-            turn = other(turn)
+            session.firePlayerShot(shot)
+            rollToRest()
             return
         }
 
-        const source = sourceOf(turn)
-        // O modo pode preparar o campo (reposicionar a bolinha de tiro, trocar
-        // pela bolinha do competidor da vez) antes de o tiro ser produzido.
-        if (mode.prepareShot) field = mode.prepareShot(field, turn, opponent)
-        const shot = source ? source.nextShot(field) : null
-        if (!shot) {
-            // Sem tiro disponível: se a rodada esgotou, fecha; senão, nada a fazer neste passo.
-            if (roundExhausted()) endRound('loss')
-            else over = true
+        if (phase === 'bot-turn') {
+            // A sessão produz o tiro do bot pela fonte e entra em rolagem.
+            session.advance(Number.MAX_SAFE_INTEGER)
+            rollToRest()
             return
         }
 
-        // Dispara: o primeiro corpo é a bolinha de tiro do competidor corrente.
-        field = [{ ...field[0], vel: { x: shot.x, y: shot.y } }, ...field.slice(1)]
-        shotsSpent[turn]++
-
-        const contactsInRound = rollToRest(turn)
-        const evaluation = mode.evaluate({
-            field,
-            contactsInRound,
-            competitor: turn,
-            shotsSpent: shotsSpent[turn],
-            opponent,
-        })
-        yielded[turn] += evaluation.yield
-        // O modo pode persistir um campo reposicionado para o próximo tiro.
-        if (evaluation.field) field = evaluation.field
-
-        if (evaluation.finished && evaluation.outcome) {
-            endRound(evaluation.outcome)
-            return
+        if (phase === 'rolling') {
+            rollToRest()
         }
-        if (roundExhausted()) {
-            endRound('loss')
-            return
-        }
-        turn = nextTurnAfter(evaluation.yield)
     }
 
     return {
-        currentRound: () => round,
+        currentRound: () => session.snapshot().round,
         nextStep,
-        finished: () => over,
-        roundOutcomes: () => [...outcomes],
-        matchOutcome: () => computeMatchOutcome(outcomes),
+        finished: () => starved || session.snapshot().phase === 'match-over',
+        roundOutcomes: () => session.snapshot().roundOutcomes,
+        matchOutcome: () => computeMatchOutcome(session.snapshot().roundOutcomes),
         computeOutcome: (rounds) => computeMatchOutcome(rounds),
         startsRound,
-        shotsSpentInPreviousRound: () => shotsSpentPrevious,
-        yieldOf: (competitor) => yielded[competitor],
+        shotsSpentInPreviousRound: () => session.shotsSpentInPreviousRound(),
+        yieldOf: (competitor) => session.yieldOf(competitor),
     }
 }

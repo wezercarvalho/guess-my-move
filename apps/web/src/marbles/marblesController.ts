@@ -11,6 +11,8 @@ import {
     type HandGesture,
     type Mode,
     type ModeEntry,
+    type MatchPhase,
+    type MatchSession,
     type Opponent,
     type Outcome,
     type PinchDetector,
@@ -21,6 +23,7 @@ import {
     createAimController,
     createBotPlanner,
     createFlickDetector,
+    createMatchSession,
     createPinchDetector,
     flickPower,
     modes,
@@ -33,11 +36,6 @@ import {
     type HandTracker,
     type TrackerDelegate,
 } from '../tracker/handTracker.js'
-import {
-    type MatchPhase,
-    type MatchSession,
-    createMatchSession,
-} from './matchSession.js'
 
 export type MarblesTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
 

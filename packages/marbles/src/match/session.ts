@@ -1,29 +1,31 @@
+/**
+ * Sessão de partida passo a passo: a ÚNICA implementação das regras de vez,
+ * limite de tiros, avaliação, fim de rodada e resultado. Avança por quantidade
+ * de tempo/passos fixos e expõe um retrato do estado para a tela desenhar
+ * (campo, rodada, vez, tiros restantes, resultados, fase). Não conhece DOM,
+ * MediaPipe nem relógio: o tempo entra por `advance(dtMs)`. A física
+ * (`stepBodies`, `isAtRest`) é reaproveitada intacta.
+ *
+ * O condutor "de uma vez" (`createMatch`) é um laço fino sobre esta mesma
+ * sessão (ver `./index.ts`), de modo que as regras existam num só lugar.
+ */
 import {
     type Body,
+    DEFAULT_PHYSICS,
+    type PhysicsConfig,
+    type Vec,
+    isAtRest,
+    stepBodies,
+} from '../physics.js'
+import {
     type Competitor,
     type FieldDecor,
     type Mode,
     type Opponent,
     type Outcome,
-    type PhysicsConfig,
     type ShotSource,
-    type Vec,
-    DEFAULT_PHYSICS,
     computeMatchOutcome,
-    isAtRest,
-    stepBodies,
-} from '@guess-my-move/marbles'
-
-/**
- * Condução ANIMADA de uma partida do motor na camada web. O motor puro
- * (`createMatch`) rola cada tiro até o repouso de uma vez; a tela precisa ver a
- * bolinha andar quadro a quadro. Esta sessão reusa o mesmo contrato de modo
- * (`buildRound`, `prepareShot`, `onStep`, `evaluate`, `shotLimit`, `nextTurn`) e
- * a mesma física (`stepBodies`, `isAtRest`), mas intercala a rolagem com o laço
- * de exibição: o tiro do jogador entra pela mão (controlador de mira) e o do bot
- * pela fonte com semente, e os dois são animados igual. Pura quanto ao tempo: o
- * relógio entra só por `advance(dtMs)`.
- */
+} from './index.js'
 
 /** Fase da partida, do ponto de vista da tela. */
 export type MatchPhase =
@@ -86,14 +88,18 @@ export interface MatchSession {
     advance(dtMs: number): void
     /** Começa a próxima rodada após `round-over` (a tela decide quando, depois de mostrar o resultado). */
     beginNextRound(): void
+    /** Tiros gastos na rodada que acabou de encerrar (para provar o encerramento antecipado). */
+    shotsSpentInPreviousRound(): number
+    /** Total do que o competidor rendeu na partida (capturas/acertos/covas). */
+    yieldOf(competitor: Competitor): number
 }
 
 const other = (c: Competitor): Competitor => (c === 'player' ? 'opponent' : 'player')
 
 /**
- * Cria a sessão animada. Começa já na primeira rodada, com a vez de quem o modo
- * mandar começar. A tela controla o início (escolha de modo/adversário) montando
- * a sessão só quando a partida começa.
+ * Cria a sessão. Começa já na primeira rodada, com a vez de quem o modo mandar
+ * começar. A tela controla o início (escolha de modo/adversário) montando a
+ * sessão só quando a partida começa.
  */
 export function createMatchSession(
     overrides: Partial<MatchSessionConfig> &
@@ -113,6 +119,8 @@ export function createMatchSession(
     let turn: Competitor = startsRound(0)
     const shotsSpent: Record<Competitor, number> = { player: 0, opponent: 0 }
     const outcomes: Outcome[] = []
+    const yielded: Record<Competitor, number> = { player: 0, opponent: 0 }
+    let shotsSpentPrevious = 0
     let lastRoundOutcome: Outcome | null = null
     let phase: MatchPhase = turnPhase()
     let rollingBy: Competitor | null = null
@@ -170,6 +178,7 @@ export function createMatchSession(
     function endRound(outcome: Outcome): void {
         outcomes.push(outcome)
         lastRoundOutcome = outcome
+        shotsSpentPrevious = shotsSpent[turn]
         rollingBy = null
         round++
         if (round >= mode.roundsPerMatch) {
@@ -213,6 +222,7 @@ export function createMatchSession(
             opponent,
         })
         if (evaluation.field) field = evaluation.field
+        yielded[competitor] += evaluation.yield
         rollingBy = null
 
         if (evaluation.finished && evaluation.outcome) {
@@ -327,6 +337,14 @@ export function createMatchSession(
         beginNextRound(): void {
             if (phase !== 'round-over') return
             beginNextRound()
+        },
+
+        shotsSpentInPreviousRound(): number {
+            return shotsSpentPrevious
+        },
+
+        yieldOf(competitor: Competitor): number {
+            return yielded[competitor]
         },
     }
 }
