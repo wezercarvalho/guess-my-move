@@ -1,0 +1,146 @@
+---
+id: 2026-10-29-game-arranha-teia-add-head-tracking-camera
+title: Arranha-Teia, girar a câmera com a cabeça pelo MediaPipe Face Landmarker
+slug: game-arranha-teia-add-head-tracking-camera
+strategy: sdd
+domain: game
+capability: arranha-teia
+objective: add-head-tracking-camera
+summary: Acrescenta ao Arranha-Teia o giro da câmera pela cabeça. O MediaPipe Face Landmarker (mesmo pacote @mediapipe/tasks-vision das mãos, modelo face_landmarker.task servido pelo próprio app e conferido por SHA-256 no prepare:assets) dá a matriz de transformação facial; uma lógica pura e testada no pacote @guess-my-move/swing converte guinada e inclinação da cabeça num desvio do olhar, com correção do espelhamento, calibração do neutro, zona morta, suavização exponencial, ganho e limites, e volta suave a zero quando o rosto some. O desvio soma ao acompanhamento automático atual (a cabeça tem prioridade enquanto está fora da zona morta) e vale também para a mira da teia, que já sai da direção da câmera. A camada web alimenta mãos e rosto com o mesmo quadro, mostra status de uma linha, dica curta e o painel de depuração com a leitura da cabeça, e oferece um botão "Centralizar"; sem rosto o jogo segue como hoje e o teclado continua funcionando. Nenhuma imagem é gravada ou enviada. Issue #80. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; a implementação é test-first e o Gate 3 fica pendente do teste ao vivo do maintainer, sem afirmar desempenho (fps) nem precisão da pose sem medição.
+status: implementing
+owners:
+    - wezercarvalho
+reviewers:
+    - kirocrew
+aliases:
+    - cabeça
+    - rosto
+    - Face Landmarker
+    - MediaPipe Face
+    - câmera com a cabeça
+    - olhar
+    - guinada
+    - inclinação
+    - matriz de transformação facial
+    - zona morta
+    - calibração do neutro
+    - suavização
+    - espelhamento
+    - packages/swing
+    - headLook.ts
+    - faceTracker.ts
+code_paths:
+    - packages/swing/
+    - apps/web/
+related_specs:
+    - 2026-10-28-game-arranha-teia-build-first-person-web-swing
+supersedes: []
+branch: feat/80-camera-com-a-cabeca
+constitution_version: 1.0.0
+created_at: 2026-10-29
+updated_at: 2026-10-29
+---
+
+# Arranha-Teia, girar a câmera com a cabeça pelo MediaPipe Face Landmarker
+
+## Resumo
+
+No Arranha-Teia a câmera é hoje automática: segue a direção do movimento (CQ-008 da spec anterior) e as mãos não giram o olhar. Esta mudança deixa o jogador olhar em volta movendo a cabeça — para os lados, para cima e para baixo — como se o personagem estivesse olhando ao redor. O rosto é lido no navegador pelo MediaPipe Face Landmarker, do mesmo pacote `@mediapipe/tasks-vision` já usado nas mãos; o modelo `face_landmarker.task` é servido pelo próprio app (sem CDN), baixado e conferido por SHA-256 no `prepare:assets`, como o do gesto.
+
+A lógica de converter a orientação da cabeça em olhar é pura e testável sem navegador, no pacote `@guess-my-move/swing` (`headLook.ts`): extrai guinada e inclinação da matriz de transformação facial, corrige o espelhamento da imagem da câmera, calibra o neutro (automático nos primeiros quadros estáveis e sob demanda por "Centralizar"), ignora uma zona morta, aplica ganho e limites, suaviza de forma exponencial e, sem rosto, faz o desvio voltar suave a zero. O desvio da cabeça soma ao acompanhamento automático (a cabeça tem prioridade enquanto está fora da zona morta); como a mira da teia já sai da direção da câmera (`state.yaw`/`state.pitch`), o desvio vale também para a mira, por construção.
+
+A camera web (`faceTracker.ts`, `swingController.ts`) alimenta mãos e rosto com o mesmo quadro da câmera, mostra um status de uma linha e uma dica curta, expõe a leitura da cabeça no painel de depuração (ângulos, calibrado, rosto visível) e oferece o botão "Centralizar". Sem rosto, o jogo segue jogável como hoje e o teclado (setas) continua funcionando. Nenhuma imagem é gravada nem enviada; o aviso de privacidade único do app continua valendo.
+
+Os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29 ("Pode implementar cada um. Abre os PRs separados para cada Issue e me avisa quando tu terminar todos e eu puder testar."). A implementação é test-first; o Gate 3 fica pendente do teste ao vivo do maintainer, e não se afirma desempenho (fps) nem precisão da pose da cabeça sem medição registrada.
+
+## Problema
+
+Hoje a câmera do Arranha-Teia é automática (segue o movimento, CQ-008) e as mãos não giram o olhar. O jogador não consegue olhar para os lados, para cima ou para baixo, o que limita a imersão e a mira da teia, que sai da direção da câmera. O maintainer pediu (issue #80) que o movimento da cabeça vire a câmera, como se o personagem estivesse olhando em volta.
+
+É fato que o app já usa o MediaPipe Tasks Vision (`@mediapipe/tasks-vision`) para as mãos, com modelos servidos pelo próprio app. A hipótese a confirmar era se o mesmo pacote oferece o Face Landmarker com a pose da cabeça; a pesquisa (`research.md`) confirma que sim, pela matriz de transformação facial.
+
+Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a imagem da câmera é invertida, então virar a cabeça para a direita deve virar a câmera do jogo para a direita; (2) o conflito de olhar — o jogador olha para o monitor e vira a cabeça, o que tira o rosto do eixo, exigindo ganho maior que 1:1 e um neutro calibrado; (3) a estabilidade — a câmera não pode tremer parada nem girar sozinha, o que pede zona morta e suavização; e (4) a perda do rosto — sem rosto, o jogo tem de seguir jogável sem salto brusco. Toda a conversão orientação → olhar é determinística e deve ser testável sem navegador.
+
+## Objetivos
+
+- Detectar o rosto no navegador com o MediaPipe Face Landmarker (modelo servido pelo app, conferido por SHA-256) e extrair a orientação da cabeça (guinada e inclinação) por funções puras e testáveis.
+- Converter a orientação em desvio do olhar com correção do espelhamento, calibração do neutro, zona morta, suavização, ganho e limites, e volta suave a zero quando o rosto some.
+- Somar o desvio ao acompanhamento automático (a cabeça tem prioridade fora da zona morta) e aplicá-lo também à mira da teia (que sai da direção da câmera).
+- Manter o teclado (setas) como alternativa e a câmera automática quando não houver rosto.
+- Mostrar status de uma linha, dica curta e o painel de depuração com a leitura da cabeça, mais um botão "Centralizar".
+- Preservar a privacidade: nenhum frame é gravado nem enviado; nenhuma requisição a terceiros em tempo de jogo.
+
+## Fora de escopo
+
+- Expressões faciais, blendshapes, reconhecimento de identidade ou emoção.
+- Qualquer gravação, envio ou log de imagem, vídeo ou landmarks do rosto.
+- Afirmar precisão da pose da cabeça, latência ou fps sem medição registrada.
+- Mudar a física do balanço, a mira assistida, o pipeline da cidade ou os gestos das mãos.
+- Rosto de mais de uma pessoa (o detector usa `numFaces: 1`).
+
+## Atores e histórias
+
+- **US-001 (jogador, P1): olhar em volta com a cabeça.** Com o rosto à vista e calibrado, virar a cabeça para a direita gira a câmera para a direita; o mesmo para esquerda, cima e baixo. Testável: orientação → desvio do olhar (puro) e o controlador com rastreador simulado giram o olhar no sentido certo.
+- **US-002 (jogador, P1): câmera estável.** Parado no neutro, a câmera não gira sozinha. Testável: dentro da zona morta o desvio é zero; parado no neutro o olhar não sai de perto de zero.
+- **US-003 (jogador, P1): perder o rosto sem quebrar o jogo.** Quando o rosto sai do quadro, o desvio volta suave a zero e a câmera retoma o acompanhamento automático, sem salto; o teclado segue funcionando. Testável: `update(null, dt)` decai a zero e marca o rosto ausente; o controlador não dá salto no primeiro quadro sem rosto.
+- **US-004 (jogador, P2): calibrar o neutro.** Um botão "Centralizar" trata a pose atual da cabeça como o novo zero. Testável: após `recenter`, a pose virada passa a dar desvio perto de zero.
+- **US-005 (operador, P1): privacidade e origem do modelo.** O modelo de rosto é servido pelo app (sem CDN), conferido por SHA-256, e nenhuma imagem é gravada ou enviada. Testável: o `prepare:assets` tem arquivo, URL do Google e SHA-256 próprios do modelo de rosto; o rastreador lê só a matriz de transformação (sem landmarks nem blendshapes guardados).
+
+## Requisitos funcionais
+
+- **FR-001**: A orientação da cabeça (guinada e inclinação) DEVE ser extraída da matriz de transformação facial do MediaPipe por função pura, devolvendo `null` para matriz de tamanho inválido.
+- **FR-002**: A conversão orientação → olhar DEVE corrigir o espelhamento: virar a cabeça para a direita do jogador gira a câmera do jogo para a direita; para a esquerda, o oposto; a inclinação segue o mesmo princípio para cima e para baixo.
+- **FR-003**: O neutro DEVE ser calibrado automaticamente nos primeiros quadros estáveis e DEVE poder ser recalibrado sob demanda ("Centralizar"); antes de calibrar, o olhar não reage.
+- **FR-004**: A conversão DEVE ignorar uma zona morta em volta do neutro, aplicar ganho e limitar o desvio de guinada e de inclinação a um máximo configurável.
+- **FR-005**: O desvio DEVE ser suavizado de forma exponencial, sem saltar de uma vez para o alvo.
+- **FR-006**: Sem rosto, o desvio DEVE voltar suave a zero e o estado DEVE marcar o rosto como ausente; o jogo segue jogável e o teclado continua funcionando.
+- **FR-007**: O desvio da cabeça DEVE somar ao olhar do jogo e, enquanto a cabeça comanda (fora da zona morta ou voltando ao neutro), o acompanhamento automático NÃO DEVE sobrescrever o olhar; como a mira da teia sai da direção da câmera, ela segue o desvio por construção.
+- **FR-008**: O detector de rosto DEVE usar o modelo servido pelo app, baixado e conferido por SHA-256 no `prepare:assets`, com recuo de delegate GPU → CPU como o detector de mão.
+- **FR-009**: A camada web DEVE alimentar mãos e rosto com o MESMO quadro novo da câmera; a falha do detector de rosto o desliga sem derrubar o jogo nem o detector de mão.
+- **FR-010**: A tela DEVE mostrar um status de uma linha e uma dica curta do estado do rosto (ex.: "Rosto fora do quadro. Centralize a cabeça."), o painel de depuração com a leitura da cabeça (ângulos, calibrado, rosto visível) e um botão "Centralizar".
+
+## Requisitos não funcionais
+
+- **NFR-001 (privacidade)**: Nenhum frame, vídeo ou landmark do rosto DEVE ser gravado, enviado ou logado. O rastreador lê apenas a matriz de transformação facial por quadro, descartada após o uso.
+- **NFR-002 (sem terceiros)**: O modelo de rosto DEVE ser servido pelo próprio app (sem CDN); em tempo de jogo não há requisição a terceiros.
+- **NFR-003 (evidência honesta)**: Afirmações de fps, latência ou precisão da pose DEVEM citar medição registrada como texto em `validation.md`, com tamanho de amostra e limitações; capacidade anunciada pelo provedor NÃO DEVE ser tratada como desempenho comprovado.
+- **NFR-004 (licença do modelo)**: A licença do arquivo `face_landmarker.task` DEVE ser lida na fonte e registrada; se não for confirmada, DEVE ser declarado que não foi, como já ocorre com os modelos de mão e de gesto.
+- **NFR-005 (escopo pequeno)**: As mudanças nos arquivos compartilhados com a issue #81 (`swingController.ts`, `world.ts`, `SwingScreen.tsx`, `guide.ts`) DEVEM ser pequenas e localizadas; o máximo possível fica em arquivos novos.
+
+## Critérios de sucesso
+
+- **SC-001**: Com o rosto visível e calibrado, virar a cabeça para cada direção gira a câmera na mesma direção (US-001, FR-002).
+- **SC-002**: Parado no neutro, a câmera não gira sozinha (US-002, FR-004).
+- **SC-003**: Ao perder o rosto, a câmera volta ao acompanhamento automático sem salto, e o teclado segue funcionando (US-003, FR-006).
+- **SC-004**: O rastreio de mãos e de rosto funciona ao mesmo tempo, alimentado pelo mesmo quadro (FR-009); o fps com os dois ativos é medido e registrado, sem afirmar desempenho antes da medição (NFR-003).
+- **SC-005**: Privacidade: nenhum frame é guardado nem enviado, o modelo de rosto é servido pelo app e a licença é lida e registrada ou declarada como não confirmada (US-005, NFR-001, NFR-002, NFR-004).
+- **SC-006**: A lógica de orientação, zona morta, suavização e perda do rosto tem testes automatizados escritos antes do código (FR-001..FR-006).
+
+## Hipóteses
+
+- **H-01 (fechada)**: O `@mediapipe/tasks-vision` (já no app, versão 1.1.1) oferece o `FaceLandmarker` com a matriz de transformação facial no Web. Confirmada na pesquisa (guia oficial do Web, 2026-10-29).
+- **H-02**: A matriz de transformação facial dá guinada e inclinação suficientes para um olhar utilizável sem usar landmarks individuais. Hipótese de jogo: a precisão da pose não é afirmada sem medição ao vivo.
+
+## Dependências e riscos
+
+- **D-01**: Depende do modelo `face_landmarker.task` do Google (storage.googleapis.com), baixado uma vez no `prepare:assets` e conferido por SHA-256; não versionado no Git (como os demais `.task`).
+- **R-01 (custo)**: Rodar dois modelos por quadro numa webcam de ~15 fps tem custo não medido; registrar a medição em `validation.md` sem generalizar para outras máquinas.
+- **R-02 (precisão)**: A pose da cabeça com óculos, pouca luz ou rosto parcial não foi medida; declarar como não medida.
+- **R-03 (conflito de olhar)**: Olhar o monitor e virar a cabeça tira o rosto do eixo; mitigado por ganho > 1 e calibração do neutro.
+- **R-04 (licença do modelo)**: A licença do `.task` pode não estar confirmável na fonte; declarar o que foi e o que não foi lido (NFR-004).
+
+## Decisões
+
+- **Combinação com o acompanhamento automático**: a cabeça soma um desvio ao olhar enquanto está fora da zona morta (prioridade da cabeça); sem rosto, o desvio volta suave a zero e o acompanhamento automático retoma. Razão: é o comportamento pedido na issue e o menos surpreendente, e evita disputa entre dois controles no mesmo quadro.
+- **Mira da teia segue o olhar**: sim. A mira já sai de `state.yaw`/`state.pitch`; aplicar o desvio ao olhar faz a mira segui-lo sem código extra. Razão: coerência (a teia vai para onde se olha) e escopo menor.
+- **Calibração**: automática nos primeiros quadros estáveis, mais um botão "Centralizar" para recalibrar. Razão: é a opção mais simples e testável; não exige um fluxo de calibração dedicado.
+- **Só a matriz de transformação**: o rastreador lê apenas a matriz (sem blendshapes nem landmarks guardados). Razão: privacidade e simplicidade; a guinada/inclinação bastam.
+
+## Adoção constitucional
+
+- **Versão preservada:** 1.0.0
+- **Status:** aprovado
+- **Aprovador:** Wezer (@wezercarvalho)
+- **Data:** 2026-10-29
+- **Referência:** mensagem do maintainer na sessão de 2026-10-29 ("Pode implementar cada um. Abre os PRs separados para cada Issue...").
+- **Justificativa:** A spec adota a constituição vigente 1.0.0 sem emenda; registro incluído por conformidade estrutural do catálogo.
