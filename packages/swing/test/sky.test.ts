@@ -6,7 +6,7 @@ import { createSwingWorld } from '../src/world.js'
 import { box, cityOf } from './helpers.js'
 
 const PITCH = (10 * Math.PI) / 180
-const hold = { webHeld: true, webSide: 0 as const, yawRate: 0, pitchRate: 0 }
+const hold = { held: { center: true }, yawRate: 0, pitchRate: 0 }
 
 function airborne(city = cityOf(), config = DEFAULT_SWING) {
     const world = createSwingWorld(createCityIndex(city), config)
@@ -21,8 +21,8 @@ describe('teia no céu (sem prédio alcançável)', () => {
     it('sem prédio por perto, prende num ponto à frente e acima do jogador', () => {
         const world = airborne()
         world.step(hold, 1 / 120)
-        const web = world.state.web
-        expect(web).not.toBeNull()
+        const web = world.state.webs[0]
+        expect(web).toBeDefined()
         expect(web?.virtual).toBe(true)
         expect(web?.anchor.y).toBeGreaterThan(60 + 30)
         expect(web?.anchor.z).toBeLessThan(-30)
@@ -31,32 +31,32 @@ describe('teia no céu (sem prédio alcançável)', () => {
 
     it('o lado desloca o ponto do céu para esse lado', () => {
         const left = airborne()
-        left.step({ ...hold, webSide: -1 }, 1 / 120)
+        left.step({ ...hold, held: { left: true } }, 1 / 120)
         const right = airborne()
-        right.step({ ...hold, webSide: 1 }, 1 / 120)
-        expect(left.state.web?.anchor.x).toBeLessThan(0)
-        expect(right.state.web?.anchor.x).toBeGreaterThan(0)
+        right.step({ ...hold, held: { right: true } }, 1 / 120)
+        expect(left.state.webs[0]?.anchor.x).toBeLessThan(0)
+        expect(right.state.webs[0]?.anchor.x).toBeGreaterThan(0)
     })
 
     it('um prédio alcançável tem preferência sobre o céu', () => {
         const world = airborne(cityOf(box(-20, -90, 20, -70, 200)))
         world.step(hold, 1 / 120)
-        expect(world.state.web?.virtual).toBeFalsy()
-        expect(world.state.web?.anchor.z).toBeCloseTo(-70, 0)
+        expect(world.state.webs[0]?.virtual).toBeFalsy()
+        expect(world.state.webs[0]?.anchor.z).toBeCloseTo(-70, 0)
     })
 
     it('acima da altura máxima do céu a teia erra', () => {
         const world = airborne()
         world.state.position.y = DEFAULT_SWING.skyWeb!.maxAltitude + 20
         world.step(hold, 1 / 120)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
         expect(world.state.stats.misses).toBe(1)
     })
 
     it('pode ser desligada na configuração', () => {
         const world = airborne(cityOf(), { ...DEFAULT_SWING, skyWeb: null })
         world.step(hold, 1 / 120)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
         expect(world.state.stats.misses).toBe(1)
     })
 

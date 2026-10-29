@@ -1,6 +1,7 @@
 import { type CityIndex } from './cityIndex.js'
 import {
     DEFAULT_SWING,
+    type ActiveWeb,
     type StepEvents,
     type SwingConfig,
     type SwingState,
@@ -15,14 +16,25 @@ import { pickAnchor } from './web.js'
 /** Lado da mão que lança a teia. */
 export { type WebSide } from './physics.js'
 
+/** Teia de uma mão: esquerda, direita, ou o centro (só o teclado). */
+export type WebSlot = 'left' | 'center' | 'right'
+
+/** Um sim/não por teia; o que falta vale não. */
+export type SlotFlags = Partial<Record<WebSlot, boolean>>
+
+/** Os três lugares de teia e o lado de cada um. */
+const SLOTS: readonly { slot: WebSlot; side: WebSide }[] = [
+    { slot: 'left', side: -1 },
+    { slot: 'center', side: 0 },
+    { slot: 'right', side: 1 },
+]
+
 /** O que o jogador pede a cada passo. As taxas vão de -1 a 1. */
 export interface SwingInput {
-    /** A teia deve estar presa (gesto ou tecla seguros). */
-    webHeld: boolean
-    /** Mão que está lançando; ausente vale o centro. */
-    webSide?: WebSide
-    /** Punho fechado com a teia presa: puxar. */
-    pull?: boolean
+    /** Teias que devem estar presas: cada mão segura a sua. */
+    held: SlotFlags
+    /** Punho fechado: puxar a teia daquele lado, se estiver presa. */
+    pull?: SlotFlags
     yawRate: number
     pitchRate: number
 }
@@ -47,16 +59,14 @@ export function createSwingWorld(
 ): SwingWorld {
     const spawn = findSpawn(index, config)
     const state = createSwingState(spawn)
-    let previousHeld = false
-    let previousSide: WebSide = 0
-    let previousPull = false
+    let previousHeld: Record<WebSlot, boolean> = { left: false, center: false, right: false }
+    let previousPull: Record<WebSlot, boolean> = { left: false, center: false, right: false }
     let accumulator = 0
 
     function start(): void {
         Object.assign(state, createSwingState(spawn))
-        previousHeld = false
-        previousSide = 0
-        previousPull = false
+        previousHeld = { left: false, center: false, right: false }
+        previousPull = { left: false, center: false, right: false }
         accumulator = 0
     }
     start()
@@ -118,6 +128,42 @@ export function createSwingWorld(
         }
     }
 
+    /** Lança a teia da mão do lado `side` e, saindo do chão, dá o salto. */
+    function launch(side: WebSide): void {
+        const found = aimWeb(side)
+        if (!found) {
+            state.stats.misses++
+            return
+        }
+        const { anchor } = found
+        const length = Math.hypot(
+            anchor.x - state.position.x,
+            anchor.y - state.position.y,
+            anchor.z - state.position.z,
+        )
+        state.webs.push(found.virtual ? { anchor, length, side, virtual: true } : { anchor, length, side })
+        state.stats.webs++
+        // Saindo do chão, o primeiro puxão da teia dá o salto (uma vez só, mesmo com as duas mãos).
+        if (state.grounded || state.position.y <= config.eyeHeight + 0.05) {
+            const reach = Math.max(length, 1e-6)
+            state.velocity.x += ((anchor.x - state.position.x) / reach) * config.launchBoost
+            state.velocity.y += ((anchor.y - state.position.y) / reach) * config.launchBoost + config.launchLift
+            state.velocity.z += ((anchor.z - state.position.z) / reach) * config.launchBoost
+            state.grounded = false
+        }
+    }
+
+    /** O impulso único, em direção ao ponto da teia, a cada vez que o punho fecha. */
+    function pullImpulse(web: ActiveWeb): void {
+        const dx = web.anchor.x - state.position.x
+        const dy = web.anchor.y - state.position.y
+        const dz = web.anchor.z - state.position.z
+        const reach = Math.max(Math.hypot(dx, dy, dz), 1e-6)
+        state.velocity.x += (dx / reach) * config.pullImpulse
+        state.velocity.y += (dy / reach) * config.pullImpulse
+        state.velocity.z += (dz / reach) * config.pullImpulse
+    }
+
     function step(input: SwingInput, dt: number): StepEvents {
         state.yaw += input.yawRate * config.yawRate * dt
         if (state.started && input.yawRate === 0) followHeading(dt, input.pitchRate === 0)
@@ -126,55 +172,28 @@ export function createSwingWorld(
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
-        const side = input.webSide ?? 0
-        // Passar a usar a outra mão (mesmo com as duas juntas por um instante) lança do novo lado.
-        const heldSide = state.web?.side ?? 0
-        const switchedHand = side !== 0 && side !== previousSide && heldSide !== 0 && heldSide !== side
-        if (!input.webHeld) {
-            state.web = null
-        } else if (!previousHeld || switchedHand) {
-            const found = aimWeb(side)
-            if (found) {
-                const { anchor } = found
-                const length = Math.hypot(
-                    anchor.x - state.position.x,
-                    anchor.y - state.position.y,
-                    anchor.z - state.position.z,
-                )
-                state.web = found.virtual ? { anchor, length, side, virtual: true } : { anchor, length, side }
-                state.stats.webs++
-                // Saindo do chão, o primeiro puxão da teia dá o salto.
-                if (state.grounded || state.position.y <= config.eyeHeight + 0.05) {
-                    const reach = Math.max(length, 1e-6)
-                    state.velocity.x += ((anchor.x - state.position.x) / reach) * config.launchBoost
-                    state.velocity.y += ((anchor.y - state.position.y) / reach) * config.launchBoost + config.launchLift
-                    state.velocity.z += ((anchor.z - state.position.z) / reach) * config.launchBoost
-                    state.grounded = false
-                }
-            } else {
-                state.stats.misses++
+        const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
+        for (const { slot, side } of SLOTS) {
+            const held = Boolean(input.held[slot])
+            if (!held) {
+                state.webs = state.webs.filter((web) => web.side !== side)
+            } else if (!previousHeld[slot]) {
+                launch(side)
             }
-        }
-        previousHeld = input.webHeld
-        previousSide = input.webHeld ? side : 0
+            previousHeld[slot] = held
 
-        const pulling = Boolean(input.pull) && state.web !== null
-        if (pulling && !previousPull && state.web) {
-            const { anchor } = state.web
-            const dx = anchor.x - state.position.x
-            const dy = anchor.y - state.position.y
-            const dz = anchor.z - state.position.z
-            const reach = Math.max(Math.hypot(dx, dy, dz), 1e-6)
-            state.velocity.x += (dx / reach) * config.pullImpulse
-            state.velocity.y += (dy / reach) * config.pullImpulse
-            state.velocity.z += (dz / reach) * config.pullImpulse
+            const web = state.webs.find((candidate) => candidate.side === side)
+            const pulling = Boolean(input.pull?.[slot]) && web !== undefined
+            if (web) {
+                web.pulling = pulling
+                if (pulling && !previousPull[slot]) pullImpulse(web)
+            }
+            previousPull[slot] = pulling
         }
-        previousPull = pulling
-        state.pulling = pulling
 
         // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia.
         if (!state.started) {
-            if (!input.webHeld) return { wallHit: false }
+            if (!anyHeld) return { wallHit: false }
             state.started = true
             const ahead = forwardFromAngles(state.yaw, 0)
             state.velocity = {

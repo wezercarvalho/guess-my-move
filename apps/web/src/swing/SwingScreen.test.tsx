@@ -113,6 +113,19 @@ describe('SwingScreen', () => {
         })
     })
 
+    it('Z e X juntos prendem as duas teias e o medidor diz as duas', async () => {
+        const h = await openGame()
+        h.run(2)
+        h.press('z')
+        h.press('x')
+        h.run(3)
+        h.run(1, 150)
+        await waitFor(() => {
+            expect(screen.getByTestId('hud-web')).toHaveTextContent('as duas')
+            expect(screen.getByTestId('web-counter')).toHaveTextContent('Teias: 2')
+        })
+    })
+
     it('sem teia o medidor diz solta', async () => {
         await openGame()
         expect(screen.getByTestId('hud-web')).toHaveTextContent('solta')

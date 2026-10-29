@@ -121,7 +121,7 @@ describe('SwingController com as duas mãos', () => {
         const snapshot = controller.getSnapshot()
         expect(snapshot.held).toEqual({ left: true, right: false })
         expect(snapshot.hud.webAttached).toBe(true)
-        expect(lastState().web?.side).toBe(-1)
+        expect(lastState().webs[0]?.side).toBe(-1)
     })
 
     it('a mão direita lança a teia à direita', async () => {
@@ -129,29 +129,64 @@ describe('SwingController com as duas mãos', () => {
         detectAll.mockReturnValue([hand(0.2, WEB)])
         settle(tick)
         expect(controller.getSnapshot().held).toEqual({ left: false, right: true })
-        expect(lastState().web?.side).toBe(1)
+        expect(lastState().webs[0]?.side).toBe(1)
     })
 
-    it('trocar de mão lança uma teia nova do outro lado', async () => {
+    it('lançar com a outra mão depois deixa as duas teias presas', async () => {
         const { controller, detectAll, tick, lastState } = await playing()
         detectAll.mockReturnValue([hand(0.8, WEB)])
         settle(tick)
-        detectAll.mockReturnValue([hand(0.2, WEB)])
+        expect(lastState().webs.map((web) => web.side)).toEqual([-1])
+        detectAll.mockReturnValue([hand(0.8, WEB), hand(0.2, WEB)])
         settle(tick)
-        // A mão esquerda sai da imagem: depois da tolerância (600 ms) só a direita segura a teia.
-        tick(350)
-        tick(350)
-        expect(lastState().web?.side).toBe(1)
-        expect(controller.getSnapshot().hud.webs).toBeGreaterThanOrEqual(2)
+        expect(lastState().webs.map((web) => web.side).sort((a, b) => a - b)).toEqual([-1, 1])
+        expect(controller.getSnapshot().hud.webSides.slice().sort((a, b) => a - b)).toEqual([-1, 1])
+        expect(controller.getSnapshot().hud.webs).toBe(2)
     })
 
-    it('as duas mãos com o gesto contam as duas e lançam ao centro', async () => {
+    it('a mão que sai da imagem solta só a teia dela, depois da tolerância', async () => {
+        const { detectAll, tick, lastState } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB), hand(0.2, WEB)])
+        settle(tick)
+        detectAll.mockReturnValue([hand(0.2, WEB)])
+        tick(350)
+        tick(350)
+        expect(lastState().webs.map((web) => web.side)).toEqual([1])
+    })
+
+    it('as duas mãos com o gesto contam as duas', async () => {
         const { controller, detectAll, tick } = await playing()
         detectAll.mockReturnValue([hand(0.2, WEB), hand(0.8, WEB)])
         settle(tick)
         const snapshot = controller.getSnapshot()
         expect(snapshot.held).toEqual({ left: true, right: true })
         expect(snapshot.handsVisible).toBe(2)
+    })
+
+    it('o punho de uma mão puxa só a teia dela', async () => {
+        const { detectAll, tick, lastState } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB), hand(0.2, WEB)])
+        settle(tick)
+        detectAll.mockReturnValue([hand(0.8, { name: 'Closed_Fist', score: 0.9 }), hand(0.2, WEB)])
+        tick(150)
+        const webs = lastState().webs
+        expect(webs.find((web) => web.side === -1)?.pulling).toBe(true)
+        expect(webs.find((web) => web.side === 1)?.pulling).toBeFalsy()
+    })
+
+    it('a palma aberta de uma mão solta só a teia dela', async () => {
+        const { detectAll, tick, lastState } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB), hand(0.2, WEB)])
+        settle(tick)
+        // A palma fica no lado esquerdo da tela espelhada (x cru grande).
+        const open = palm()
+        const shifted: TrackedHand = {
+            landmarks: open.landmarks.map((point) => ({ ...point, x: point.x + 0.3 })),
+        }
+        detectAll.mockReturnValue([shifted, hand(0.2, WEB)])
+        tick()
+        tick(150)
+        expect(lastState().webs.map((web) => web.side)).toEqual([1])
     })
 
     it('o punho com a teia presa puxa; a pose volta a só segurar', async () => {
@@ -220,9 +255,18 @@ describe('SwingController com as duas mãos', () => {
         expect(renderer.project.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    it('com a teia presa, deixa de mostrar as miras', async () => {
+    it('mostra a mira só do lado que está sem teia', async () => {
         const { detectAll, tick, renderer } = await playing()
         detectAll.mockReturnValue([hand(0.8, WEB)])
+        settle(tick)
+        renderer.project.mockClear()
+        tick()
+        expect(renderer.project).toHaveBeenCalledTimes(1)
+    })
+
+    it('com as duas teias presas, deixa de mostrar as miras', async () => {
+        const { detectAll, tick, renderer } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB), hand(0.2, WEB)])
         settle(tick)
         renderer.project.mockClear()
         tick()
@@ -234,7 +278,7 @@ describe('SwingController com as duas mãos', () => {
         press('z')
         tick()
         tick()
-        expect(lastState().web?.side).toBe(-1)
+        expect(lastState().webs[0]?.side).toBe(-1)
     })
 
     it('indica a próxima ação para a tela', async () => {

@@ -18,34 +18,21 @@ describe('teia por lado (mão esquerda e direita)', () => {
         return world
     }
 
-    const press = (side: -1 | 0 | 1) => ({ webHeld: true, webSide: side, yawRate: 0, pitchRate: 0 })
-    const release = { webHeld: false, yawRate: 0, pitchRate: 0 }
+    const slotOf = { '-1': 'left', '0': 'center', '1': 'right' } as const
+    const press = (side: -1 | 0 | 1) => ({
+        held: { [slotOf[`${side}`]]: true },
+        yawRate: 0,
+        pitchRate: 0,
+    })
+    const release = { held: {}, yawRate: 0, pitchRate: 0 }
 
     it('a mão esquerda prende à esquerda e a direita prende à direita', () => {
         const left = airborne()
         left.step(press(-1), 1 / 120)
-        expect(left.state.web?.anchor.x).toBeLessThan(left.state.position.x)
+        expect(left.state.webs[0]?.anchor.x).toBeLessThan(left.state.position.x)
         const right = airborne()
         right.step(press(1), 1 / 120)
-        expect(right.state.web?.anchor.x).toBeGreaterThan(right.state.position.x)
-    })
-
-    it('trocar de mão com a teia presa lança uma teia nova do outro lado', () => {
-        const world = airborne()
-        world.step(press(-1), 1 / 120)
-        world.step(press(1), 1 / 120)
-        expect(world.state.stats.webs).toBe(2)
-        expect(world.state.web?.anchor.x).toBeGreaterThan(world.state.position.x)
-    })
-
-    it('com as duas mãos um instante, largar a que lançou passa a teia para a outra', () => {
-        const world = airborne()
-        world.step(press(-1), 1 / 120)
-        world.step(press(0), 1 / 120)
-        expect(world.state.stats.webs).toBe(1)
-        world.step(press(1), 1 / 120)
-        expect(world.state.stats.webs).toBe(2)
-        expect(world.state.web?.side).toBe(1)
+        expect(right.state.webs[0]?.anchor.x).toBeGreaterThan(right.state.position.x)
     })
 
     it('uma troca que erra conta um erro só, não um por passo', () => {
@@ -59,24 +46,16 @@ describe('teia por lado (mão esquerda e direita)', () => {
         expect(world.state.stats.misses).toBeLessThanOrEqual(misses + 1)
     })
 
-    it('soltar uma das duas mãos mantém a teia, sem lançar outra', () => {
-        const world = airborne()
-        world.step(press(0), 1 / 120)
-        const before = world.state.stats.webs + world.state.stats.misses
-        world.step(press(-1), 1 / 120)
-        expect(world.state.stats.webs + world.state.stats.misses).toBe(before)
-    })
-
     it('mostra de antemão onde a teia prenderia, sem lançá-la', () => {
         const world = airborne()
         const preview = world.aim(1)
         expect(preview?.x).toBeGreaterThan(0)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
         expect(world.state.stats.webs).toBe(0)
         world.step(press(1), 1 / 120)
-        expect(world.state.web?.anchor).toEqual(preview)
+        expect(world.state.webs[0]?.anchor).toEqual(preview)
         world.step(release, 1 / 120)
-        expect(world.state.web).toBeNull()
+        expect(world.state.webs).toHaveLength(0)
     })
 
     it('sem o campo de lado, a teia sai para a frente como antes', () => {
@@ -84,8 +63,8 @@ describe('teia por lado (mão esquerda e direita)', () => {
         world.state.position = { x: 0, y: 60, z: 0 }
         world.state.pitch = PITCH
         world.state.started = true
-        world.step({ webHeld: true, yawRate: 0, pitchRate: 0 }, 1 / 120)
-        expect(world.state.web).not.toBeNull()
+        world.step(press(0), 1 / 120)
+        expect(world.state.webs).toHaveLength(1)
     })
 })
 
@@ -98,7 +77,7 @@ describe('câmera acompanha o movimento', () => {
         world.state.yaw = 0
         return world
     }
-    const idle = { webHeld: false, yawRate: 0, pitchRate: 0 }
+    const idle = { held: {}, yawRate: 0, pitchRate: 0 }
 
     it('em voo, a guinada se aproxima da direção em que o jogador se move', () => {
         const world = flying()

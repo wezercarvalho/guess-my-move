@@ -204,12 +204,15 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     base.position.y = -0.1
     scene.add(base, streets)
 
-    const rope = new Mesh(
-        track(new CylinderGeometry(0.025, 0.025, 1, 6)),
-        track(new MeshBasicMaterial({ color: 0xf2f2ff, fog: false })),
-    )
-    rope.visible = false
-    scene.add(rope)
+    // Uma corda por lado (esquerda, centro, direita), que dividem a geometria e o material.
+    const ropeGeometry = track(new CylinderGeometry(0.025, 0.025, 1, 6))
+    const ropeMaterial = track(new MeshBasicMaterial({ color: 0xf2f2ff, fog: false }))
+    const ropes = [-1, 0, 1].map(() => {
+        const rope = new Mesh(ropeGeometry, ropeMaterial)
+        rope.visible = false
+        scene.add(rope)
+        return rope
+    })
 
     const projected = new Vector3()
     const up = new Vector3(0, 1, 0)
@@ -226,7 +229,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         },
 
         render(state) {
-            const { position, velocity, yaw, pitch, web } = state
+            const { position, velocity, yaw, pitch, webs } = state
             const speed = Math.hypot(velocity.x, velocity.y, velocity.z)
             const fov = FOV_STILL + (FOV_FAST - FOV_STILL) * Math.min(1, speed / MAX_SPEED)
             if (Math.abs(camera.fov - fov) > 0.05) {
@@ -235,13 +238,18 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
             }
             // Inclina o corpo para o lado em que a corda o leva.
             const sideways = velocity.x * Math.cos(yaw) + velocity.z * Math.sin(yaw)
-            const roll = web ? -Math.max(-1, Math.min(1, sideways / MAX_SPEED)) * 0.15 : 0
+            const roll = webs.length > 0 ? -Math.max(-1, Math.min(1, sideways / MAX_SPEED)) * 0.15 : 0
             camera.position.set(position.x, position.y, position.z)
             camera.rotation.set(pitch, -yaw, roll, 'YXZ')
             sky.position.copy(camera.position)
 
-            if (web) {
-                const ahead = forwardFromAngles(yaw, pitch)
+            const ahead = forwardFromAngles(yaw, pitch)
+            ropes.forEach((rope, slot) => {
+                const web = webs.find((candidate) => candidate.side === slot - 1)
+                if (!web) {
+                    rope.visible = false
+                    return
+                }
                 // A corda sai do pulso do lado que lançou (centro: pela direita, como antes).
                 const lateral = web.side ? web.side * 0.55 : 0.45
                 from.set(
@@ -256,9 +264,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
                 rope.position.copy(from).addScaledVector(direction, 0.5)
                 rope.scale.set(1, length, 1)
                 rope.quaternion.copy(orientation.setFromUnitVectors(up, direction.normalize()))
-            } else {
-                rope.visible = false
-            }
+            })
             renderer.render(scene, camera)
         },
 

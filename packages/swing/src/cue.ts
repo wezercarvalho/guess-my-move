@@ -18,10 +18,10 @@ const FAST = 12
  * velocidade, é o que lança o jogador para longe.
  */
 export function swingCue(
-    state: Pick<SwingState, 'started' | 'web' | 'velocity' | 'position' | 'grounded'>,
+    state: Pick<SwingState, 'started' | 'webs' | 'velocity' | 'position' | 'grounded'>,
 ): SwingCue {
     if (!state.started) return 'start'
-    if (state.web) {
+    if (state.webs.length > 0) {
         const horizontal = Math.hypot(state.velocity.x, state.velocity.z)
         return state.velocity.y > RISING && horizontal >= FAST ? 'release' : 'swing'
     }

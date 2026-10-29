@@ -25,9 +25,11 @@ function statusText(game: SwingGameView): string {
 
 const SIDE_NAMES = { '-1': 'esquerda', '0': 'centro', '1': 'direita' } as const
 
-/** Mão da teia presa, para o medidor da tela. */
-function webLabel(side: -1 | 0 | 1 | null): string {
-    return side === null ? 'solta' : SIDE_NAMES[`${side}`]
+/** Mãos com teia presa, para o medidor da tela. */
+function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
+    if (sides.length === 0) return 'solta'
+    if (sides.includes(-1) && sides.includes(1)) return 'as duas'
+    return sides.map((side) => SIDE_NAMES[`${side}`]).join(' e ')
 }
 
 /**
@@ -106,7 +108,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             </div>
                             <div>
                                 <dt>Teia</dt>
-                                <dd data-testid="hud-web">{webLabel(game.hud.webSide)}</dd>
+                                <dd data-testid="hud-web">{webLabel(game.hud.webSides)}</dd>
                             </div>
                         </dl>
                     </div>
