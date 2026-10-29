@@ -9,39 +9,39 @@
 import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, isAtRest, stepBodies } from '../physics.js'
 
 /** O jogador ou o adversário automático. */
-export type Competidor = 'jogador' | 'bot'
+export type Competitor = 'player' | 'opponent'
 
 /** Quem o jogador enfrenta: a meta (solo, sem vez) ou o bot (dois competidores com vez). */
-export type Adversario = 'meta' | 'bot'
+export type Opponent = 'target' | 'bot'
 
 /** Resultado de uma rodada ou da partida, do ponto de vista do jogador. */
-export type ResultadoDaRodada = 'vitoria' | 'empate' | 'derrota'
+export type Outcome = 'win' | 'draw' | 'loss'
 
 /** Decisão de vez devolvida pelo modo: alterna, ou mantém com o competidor atual. */
-export type ProximaVez = Competidor | 'mantem'
+export type NextTurn = Competitor | 'keep'
 
 /** Contexto que o motor entrega ao modo para avaliar o campo em repouso. */
-export interface ContextoDeAvaliacao {
+export interface EvaluationContext {
     /** O campo em repouso (corpos restantes) após o tiro. */
-    campo: readonly Body[]
+    field: readonly Body[]
     /** Pares `[i, j]` em contato acumulados durante toda a rolagem deste tiro. */
-    contatosNaRodada: readonly (readonly [number, number])[]
+    contactsInRound: readonly (readonly [number, number])[]
     /** Quem deu o tiro corrente. */
-    competidor: Competidor
+    competitor: Competitor
     /** Tiros já gastos por este competidor nesta rodada, incluindo o corrente. */
-    tirosGastos: number
+    shotsSpent: number
     /** Adversário desta partida. */
-    adversario: Adversario
+    opponent: Opponent
 }
 
 /** O que o tiro rendeu e se a rodada terminou. */
-export interface Avaliacao {
+export interface Evaluation {
     /** Quanto o tiro rendeu ao competidor do tiro (acertos, capturas, covas). */
-    rendeu: number
+    yield: number
     /** `true` quando a rodada terminou por decisão do modo (encerra sem gastar tiros restantes). */
-    terminou: boolean
+    finished: boolean
     /** Resultado da rodada quando ela terminou por decisão do modo; `null` enquanto não terminou. */
-    resultado: ResultadoDaRodada | null
+    outcome: Outcome | null
 }
 
 /**
@@ -49,199 +49,200 @@ export interface Avaliacao {
  * precisam: montar o campo, o limite de tiros por competidor e adversário, a
  * avaliação do campo em repouso e, opcionalmente, de quem é a próxima vez.
  */
-export interface Modo {
-    nome: string
+export interface Mode {
+    name: string
     /** Ajuda não vazia, que cita vitória, derrota e empate. */
-    textoDeAjuda: string
+    helpText: string
     /** Quantas rodadas tem a partida (padrão de produto: 3). */
-    rodadasPorPartida: number
-    /** Campo inicial da rodada `n` (0..rodadasPorPartida-1) para o adversário dado. */
-    montarRodada(n: number, adversario: Adversario): Body[]
+    roundsPerMatch: number
+    /** Campo inicial da rodada `n` (0..roundsPerMatch-1) para o adversário dado. */
+    buildRound(n: number, opponent: Opponent): Body[]
     /** Limite de tiros do competidor por adversário. */
-    limiteDeTiros(competidor: Competidor, adversario: Adversario): number
+    shotLimit(competitor: Competitor, opponent: Opponent): number
     /** Avalia o campo em repouso após um tiro. */
-    avaliar(contexto: ContextoDeAvaliacao): Avaliacao
+    evaluate(context: EvaluationContext): Evaluation
     /**
-     * De quem é a próxima vez. `padraoAlterna` é o outro competidor (a alternância
-     * padrão); `rendeu` é o que o tiro corrente rendeu. Ausente = alterna sempre.
+     * De quem é a próxima vez. `defaultAlternate` é o outro competidor (a
+     * alternância padrão); `yielded` é o que o tiro corrente rendeu. Ausente =
+     * alterna sempre.
      */
-    proximaVez?(padraoAlterna: Competidor, rendeu: number): ProximaVez
+    nextTurn?(defaultAlternate: Competitor, yielded: number): NextTurn
 }
 
 /** Fonte do tiro: entrega o próximo vetor de velocidade, ou `null` quando não há tiro. */
-export interface FonteDeTiro {
-    /** `campo` é o estado corrente; devolve o tiro ou `null` (sem tiro disponível). */
-    proximoTiro(campo?: readonly Body[]): { x: number; y: number } | null
+export interface ShotSource {
+    /** `field` é o estado corrente; devolve o tiro ou `null` (sem tiro disponível). */
+    nextShot(field?: readonly Body[]): { x: number; y: number } | null
 }
 
 export interface MatchConfig {
-    modo: Modo
-    adversario: Adversario
-    fontes: { jogador: FonteDeTiro; bot?: FonteDeTiro }
+    mode: Mode
+    opponent: Opponent
+    sources: { player: ShotSource; bot?: ShotSource }
     physics: PhysicsConfig
     /** Teto de passos de física por rolagem, trava de segurança contra rolagem infinita. */
-    maxPassosPorTiro: number
+    maxStepsPerShot: number
 }
 
-export const DEFAULT_MAX_PASSOS_POR_TIRO = 10_000
+export const DEFAULT_MAX_STEPS_PER_SHOT = 10_000
 
 export interface Match {
     /** Índice da rodada corrente (0..n-1). */
-    rodadaAtual(): number
+    currentRound(): number
     /** Processa um tiro completo: dispara, rola até o repouso, avalia e avança. */
-    proximoPasso(): void
+    nextStep(): void
     /** `true` quando todas as rodadas acabaram. */
-    terminou(): boolean
-    resultadosDasRodadas(): ResultadoDaRodada[]
-    resultadoDaPartida(): ResultadoDaRodada
+    finished(): boolean
+    roundOutcomes(): Outcome[]
+    matchOutcome(): Outcome
     /** Computa o resultado da partida a partir de resultados de rodada dados (sem jogar). */
-    computarResultado(rodadas: readonly ResultadoDaRodada[]): ResultadoDaRodada
+    computeOutcome(rounds: readonly Outcome[]): Outcome
     /** Quem começa a rodada `n`: jogador na 1ª contra o bot, alternando; sempre jogador contra a meta. */
-    comecaRodada(n: number): Competidor
+    startsRound(n: number): Competitor
     /** Tiros gastos na rodada que acabou de encerrar (para provar o encerramento antecipado). */
-    tirosGastosNaRodadaAnterior(): number
+    shotsSpentInPreviousRound(): number
     /** Total do que o competidor rendeu na partida (capturas/acertos/covas). */
-    capturasDe(competidor: Competidor): number
+    yieldOf(competitor: Competitor): number
 }
 
 /** Resultado da partida: mais rodadas vencidas que perdidas é vitória; menos é derrota; igual é empate. */
-export function computarResultadoDaPartida(rodadas: readonly ResultadoDaRodada[]): ResultadoDaRodada {
-    const vitorias = rodadas.filter((r) => r === 'vitoria').length
-    const derrotas = rodadas.filter((r) => r === 'derrota').length
-    if (vitorias > derrotas) return 'vitoria'
-    if (vitorias < derrotas) return 'derrota'
-    return 'empate'
+export function computeMatchOutcome(rounds: readonly Outcome[]): Outcome {
+    const wins = rounds.filter((r) => r === 'win').length
+    const losses = rounds.filter((r) => r === 'loss').length
+    if (wins > losses) return 'win'
+    if (wins < losses) return 'loss'
+    return 'draw'
 }
 
-export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 'modo' | 'adversario' | 'fontes'>): Match {
+export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 'mode' | 'opponent' | 'sources'>): Match {
     const cfg: MatchConfig = {
         physics: DEFAULT_PHYSICS,
-        maxPassosPorTiro: DEFAULT_MAX_PASSOS_POR_TIRO,
+        maxStepsPerShot: DEFAULT_MAX_STEPS_PER_SHOT,
         ...overrides,
     }
-    const { modo, adversario, fontes } = cfg
-    const outro = (c: Competidor): Competidor => (c === 'jogador' ? 'bot' : 'jogador')
+    const { mode, opponent, sources } = cfg
+    const other = (c: Competitor): Competitor => (c === 'player' ? 'opponent' : 'player')
 
-    let rodada = 0
-    let campo: Body[] = modo.montarRodada(0, adversario)
-    let vez: Competidor = comecaRodada(0)
-    let tirosGastos: Record<Competidor, number> = { jogador: 0, bot: 0 }
-    const resultados: ResultadoDaRodada[] = []
-    const rendimento: Record<Competidor, number> = { jogador: 0, bot: 0 }
-    let tirosGastosAnterior = 0
-    let fim = false
+    let round = 0
+    let field: Body[] = mode.buildRound(0, opponent)
+    let turn: Competitor = startsRound(0)
+    let shotsSpent: Record<Competitor, number> = { player: 0, opponent: 0 }
+    const outcomes: Outcome[] = []
+    const yielded: Record<Competitor, number> = { player: 0, opponent: 0 }
+    let shotsSpentPrevious = 0
+    let over = false
 
-    function comecaRodada(n: number): Competidor {
-        if (adversario === 'meta') return 'jogador'
-        return n % 2 === 0 ? 'jogador' : 'bot'
+    function startsRound(n: number): Competitor {
+        if (opponent === 'target') return 'player'
+        return n % 2 === 0 ? 'player' : 'opponent'
     }
 
-    function fonteDe(competidor: Competidor): FonteDeTiro | undefined {
-        return competidor === 'jogador' ? fontes.jogador : fontes.bot
+    function sourceOf(competitor: Competitor): ShotSource | undefined {
+        return competitor === 'player' ? sources.player : sources.bot
     }
 
-    function limiteAtingido(competidor: Competidor): boolean {
-        return tirosGastos[competidor] >= modo.limiteDeTiros(competidor, adversario)
+    function limitReached(competitor: Competitor): boolean {
+        return shotsSpent[competitor] >= mode.shotLimit(competitor, opponent)
     }
 
     /** `true` quando todos os competidores da rodada esgotaram os tiros. */
-    function rodadaEsgotada(): boolean {
-        if (adversario === 'meta') return limiteAtingido('jogador')
-        return limiteAtingido('jogador') && limiteAtingido('bot')
+    function roundExhausted(): boolean {
+        if (opponent === 'target') return limitReached('player')
+        return limitReached('player') && limitReached('opponent')
     }
 
     /** Rola a física até o repouso, acumulando os contatos de toda a rolagem. */
-    function rolarAteRepouso(): (readonly [number, number])[] {
-        const contatos: (readonly [number, number])[] = []
-        let passos = 0
-        while (!isAtRest(campo, cfg.physics) && passos < cfg.maxPassosPorTiro) {
-            const resultado = stepBodies(campo, cfg.physics)
-            campo = resultado.bodies
-            for (const par of resultado.contacts) contatos.push(par)
-            passos++
+    function rollToRest(): (readonly [number, number])[] {
+        const contacts: (readonly [number, number])[] = []
+        let steps = 0
+        while (!isAtRest(field, cfg.physics) && steps < cfg.maxStepsPerShot) {
+            const result = stepBodies(field, cfg.physics)
+            field = result.bodies
+            for (const pair of result.contacts) contacts.push(pair)
+            steps++
         }
-        return contatos
+        return contacts
     }
 
-    function proximaVezApos(rendeu: number): Competidor {
-        if (adversario === 'meta') return 'jogador'
-        const padrao = outro(vez)
-        const decisao: ProximaVez = modo.proximaVez ? modo.proximaVez(padrao, rendeu) : padrao
-        const alvo: Competidor = decisao === 'mantem' ? vez : decisao
+    function nextTurnAfter(yieldedNow: number): Competitor {
+        if (opponent === 'target') return 'player'
+        const alternate = other(turn)
+        const decision: NextTurn = mode.nextTurn ? mode.nextTurn(alternate, yieldedNow) : alternate
+        const target: Competitor = decision === 'keep' ? turn : decision
         // Pula quem já esgotou os tiros.
-        if (limiteAtingido(alvo) && !limiteAtingido(outro(alvo))) return outro(alvo)
-        return alvo
+        if (limitReached(target) && !limitReached(other(target))) return other(target)
+        return target
     }
 
-    function encerrarRodada(resultado: ResultadoDaRodada): void {
-        resultados.push(resultado)
-        tirosGastosAnterior = tirosGastos[vez]
-        rodada++
-        if (rodada >= modo.rodadasPorPartida) {
-            fim = true
+    function endRound(outcome: Outcome): void {
+        outcomes.push(outcome)
+        shotsSpentPrevious = shotsSpent[turn]
+        round++
+        if (round >= mode.roundsPerMatch) {
+            over = true
             return
         }
-        campo = modo.montarRodada(rodada, adversario)
-        tirosGastos = { jogador: 0, bot: 0 }
-        vez = comecaRodada(rodada)
+        field = mode.buildRound(round, opponent)
+        shotsSpent = { player: 0, opponent: 0 }
+        turn = startsRound(round)
     }
 
-    function proximoPasso(): void {
-        if (fim) return
+    function nextStep(): void {
+        if (over) return
 
         // Quem tem a vez mas já esgotou os tiros é pulado; se os dois esgotaram, a rodada fecha.
-        if (limiteAtingido(vez)) {
-            if (rodadaEsgotada()) {
-                encerrarRodada('derrota')
+        if (limitReached(turn)) {
+            if (roundExhausted()) {
+                endRound('loss')
                 return
             }
-            vez = outro(vez)
+            turn = other(turn)
             return
         }
 
-        const fonte = fonteDe(vez)
-        const tiro = fonte ? fonte.proximoTiro(campo) : null
-        if (!tiro) {
+        const source = sourceOf(turn)
+        const shot = source ? source.nextShot(field) : null
+        if (!shot) {
             // Sem tiro disponível: se a rodada esgotou, fecha; senão, nada a fazer neste passo.
-            if (rodadaEsgotada()) encerrarRodada('derrota')
-            else fim = true
+            if (roundExhausted()) endRound('loss')
+            else over = true
             return
         }
 
         // Dispara: o primeiro corpo é a bolinha de tiro do competidor corrente.
-        campo = [{ ...campo[0], vel: { x: tiro.x, y: tiro.y } }, ...campo.slice(1)]
-        tirosGastos[vez]++
+        field = [{ ...field[0], vel: { x: shot.x, y: shot.y } }, ...field.slice(1)]
+        shotsSpent[turn]++
 
-        const contatosNaRodada = rolarAteRepouso()
-        const avaliacao = modo.avaliar({
-            campo,
-            contatosNaRodada,
-            competidor: vez,
-            tirosGastos: tirosGastos[vez],
-            adversario,
+        const contactsInRound = rollToRest()
+        const evaluation = mode.evaluate({
+            field,
+            contactsInRound,
+            competitor: turn,
+            shotsSpent: shotsSpent[turn],
+            opponent,
         })
-        rendimento[vez] += avaliacao.rendeu
+        yielded[turn] += evaluation.yield
 
-        if (avaliacao.terminou && avaliacao.resultado) {
-            encerrarRodada(avaliacao.resultado)
+        if (evaluation.finished && evaluation.outcome) {
+            endRound(evaluation.outcome)
             return
         }
-        if (rodadaEsgotada()) {
-            encerrarRodada('derrota')
+        if (roundExhausted()) {
+            endRound('loss')
             return
         }
-        vez = proximaVezApos(avaliacao.rendeu)
+        turn = nextTurnAfter(evaluation.yield)
     }
 
     return {
-        rodadaAtual: () => rodada,
-        proximoPasso,
-        terminou: () => fim,
-        resultadosDasRodadas: () => [...resultados],
-        resultadoDaPartida: () => computarResultadoDaPartida(resultados),
-        computarResultado: (rodadas) => computarResultadoDaPartida(rodadas),
-        comecaRodada,
-        tirosGastosNaRodadaAnterior: () => tirosGastosAnterior,
-        capturasDe: (competidor) => rendimento[competidor],
+        currentRound: () => round,
+        nextStep,
+        finished: () => over,
+        roundOutcomes: () => [...outcomes],
+        matchOutcome: () => computeMatchOutcome(outcomes),
+        computeOutcome: (rounds) => computeMatchOutcome(rounds),
+        startsRound,
+        shotsSpentInPreviousRound: () => shotsSpentPrevious,
+        yieldOf: (competitor) => yielded[competitor],
     }
 }

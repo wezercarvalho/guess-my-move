@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_BOT, criarPlanejadorDoBot, direcaoPara, velocidadeParaParar } from '../src/bot/index.js'
+import { DEFAULT_BOT, createBotPlanner, directionTo, speedToStop } from '../src/bot/index.js'
 import { type Body, DEFAULT_PHYSICS, isAtRest, stepBodies } from '../src/physics.js'
 import { DEFAULT_SHOT } from '../src/shot.js'
 
@@ -28,14 +28,14 @@ describe('bot: erro zero (parada por simulação)', () => {
         const dir = { x: (786 - 74) / dlen, y: (586 - 74) / dlen }
         for (const d of [50, 120, 250, 400, 550, 700]) {
             const alvo = { x: origem.x + dir.x * d, y: origem.y + dir.y * d }
-            const velocidade = velocidadeParaParar(origem, alvo, DEFAULT_PHYSICS, 14)
+            const velocidade = speedToStop(origem, alvo, DEFAULT_PHYSICS, 14)
             const parada = pararEm(origem, velocidade)
             expect(dist(parada, alvo)).toBeLessThanOrEqual(1)
         }
     })
 
     it('a direção aponta da origem para o ponto', () => {
-        const dir = direcaoPara({ x: 100, y: 300 }, { x: 200, y: 400 })
+        const dir = directionTo({ x: 100, y: 300 }, { x: 200, y: 400 })
         expect(dir.x).toBeCloseTo(Math.SQRT1_2, 6)
         expect(dir.y).toBeCloseTo(Math.SQRT1_2, 6)
     })
@@ -46,7 +46,7 @@ describe('bot: erro por semente', () => {
         const alvo = { x: 500, y: 300 }
         const origem = { x: 100, y: 300 }
         const tiro = (semente: number) =>
-            criarPlanejadorDoBot(DEFAULT_BOT).planejarTiro(origem, alvo, semente, DEFAULT_PHYSICS, 14)
+            createBotPlanner(DEFAULT_BOT).planShot(origem, alvo, semente, DEFAULT_PHYSICS, 14)
         const a = tiro(42)
         const b = tiro(42)
         const c = tiro(43)
@@ -65,11 +65,11 @@ describe('bot: DEFAULT_BOT (faixa de acerto e teto)', () => {
     it('acerta entre 30% e 60% em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull', () => {
         const origem = { x: 100, y: 300 }
         const alvoCentro = { x: 500, y: 300 }
-        const planejador = criarPlanejadorDoBot(DEFAULT_BOT)
+        const planejador = createBotPlanner(DEFAULT_BOT)
         let acertos = 0
         let maiorVel = 0
         for (let s = 0; s < 1000; s++) {
-            const tiro = planejador.planejarTiro(origem, alvoCentro, s * 2654435761 + 1, DEFAULT_PHYSICS, 14)
+            const tiro = planejador.planShot(origem, alvoCentro, s * 2654435761 + 1, DEFAULT_PHYSICS, 14)
             maiorVel = Math.max(maiorVel, Math.hypot(tiro.x, tiro.y))
             // Simula o tiro com o alvo parado presente; acerto = contato.
             let campo: Body[] = [

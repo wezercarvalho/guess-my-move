@@ -21,54 +21,54 @@ export interface Vec2 {
  */
 export interface BotConfig {
     /** Desvio angular (desvio-padrão, radianos) somado à direção do tiro. */
-    desvioAngular: number
+    angularDeviation: number
     /** Desvio de força (desvio-padrão, fração da velocidade ideal) multiplicando a velocidade. */
-    desvioForca: number
+    powerDeviation: number
     /** Teto de velocidade do tiro: `gain · maxPull` do jogador. */
     shot: ShotConfig
 }
 
 /**
- * Nível único. desvioAngular ~3,2° e desvioForca ~9% calibrados por busca para
- * cair na faixa de 30% a 60% de acerto a 400 unidades (raio 14), ficando perto
- * do meio (~50%). Palpites a calibrar com uso real; a faixa é proteção de
+ * Nível único. angularDeviation ~3,2° e powerDeviation ~9% calibrados por busca
+ * para cair na faixa de 30% a 60% de acerto a 400 unidades (raio 14), ficando
+ * perto do meio (~50%). Palpites a calibrar com uso real; a faixa é proteção de
  * regressão, não equilíbrio medido.
  */
 export const DEFAULT_BOT: BotConfig = {
-    desvioAngular: 0.055,
-    desvioForca: 0.09,
+    angularDeviation: 0.055,
+    powerDeviation: 0.09,
     shot: DEFAULT_SHOT,
 }
 
 /** Direção unitária da origem para o ponto. */
-export function direcaoPara(origem: Vec2, ponto: Vec2): Vec2 {
-    const dx = ponto.x - origem.x
-    const dy = ponto.y - origem.y
+export function directionTo(origin: Vec2, point: Vec2): Vec2 {
+    const dx = point.x - origin.x
+    const dy = point.y - origin.y
     const len = Math.hypot(dx, dy)
     if (!(len > 0)) return { x: 1, y: 0 }
     return { x: dx / len, y: dy / len }
 }
 
 /** Resultado da simulação de uma bolinha única: onde parou e se encostou numa parede. */
-interface Parada {
+interface Stop {
     pos: Vec2
-    bateuNaParede: boolean
+    hitWall: boolean
 }
 
 /** Simula uma bolinha única e devolve onde parou e se tocou alguma parede no caminho. */
-function pararEm(origem: Vec2, velocidade: Vec2, physics: PhysicsConfig, raio: number): Parada {
-    let campo: Body[] = [{ pos: { ...origem }, vel: { ...velocidade }, radius: raio }]
-    let bateuNaParede = false
-    let passos = 0
-    while (!isAtRest(campo, physics) && passos < 20_000) {
-        campo = stepBodies(campo, physics).bodies
-        const { x, y } = campo[0].pos
-        if (x - raio <= 0 || x + raio >= physics.width || y - raio <= 0 || y + raio >= physics.height) {
-            bateuNaParede = true
+function stopAt(origin: Vec2, velocity: Vec2, physics: PhysicsConfig, radius: number): Stop {
+    let field: Body[] = [{ pos: { ...origin }, vel: { ...velocity }, radius }]
+    let hitWall = false
+    let steps = 0
+    while (!isAtRest(field, physics) && steps < 20_000) {
+        field = stepBodies(field, physics).bodies
+        const { x, y } = field[0].pos
+        if (x - radius <= 0 || x + radius >= physics.width || y - radius <= 0 || y + radius >= physics.height) {
+            hitWall = true
         }
-        passos++
+        steps++
     }
-    return { pos: campo[0].pos, bateuNaParede }
+    return { pos: field[0].pos, hitWall }
 }
 
 /**
@@ -78,34 +78,34 @@ function pararEm(origem: Vec2, velocidade: Vec2, physics: PhysicsConfig, raio: n
  * rapidez SÓ enquanto a bolinha não toca a parede; por isso um toque na parede
  * é tratado como "rápido demais" (limite superior), mantendo a busca no regime
  * livre. O teto da busca NÃO é o teto do tiro do bot (esse é aplicado em
- * `planejarTiro`): esta é a ferramenta de pontaria pura.
+ * `planShot`): esta é a ferramenta de pontaria pura.
  */
-export function velocidadeParaParar(
-    origem: Vec2,
-    ponto: Vec2,
+export function speedToStop(
+    origin: Vec2,
+    point: Vec2,
     physics: PhysicsConfig = DEFAULT_PHYSICS,
-    raio = 14,
-    tetoBusca = 4000,
+    radius = 14,
+    searchCeiling = 4000,
 ): Vec2 {
-    const dir = direcaoPara(origem, ponto)
-    const alvoDist = Math.hypot(ponto.x - origem.x, ponto.y - origem.y)
+    const dir = directionTo(origin, point)
+    const targetDist = Math.hypot(point.x - origin.x, point.y - origin.y)
 
-    let baixo = 0
-    let alto = tetoBusca
+    let low = 0
+    let high = searchCeiling
     for (let i = 0; i < 48; i++) {
-        const meio = (baixo + alto) / 2
-        const { pos, bateuNaParede } = pararEm(origem, { x: dir.x * meio, y: dir.y * meio }, physics, raio)
-        const distancia = Math.hypot(pos.x - origem.x, pos.y - origem.y)
-        if (!bateuNaParede && distancia < alvoDist) baixo = meio
-        else alto = meio
+        const mid = (low + high) / 2
+        const { pos, hitWall } = stopAt(origin, { x: dir.x * mid, y: dir.y * mid }, physics, radius)
+        const distance = Math.hypot(pos.x - origin.x, pos.y - origin.y)
+        if (!hitWall && distance < targetDist) low = mid
+        else high = mid
     }
-    const rapidez = (baixo + alto) / 2
-    return { x: dir.x * rapidez, y: dir.y * rapidez }
+    const speed = (low + high) / 2
+    return { x: dir.x * speed, y: dir.y * speed }
 }
 
 /** PRNG mulberry32: determinístico, bom o bastante para o erro do bot. */
-function mulberry32(semente: number): () => number {
-    let a = semente >>> 0
+function mulberry32(seed: number): () => number {
+    let a = seed >>> 0
     return () => {
         a |= 0
         a = (a + 0x6d2b79f5) | 0
@@ -122,24 +122,24 @@ function normal(rand: () => number): number {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
 }
 
-export interface PlanejadorDoBot {
+export interface BotPlanner {
     /** Devolve o tiro para o ponto, com o erro da semente; limita a velocidade ao teto. */
-    planejarTiro(origem: Vec2, ponto: Vec2, semente: number, physics?: PhysicsConfig, raio?: number): Vec2
+    planShot(origin: Vec2, point: Vec2, seed: number, physics?: PhysicsConfig, radius?: number): Vec2
 }
 
 /** Cria o planejador para um nível. */
-export function criarPlanejadorDoBot(config: BotConfig = DEFAULT_BOT): PlanejadorDoBot {
-    const teto = config.shot.gain * config.shot.maxPull
+export function createBotPlanner(config: BotConfig = DEFAULT_BOT): BotPlanner {
+    const ceiling = config.shot.gain * config.shot.maxPull
     return {
-        planejarTiro(origem, ponto, semente, physics = DEFAULT_PHYSICS, raio = 14): Vec2 {
-            const ideal = velocidadeParaParar(origem, ponto, physics, raio)
-            const rand = mulberry32(semente)
-            const rapidezIdeal = Math.hypot(ideal.x, ideal.y)
-            const angIdeal = Math.atan2(ideal.y, ideal.x)
-            const ang = angIdeal + normal(rand) * config.desvioAngular
-            const fator = 1 + normal(rand) * config.desvioForca
-            const rapidez = Math.min(Math.max(rapidezIdeal * fator, 0), teto)
-            return { x: Math.cos(ang) * rapidez, y: Math.sin(ang) * rapidez }
+        planShot(origin, point, seed, physics = DEFAULT_PHYSICS, radius = 14): Vec2 {
+            const ideal = speedToStop(origin, point, physics, radius)
+            const rand = mulberry32(seed)
+            const idealSpeed = Math.hypot(ideal.x, ideal.y)
+            const idealAngle = Math.atan2(ideal.y, ideal.x)
+            const angle = idealAngle + normal(rand) * config.angularDeviation
+            const factor = 1 + normal(rand) * config.powerDeviation
+            const speed = Math.min(Math.max(idealSpeed * factor, 0), ceiling)
+            return { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed }
         },
     }
 }
