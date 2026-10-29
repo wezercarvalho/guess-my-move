@@ -35,6 +35,12 @@ export interface SwingInput {
     held: SlotFlags
     /** Punho fechado: puxar a teia daquele lado, se estiver presa. */
     pull?: SlotFlags
+    /** Mãos abertas em contato com a parede: agarrar a fachada. */
+    grab?: SlotFlags
+    /** Sinal de escalada (-1 a 1): sobe/desce quando agarrado. */
+    climb?: number
+    /** Puxar a mão para trás: soltar da parede. */
+    release?: boolean
     yawRate: number
     pitchRate: number
 }
@@ -173,6 +179,7 @@ export function createSwingWorld(
         )
 
         const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
+        const anyGrab = SLOTS.some(({ slot }) => input.grab?.[slot])
         for (const { slot, side } of SLOTS) {
             const held = Boolean(input.held[slot])
             if (!held) {
@@ -191,9 +198,9 @@ export function createSwingWorld(
             previousPull[slot] = pulling
         }
 
-        // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia.
+        // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia (ou agarre).
         if (!state.started) {
-            if (!anyHeld) return { wallHit: false }
+            if (!anyHeld && !anyGrab) return { wallHit: false }
             state.started = true
             const ahead = forwardFromAngles(state.yaw, 0)
             state.velocity = {
@@ -202,7 +209,11 @@ export function createSwingWorld(
                 z: ahead.z * config.spawnSpeed,
             }
         }
-        return stepPlayer(index, state, dt, config)
+        return stepPlayer(index, state, dt, config, {
+            grab: input.grab,
+            climb: input.climb,
+            release: input.release,
+        })
     }
 
     return {

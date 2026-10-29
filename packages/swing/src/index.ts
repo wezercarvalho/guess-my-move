@@ -6,6 +6,16 @@ export {
 } from './city.js'
 export { type CityIndex, type Contact, type RayHit, createCityIndex } from './cityIndex.js'
 export {
+    DEFAULT_GRIP,
+    type GripConfig,
+    type GripInput,
+    type GripStep,
+    type WallGrip,
+    climbSignal,
+    pullBackSignal,
+    stepGrip,
+} from './climb.js'
+export {
     type ActiveWeb,
     DEFAULT_SWING,
     type StepEvents,
