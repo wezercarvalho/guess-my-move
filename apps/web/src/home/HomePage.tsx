@@ -41,8 +41,8 @@ export function HomePage() {
                     action="Jogar cartas"
                 />
                 <GameCard
-                    title="Bolinhas de gude: bete"
-                    description="Atire a bolinha azul no alvo vermelho com a mão."
+                    title="Bolinhas de gude"
+                    description="Bete, Triângulo e Cova, contra a meta ou o bot."
                     href="marbles.html"
                     action="Jogar bolinhas"
                 />
