@@ -22,6 +22,21 @@ export {
     flickPower,
 } from './flick.js'
 export {
+    type Adversario,
+    type Avaliacao,
+    type Competidor,
+    type ContextoDeAvaliacao,
+    DEFAULT_MAX_PASSOS_POR_TIRO,
+    type FonteDeTiro,
+    type Match,
+    type MatchConfig,
+    type Modo,
+    type ProximaVez,
+    type ResultadoDaRodada,
+    computarResultadoDaPartida,
+    createMatch,
+} from './match/index.js'
+export {
     type Body,
     DEFAULT_PHYSICS,
     type PhysicsConfig,
