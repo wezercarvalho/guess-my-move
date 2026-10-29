@@ -97,12 +97,34 @@ Esta clarificação registra as decisões do maintainer na sessão de 2026-10-28
 - **Seções atualizadas em `spec.md`:** FR-003 (mira e teia no céu), FR-005 (duas mãos, pose geométrica, lados), FR-006 (direção e acompanhamento da câmera); `plan.md` e `research.md` (duas mãos, pose, teia no céu, área jogável, dicas); `tasks.md` (T015 a T020); `validation.md` (seção da CQ-007). Código real: `packages/swing/src/pose.ts`, `cue.ts`, `web.ts`, `world.ts`, `physics.ts`, `cityIndex.ts`, `spawn.ts`; `apps/web/src/swing/swingController.ts`, `guide.ts`, `reticle.ts`, `cityRenderer.ts`, `SwingScreen.tsx`; `apps/web/src/tracker/mediapipeTracker.ts`.
 - **Não verificado:** nenhuma mão real nem as duas mãos ao vivo; os limiares da pose, o desvio de 18°, a teia no céu, a sensação de balanço e a dificuldade; fps numa GPU real.
 
+### CQ-008 — Jogabilidade reprovada: teia que puxa, teia persistente, soltar pela palma e câmera automática
+
+- **Data:** `2026-10-29`
+- **Impacto:** alto
+- **Pergunta:** o maintainer testou a PR #77 (vídeo de 53 s) e reprovou a jogabilidade. A pose de teia de lado não foi reconhecida no começo (mão detectada em 6 de 108 quadros), a teia sumia a cada batida em prédio (`state.web = null`), do chão a teia presa não tirava o jogador do chão (1,7 m por 3 s) e do segundo 18 ao fim o jogador ficou a 2 m de altura e 28 km/h sem conseguir subir. Como tornar o balanço jogável sem mudar a arquitetura nem afirmar o que não foi medido?
+- **Decisão:** **RESOLVIDA** (emenda de implementação, 2026-10-29). Registrada depois da autorização geral do maintainer; os Gates 1 e 2 seguem **aprovados**, o estado da spec continua `validated` e o Gate 3 continua **aprovado com risco aceito pelo merge**. As decisões do maintainer (respostas de 2026-10-29): ponto da teia **automático, prédio mais próximo à frente**; soltar **abrindo a mão (palma aberta)**; câmera **automática seguindo o movimento** (a mão não gira mais a câmera); sem prédio ao alcance, **manter a teia no céu como reserva**; ideia aprovada: com a teia lançada, **fechar o punho e puxar** dá o impulso. Mudanças:
+    1. **Corda que puxa:** com a teia presa, `assist` 12 m/s² em direção ao ponto de ancoragem; com o punho fechado, `pullAssist` 40 m/s², recolhimento `pullReel` 16 m/s (contra `reelSpeed` 4 m/s) e impulso único `pullImpulse` 9 m/s a cada fechada do punho.
+    2. **Teia persistente com deslize:** a teia **não some ao bater** no prédio; o jogador desliza pela parede (atrito `wallFriction` 2 por s, `restitution` 0,1) e a teia continua presa. Só solta por escolha do jogador (palma aberta ou pose perdida por mais de 600 ms).
+    3. **Lançar do chão dá salto:** impulso `launchBoost` 14 m/s em direção ao ponto mais `launchLift` 6 m/s para cima; a corrida automática não atua com a teia presa.
+    4. **Ponto da teia:** cinco raios do mais inclinado ao mais raso (50°, 38°, 26°, 15°, 6° acima da câmera; câmera abaixo de 0° conta como 0°), alcance 160 m, subida mínima 12 m, distância horizontal mínima 15 m (antes 25 m e 30 m, três raios, alcance 140 m); desvio lateral da mão esquerda/direita 28° (antes 18°). O ponto de partida (`findSpawn`) exige prédio com subida de 30 m e a pelo menos 50 m, para haver arco.
+    5. **Gatilho (`trigger.ts`):** a pose `ILoveYou` lança (2 quadros); pose e punho `Closed_Fist` seguram; punho com a teia presa puxa; `Open_Palm` por 2 quadros solta; sem pose nem punho por 600 ms solta sozinha. Devolve `{ held, pull }`.
+    6. **Pose (`pose.ts`):** distâncias em 3D (usa o `z` do MediaPipe quando existe, para o dedo apontado para a câmera valer como esticado — **hipótese, não medida ao vivo**), mais `isOpenPalm` e `isFist` por geometria e `handMetrics`; a geometria decide primeiro e o rótulo `Open_Palm` do reconhecedor, sem a geometria, é ignorado.
+    7. **Câmera automática (`world.ts`):** guinada e inclinação seguem o movimento (inclinação = 12° + metade da inclinação da velocidade, entre -20° e 35°). A direção por joystick da mão foi **removida**: `steering.ts` e seu teste foram apagados. As setas do teclado ainda ajustam o olhar; a tecla `C` puxa.
+    8. **Tela:** etapas do guia, status e dicas novos ("Punho fechado puxa. Palma aberta solta."); painel de depuração recolhido por padrão (botão "Depuração") com, por mão, o gesto entendido, o rótulo do reconhecedor e as medidas (alcance dos 4 dedos e abertura do polegar).
+- **Razão:** a teia que puxa (assist/punho) e o salto do chão resolvem o jogador preso baixo e lento; a teia persistente com deslize elimina a perda de teia a cada toque de prédio; soltar pela palma e segurar pelo punho tornam o controle explícito; a câmera automática evita que a outra mão atrapalhe a pose; a mira mais ampla (cinco raios, alcance 160 m) e o ponto de partida com corda longa dão o primeiro arco — tudo com valores de jogo e sem mudar a arquitetura.
+- **Alternativas rejeitadas:** manter a teia sumindo a cada batida (era a causa do jogador preso baixo); manter a direção por joystick da mão (a mão que girava a câmera atrapalhava a pose); manter o desvio de 18° e três raios (a teia batia na fachada e não achava ponto); exigir teste ao vivo com a mão real antes do fecho (contraria CQ-004, risco já aceito).
+- **Seções atualizadas em `spec.md`:** FR-003 (mira de cinco raios, alcance e ponto válido), FR-005 (gatilho com punho e palma, pose em 3D), FR-006 (câmera automática; direção pela mão superada), FR-007 (dicas e painel de depuração); `plan.md`, `research.md`, `tasks.md` (T021, T022) e `validation.md` (seção da CQ-008).
+- **Não verificado:** nenhuma mão real; a pose de lado com o `z` (hipótese); o punho e a palma por geometria ao vivo; o ganho de `assist`/`pullAssist`/impulsos (valores de jogo); fps numa GPU real; a sensação de balanço; a licença do `gesture_recognizer.task`.
+
 ## Hipóteses remanescentes
 
 - O reconhecedor do MediaPipe inclui a categoria `ILoveYou` e devolve um score por quadro, confirmado pelo modelo versionado (ver `research.md`); H-01.
 - A consulta à Overpass para a bbox de Midtown devolve prédios e vias suficientes (resposta de teste com 569 prédios e 177 vias em `research.md`); a Overpass é usada só no pipeline de dados, nunca em tempo de jogo (H-02).
 - O Three.js 0.186.0 (MIT) pode ser empacotado e redistribuído pelo app sem CDN (H-03).
 - Os valores de física são de jogo e podem ser ajustados sem mudar a arquitetura; não há alvo de realismo nem de fps (H-04).
+- O `z` dos landmarks do MediaPipe é confiável o bastante para medir a pose em 3D (dedo apontado para a câmera valendo como esticado); **hipótese, não medida ao vivo** (CQ-008).
+- A pose geométrica distingue o punho fechado (`isFist`) da palma aberta (`isOpenPalm`) de forma robusta à orientação; os limiares são palpites, validados só com landmarks sintéticos (CQ-008).
+- Os ganhos da corda que puxa (`assist` 12, `pullAssist` 40, `pullReel` 16, `pullImpulse` 9, `launchBoost` 14, `launchLift` 6) são valores de jogo, ajustáveis sem mudar a arquitetura (CQ-008).
 - Nada foi verificado ao vivo com a mão real nem numa GPU real; a aparência e o desempenho finais dependem do teste do maintainer (CQ-004, CQ-005).
 
 ## Questões resolvidas na aprovação da clarificação
@@ -116,6 +138,7 @@ Todas as questões abaixo foram decididas pelo maintainer na aprovação antecip
 - **CQ-005** — valores de jogo, sem alvo de fps nem afirmação de desempenho.
 - **CQ-006** — ponto de partida a y = 90 m e `findSpawn` preferindo um ponto de onde a teia alcança um prédio à frente (registrada na validação, antes do Gate 3).
 - **CQ-007** — duas mãos e pose geométrica em qualquer orientação, teia por lado e troca de mão, teia no céu, mira projetada na tela, dicas e guia, área jogável reduzida (emenda de implementação; Gates 1 e 2 aprovados, estado `validated`, Gate 3 aprovado com risco aceito pelo merge).
+- **CQ-008** — jogabilidade da PR #77 reprovada e refeita: corda que puxa (assist/punho), teia persistente com deslize, salto ao lançar do chão, soltar com palma aberta e segurar com punho, mira de cinco raios (alcance 160 m, subida 12 m, horizontal 15 m, desvio 28°), pose em 3D, câmera automática e `steering.ts` removido (emenda de implementação; Gates 1 e 2 aprovados, estado `validated`, Gate 3 aprovado com risco aceito pelo merge).
 
 ## Gate 1 — Clarificação aprovada
 

@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão.
-- Estado desta spec: `validated`. CQs resolvidas (CQ-001 a CQ-007), plano, tarefas e checklists prontos; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-28 e o Gate 3 foi concedido pelo merge do PR da issue #76, com risco aceito (sem teste ao vivo com a mão real nem medição de fps numa GPU real; a CQ-007 acrescenta pose, lados e teia no céu não medidos com mão real). O código foi implementado test-first e todas as tarefas abaixo (T001 a T020) estão marcadas `[x]` com evidência registrada em `validation.md`.
+- Estado desta spec: `validated`. CQs resolvidas (CQ-001 a CQ-008), plano, tarefas e checklists prontos; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-28 e o Gate 3 foi concedido pelo merge do PR da issue #76, com risco aceito (sem teste ao vivo com a mão real nem medição de fps numa GPU real; a CQ-007 acrescenta pose, lados e teia no céu não medidos com mão real; a CQ-008 refaz a jogabilidade reprovada na PR #77 — corda que puxa, teia persistente, soltar pela palma, câmera automática — também não medida com mão real). O código foi implementado test-first e todas as tarefas abaixo (T001 a T022) estão marcadas `[x]` com evidência registrada em `validation.md`.
 
 ## Fase 1 — Pacote puro: tipos e vetores (packages/swing)
 
@@ -57,19 +57,24 @@
 - [x] T019 [US-001] [FR-003] [FR-007] Mira projetada na tela: `reticle.ts` desenha a prévia para cada mão (anel dourado quando à vista, seta na borda quando fora do quadro, rótulos "esq." e "dir."); a corda sai do pulso do lado que lançou e ficou mais fina (`cityRenderer.ts`). Evidência: testes de `reticle` verdes e inspeção visual (anel e seta antes de lançar)
 - [x] T020 [SC-006] [NFR-003] [NFR-005] Documentação e gates da CQ-007: registrar a emenda em `clarification.md` (CQ-007), refletir em `spec.md` (FR-003, FR-005, FR-006), `plan.md` e `research.md`; atualizar `validation.md` (números de testes, seção da CQ-007 e riscos aceitos, inclusive pose e desvio não medidos com mão real; veredito "aprovado com risco aceito"); atualizar o `README.md` da raiz, o guia de arquitetura e o `PROJECT_SPEC.md`; rodar `yarn docs:format:fix`, `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`. Evidência: documentos atualizados e gates documentais verdes
 
+## Fase 10 — Emenda CQ-008: teia que puxa, teia persistente, soltar pela palma e câmera automática
+
+- [x] T021 [US-001] [US-002] [US-004] [FR-002] [FR-003] [FR-004] [FR-005] [FR-006] Refazer a jogabilidade reprovada na PR #77: `physics.ts` ganha a corda que puxa (`assist` 12, com o punho `pullAssist` 40, `pullReel` 16, `pullImpulse` 9), a teia persistente com deslize na parede (`wallFriction` 2, restituição 0,1, a teia não some ao bater) e o salto ao lançar do chão (`launchBoost` 14, `launchLift` 6, sem corrida automática com a teia presa); `web.ts` passa a cinco raios (+50°/+38°/+26°/+15°/+6°), alcance 160 m, ponto válido >= 12 m / >= 15 m; `spawn.ts` exige um prédio de subida 30 m a >= 50 m à frente; `trigger.ts` passa a lançar pela pose, segurar pela pose/punho, puxar pelo punho, soltar pela palma (`Open_Palm` 2 quadros) e por 600 ms sem pose/punho, devolvendo `{ held, pull }`; `pose.ts` mede em 3D (usa o `z` do MediaPipe) e expõe `isFist`, `isOpenPalm` e `handMetrics`; `world.ts` move a câmera automaticamente (segue o movimento) e `steering.ts` e seu teste são **removidos** (a direção por joystick da mão sai); desvio por lado 28°; `SwingScreen.tsx`/`guide.ts` trazem o guia, status e dicas novos ("Punho fechado puxa. Palma aberta solta.") e o painel de depuração recolhido por padrão (botão "Depuração") com, por mão, o gesto entendido, o rótulo do reconhecedor e as medidas. Evidência: testes de `physics`, `web`, `spawn`, `trigger`, `pose` e `world` verdes (sem mão real); inspeção em Chromium headless com teclado (C puxa); `steering.test` removido com o módulo
+- [x] T022 [SC-006] [NFR-003] [NFR-005] Documentação e gates da CQ-008: registrar a emenda em `clarification.md` (CQ-008 e "Hipóteses remanescentes"), refletir em `spec.md` (FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, edge cases e H-04), `plan.md` e `research.md` (steering.ts como superado e a nota da mecânica); atualizar `validation.md` (seção da CQ-008, contagens de testes, Gate 3 mantido "aprovado com risco aceito pelo merge", registrando que a jogabilidade da PR #77 foi reprovada e esta emenda a refaz); atualizar o `README.md` da raiz e o guia de arquitetura só nas linhas do Arranha-Teia (direção pela mão → câmera automática; soltar com a palma); rodar `yarn docs:format:check`, `yarn sdd:check` e `yarn test:sdd`. Evidência: documentos atualizados e gates documentais verdes
+
 ## Cobertura
 
-| Requisito | Tarefas          | Evidência esperada                                      |
-| --------- | ---------------- | ------------------------------------------------------- |
-| FR-001    | T008, T012       | teste do conversor; JSON versionado; atribuição na tela |
-| FR-002    | T001, T002, T007 | `vec`, `cityIndex`, `spawn`/`world` tests (Vitest)      |
-| FR-003    | T003             | `web` tests (Vitest)                                    |
-| FR-004    | T004, T007       | `physics`, `world` tests (Vitest)                       |
-| FR-005    | T005             | `trigger` tests (Vitest)                                |
-| FR-006    | T006, T010       | `steering` tests; teste de controlador                  |
-| FR-007    | T009, T010, T012 | teste de tela; verificação visual                       |
-| FR-008    | T011             | teste de páginas (entradas e card)                      |
-| FR-009    | T012             | busca no código; verificação visual de rede             |
+| Requisito | Tarefas                | Evidência esperada                                                                                     |
+| --------- | ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| FR-001    | T008, T012             | teste do conversor; JSON versionado; atribuição na tela                                                |
+| FR-002    | T001, T002, T007, T021 | `vec`, `cityIndex`, `spawn`/`world` tests (Vitest); spawn com corda longa (CQ-008)                     |
+| FR-003    | T003, T021             | `web` tests (Vitest); cinco raios e alcance 160 m (CQ-008)                                             |
+| FR-004    | T004, T007, T021       | `physics`, `world` tests (Vitest); corda que puxa, deslize e salto (CQ-008)                            |
+| FR-005    | T005, T021             | `trigger`, `pose` tests (Vitest); punho puxa/palma solta, pose 3D (CQ-008)                             |
+| FR-006    | T006, T010, T021       | `steering` tests (até CQ-007); `world`/controlador: câmera automática, `steering.ts` removido (CQ-008) |
+| FR-007    | T009, T010, T012       | teste de tela; verificação visual                                                                      |
+| FR-008    | T011                   | teste de páginas (entradas e card)                                                                     |
+| FR-009    | T012                   | busca no código; verificação visual de rede                                                            |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -87,7 +92,7 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação antecipada do maintainer wezercarvalho
 - **Data:** `2026-10-28`
-- **Lacunas:** nenhuma. Todos os nove FR têm tarefa formal (FR-001 em T008/T012, FR-002 em T001/T002/T007, FR-003 em T003, FR-004 em T004/T007, FR-005 em T005, FR-006 em T006/T010, FR-007 em T009/T010/T012, FR-008 em T011, FR-009 em T012). SC-001 é coberto pelos testes do pacote (T001 a T007); SC-002 pelo teste do conversor (T008); SC-003 pela verificação visual (T013); SC-004 pelo teste de páginas (T011); SC-005 pelos gates (T013); SC-006 pelas limitações em `research.md` e no Gate 3 (T014). NFR-001 pela estratégia test-first de cada módulo (T001 a T007), NFR-002 pelos gates (T013), NFR-003 pela ausência de afirmação de fps (T013/T014), NFR-004 pela busca no código e pela verificação de rede (T012/T013), NFR-005 pela verificação visual registrada como texto e pelas limitações declaradas (T012/T013), NFR-006 pelo teclado como alternativa e pela atribuição e botão alcançáveis (T006/T010). As tarefas estão `[x]`: a implementação foi feita test-first, a inspeção visual em Chromium headless foi registrada como texto em `validation.md`, os Gates 1 e 2 seguem aprovados e o Gate 3 foi concedido pelo merge com risco aceito.
+- **Lacunas:** nenhuma. Todos os nove FR têm tarefa formal (FR-001 em T008/T012, FR-002 em T001/T002/T007/T021, FR-003 em T003/T021, FR-004 em T004/T007/T021, FR-005 em T005/T021, FR-006 em T006/T010/T021, FR-007 em T009/T010/T012, FR-008 em T011, FR-009 em T012). As emendas CQ-007 (T015 a T020) e CQ-008 (T021 implementação, T022 documentação) são emendas de implementação registradas depois da aprovação antecipada dos Gates 1 e 2; **não abrem um novo Gate 3** — o Gate 3 segue aprovado com risco aceito pelo merge. SC-001 é coberto pelos testes do pacote (T001 a T007, T021); SC-002 pelo teste do conversor (T008); SC-003 pela verificação visual (T013); SC-004 pelo teste de páginas (T011); SC-005 pelos gates (T013); SC-006 pelas limitações em `research.md` e no Gate 3 (T014, T022). NFR-001 pela estratégia test-first de cada módulo (T001 a T007, T021), NFR-002 pelos gates (T013), NFR-003 pela ausência de afirmação de fps (T013/T014/T022), NFR-004 pela busca no código e pela verificação de rede (T012/T013), NFR-005 pela verificação visual registrada como texto e pelas limitações declaradas (T012/T013/T022), NFR-006 pelo teclado como alternativa e pela atribuição e botão alcançáveis (T006/T010). As tarefas estão `[x]`: a implementação foi feita test-first, a inspeção visual em Chromium headless foi registrada como texto em `validation.md`, os Gates 1 e 2 seguem aprovados e o Gate 3 foi concedido pelo merge com risco aceito.
 
 ## Gate 2 — Plano e tarefas aprovados
 
