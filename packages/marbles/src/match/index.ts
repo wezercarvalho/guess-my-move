@@ -42,6 +42,12 @@ export interface Evaluation {
     finished: boolean
     /** Resultado da rodada quando ela terminou por decisão do modo; `null` enquanto não terminou. */
     outcome: Outcome | null
+    /**
+     * Campo persistido para o próximo tiro, quando o modo quer reposicionar as
+     * bolinhas (bete que volta ao ponto de partida, triângulo que remove a
+     * bolinha capturada). Ausente = o motor mantém o campo em repouso.
+     */
+    field?: Body[]
 }
 
 /**
@@ -59,6 +65,19 @@ export interface Mode {
     buildRound(n: number, opponent: Opponent): Body[]
     /** Limite de tiros do competidor por adversário. */
     shotLimit(competitor: Competitor, opponent: Opponent): number
+    /**
+     * Prepara o campo imediatamente antes de o competidor da vez atirar: o modo
+     * pode reposicionar a bolinha de tiro (índice 0) ou trocar a bolinha visível
+     * pela do competidor da vez (cova contra o bot). Ausente = atira no campo
+     * corrente sem mudança.
+     */
+    prepareShot?(field: readonly Body[], competitor: Competitor, opponent: Opponent): Body[]
+    /**
+     * Observa cada passo da física durante a rolagem do tiro e, opcionalmente,
+     * devolve um campo substituto (cova que fixa a bolinha ao entrar, avaliada a
+     * cada passo). Ausente = o motor só rola e avalia no repouso.
+     */
+    onStep?(field: readonly Body[], competitor: Competitor, opponent: Opponent): Body[] | undefined
     /** Avalia o campo em repouso após um tiro. */
     evaluate(context: EvaluationContext): Evaluation
     /**
@@ -152,13 +171,18 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
     }
 
     /** Rola a física até o repouso, acumulando os contatos de toda a rolagem. */
-    function rollToRest(): (readonly [number, number])[] {
+    function rollToRest(competitor: Competitor): (readonly [number, number])[] {
         const contacts: (readonly [number, number])[] = []
         let steps = 0
         while (!isAtRest(field, cfg.physics) && steps < cfg.maxStepsPerShot) {
             const result = stepBodies(field, cfg.physics)
             field = result.bodies
             for (const pair of result.contacts) contacts.push(pair)
+            // O modo observa cada passo e pode fixar/retirar uma bolinha (cova).
+            if (mode.onStep) {
+                const replaced = mode.onStep(field, competitor, opponent)
+                if (replaced) field = replaced
+            }
             steps++
         }
         return contacts
@@ -201,6 +225,9 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
         }
 
         const source = sourceOf(turn)
+        // O modo pode preparar o campo (reposicionar a bolinha de tiro, trocar
+        // pela bolinha do competidor da vez) antes de o tiro ser produzido.
+        if (mode.prepareShot) field = mode.prepareShot(field, turn, opponent)
         const shot = source ? source.nextShot(field) : null
         if (!shot) {
             // Sem tiro disponível: se a rodada esgotou, fecha; senão, nada a fazer neste passo.
@@ -213,7 +240,7 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
         field = [{ ...field[0], vel: { x: shot.x, y: shot.y } }, ...field.slice(1)]
         shotsSpent[turn]++
 
-        const contactsInRound = rollToRest()
+        const contactsInRound = rollToRest(turn)
         const evaluation = mode.evaluate({
             field,
             contactsInRound,
@@ -222,6 +249,8 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
             opponent,
         })
         yielded[turn] += evaluation.yield
+        // O modo pode persistir um campo reposicionado para o próximo tiro.
+        if (evaluation.field) field = evaluation.field
 
         if (evaluation.finished && evaluation.outcome) {
             endRound(evaluation.outcome)

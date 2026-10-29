@@ -72,3 +72,30 @@ export {
     createBeteRound,
 } from './round.js'
 export { DEFAULT_SHOT, type Shot, type ShotConfig, computeShot } from './shot.js'
+export {
+    type BeteConfig as BeteModeConfig,
+    DEFAULT_BETE_CONFIG,
+    DEFAULT_BETE_MODE,
+    createBeteMode,
+} from './modes/bete/index.js'
+
+import { type Mode } from './match/index.js'
+import { DEFAULT_BETE_MODE } from './modes/bete/index.js'
+
+/** Uma entrada do registro de modos para a interface montar o seletor. */
+export interface ModeEntry {
+    /** Identificador estável do modo (usado em rota e seletor). */
+    id: string
+    /** Nome de exibição do modo. */
+    name: string
+    /** O modo em si (contrato da partida). */
+    mode: Mode
+}
+
+/**
+ * Registro dos modos disponíveis, na ordem de exibição. A interface consome
+ * esta lista para montar o seletor de modo da partida.
+ */
+export const modes: readonly ModeEntry[] = [
+    { id: 'bete', name: DEFAULT_BETE_MODE.name, mode: DEFAULT_BETE_MODE },
+]

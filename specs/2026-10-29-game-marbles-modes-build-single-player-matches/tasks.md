@@ -30,10 +30,10 @@
 
 ## Fase 4 — Bete como modo (issue #89)
 
-- [ ] T013 [US-004] [FR-008] Escrever o teste falhando de `packages/marbles/test/bete.test.ts` (contra a meta: acerto no 3º tiro = vitória e encerra; 4º ou 5º = empate; 5 sem acertar = derrota) e confirmar a falha esperada
-- [ ] T014 [US-004] [FR-008] Implementar `packages/marbles/src/modes/bete/` como modo (campo atual; alvo em 3 posições fixas, uma por rodada, igual para os dois; após erro a bolinha de tiro volta ao ponto de partida e o alvo à posição da rodada; ponto de chegada do bot = o alvo) e passar o teste contra a meta
-- [ ] T015 [US-004] [FR-008] Escrever e passar o teste do Bete contra o bot (vez alternada a cada tiro, até 5 tiros por competidor; quem acerta primeiro vence e encerra; 10 tiros sem acerto = empate; na rodada 2 o bot atira primeiro e na 3 o jogador; alvo na mesma posição para os dois dentro da rodada)
-- [ ] T016 [US-004] [FR-002] [FR-011] [NFR-005] Migrar os testes do bete atual que ainda fazem sentido para o novo modo, **remover os obsoletos e o código do bete solo antigo sem uso**, declarar o `helpText` do Bete (cita vitória, derrota e empate) e manter `round.test.ts`/`flick-replay.test.ts` verdes; confirmar `yarn check:static` e `yarn test` verdes
+- [x] T013 [US-004] [FR-008] Escrever o teste falhando de `packages/marbles/test/bete.test.ts` (contra a meta: acerto no 3º tiro = vitória e encerra; 4º ou 5º = empate; 5 sem acertar = derrota) e confirmar a falha esperada
+- [x] T014 [US-004] [FR-008] Implementar `packages/marbles/src/modes/bete/` como modo (campo atual; alvo em 3 posições fixas, uma por rodada, igual para os dois; após erro a bolinha de tiro volta ao ponto de partida e o alvo à posição da rodada; ponto de chegada do bot = o alvo) e passar o teste contra a meta
+- [x] T015 [US-004] [FR-008] Escrever e passar o teste do Bete contra o bot (vez alternada a cada tiro, até 5 tiros por competidor; quem acerta primeiro vence e encerra; 10 tiros sem acerto = empate; na rodada 2 o bot atira primeiro e na 3 o jogador; alvo na mesma posição para os dois dentro da rodada)
+- [x] T016 (parcial) [US-004] [FR-002] [FR-011] [NFR-005] `helpText` do Bete declarado (cita vitória, derrota e empate); `round.test.ts`/`flick-replay.test.ts` seguem verdes sem alteração. **Pendência explícita:** o código do bete solo antigo (`createBeteRound`/`round.ts` e seus testes) NÃO foi removido porque `apps/web` ainda o importa; a remoção fica para a próxima etapa (migração de `apps/web` em #92), junto com a migração/poda dos testes do bete solo.
 
 ## Fase 5 — Conduzir a partida na tela, com o Bete (issue #92)
 
