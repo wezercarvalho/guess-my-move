@@ -59,6 +59,12 @@ const HELP_TEXT =
     'as seis é vitória, quatro ou cinco é empate e três ou menos é derrota. Contra o bot: cada captura ' +
     'mantém a sua vez e, ao fim, mais capturas é vitória, menos é derrota e empate quando empatam.'
 
+/** Regras curtas por adversário (no máximo 2 frases cada). */
+const RULES = {
+    target: 'Tirar as seis bolinhas do círculo é vitória e quatro ou cinco é empate. Três ou menos é derrota.',
+    bot: 'Cada captura mantém a sua vez; ao fim, mais capturas é vitória e menos é derrota. Empatar as capturas é empate.',
+}
+
 /** Formação padrão: fileiras de 1, 2 e 3 com folga entre centros, toda dentro do círculo. */
 function defaultFormation(cfg: TriangleConfig): Body[] {
     const c = cfg.circleCenter
@@ -185,11 +191,15 @@ export function createTriangleMode(overrides: Partial<TriangleConfig> = {}): Tri
     return {
         name: 'Triângulo',
         helpText: HELP_TEXT,
+        rules: RULES,
         roundsPerMatch: cfg.roundsPerMatch,
         buildRound,
         shotLimit: (_competitor, opponent) => (opponent === 'target' ? cfg.shotLimitTarget : cfg.shotLimitBot),
         evaluate,
         nextTurn,
+        describe: () => ({
+            circle: { x: cfg.circleCenter.x, y: cfg.circleCenter.y, radius: cfg.circleRadius },
+        }),
         resolveBotRound,
     }
 }

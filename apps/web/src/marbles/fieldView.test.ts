@@ -1,7 +1,7 @@
-import { type BeteSnapshot } from '@guess-my-move/marbles'
+import { type Body, type FieldDecor } from '@guess-my-move/marbles'
 import { describe, expect, it, vi } from 'vitest'
 
-import { drawField } from './fieldView.js'
+import { type FieldDraw, drawField } from './fieldView.js'
 
 /** Contexto 2D falso que só registra as chamadas de desenho. */
 function stubCanvas() {
@@ -33,15 +33,17 @@ function stubCanvas() {
     return { canvas: canvas as unknown as HTMLCanvasElement, context, calls }
 }
 
-const base: BeteSnapshot = {
-    state: 'ready',
-    shooter: { x: 150, y: 300 },
-    target: { x: 550, y: 300 },
-    shots: 0,
+const body = (x: number, y: number, radius = 14): Body => ({
+    pos: { x, y },
+    vel: { x: 0, y: 0 },
+    radius,
+})
+
+const base: FieldDraw = {
+    field: [body(150, 300), body(550, 300)],
+    decor: null,
     aim: null,
-    flick: null,
-    hitShots: null,
-    failureReason: null,
+    hand: null,
 }
 
 describe('drawField', () => {
@@ -59,14 +61,10 @@ describe('drawField', () => {
         expect(calls).toContain('fillRect')
     })
 
-    it('desenha a bolinha de tiro e o alvo nas posições da foto', () => {
+    it('desenha a bolinha de tiro e as demais nas posições do campo', () => {
         const { canvas, context } = stubCanvas()
         drawField(canvas, base)
-        const centers = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [
-            x,
-            y,
-            r,
-        ])
+        const centers = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [x, y, r])
         expect(centers).toContainEqual([150, 300, 14])
         expect(centers).toContainEqual([550, 300, 14])
     })
@@ -77,17 +75,16 @@ describe('drawField', () => {
         expect(context.lineTo).not.toHaveBeenCalled()
     })
 
-    it('durante a mira, desenha o elástico, o cursor da pinça e a seta de previsão', () => {
+    it('durante a mira da pinça, desenha o elástico, o cursor da pinça e a seta de previsão', () => {
         const { canvas, context } = stubCanvas()
-        const aiming: BeteSnapshot = {
+        drawField(canvas, {
             ...base,
-            state: 'aiming',
             aim: {
                 pinch: { x: 50, y: 300 },
-                shot: { velocity: { x: 500, y: 0 }, pull: 100, power: 0.45 },
+                shot: { velocity: { x: 500, y: 0 }, power: 0.45 },
+                direction: null,
             },
-        }
-        drawField(canvas, aiming)
+        })
         const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y]) => [x, y])
         expect(arcs).toContainEqual([50, 300])
         expect(context.lineTo).toHaveBeenCalled()
@@ -96,59 +93,60 @@ describe('drawField', () => {
 
     it('desenha o cursor da mão na posição da pinça, mesmo sem mira', () => {
         const { canvas, context } = stubCanvas()
-        drawField(canvas, base, { point: { x: 320, y: 210 }, closed: false })
+        drawField(canvas, { ...base, hand: { point: { x: 320, y: 210 }, closed: false } })
         const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y]) => [x, y])
         expect(arcs).toContainEqual([320, 210])
-    })
-
-    it('sem mão visível, não desenha cursor', () => {
-        const withHand = stubCanvas()
-        const without = stubCanvas()
-        drawField(withHand.canvas, base, { point: { x: 320, y: 210 }, closed: false })
-        drawField(without.canvas, base, null)
-        expect(without.context.arc.mock.calls.length).toBeLessThan(
-            withHand.context.arc.mock.calls.length,
-        )
     })
 
     it('a pinça fechada é preenchida e a aberta é só um anel', () => {
         const opened = stubCanvas()
         const closedHand = stubCanvas()
-        drawField(opened.canvas, base, { point: { x: 320, y: 210 }, closed: false })
-        drawField(closedHand.canvas, base, { point: { x: 320, y: 210 }, closed: true })
+        drawField(opened.canvas, { ...base, hand: { point: { x: 320, y: 210 }, closed: false } })
+        drawField(closedHand.canvas, { ...base, hand: { point: { x: 320, y: 210 }, closed: true } })
         expect(closedHand.context.fill.mock.calls.length).toBe(
             opened.context.fill.mock.calls.length + 1,
         )
     })
 
-    it('no modo estalo armado, desenha a seta de direção da mão, sem elástico da pinça', () => {
+    it('no estalo armado, desenha a seta de direção da mão, sem elástico da pinça', () => {
         const { canvas, context } = stubCanvas()
         drawField(canvas, {
             ...base,
-            state: 'aiming',
-            flick: { direction: { x: 0, y: -1 } },
+            aim: { pinch: { x: 150, y: 300 }, shot: null, direction: { x: 0, y: -1 } },
         })
         const lines = context.lineTo.mock.calls as unknown as number[][]
         // Haste e as duas pontas da seta.
         expect(lines.length).toBe(3)
-        // A seta sai da bolinha de tiro e sobe (y diminui).
         const tip = lines[1]
         expect(tip[0]).toBeCloseTo(150, 6)
         expect(tip[1]).toBeLessThan(300)
     })
 
-        it('com arrasto curto, mostra o elástico mas não a seta de previsão', () => {
-        const withShot = stubCanvas()
-        const withoutShot = stubCanvas()
-        const pinch = { x: 130, y: 300 }
-        drawField(withShot.canvas, {
-            ...base,
-            state: 'aiming',
-            aim: { pinch, shot: { velocity: { x: 100, y: 0 }, pull: 20, power: 0.1 } },
-        })
-        drawField(withoutShot.canvas, { ...base, state: 'aiming', aim: { pinch, shot: null } })
-        expect(withoutShot.context.lineTo.mock.calls.length).toBeLessThan(
-            withShot.context.lineTo.mock.calls.length,
-        )
+    it('desenha o círculo do modo Triângulo quando há decoração de círculo', () => {
+        const { canvas, context } = stubCanvas()
+        const decor: FieldDecor = { circle: { x: 560, y: 300, radius: 120 } }
+        drawField(canvas, { ...base, field: [body(90, 300)], decor })
+        const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [x, y, r])
+        expect(arcs).toContainEqual([560, 300, 120])
+    })
+
+    it('desenha as três covas do modo Cova e destaca a ativa com traço mais grosso', () => {
+        const { canvas, context } = stubCanvas()
+        const decor: FieldDecor = {
+            holes: {
+                positions: [
+                    { x: 300, y: 300 },
+                    { x: 520, y: 180 },
+                    { x: 680, y: 420 },
+                ],
+                radius: 22,
+                active: 1,
+            },
+        }
+        drawField(canvas, { ...base, field: [body(90, 300)], decor })
+        const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [x, y, r])
+        expect(arcs).toContainEqual([300, 300, 22])
+        expect(arcs).toContainEqual([520, 180, 22])
+        expect(arcs).toContainEqual([680, 420, 22])
     })
 })

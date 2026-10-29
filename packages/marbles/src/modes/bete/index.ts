@@ -56,6 +56,12 @@ const HELP_TEXT =
     'acertar tarde é empate e errar os cinco tiros é derrota. Contra o bot: quem acerta primeiro vence, ' +
     'o outro leva a derrota e dez tiros sem acerto dão empate.'
 
+/** Regras curtas por adversário (no máximo 2 frases cada). */
+const RULES = {
+    target: 'Acertar o alvo logo é vitória e acertar tarde é empate. Errar os cinco tiros é derrota.',
+    bot: 'Quem acerta o alvo primeiro vence e o outro leva a derrota. Dez tiros sem acerto dão empate.',
+}
+
 export const DEFAULT_BETE_MODE: Mode = createBeteMode()
 
 export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
@@ -124,6 +130,7 @@ export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
     return {
         name: 'Bete',
         helpText: HELP_TEXT,
+        rules: RULES,
         roundsPerMatch: cfg.roundsPerMatch,
         buildRound,
         shotLimit,

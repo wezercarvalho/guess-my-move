@@ -70,6 +70,12 @@ const HELP_TEXT =
     'cedo é vitória, completar tarde é empate e não completar é derrota. Contra o bot: completar vence quem ' +
     'não completou, senão menos tiros (ou mais covas) é vitória, derrota ao perder esse critério e empate na igualdade.'
 
+/** Regras curtas por adversário (no máximo 2 frases cada). */
+const RULES = {
+    target: 'Completar as três covas cedo é vitória e completar tarde é empate. Não completar é derrota.',
+    bot: 'Completar vence quem não completou e perde para quem completou; senão, menos tiros ou mais covas é vitória. A igualdade é empate.',
+}
+
 /** Estado de um competidor na rodada corrente. */
 interface State {
     pos: Vec
@@ -237,12 +243,20 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
     return {
         name: 'Cova',
         helpText: HELP_TEXT,
+        rules: RULES,
         roundsPerMatch: cfg.roundsPerMatch,
         buildRound,
         shotLimit: () => cfg.shotLimit,
         prepareShot,
         onStep: (field, competitor) => onStep(field, competitor),
         evaluate,
+        describe: (competitor) => ({
+            holes: {
+                positions: layout.map((p) => ({ ...p })),
+                radius: cfg.holeRadius,
+                active: Math.min(state[competitor].activeHole, cfg.holesPerRound - 1),
+            },
+        }),
         activeHole: (competitor) => state[competitor].activeHole,
         botAimPoint: (competitor) => ({ ...activeHoleCenter(competitor) }),
         resolveBotRound,

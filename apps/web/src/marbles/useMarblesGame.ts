@@ -1,3 +1,4 @@
+import { type Opponent } from '@guess-my-move/marbles'
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
 import {
@@ -8,9 +9,9 @@ import {
 import {
     type MarblesEnv,
     MarblesController,
-    type MarblesMode,
     type MarblesSnapshot,
-    modeFromSearch,
+    type ShotControl,
+    shotControlFromSearch,
 } from './marblesController.js'
 
 /** Dependências injetáveis para teste; os padrões usam o navegador e o MediaPipe. */
@@ -27,8 +28,14 @@ export interface UseMarblesGameOptions {
 }
 
 export interface MarblesGameView extends MarblesSnapshot {
-    newRound: () => void
-    setMode: (mode: MarblesMode) => void
+    /** Escolha, só na tela inicial. */
+    setMode: (modeId: string) => void
+    setOpponent: (opponent: Opponent) => void
+    setShotControl: (control: ShotControl) => void
+    startMatch: () => void
+    /** Fim de partida. */
+    playAgain: () => void
+    changeMode: () => void
 }
 
 /** Resolve as dependências, usando o navegador e o MediaPipe quando não injetadas. */
@@ -45,17 +52,19 @@ function resolveEnv(deps: MarblesDeps | undefined): MarblesEnv {
             deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),
         cancelFrame: deps?.cancelFrame ?? ((handle: number) => cancelAnimationFrame(handle)),
         now: deps?.now ?? (() => performance.now()),
+        ...(deps?.createBot === undefined ? {} : { createBot: deps.createBot }),
+        ...(deps?.seed === undefined ? {} : { seed: deps.seed }),
     }
 }
 
 /**
- * Camada fina sobre o `MarblesController`: cria o controlador uma vez, assina
- * as mudanças e informa a ele o estado da câmera.
+ * Camada fina sobre o `MarblesController`: cria o controlador uma vez, assina as
+ * mudanças e informa a ele o estado da câmera.
  */
 export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView {
     const { cameraActive, cameraFailed, videoRef, overlayRef, deps } = options
     const [controller] = useState(
-        () => new MarblesController(resolveEnv(deps), modeFromSearch(window.location.search)),
+        () => new MarblesController(resolveEnv(deps), shotControlFromSearch(window.location.search)),
     )
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
 
@@ -73,5 +82,13 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
         controller.setCamera(cameraActive, cameraFailed)
     }, [controller, cameraActive, cameraFailed])
 
-    return { ...snapshot, newRound: controller.newRound, setMode: controller.setMode }
+    return {
+        ...snapshot,
+        setMode: controller.setMode,
+        setOpponent: controller.setOpponent,
+        setShotControl: controller.setShotControl,
+        startMatch: controller.startMatch,
+        playAgain: controller.playAgain,
+        changeMode: controller.changeMode,
+    }
 }
