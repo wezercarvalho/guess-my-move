@@ -5,53 +5,93 @@ export interface TriggerGesture {
 }
 
 export interface WebTriggerConfig {
-    /** Categoria do gesto que lança a teia. */
-    gesture: string
+    /** Gesto que lança a teia. */
+    launch: string
+    /** Gestos que mantêm a teia presa depois de lançada. */
+    hold: readonly string[]
+    /** Gesto que puxa (impulso) com a teia presa. */
+    pull: string
+    /** Gesto que solta a teia. */
+    release: string
     /** Pontuação mínima para contar o quadro. */
     minScore: number
-    /** Quadros seguidos com o gesto para lançar. */
+    /** Quadros seguidos com a pose para lançar. */
     confirmFrames: number
-    /** Tempo sem o gesto, em ms, antes de soltar (tolerância a falhas do reconhecedor). */
-    releaseMs: number
+    /** Quadros seguidos com a palma aberta para soltar. */
+    releaseFrames: number
+    /** Tempo, em ms, que a teia aguenta sem a pose nem o punho (falha do reconhecedor, mão no meio do caminho). */
+    graceMs: number
 }
 
 export const DEFAULT_TRIGGER: WebTriggerConfig = {
-    gesture: 'ILoveYou',
+    launch: 'ILoveYou',
+    hold: ['ILoveYou', 'Closed_Fist'],
+    pull: 'Closed_Fist',
+    release: 'Open_Palm',
     minScore: 0.7,
     confirmFrames: 2,
-    releaseMs: 250,
+    releaseFrames: 2,
+    graceMs: 600,
+}
+
+export interface WebTriggerState {
+    /** A teia deve estar presa. */
+    held: boolean
+    /** O punho está fechado com a teia presa: puxar. */
+    pull: boolean
 }
 
 export interface WebTrigger {
-    /** Informa o gesto do quadro (`null` sem mão) e devolve se a teia deve estar presa. */
-    update(gesture: TriggerGesture | null, nowMs: number): boolean
+    /** Informa o gesto do quadro (`null` sem mão) e devolve o estado da teia. */
+    update(gesture: TriggerGesture | null, nowMs: number): WebTriggerState
     reset(): void
 }
 
 /**
- * Transforma o gesto por quadro num sinal estável de "segurar a teia": confirma por
- * alguns quadros antes de lançar e só solta depois de uma pausa curta sem o gesto.
+ * Transforma o gesto por quadro no estado da teia. A pose de teia lança (confirmada por
+ * alguns quadros); depois de lançada, a pose e o punho a mantêm presa e o punho puxa. A
+ * palma aberta solta. Sem a pose nem o punho por um tempo, a teia solta sozinha.
  */
 export function createWebTrigger(config: WebTriggerConfig = DEFAULT_TRIGGER): WebTrigger {
-    let streak = 0
+    let launchStreak = 0
+    let releaseStreak = 0
     let held = false
-    let lastSeenMs = 0
+    let lastHoldMs = 0
     return {
         update(gesture, nowMs) {
-            if (gesture !== null && gesture.name === config.gesture && gesture.score >= config.minScore) {
-                streak++
-                lastSeenMs = nowMs
-                if (streak >= config.confirmFrames) held = true
+            const name = gesture !== null && gesture.score >= config.minScore ? gesture.name : null
+            let pull = false
+            if (!held) {
+                launchStreak = name === config.launch ? launchStreak + 1 : 0
+                if (launchStreak >= config.confirmFrames) {
+                    held = true
+                    lastHoldMs = nowMs
+                    releaseStreak = 0
+                }
+            } else if (name === config.release) {
+                releaseStreak++
+                if (releaseStreak >= config.releaseFrames) {
+                    held = false
+                    launchStreak = 0
+                    releaseStreak = 0
+                }
             } else {
-                streak = 0
-                if (held && nowMs - lastSeenMs > config.releaseMs) held = false
+                releaseStreak = 0
+                if (name !== null && config.hold.includes(name)) {
+                    lastHoldMs = nowMs
+                    pull = name === config.pull
+                } else if (nowMs - lastHoldMs > config.graceMs) {
+                    held = false
+                    launchStreak = 0
+                }
             }
-            return held
+            return { held, pull: held && pull }
         },
         reset() {
-            streak = 0
+            launchStreak = 0
+            releaseStreak = 0
             held = false
-            lastSeenMs = 0
+            lastHoldMs = 0
         },
     }
 }

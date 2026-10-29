@@ -13,8 +13,8 @@ describe('pickAnchor', () => {
         const anchor = pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)
         expect(anchor).not.toBeNull()
         expect(anchor?.x).toBeCloseTo(40)
-        // O primeiro raio sobe 35° acima da câmera (10°): 45° no total, então y = 30 + 40.
-        expect(anchor?.y).toBeCloseTo(70, 0)
+        // O raio de 60° (10° da câmera + 50°) passa por cima dos 80 m; o de 48° acerta a parede.
+        expect(anchor?.y).toBeCloseTo(30 + 40 * Math.tan((48 * Math.PI) / 180), 0)
     })
 
     it('devolve null quando não há prédio no alcance', () => {
@@ -23,8 +23,10 @@ describe('pickAnchor', () => {
     })
 
     it('ignora o acerto que está abaixo do mínimo de subida', () => {
-        const index = createCityIndex(cityOf(box(40, -5, 50, 5, 20)))
-        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)).toBeNull()
+        const index = createCityIndex(cityOf(box(40, -5, 50, 5, 300)))
+        const config = { ...DEFAULT_WEB, pitchOffsets: [(2 * Math.PI) / 180] }
+        // 12° no total a 40 m de distância sobe só 8,5 m, menos que o mínimo de 12 m.
+        expect(pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES, config)).toBeNull()
     })
 
     it('ignora o acerto perto demais na horizontal', () => {
@@ -39,10 +41,10 @@ describe('pickAnchor', () => {
     })
 
     it('cai no raio mais baixo quando os mais altos passam por cima', () => {
-        // Prédio de 75 m a 100 m: os raios de 45° e 30° passam por cima; só o de +8° (18° no total) acerta a parede.
+        // Prédio de 75 m a 100 m: os raios de 60° a 25° passam por cima; só o de +6° (16° no total) acerta a parede.
         const index = createCityIndex(cityOf(box(100, -60, 110, 60, 75)))
         const anchor = pickAnchor(index, { x: 0, y: 30, z: 0 }, RIGHT, TEN_DEGREES)
         expect(anchor?.x).toBeCloseTo(100)
-        expect(anchor?.y).toBeCloseTo(30 + 100 * Math.tan((18 * Math.PI) / 180), 0)
+        expect(anchor?.y).toBeCloseTo(30 + 100 * Math.tan((16 * Math.PI) / 180), 0)
     })
 })

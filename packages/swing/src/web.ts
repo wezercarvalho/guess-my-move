@@ -16,19 +16,19 @@ export interface WebConfig {
 const degrees = (value: number) => (value * Math.PI) / 180
 
 export const DEFAULT_WEB: WebConfig = {
-    range: 140,
-    pitchOffsets: [degrees(35), degrees(20), degrees(8)],
-    minRise: 25,
-    minHorizontal: 30,
+    range: 160,
+    pitchOffsets: [degrees(50), degrees(38), degrees(26), degrees(15), degrees(6)],
+    minRise: 12,
+    minHorizontal: 15,
 }
 
 /** Inclinação máxima de um raio, para não apontar além do zênite. */
 const MAX_RAY_PITCH = degrees(85)
 
 /**
- * Escolhe onde a teia prende. Lança até três raios a partir do olho, cada um mais
- * inclinado para cima que a câmera, e fica com o primeiro que acerta um prédio alto e
- * longe o bastante. Devolve `null` quando a teia erra.
+ * Escolhe onde a teia prende. Lança raios a partir do olho, do mais inclinado (prédio
+ * próximo) ao mais raso (prédio distante), todos acima da câmera, e fica com o primeiro
+ * que acerta um prédio alto e longe o bastante. Devolve `null` quando a teia erra.
  */
 export function pickAnchor(
     index: CityIndex,
@@ -38,7 +38,8 @@ export function pickAnchor(
     config: WebConfig = DEFAULT_WEB,
 ): Vec3 | null {
     for (const offset of config.pitchOffsets) {
-        const direction = forwardFromAngles(yaw, Math.min(pitch + offset, MAX_RAY_PITCH))
+        // Com a câmera olhando para baixo, o raio ainda sobe: a teia sempre procura o alto.
+        const direction = forwardFromAngles(yaw, Math.min(Math.max(pitch, 0) + offset, MAX_RAY_PITCH))
         const hit = index.raycast(eye, direction, config.range)
         if (!hit) continue
         const rise = hit.point.y - eye.y

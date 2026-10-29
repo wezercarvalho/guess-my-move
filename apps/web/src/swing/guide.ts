@@ -5,22 +5,20 @@ import { type SwingTrackerStatus } from './swingController.js'
 /** Etapas do jogo, na ordem. A atual é destacada na tela. */
 export const STEPS = [
     'Pose de teia: polegar, indicador e mindinho abertos.',
-    'Esquerda lança à esquerda, direita à direita, as duas ao centro.',
-    'Segure e balance: a corda acelera você.',
+    'Segure a pose: a corda puxa e balança você.',
+    'Punho fechado puxa. Palma aberta solta.',
     'Solte na subida para voar. Lance de novo.',
 ] as const
 
 /** Etapa em andamento (1 a 4), a partir da próxima ação do jogador. */
 export function currentStep(cue: SwingCue): number {
     switch (cue) {
-        case 'start':
-            return 1
         case 'swing':
             return 3
         case 'release':
             return 4
         default:
-            return 2
+            return 1
     }
 }
 
@@ -30,9 +28,9 @@ export function statusLine(cue: SwingCue): string {
         case 'start':
             return 'Faça a pose de teia para saltar.'
         case 'swing':
-            return 'Balançando. Segure a pose.'
+            return 'Balançando. Punho fechado puxa.'
         case 'release':
-            return 'Solte agora para voar!'
+            return 'Abra a mão para soltar e voar!'
         case 'low':
             return 'Perto do chão! Lance a teia já.'
         case 'ground':
@@ -61,12 +59,12 @@ export function guideHint({
     lastThrow,
     cue,
 }: HintInput): string {
-    if (trackerStatus === 'error') return 'O detector falhou. Use Espaço, Z, X e as setas.'
-    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam de lado, setas olham.'
+    if (trackerStatus === 'error') return 'O detector falhou. Use Espaço, Z, X, C e as setas.'
+    if (!cameraActive) return 'Sem câmera: Espaço lança, Z e X lançam de lado, C puxa, setas olham.'
     if (trackerStatus === 'loading') return 'Carregando o detector…'
-    if (lastThrow === 'miss') return 'A teia errou. Olhe para cima, na direção de um prédio.'
+    if (lastThrow === 'miss') return 'A teia errou. Lance de novo, olhando para a cidade.'
     if (!handVisible) return 'Mostre a mão inteira para a câmera.'
-    if (cue === 'release') return 'Soltar na subida do arco dá o impulso.'
+    if (cue === 'release') return 'Palma aberta na subida do arco dá o impulso.'
     if (!gestureHeld && cue !== 'swing') {
         return 'Polegar, indicador e mindinho abertos; médio e anelar dobrados. Vale em qualquer ângulo.'
     }

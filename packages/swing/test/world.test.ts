@@ -29,6 +29,15 @@ describe('findSpawn', () => {
         expect(spawn.y).toBe(DEFAULT_SWING.spawnHeight)
         expect(pickAnchor(index, spawn, 0, (10 * Math.PI) / 180)).not.toBeNull()
     })
+
+    it('a primeira teia tem corda longa: o prédio fica a pelo menos 50 m, para haver arco', () => {
+        // Parede de 400 m a 30 m da origem (olhando para -Z): perto demais para balançar.
+        const index = createCityIndex(cityOf(box(-150, -40, 150, -30, 400), box(-150, -160, 150, -150, 400)))
+        const spawn = findSpawn(index)
+        const anchor = pickAnchor(index, spawn, 0, (10 * Math.PI) / 180)
+        expect(anchor).not.toBeNull()
+        expect(Math.hypot((anchor?.x ?? 0) - spawn.x, (anchor?.z ?? 0) - spawn.z)).toBeGreaterThanOrEqual(50)
+    })
 })
 
 describe('createSwingWorld', () => {

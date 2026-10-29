@@ -3,6 +3,7 @@ import {
     type SwingCue,
     type SwingInput,
     type SwingWorld,
+    type HandMetrics,
     type TriggerGesture,
     type WebSide,
     type WebTrigger,
@@ -10,8 +11,8 @@ import {
     createCityIndex,
     createSwingWorld,
     createWebTrigger,
+    handMetrics,
     handSide,
-    steerFromHand,
     swingCue,
     webSignal,
 } from '@guess-my-move/swing'
@@ -61,6 +62,16 @@ export interface SwingSurfaces {
     getEffects: () => HTMLCanvasElement | null
 }
 
+/** O que o detector lê de uma mão, para o painel de depuração. */
+export interface HandDebug {
+    side: 'esq.' | 'dir.'
+    /** Rótulo do reconhecedor de gestos, se houver. */
+    label: string | null
+    /** Gesto que o jogo entendeu (a geometria decide primeiro), se algum. */
+    signal: string | null
+    metrics: HandMetrics | null
+}
+
 export interface SwingSnapshot {
     phase: SwingPhase
     failure: string | null
@@ -73,6 +84,10 @@ export interface SwingSnapshot {
     held: { left: boolean; right: boolean }
     /** Quantas mãos a câmera vê agora. */
     handsVisible: number
+    /** O punho está fechado com a teia presa (puxando). */
+    pulling: boolean
+    /** Leitura de cada mão, para o painel de depuração. */
+    handDebug: readonly HandDebug[]
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
@@ -125,11 +140,12 @@ export class SwingController {
     private loadToken = 0
     private hand: TrackedHand | null = null
     private hands: TrackedHand[] = []
-    /** Mão que está fazendo o gesto de teia, por posição na lista `hands`. */
-    private webHandIndexes = new Set<number>()
+    private handDebug: HandDebug[] = []
+    private pulling = false
     private lastHandAt = 0
     private held = { left: false, right: false }
     private readonly sideKeys = { left: 'z', right: 'x' }
+    private readonly pullKey = 'c'
     private lastThrow: 'hit' | 'miss' | null = null
     private counted = { webs: 0, misses: 0 }
     private lastVideoTime = -1
@@ -219,6 +235,7 @@ export class SwingController {
         this.triggers.left.reset()
         this.triggers.right.reset()
         this.held = { left: false, right: false }
+        this.pulling = false
         this.lastThrow = null
         this.counted = { webs: 0, misses: 0 }
         this.emit()
@@ -288,12 +305,9 @@ export class SwingController {
     private dropHand(): void {
         this.hand = null
         this.hands = []
-        this.webHandIndexes = new Set()
+        this.handDebug = []
         const now = this.env.now()
-        this.held = {
-            left: this.triggers.left.update(null, now),
-            right: this.triggers.right.update(null, now),
-        }
+        this.applyTriggers({ left: null, right: null }, now)
         const overlay = this.surfaces.getOverlay()
         const video = this.surfaces.getVideo()
         if (overlay && video) drawHands(overlay, video, [])
@@ -320,16 +334,16 @@ export class SwingController {
         this.lastNow = now
 
         this.readHand(now)
-        const steering = this.steeringHand()
-        const look = steerFromHand(steering?.landmarks ?? null)
         const left = this.held.left || this.keys.has(this.sideKeys.left)
         const right = this.held.right || this.keys.has(this.sideKeys.right)
         const side: WebSide = left && right ? 0 : left ? -1 : right ? 1 : 0
         const input: SwingInput = {
             webHeld: left || right || this.keys.has(' '),
             webSide: side,
-            yawRate: clamp(look.yawRate + this.keyAxis('ArrowRight', 'ArrowLeft')),
-            pitchRate: clamp(look.pitchRate + this.keyAxis('ArrowUp', 'ArrowDown')),
+            pull: this.pulling || this.keys.has(this.pullKey),
+            // A câmera é automática (segue o movimento); as setas só ajustam o olhar.
+            yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
+            pitchRate: this.keyAxis('ArrowUp', 'ArrowDown'),
         }
         world.advance(input, dt)
         this.noteThrow(world)
@@ -375,14 +389,6 @@ export class SwingController {
         }
     }
 
-    /** A mão que gira a câmera: a primeira que não está fazendo o gesto de teia. */
-    private steeringHand(): TrackedHand | null {
-        for (let index = 0; index < this.hands.length; index++) {
-            if (!this.webHandIndexes.has(index)) return this.hands[index] ?? null
-        }
-        return null
-    }
-
     /**
      * Lê as mãos quando a câmera entregou um quadro novo; sem quadros por um tempo, as mãos
      * se perdem. Cada mão vira o gesto de teia do seu lado (esquerda ou direita da tela).
@@ -405,11 +411,7 @@ export class SwingController {
             this.lastHandAt = now
             this.hands = hands
             this.hand = hands[0] ?? null
-            const signals = this.signalsBySide(hands)
-            this.held = {
-                left: this.triggers.left.update(signals.left, now),
-                right: this.triggers.right.update(signals.right, now),
-            }
+            this.applyTriggers(this.signalsBySide(hands), now)
             const overlay = this.surfaces.getOverlay()
             if (overlay) {
                 drawHands(
@@ -421,6 +423,17 @@ export class SwingController {
         } else if (this.hands.length > 0 && now - this.lastHandAt > STALE_HAND_MS) {
             this.dropHand()
         }
+    }
+
+    /** Alimenta o gatilho de cada lado e guarda quem segura a teia e se o punho puxa. */
+    private applyTriggers(
+        signals: { left: TriggerGesture | null; right: TriggerGesture | null },
+        now: number,
+    ): void {
+        const left = this.triggers.left.update(signals.left, now)
+        const right = this.triggers.right.update(signals.right, now)
+        this.held = { left: left.held, right: right.held }
+        this.pulling = left.pull || right.pull
     }
 
     private detectHands(tracker: HandTracker, video: HTMLVideoElement, now: number): TrackedHand[] {
@@ -441,16 +454,21 @@ export class SwingController {
             left: null,
             right: null,
         }
-        this.webHandIndexes = new Set()
+        this.handDebug = []
         // A imagem da câmera é invertida: o maior x cru fica mais à esquerda na tela.
         const order = hands
             .map((tracked, index) => ({ tracked, index, x: tracked.landmarks[9]?.x ?? 0.5 }))
             .sort((a, b) => b.x - a.x)
-        order.forEach(({ tracked, index }, position) => {
+        order.forEach(({ tracked }, position) => {
             const side = order.length === 2 ? (position === 0 ? 'left' : 'right') : handSide(tracked.landmarks)
             const signal = webSignal(tracked.landmarks, tracked.gesture)
             signals[side] = signal
-            if (signal && signal.name === 'ILoveYou' && signal.score >= 0.7) this.webHandIndexes.add(index)
+            this.handDebug.push({
+                side: side === 'left' ? 'esq.' : 'dir.',
+                label: tracked.gesture?.name ?? null,
+                signal: signal?.name ?? null,
+                metrics: handMetrics(tracked.landmarks),
+            })
         })
         return signals
     }
@@ -536,6 +554,8 @@ export class SwingController {
             gestureHeld: this.held.left || this.held.right,
             held: { ...this.held },
             handsVisible: this.hands.length,
+            pulling: this.pulling,
+            handDebug: [...this.handDebug],
             cue: state ? swingCue(state) : 'start',
             lastThrow: this.lastThrow,
             hud,
@@ -545,6 +565,5 @@ export class SwingController {
 }
 
 /** Teclas que o jogo usa (e que não devem rolar a página). */
-const CONTROL_KEYS = new Set([' ', 'z', 'x', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+const CONTROL_KEYS = new Set([' ', 'z', 'x', 'c', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
 
-const clamp = (value: number) => Math.max(-1, Math.min(1, value))

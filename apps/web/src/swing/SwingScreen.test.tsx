@@ -98,7 +98,7 @@ describe('SwingScreen', () => {
         expect(screen.getByTestId('game-status')).toHaveTextContent(/balançando/i)
         const guide = screen.getByRole('list', { name: /como jogar/i })
         const current = within(guide).getAllByRole('listitem').find((item) => item.getAttribute('aria-current') === 'step')
-        expect(current).toHaveTextContent(/segure e balance/i)
+        expect(current).toHaveTextContent(/punho fechado puxa/i)
         expect(screen.getByTestId('hud-web')).toHaveTextContent(/centro|esquerda|direita/)
     })
 
@@ -127,6 +127,16 @@ describe('SwingScreen', () => {
         })
         expect(screen.getByTestId('hud-speed')).toHaveTextContent(/^\d+ km\/h$/)
         expect(screen.getByTestId('hud-altitude')).not.toHaveTextContent(/^0 m$/)
+    })
+
+    it('a depuração das mãos começa recolhida e abre com o botão', async () => {
+        await openGame()
+        const toggle = screen.getByRole('button', { name: 'Depuração' })
+        expect(toggle).toHaveAttribute('aria-expanded', 'false')
+        expect(screen.queryByRole('region', { name: 'Depuração' })).not.toBeInTheDocument()
+        fireEvent.click(toggle)
+        expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        expect(screen.getByRole('region', { name: 'Depuração' })).toHaveTextContent(/Nenhuma mão/i)
     })
 
     it('sem câmera, a dica manda usar o teclado', async () => {

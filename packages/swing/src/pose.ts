@@ -1,5 +1,11 @@
-import { type HandPoint } from './steering.js'
 import { type TriggerGesture } from './trigger.js'
+
+/** Ponto de um landmark do MediaPipe; `z` é a profundidade relativa ao pulso, quando existe. */
+export interface HandPoint {
+    x: number
+    y: number
+    z?: number
+}
 
 /** Landmarks do MediaPipe: pulso, polegar, e (base, junta, ponta) de cada dedo. */
 const WRIST = 0
@@ -15,22 +21,37 @@ const CURLED_RATIO = 1.3
 /** Polegar aberto: a ponta se afasta da base do indicador, em frações do tamanho da palma. */
 const THUMB_OUT = 0.6
 
-const distance = (a: HandPoint, b: HandPoint) => Math.hypot(a.x - b.x, a.y - b.y)
+/**
+ * Distância entre dois landmarks. Com a profundidade (`z`), um dedo apontado para a câmera
+ * continua contando como esticado, o que a distância só no plano da imagem não consegue.
+ */
+const distance = (a: HandPoint, b: HandPoint) =>
+    Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0))
 
 /**
- * Pose de lançar teia (polegar, indicador e mindinho abertos; médio e anelar dobrados),
- * medida só por distâncias entre landmarks. Por isso vale com a mão em qualquer
- * orientação e em qualquer das duas mãos. Landmarks incompletos nunca contam.
+ * Medidas da mão, todas por distâncias entre landmarks (valem em qualquer orientação e em
+ * qualquer das duas mãos): o alcance de cada dedo (ponta do dedo ao pulso, dividida pela
+ * base do dedo ao pulso; esticado passa de 1,5, dobrado fica abaixo de 1,3) e o quanto o
+ * polegar se afasta da base do indicador, em frações da palma.
  */
-export function isWebPose(landmarks: readonly HandPoint[]): boolean {
-    if (landmarks.length < 21) return false
+export interface HandMetrics {
+    index: number
+    middle: number
+    ring: number
+    pinky: number
+    thumb: number
+}
+
+/** Medidas da mão; `null` com landmarks incompletos ou degenerados. */
+export function handMetrics(landmarks: readonly HandPoint[]): HandMetrics | null {
+    if (landmarks.length < 21) return null
     const wrist = landmarks[WRIST]
     const thumbTip = landmarks[THUMB_TIP]
     const indexMcp = landmarks[INDEX.mcp]
     const middleMcp = landmarks[MIDDLE.mcp]
-    if (!wrist || !thumbTip || !indexMcp || !middleMcp) return false
+    if (!wrist || !thumbTip || !indexMcp || !middleMcp) return null
     const palm = distance(wrist, middleMcp)
-    if (palm <= 0) return false
+    if (palm <= 0) return null
 
     const reach = (finger: { mcp: number; tip: number }): number | null => {
         const mcp = landmarks[finger.mcp]
@@ -43,14 +64,47 @@ export function isWebPose(landmarks: readonly HandPoint[]): boolean {
     const middle = reach(MIDDLE)
     const ring = reach(RING)
     const pinky = reach(PINKY)
-    if (index === null || middle === null || ring === null || pinky === null) return false
+    if (index === null || middle === null || ring === null || pinky === null) return null
+    return { index, middle, ring, pinky, thumb: distance(thumbTip, indexMcp) / palm }
+}
 
+/**
+ * Pose de lançar teia (polegar, indicador e mindinho abertos; médio e anelar dobrados).
+ * Landmarks incompletos nunca contam.
+ */
+export function isWebPose(landmarks: readonly HandPoint[]): boolean {
+    const m = handMetrics(landmarks)
     return (
-        index >= EXTENDED_RATIO &&
-        pinky >= EXTENDED_RATIO &&
-        middle <= CURLED_RATIO &&
-        ring <= CURLED_RATIO &&
-        distance(thumbTip, indexMcp) / palm >= THUMB_OUT
+        m !== null &&
+        m.index >= EXTENDED_RATIO &&
+        m.pinky >= EXTENDED_RATIO &&
+        m.middle <= CURLED_RATIO &&
+        m.ring <= CURLED_RATIO &&
+        m.thumb >= THUMB_OUT
+    )
+}
+
+/** Palma aberta: os quatro dedos esticados. Solta a teia. */
+export function isOpenPalm(landmarks: readonly HandPoint[]): boolean {
+    const m = handMetrics(landmarks)
+    return (
+        m !== null &&
+        m.index >= EXTENDED_RATIO &&
+        m.middle >= EXTENDED_RATIO &&
+        m.ring >= EXTENDED_RATIO &&
+        m.pinky >= EXTENDED_RATIO
+    )
+}
+
+/** Punho fechado: os quatro dedos dobrados. Com a teia presa, puxa. */
+export function isFist(landmarks: readonly HandPoint[]): boolean {
+    const m = handMetrics(landmarks)
+    return (
+        m !== null &&
+        m.index <= CURLED_RATIO &&
+        m.middle <= CURLED_RATIO &&
+        m.ring <= CURLED_RATIO &&
+        m.pinky <= CURLED_RATIO
     )
 }
 
@@ -74,13 +128,18 @@ export function handSide(landmarks: readonly HandPoint[]): 'left' | 'right' {
 }
 
 /**
- * Gesto de teia de uma mão: a pose medida pelos landmarks vale como `ILoveYou` com
- * pontuação máxima; sem a pose, vale o rótulo do reconhecedor, se houver.
+ * Gesto de uma mão para o jogo. A geometria decide primeiro e vale com pontuação máxima:
+ * a pose de teia vira `ILoveYou`, a palma aberta `Open_Palm` e o punho `Closed_Fist`. Fora
+ * delas vale o rótulo do reconhecedor, salvo `Open_Palm`: só a geometria solta a teia, para
+ * um rótulo errado numa pose de lado não soltar a teia sem querer.
  */
 export function webSignal(
     landmarks: readonly HandPoint[],
     gesture: TriggerGesture | null | undefined,
 ): TriggerGesture | null {
     if (isWebPose(landmarks)) return { name: 'ILoveYou', score: 1 }
-    return gesture ?? null
+    if (isOpenPalm(landmarks)) return { name: 'Open_Palm', score: 1 }
+    if (isFist(landmarks)) return { name: 'Closed_Fist', score: 1 }
+    if (!gesture || gesture.name === 'Open_Palm') return null
+    return gesture
 }

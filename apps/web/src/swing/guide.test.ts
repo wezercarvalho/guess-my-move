@@ -14,9 +14,9 @@ const ok = {
 describe('currentStep', () => {
     it('destaca a etapa da próxima ação', () => {
         expect(currentStep('start')).toBe(1)
-        expect(currentStep('throw')).toBe(2)
-        expect(currentStep('low')).toBe(2)
-        expect(currentStep('ground')).toBe(2)
+        expect(currentStep('throw')).toBe(1)
+        expect(currentStep('low')).toBe(1)
+        expect(currentStep('ground')).toBe(1)
         expect(currentStep('swing')).toBe(3)
         expect(currentStep('release')).toBe(4)
         expect(STEPS).toHaveLength(4)
@@ -28,7 +28,8 @@ describe('statusLine', () => {
         expect(statusLine('start')).toMatch(/pose de teia/i)
         expect(statusLine('throw')).toMatch(/lance a teia/i)
         expect(statusLine('swing')).toMatch(/balançando/i)
-        expect(statusLine('release')).toMatch(/solte/i)
+        expect(statusLine('release')).toMatch(/abra a mão/i)
+        expect(statusLine('swing')).toMatch(/punho/i)
         expect(statusLine('low')).toMatch(/chão/i)
         expect(statusLine('ground')).toMatch(/subir/i)
     })
@@ -48,6 +49,7 @@ describe('guideHint', () => {
         expect(hint).toMatch(/Sem câmera/)
         expect(hint).toMatch(/Z/)
         expect(hint).toMatch(/X/)
+        expect(hint).toMatch(/C puxa/)
     })
 
     it('avisa que o detector está carregando', () => {
@@ -70,6 +72,6 @@ describe('guideHint', () => {
     })
 
     it('na subida do arco, lembra de soltar', () => {
-        expect(guideHint({ ...ok, cue: 'release' })).toMatch(/soltar|solte/i)
+        expect(guideHint({ ...ok, cue: 'release' })).toMatch(/palma aberta/i)
     })
 })

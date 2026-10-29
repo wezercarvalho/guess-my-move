@@ -17,13 +17,22 @@ export {
     stepPlayer,
 } from './physics.js'
 export { type SwingCue, swingCue } from './cue.js'
-export { handSide, isWebPose, webSignal } from './pose.js'
+export {
+    type HandMetrics,
+    type HandPoint,
+    handMetrics,
+    handSide,
+    isFist,
+    isOpenPalm,
+    isWebPose,
+    webSignal,
+} from './pose.js'
 export { findSpawn } from './spawn.js'
-export { type HandPoint, type LookRates, steerFromHand } from './steering.js'
 export {
     DEFAULT_TRIGGER,
     type TriggerGesture,
     type WebTrigger,
+    type WebTriggerState,
     type WebTriggerConfig,
     createWebTrigger,
 } from './trigger.js'

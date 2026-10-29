@@ -32,6 +32,20 @@ export interface SwingConfig {
     minRope: number
     /** Fração da velocidade que volta ao bater numa parede. */
     restitution: number
+    /** Atrito na parede: a velocidade ao longo dela é multiplicada por `exp(-wallFriction * dt)`. */
+    wallFriction: number
+    /** Aceleração, em m/s², que a corda aplica em direção ao ponto de ancoragem enquanto está presa. */
+    assist: number
+    /** O mesmo com o punho fechado (puxar). */
+    pullAssist: number
+    /** Recolhimento da corda com o punho fechado, em m/s. */
+    pullReel: number
+    /** Impulso, em m/s, em direção ao ponto de ancoragem ao fechar o punho. */
+    pullImpulse: number
+    /** Impulso, em m/s, em direção ao ponto de ancoragem ao lançar a teia saindo do chão. */
+    launchBoost: number
+    /** Impulso extra para cima, em m/s, ao lançar a teia saindo do chão. */
+    launchLift: number
     /** Rapidez, por segundo, com que o chão leva a velocidade horizontal à corrida automática. */
     groundBlend: number
     /** Velocidade da corrida automática no chão ou no telhado, em m/s. */
@@ -53,6 +67,10 @@ export interface SwingConfig {
     headingFollow: number
     /** Velocidade horizontal mínima, em m/s, para a câmera acompanhar o movimento. */
     headingMinSpeed: number
+    /** Inclinação da câmera automática: valor base e limites, em radianos. */
+    followPitchBase: number
+    followPitchMin: number
+    followPitchMax: number
     /** Teia no céu quando nenhum prédio é alcançável; `null` desliga. */
     skyWeb: SkyWebConfig | null
     /** Altura do ponto de partida, em metros. */
@@ -69,7 +87,14 @@ export const DEFAULT_SWING: SwingConfig = {
     radius: 1.7,
     reelSpeed: 4,
     minRope: 10,
-    restitution: 0.3,
+    restitution: 0.1,
+    wallFriction: 2,
+    assist: 12,
+    pullAssist: 40,
+    pullReel: 16,
+    pullImpulse: 9,
+    launchBoost: 14,
+    launchLift: 6,
     groundBlend: 6,
     runSpeed: 8,
     boundsMargin: 2,
@@ -79,9 +104,12 @@ export const DEFAULT_SWING: SwingConfig = {
     web: DEFAULT_WEB,
     step: 1 / 120,
     maxFrame: 0.05,
-    sideYaw: degrees(18),
+    sideYaw: degrees(28),
     headingFollow: 1.2,
     headingMinSpeed: 8,
+    followPitchBase: degrees(12),
+    followPitchMin: degrees(-20),
+    followPitchMax: degrees(35),
     skyWeb: { distance: 60, rise: 70, maxAltitude: 220 },
     spawnHeight: 90,
     spawnSpeed: 10,
@@ -118,6 +146,8 @@ export interface SwingState {
     web: ActiveWeb | null
     /** Em pé no chão ou num telhado no último passo. */
     grounded: boolean
+    /** O punho está fechado com a teia presa: a corda puxa mais forte e recolhe mais rápido. */
+    pulling: boolean
     /** O jogo começou (primeiro gesto de teia); antes disso o jogador fica parado no início. */
     started: boolean
     stats: SwingStats
@@ -131,6 +161,7 @@ export function createSwingState(position: Vec3, yaw = 0, pitch = degrees(10)): 
         pitch,
         web: null,
         grounded: false,
+        pulling: false,
         started: false,
         stats: { distance: 0, webs: 0, misses: 0, topSpeed: 0 },
     }
@@ -154,10 +185,25 @@ export function stepPlayer(
     const { position, velocity } = state
     const before = { x: position.x, z: position.z }
 
-    if (state.web) state.web.length = Math.max(config.minRope, state.web.length - config.reelSpeed * dt)
+    if (state.web) {
+        const reel = state.pulling ? config.pullReel : config.reelSpeed
+        state.web.length = Math.max(config.minRope, state.web.length - reel * dt)
+        // A corda não só limita a distância: ela puxa o jogador para o ponto de ancoragem.
+        const { anchor } = state.web
+        const ax = anchor.x - position.x
+        const ay = anchor.y - position.y
+        const az = anchor.z - position.z
+        const away = Math.hypot(ax, ay, az)
+        if (away > config.minRope) {
+            const pull = (state.pulling ? config.pullAssist : config.assist) * dt
+            velocity.x += (ax / away) * pull
+            velocity.y += (ay / away) * pull
+            velocity.z += (az / away) * pull
+        }
+    }
 
     velocity.y -= config.gravity * dt
-    if (state.grounded) {
+    if (state.grounded && !state.web) {
         const forward = forwardFromAngles(state.yaw, 0)
         const blend = 1 - Math.exp(-config.groundBlend * dt)
         velocity.x += (forward.x * config.runSpeed - velocity.x) * blend
@@ -219,8 +265,13 @@ export function stepPlayer(
                 velocity.y -= k * contact.normal.y
                 velocity.z -= k * contact.normal.z
             }
+            // Desliza pela parede, com atrito; a teia continua presa.
+            const normal = velocity.x * contact.normal.x + velocity.y * contact.normal.y + velocity.z * contact.normal.z
+            const slide = Math.exp(-config.wallFriction * dt)
+            velocity.x = contact.normal.x * normal + (velocity.x - contact.normal.x * normal) * slide
+            velocity.y = contact.normal.y * normal + (velocity.y - contact.normal.y * normal) * slide
+            velocity.z = contact.normal.z * normal + (velocity.z - contact.normal.z * normal) * slide
             wallHit = true
-            state.web = null
         }
     }
 

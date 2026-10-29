@@ -179,14 +179,14 @@ describe('SwingController', () => {
         expect(snapshot.hud.webAttached).toBe(true)
     })
 
-    it('a mão à esquerda da imagem crua (direita do usuário) gira para a direita', async () => {
+    it('a mão não gira a câmera: a câmera é automática', async () => {
         const { controller, tracker, tick, lastState } = await playing()
         tracker.detect.mockReturnValue(hand(0.2))
         controller.setCamera(true)
         await flush()
         tick()
         for (let i = 0; i < 20; i++) tick()
-        expect(lastState().yaw).toBeGreaterThan(0)
+        expect(lastState().yaw).toBe(0)
     })
 
     it('mão perdida solta a teia depois da tolerância', async () => {

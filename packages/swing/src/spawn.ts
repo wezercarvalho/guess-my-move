@@ -8,6 +8,9 @@ const MIN_CLEARANCE = 15
 const SEARCH_STEP = 10
 /** Inclinação inicial da câmera, a mesma de `createSwingState`. */
 const START_PITCH = (10 * Math.PI) / 180
+/** A primeira teia precisa de corda longa para fazer arco: prédio alto e a pelo menos 50 m. */
+const START_RISE = 30
+const START_DISTANCE = 50
 
 /**
  * Ponto de partida: procura em espiral, a partir da origem, um lugar da rua livre de prédios
@@ -15,6 +18,7 @@ const START_PITCH = (10 * Math.PI) / 180
  * prédio à frente; sem nenhum assim, usa o primeiro lugar livre. Sem achar, começa na origem.
  */
 export function findSpawn(index: CityIndex, config: SwingConfig = DEFAULT_SWING): Vec3 {
+    const startWeb = { ...config.web, minRise: START_RISE, minHorizontal: START_DISTANCE }
     const bounds = index.playBounds
     const reach = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ)
     let firstFree: Vec3 | null = null
@@ -32,7 +36,7 @@ export function findSpawn(index: CityIndex, config: SwingConfig = DEFAULT_SWING)
             if (!inside || index.clearance(x, z, MIN_CLEARANCE) < MIN_CLEARANCE) continue
             const point = { x, y: config.spawnHeight, z }
             firstFree ??= point
-            if (pickAnchor(index, point, 0, START_PITCH, config.web)) return point
+            if (pickAnchor(index, point, 0, START_PITCH, startWeb)) return point
         }
     }
     return firstFree ?? { x: 0, y: config.spawnHeight, z: 0 }

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type HandPoint } from '../src/steering.js'
-import { handSide, isWebPose, webSignal } from '../src/pose.js'
+import { type HandPoint, handMetrics, handSide, isFist, isOpenPalm, isWebPose, webSignal } from '../src/pose.js'
 
 interface Fingers {
     thumb: boolean
@@ -84,19 +83,72 @@ describe('handSide', () => {
     })
 })
 
+const PALM = { thumb: true, index: true, middle: true, ring: true, pinky: true }
+const FIST = { thumb: false, index: false, middle: false, ring: false, pinky: false }
+
+describe('isOpenPalm e isFist', () => {
+    it('reconhecem a palma aberta e o punho em qualquer orientação', () => {
+        for (const angle of [0, Math.PI / 2, Math.PI, 1]) {
+            expect(isOpenPalm(hand(PALM, angle))).toBe(true)
+            expect(isFist(hand(FIST, angle))).toBe(true)
+        }
+    })
+
+    it('a pose de teia não é palma aberta nem punho', () => {
+        expect(isOpenPalm(hand(WEB))).toBe(false)
+        expect(isFist(hand(WEB))).toBe(false)
+    })
+
+    it('rejeitam mão incompleta', () => {
+        expect(isOpenPalm([])).toBe(false)
+        expect(isFist([])).toBe(false)
+    })
+})
+
+describe('profundidade (z)', () => {
+    /** Mão vista de lado: os dedos esticados apontam para a câmera, então no plano parecem curtos. */
+    function towardCamera(): HandPoint[] {
+        return hand(WEB).map((point, i) => {
+            const stretched = [8, 7, 6, 20, 19, 18].includes(i)
+            if (!stretched) return { ...point, z: 0 }
+            const mcp = hand(WEB)[i <= 8 ? 5 : 17]
+            return { x: mcp.x, y: mcp.y - 0.01, z: -0.002 * (i % 4) - 0.3 }
+        })
+    }
+
+    it('um dedo apontado para a câmera continua esticado', () => {
+        const flat = towardCamera().map(({ x, y }) => ({ x, y }))
+        expect(isWebPose(flat)).toBe(false)
+        expect(isWebPose(towardCamera())).toBe(true)
+    })
+
+    it('as medidas saem do mesmo cálculo da pose', () => {
+        const m = handMetrics(hand(WEB))
+        expect(m?.index).toBeGreaterThan(1.5)
+        expect(m?.middle).toBeLessThan(1.3)
+        expect(handMetrics([])).toBeNull()
+    })
+})
+
 describe('webSignal', () => {
+    const neutral = hand({ thumb: false, index: true, middle: true, ring: false, pinky: false })
+
     it('a pose geométrica vale como o gesto de teia, mesmo sem rótulo', () => {
         expect(webSignal(hand(WEB), null)).toEqual({ name: 'ILoveYou', score: 1 })
     })
 
-    it('o rótulo ILoveYou do reconhecedor também vale', () => {
-        const fist = hand({ thumb: false, index: false, middle: false, ring: false, pinky: false })
-        expect(webSignal(fist, { name: 'ILoveYou', score: 0.9 })).toEqual({ name: 'ILoveYou', score: 0.9 })
+    it('a palma aberta e o punho valem pela geometria, com pontuação máxima', () => {
+        expect(webSignal(hand(PALM), null)).toEqual({ name: 'Open_Palm', score: 1 })
+        expect(webSignal(hand(FIST), null)).toEqual({ name: 'Closed_Fist', score: 1 })
     })
 
-    it('sem a pose, devolve o rótulo do reconhecedor como está', () => {
-        const fist = hand({ thumb: false, index: false, middle: false, ring: false, pinky: false })
-        expect(webSignal(fist, { name: 'Closed_Fist', score: 0.8 })).toEqual({ name: 'Closed_Fist', score: 0.8 })
-        expect(webSignal(fist, null)).toBeNull()
+    it('fora da geometria, o rótulo do reconhecedor vale como está', () => {
+        expect(webSignal(neutral, { name: 'ILoveYou', score: 0.9 })).toEqual({ name: 'ILoveYou', score: 0.9 })
+        expect(webSignal(neutral, { name: 'Closed_Fist', score: 0.8 })).toEqual({ name: 'Closed_Fist', score: 0.8 })
+        expect(webSignal(neutral, null)).toBeNull()
+    })
+
+    it('o rótulo Open_Palm do reconhecedor, sem a geometria, não solta a teia', () => {
+        expect(webSignal(neutral, { name: 'Open_Palm', score: 0.99 })).toBeNull()
     })
 })

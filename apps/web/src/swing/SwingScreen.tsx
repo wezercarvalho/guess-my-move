@@ -3,10 +3,11 @@ import { useEffect, useRef } from 'react'
 import { CameraPanel } from '../camera/CameraPanel.js'
 import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
-import { Button, Eyebrow, Panel, Steps } from '../design/index.js'
+import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
@@ -43,6 +44,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
     const sceneRef = useRef<HTMLCanvasElement | null>(null)
     const effectsRef = useRef<HTMLCanvasElement | null>(null)
     const stageRef = useRef<HTMLDivElement | null>(null)
+    const debugDrawer = useDrawer()
     const game = useSwingGame({
         cameraActive: camera.isActive,
         videoRef,
@@ -111,6 +113,13 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                     <p className="swing-credit" data-testid="map-credit">
                         {game.attribution}
                     </p>
+                    <DrawerToggle
+                        open={debugDrawer.open}
+                        panelId={debugDrawer.panelId}
+                        onToggle={debugDrawer.toggle}
+                    >
+                        Depuração
+                    </DrawerToggle>
                 </Panel>
 
                 <div className="swing-side">
@@ -152,6 +161,9 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                     <PrivacyNotice />
                 </div>
             </div>
+            <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>
+                <SwingDebugPanel hands={game.handDebug} />
+            </DrawerPanel>
         </div>
     )
 }

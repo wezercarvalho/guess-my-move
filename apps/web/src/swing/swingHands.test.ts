@@ -26,6 +26,23 @@ const hand = (x: number, gesture?: TrackedHand['gesture']): TrackedHand => ({
     ...(gesture ? { gesture } : {}),
 })
 
+/** Mão de palma aberta com a geometria completa (dedos esticados para cima). */
+const palm = (): TrackedHand => {
+    const points = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.8 }))
+    const finger = (first: number, x: number) => {
+        points[first] = { x, y: 0.6 }
+        points[first + 1] = { x, y: 0.53 }
+        points[first + 2] = { x, y: 0.47 }
+        points[first + 3] = { x, y: 0.4 }
+    }
+    finger(5, 0.44)
+    finger(9, 0.5)
+    finger(13, 0.56)
+    finger(17, 0.62)
+    points[4] = { x: 0.26, y: 0.6 }
+    return { landmarks: points }
+}
+
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 async function playing() {
@@ -121,9 +138,9 @@ describe('SwingController com as duas mãos', () => {
         settle(tick)
         detectAll.mockReturnValue([hand(0.2, WEB)])
         settle(tick)
-        // A mão esquerda sai da imagem: depois da tolerância só a direita segura a teia.
-        tick(150)
-        tick(150)
+        // A mão esquerda sai da imagem: depois da tolerância (600 ms) só a direita segura a teia.
+        tick(350)
+        tick(350)
         expect(lastState().web?.side).toBe(1)
         expect(controller.getSnapshot().hud.webs).toBeGreaterThanOrEqual(2)
     })
@@ -137,16 +154,61 @@ describe('SwingController com as duas mãos', () => {
         expect(snapshot.handsVisible).toBe(2)
     })
 
-    it('a mão que lança a teia não gira a câmera; a outra mão gira', async () => {
-        const web = await playing()
-        web.detectAll.mockReturnValue([hand(0.15, WEB)])
-        settle(web.tick)
-        for (let i = 0; i < 20; i++) web.tick()
-        const steered = await playing()
-        steered.detectAll.mockReturnValue([hand(0.15)])
-        for (let i = 0; i < 24; i++) steered.tick()
-        expect(Math.abs(web.lastState().yaw)).toBeLessThan(0.3)
-        expect(steered.lastState().yaw).toBeGreaterThan(0.5)
+    it('o punho com a teia presa puxa; a pose volta a só segurar', async () => {
+        const { controller, detectAll, tick } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB)])
+        settle(tick)
+        expect(controller.getSnapshot().pulling).toBe(false)
+        detectAll.mockReturnValue([hand(0.8, { name: 'Closed_Fist', score: 0.9 })])
+        tick(150)
+        const pulled = controller.getSnapshot()
+        expect(pulled.pulling).toBe(true)
+        expect(pulled.gestureHeld).toBe(true)
+        detectAll.mockReturnValue([hand(0.8, WEB)])
+        tick(150)
+        expect(controller.getSnapshot().pulling).toBe(false)
+    })
+
+    it('a palma aberta solta a teia', async () => {
+        const { controller, detectAll, tick } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB)])
+        settle(tick)
+        expect(controller.getSnapshot().gestureHeld).toBe(true)
+        detectAll.mockReturnValue([palm()])
+        tick()
+        tick(150)
+        expect(controller.getSnapshot().gestureHeld).toBe(false)
+        expect(controller.getSnapshot().hud.webAttached).toBe(false)
+    })
+
+    it('o rótulo Open_Palm sem a geometria não solta a teia', async () => {
+        const { controller, detectAll, tick } = await playing()
+        detectAll.mockReturnValue([hand(0.8, WEB)])
+        settle(tick)
+        detectAll.mockReturnValue([hand(0.8, { name: 'Open_Palm', score: 0.99 })])
+        tick()
+        tick(150)
+        expect(controller.getSnapshot().gestureHeld).toBe(true)
+    })
+
+    it('as mãos não giram a câmera', async () => {
+        const { detectAll, tick, lastState } = await playing()
+        detectAll.mockReturnValue([hand(0.15)])
+        for (let i = 0; i < 24; i++) tick()
+        expect(lastState().yaw).toBe(0)
+    })
+
+    it('expõe a leitura de cada mão para a depuração', async () => {
+        const { controller, detectAll, tick } = await playing()
+        detectAll.mockReturnValue([palm()])
+        tick(150)
+        const [reading] = controller.getSnapshot().handDebug
+        expect(reading?.signal).toBe('Open_Palm')
+        expect(reading?.metrics?.index).toBeGreaterThan(1.5)
+        detectAll.mockReturnValue([])
+        tick(700)
+        tick(150)
+        expect(controller.getSnapshot().handDebug).toEqual([])
     })
 
     it('antes de lançar, projeta na tela onde a teia prende de cada lado', async () => {

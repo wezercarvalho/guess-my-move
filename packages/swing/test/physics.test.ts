@@ -87,25 +87,50 @@ describe('teia', () => {
         expect(fastest).toBeGreaterThan(25)
     })
 
-    it('encurta a corda 4 m/s até o mínimo de 10 m', () => {
+    it('encurta a corda no ritmo do recolhimento até o mínimo de 10 m', () => {
         const { index, state } = pendulum()
         run(index, state, 1)
-        expect(state.web?.length).toBeCloseTo(26, 0)
+        expect(state.web?.length).toBeCloseTo(30 - DEFAULT_SWING.reelSpeed, 0)
         run(index, state, 10)
         expect(state.web?.length).toBeCloseTo(DEFAULT_SWING.minRope, 5)
     })
 })
 
+describe('puxar (punho fechado)', () => {
+    it('recolhe a corda mais rápido que o normal', () => {
+        const index = createCityIndex(cityOf())
+        const normal = createSwingState({ x: 30, y: 80, z: 0 })
+        normal.web = { anchor: { x: 0, y: 80, z: 0 }, length: 60 }
+        const pulled = createSwingState({ x: 30, y: 80, z: 0 })
+        pulled.web = { anchor: { x: 0, y: 80, z: 0 }, length: 60 }
+        pulled.pulling = true
+        run(index, normal, 0.5)
+        run(index, pulled, 0.5)
+        expect(normal.web?.length).toBeCloseTo(60 - 0.5 * DEFAULT_SWING.reelSpeed, 0)
+        expect(pulled.web?.length).toBeCloseTo(60 - 0.5 * DEFAULT_SWING.pullReel, 0)
+    })
+})
+
+describe('chão com a teia presa', () => {
+    it('não força a corrida: a corda decide o movimento', () => {
+        const index = createCityIndex(cityOf())
+        const state = createSwingState({ x: 0, y: 1.7, z: 0 })
+        state.web = { anchor: { x: 0, y: 60, z: 0 }, length: 58.3 }
+        run(index, state, 0.5)
+        expect(Math.abs(state.velocity.z)).toBeLessThan(1)
+    })
+})
+
 describe('colisão', () => {
-    it('amortece na parede, solta a teia e informa o choque', () => {
+    it('desliza na parede, mantém a teia presa e informa o choque', () => {
         const index = createCityIndex(cityOf(box(20, -50, 30, 50, 200)))
         const state = createSwingState({ x: 5, y: 100, z: 0 })
         state.velocity = { x: 30, y: 0, z: 0 }
         state.web = { anchor: { x: 5, y: 180, z: -60 }, length: 120 }
         const { wallHits } = run(index, state, 1)
         expect(wallHits).toBeGreaterThanOrEqual(1)
-        expect(state.web).toBeNull()
-        expect(state.velocity.x).toBeLessThan(0)
+        expect(state.web).not.toBeNull()
+        expect(state.velocity.x).toBeLessThan(5)
         expect(state.position.x).toBeLessThanOrEqual(20 - DEFAULT_SWING.radius + 0.01)
     })
 
