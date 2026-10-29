@@ -17,15 +17,15 @@ A verificação é test-first por módulo, na ordem de implementação das issue
 
 ## Constitution Check — pré-design
 
-| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                                                      |
-| ------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                                                        |
+| ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | I. Intenção antes da implementação          | PASS      | Gates 1 e 2 aprovados antes do código; CQ-001 a CQ-006 resolvidas em `clarification.md` antes de `plan.md` e `tasks.md`; regras das issues. |
 | II. Uma fonte vigente                       | PASS      | `spec.md` é a única fonte vigente desta mudança; o plano referencia IDs e não duplica comportamento das specs anteriores do bete.           |
-| III. Rastreabilidade                        | PASS      | Cada FR tem linha na matriz de requisitos abaixo e tarefa formal em `tasks.md`.                                                            |
+| III. Rastreabilidade                        | PASS      | Cada FR tem linha na matriz de requisitos abaixo e tarefa formal em `tasks.md`.                                                             |
 | IV. Test-first e incremental                | PASS      | Estratégia test-first por módulo, na ordem das issues; mudanças pequenas e reversíveis; bot atrás de interface com nível padrão testável.   |
 | V. Evidência honesta                        | PASS      | NFR-002 e NFR-004 declaram valores de calibração; faixa de acerto do bot como proteção de regressão; sem teste com mão real declarado.      |
 | VI. Fronteira, privacidade e segredos       | PASS      | Processamento local, sem gravar nem enviar imagem; sem requisição a terceiros; o jogo das bolinhas não tem carta, sem fronteira a vazar.    |
-| VII. Neutralidade e contexto sob demanda    | PASS      | Nenhuma dependência de provedor de IA; nenhuma dependência nova; contexto técnico em `docs/`.                                              |
+| VII. Neutralidade e contexto sob demanda    | PASS      | Nenhuma dependência de provedor de IA; nenhuma dependência nova; contexto técnico em `docs/`.                                               |
 | VIII. Clareza, preservação, operação segura | PASS      | UTF-8 e acentuação; jogo de cartas, reconhecedor e design system preservados; só se acrescentam os modos e a tela de partida.               |
 
 ## Pesquisa e decisões
@@ -88,22 +88,22 @@ specs/2026-10-29-game-marbles-modes-build-single-player-matches/   esta spec (sp
 
 ## Mapeamento de requisitos
 
-| Requisito | Abordagem                                                                                                                                       | Evidência planejada                                     |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| FR-001    | `aim/` controlador de mira puro extraído de `round.ts`; não importa `physics.ts` nem `round.ts`                                                  | testes de `aim` (Vitest); teste de importação           |
-| FR-002    | `round.ts` passa a usar o controlador; `round.test.ts` e `flick-replay.test.ts` inalterados                                                      | `round.test.ts` e `flick-replay.test.ts` verdes sem diff |
-| FR-003    | `match/` motor puro: 3 rodadas, competidor do tiro, atribuição em cadeia, resultado de rodada e de partida; sem DOM/MediaPipe/relógio             | testes de `match` (Vitest)                              |
-| FR-004    | contrato de modo em `match/`: montar campo, limite de tiros, avaliação em repouso, próxima vez (padrão alterna, modo pode manter)                 | testes de `match` com modos de teste                   |
-| FR-005    | `match/` com adversários meta e bot: sem vez na meta, alternância por rodada no bot, tiro fora da vez sem efeito, resultado da partida            | testes de `match` (meta e bot)                          |
-| FR-006    | interface `FonteDeTiro` em `match/`; mão e bot como implementações; segundo jogador não implementado                                             | testes de `match` com fontes de tiro simuladas          |
-| FR-007    | `bot/` planejador: direção, velocidade por busca com `stepBodies`, erro por semente, `DEFAULT_BOT`, teto `gain · maxPull`                        | testes de `bot` (parada a 1 unidade, semente, faixa)    |
-| FR-008    | `modes/bete/`: 3 posições de alvo, 5 tiros, avaliação meta/bot, bot mira o alvo, retorno após erro; remoção do bete solo antigo                   | testes de `bete`; `round.test.ts`/`flick-replay` verdes |
-| FR-009    | `modes/triangulo/`: círculo, 6 bolinhas com folga, captura por sair, vez mantida, 8/5 tiros, bot mira a mais próxima da borda                     | testes de `triangulo` (captura, cadeia, estabilidade)   |
-| FR-010    | `modes/cova/`: 3 covas, entrada < 120 por passo e na parada, bolinha que fica, 9 tiros, bot mira o centro da cova ativa                           | testes de `cova` (entrada, permanência, meta/bot)       |
-| FR-011    | cada modo declara `textoDeAjuda` não vazio que cita vitória, derrota e empate                                                                    | testes de cada modo (ajuda não vazia)                   |
-| FR-012    | `marblesController`/`useMarblesGame` conduzem a partida; `MarblesScreen` escolhe modo/adversário e mostra placar, vez, tiros e resultado          | testes de controlador e de tela (câmera/rastreador sim.) |
-| FR-013    | vez do bot ignora o gesto, status de uma linha por estado, tiro do bot animado; pinça/estalo continuam                                           | teste de tela: gesto ignorado na vez do bot; status     |
-| FR-014    | `ShotGuide`/`guideSteps` alimentados pelo texto do modo; `aria-current` na etapa; dicas curtas; muda com modo e adversário                        | testes de componente do painel (3 modos × 2 adversários) |
+| Requisito | Abordagem                                                                                                                                | Evidência planejada                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| FR-001    | `aim/` controlador de mira puro extraído de `round.ts`; não importa `physics.ts` nem `round.ts`                                          | testes de `aim` (Vitest); teste de importação            |
+| FR-002    | `round.ts` passa a usar o controlador; `round.test.ts` e `flick-replay.test.ts` inalterados                                              | `round.test.ts` e `flick-replay.test.ts` verdes sem diff |
+| FR-003    | `match/` motor puro: 3 rodadas, competidor do tiro, atribuição em cadeia, resultado de rodada e de partida; sem DOM/MediaPipe/relógio    | testes de `match` (Vitest)                               |
+| FR-004    | contrato de modo em `match/`: montar campo, limite de tiros, avaliação em repouso, próxima vez (padrão alterna, modo pode manter)        | testes de `match` com modos de teste                     |
+| FR-005    | `match/` com adversários meta e bot: sem vez na meta, alternância por rodada no bot, tiro fora da vez sem efeito, resultado da partida   | testes de `match` (meta e bot)                           |
+| FR-006    | interface `FonteDeTiro` em `match/`; mão e bot como implementações; segundo jogador não implementado                                     | testes de `match` com fontes de tiro simuladas           |
+| FR-007    | `bot/` planejador: direção, velocidade por busca com `stepBodies`, erro por semente, `DEFAULT_BOT`, teto `gain · maxPull`                | testes de `bot` (parada a 1 unidade, semente, faixa)     |
+| FR-008    | `modes/bete/`: 3 posições de alvo, 5 tiros, avaliação meta/bot, bot mira o alvo, retorno após erro; remoção do bete solo antigo          | testes de `bete`; `round.test.ts`/`flick-replay` verdes  |
+| FR-009    | `modes/triangulo/`: círculo, 6 bolinhas com folga, captura por sair, vez mantida, 8/5 tiros, bot mira a mais próxima da borda            | testes de `triangulo` (captura, cadeia, estabilidade)    |
+| FR-010    | `modes/cova/`: 3 covas, entrada < 120 por passo e na parada, bolinha que fica, 9 tiros, bot mira o centro da cova ativa                  | testes de `cova` (entrada, permanência, meta/bot)        |
+| FR-011    | cada modo declara `textoDeAjuda` não vazio que cita vitória, derrota e empate                                                            | testes de cada modo (ajuda não vazia)                    |
+| FR-012    | `marblesController`/`useMarblesGame` conduzem a partida; `MarblesScreen` escolhe modo/adversário e mostra placar, vez, tiros e resultado | testes de controlador e de tela (câmera/rastreador sim.) |
+| FR-013    | vez do bot ignora o gesto, status de uma linha por estado, tiro do bot animado; pinça/estalo continuam                                   | teste de tela: gesto ignorado na vez do bot; status      |
+| FR-014    | `ShotGuide`/`guideSteps` alimentados pelo texto do modo; `aria-current` na etapa; dicas curtas; muda com modo e adversário               | testes de componente do painel (3 modos × 2 adversários) |
 
 ## Estratégia test-first
 
@@ -119,28 +119,28 @@ specs/2026-10-29-game-marbles-modes-build-single-player-matches/   esta spec (sp
 
 ## Riscos, rollout e rollback
 
-| Risco                                                           | Mitigação                                                                                                         | Rollback/contingência                                   |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Regressão sutil no bete ao extrair a mira                       | `round.test.ts` e `flick-replay.test.ts` ficam inalterados como prova de paridade (#86)                           | Reverter a extração e manter a mira em `round.ts`       |
-| Contrato de modo grande demais                                  | Nasce com o que Bete, Triângulo e Cova precisam e nada além; três modos de teste exercitam vez e limites           | Enxugar o contrato para o mínimo que os três modos usam |
-| Busca da velocidade do bot não convergir                        | Busca com `stepBodies` validada pelo teste de parada a 1 unidade entre 50 e 700 numa trajetória livre              | Ajustar a faixa de busca ou o critério de parada        |
-| Seis bolinhas encostadas estressarem o solver de colisão        | Folga na formação (centros a mais que a soma dos raios) e teste de estabilidade sem tiro                           | Aumentar a folga inicial da formação                    |
-| Acoplar a tela às regras de um modo                             | A tela só consome o contrato do modo (campo, placar, textos); a regra fica no pacote puro                          | Mover qualquer regra vazada de volta ao modo            |
-| Afirmar equilíbrio ou diversão sem uso real                     | Faixa de acerto do bot como proteção de regressão; valores declarados como palpites a calibrar (NFR-002, NFR-004)  | Calibrar com uso real numa sessão futura e registrar    |
-| Código morto do bete solo antigo                                | Remover o que ficar sem uso ao migrar o Bete (#89); gates verdes                                                  | Restaurar do histórico do Git se algo for necessário    |
+| Risco                                                    | Mitigação                                                                                                         | Rollback/contingência                                   |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Regressão sutil no bete ao extrair a mira                | `round.test.ts` e `flick-replay.test.ts` ficam inalterados como prova de paridade (#86)                           | Reverter a extração e manter a mira em `round.ts`       |
+| Contrato de modo grande demais                           | Nasce com o que Bete, Triângulo e Cova precisam e nada além; três modos de teste exercitam vez e limites          | Enxugar o contrato para o mínimo que os três modos usam |
+| Busca da velocidade do bot não convergir                 | Busca com `stepBodies` validada pelo teste de parada a 1 unidade entre 50 e 700 numa trajetória livre             | Ajustar a faixa de busca ou o critério de parada        |
+| Seis bolinhas encostadas estressarem o solver de colisão | Folga na formação (centros a mais que a soma dos raios) e teste de estabilidade sem tiro                          | Aumentar a folga inicial da formação                    |
+| Acoplar a tela às regras de um modo                      | A tela só consome o contrato do modo (campo, placar, textos); a regra fica no pacote puro                         | Mover qualquer regra vazada de volta ao modo            |
+| Afirmar equilíbrio ou diversão sem uso real              | Faixa de acerto do bot como proteção de regressão; valores declarados como palpites a calibrar (NFR-002, NFR-004) | Calibrar com uso real numa sessão futura e registrar    |
+| Código morto do bete solo antigo                         | Remover o que ficar sem uso ao migrar o Bete (#89); gates verdes                                                  | Restaurar do histórico do Git se algo for necessário    |
 
 ## Constitution Check — pós-design
 
-| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                                       |
-| ------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| I. Intenção antes da implementação          | PASS      | O design não introduz comportamento fora de `spec.md`; segue as regras e os números das issues #86 a #93.                   |
+| Princípio/gate                              | Resultado | Evidência ou exceção                                                                                                         |
+| ------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| I. Intenção antes da implementação          | PASS      | O design não introduz comportamento fora de `spec.md`; segue as regras e os números das issues #86 a #93.                    |
 | II. Uma fonte vigente                       | PASS      | O plano referencia IDs e não duplica o comportamento das specs anteriores do bete, que seguem como `superseded`/`validated`. |
-| III. Rastreabilidade                        | PASS      | Matriz de requisitos acima e cobertura por tarefa formal em `tasks.md`.                                                     |
-| IV. Test-first e incremental                | PASS      | Testes por módulo antes da implementação; o bot fica atrás de interface com nível padrão testável; mudanças pequenas.       |
-| V. Evidência honesta                        | PASS      | Valores declarados como de calibração; faixa do bot como proteção de regressão; sem teste com mão real declarado.           |
-| VI. Fronteira, privacidade e segredos       | PASS      | Processamento local, sem gravar nem enviar imagem; sem requisição a terceiros; sem carta a vazar neste jogo.                |
-| VII. Neutralidade e contexto sob demanda    | PASS      | Nenhuma dependência de provedor de IA; nenhuma dependência nova; contexto técnico em `docs/`.                              |
-| VIII. Clareza, preservação, operação segura | PASS      | UTF-8 e acentuação; cartas, reconhecedor e design system preservados; só se acrescentam os modos e a tela de partida.       |
+| III. Rastreabilidade                        | PASS      | Matriz de requisitos acima e cobertura por tarefa formal em `tasks.md`.                                                      |
+| IV. Test-first e incremental                | PASS      | Testes por módulo antes da implementação; o bot fica atrás de interface com nível padrão testável; mudanças pequenas.        |
+| V. Evidência honesta                        | PASS      | Valores declarados como de calibração; faixa do bot como proteção de regressão; sem teste com mão real declarado.            |
+| VI. Fronteira, privacidade e segredos       | PASS      | Processamento local, sem gravar nem enviar imagem; sem requisição a terceiros; sem carta a vazar neste jogo.                 |
+| VII. Neutralidade e contexto sob demanda    | PASS      | Nenhuma dependência de provedor de IA; nenhuma dependência nova; contexto técnico em `docs/`.                                |
+| VIII. Clareza, preservação, operação segura | PASS      | UTF-8 e acentuação; cartas, reconhecedor e design system preservados; só se acrescentam os modos e a tela de partida.        |
 
 ## Complexidade e desvios
 

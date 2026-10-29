@@ -28,14 +28,14 @@ Em `packages/marbles/src/shot.ts`, `DEFAULT_SHOT` tem `gain` 5 e `maxPull` 220, 
 
 Toda a lógica determinística fica em `@guess-my-move/marbles`, sem DOM, sem MediaPipe e sem relógio, testável em Vitest. A camada web (`apps/web/src/marbles`) só consome o contrato.
 
-| Módulo (novo)                 | Responsabilidade                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `aim/` (controlador de mira)  | leitura da mão (pinça e estalo) → tiro; âncora relativa, escala, mão perdida, cancelamento; não conhece alvo, rodada nem física |
-| `match/` (motor de partida)   | 3 rodadas, competidor do tiro, vez, resultado da rodada e da partida; recebe o tiro pela fonte do tiro; opera sobre o contrato  |
-| `bot/` (planejador)           | direção até um ponto; velocidade por busca com `stepBodies`; erro angular/força por semente; `DEFAULT_BOT`; teto `gain·maxPull` |
-| `modes/bete/`                 | campo do bete, 3 posições de alvo, limites de tiro, avaliação de acerto, texto de ajuda                                         |
-| `modes/triangulo/`            | círculo e 6 bolinhas, captura por sair do círculo, vez mantida por captura, texto de ajuda                                      |
-| `modes/cova/`                 | 3 covas em ordem, entrada por velocidade < 120, bolinha que fica onde parou, texto de ajuda                                    |
+| Módulo (novo)                | Responsabilidade                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `aim/` (controlador de mira) | leitura da mão (pinça e estalo) → tiro; âncora relativa, escala, mão perdida, cancelamento; não conhece alvo, rodada nem física |
+| `match/` (motor de partida)  | 3 rodadas, competidor do tiro, vez, resultado da rodada e da partida; recebe o tiro pela fonte do tiro; opera sobre o contrato  |
+| `bot/` (planejador)          | direção até um ponto; velocidade por busca com `stepBodies`; erro angular/força por semente; `DEFAULT_BOT`; teto `gain·maxPull` |
+| `modes/bete/`                | campo do bete, 3 posições de alvo, limites de tiro, avaliação de acerto, texto de ajuda                                         |
+| `modes/triangulo/`           | círculo e 6 bolinhas, captura por sair do círculo, vez mantida por captura, texto de ajuda                                      |
+| `modes/cova/`                | 3 covas em ordem, entrada por velocidade < 120, bolinha que fica onde parou, texto de ajuda                                     |
 
 ### Contrato de modo que nasce com o que os três modos precisam e nada além
 
