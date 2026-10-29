@@ -44,9 +44,9 @@
 
 ## Fase 6 — Modo Triângulo (issue #90)
 
-- [ ] T021 [US-005] [FR-009] Escrever o teste falhando de `packages/marbles/test/triangulo.test.ts` (formação inicial: 6 bolinhas dentro do círculo, nenhum par de centros a menos que a soma dos raios, nenhuma bolinha se move sozinha sem tiro) e confirmar a falha esperada
-- [ ] T022 [US-005] [FR-009] Implementar `packages/marbles/src/modes/triangulo/` (círculo, 6 bolinhas em fileiras 1/2/3 com folga, bolinha de tiro de ponto fixo; captura quando uma bolinha para totalmente fora do círculo, atribuída ao competidor do tiro inclusive em cadeia; bolinha capturada sai e as demais ficam; 3 rodadas com a mesma formação) e passar o teste de captura e de cadeia
-- [ ] T023 [US-005] [FR-009] [FR-011] Escrever e passar os testes do Triângulo contra a meta (até 8 tiros; 6 capturas = vitória e encerra na 6ª; 4 ou 5 = empate; <= 3 = derrota) e contra o bot (captura mantém a vez; sem captura a vez passa; até 5 tiros por competidor; mais capturas vence; iguais, inclusive 0 a 0, empatam; ponto de chegada do bot = bolinha mais próxima da borda, mirando para fora), e declarar o `helpText` do Triângulo
+- [x] T021 [US-005] [FR-009] Escrever o teste falhando de `packages/marbles/test/triangle.test.ts` (formação inicial: 6 bolinhas dentro do círculo, nenhum par de centros a menos que a soma dos raios, nenhuma bolinha se move sozinha sem tiro) e confirmar a falha esperada
+- [x] T022 [US-005] [FR-009] Implementar `packages/marbles/src/modes/triangle/` (círculo, 6 bolinhas em fileiras 1/2/3 com folga, bolinha de tiro de ponto fixo; captura quando uma bolinha para totalmente fora do círculo, atribuída ao competidor do tiro inclusive em cadeia; bolinha capturada sai e as demais ficam; 3 rodadas com a mesma formação) e passar o teste de captura e de cadeia
+- [x] T023 [US-005] [FR-009] [FR-011] Escrever e passar os testes do Triângulo contra a meta (até 8 tiros; 6 capturas = vitória e encerra na 6ª; 4 ou 5 = empate; <= 3 = derrota) e contra o bot (captura mantém a vez; sem captura a vez passa; até 5 tiros por competidor; mais capturas vence; iguais, inclusive 0 a 0, empatam; ponto de chegada do bot = bolinha mais próxima da borda, mirando para fora — `triangleBotAimPoint`), e declarar o `helpText` do Triângulo
 
 ## Fase 7 — Modo Cova (issue #91)
 
