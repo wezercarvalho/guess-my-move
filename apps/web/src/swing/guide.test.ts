@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
 
 const ok = {
     cameraActive: true,
@@ -73,5 +73,33 @@ describe('guideHint', () => {
 
     it('na subida do arco, lembra de soltar', () => {
         expect(guideHint({ ...ok, cue: 'release' })).toMatch(/palma aberta/i)
+    })
+})
+
+describe('headStatusLine', () => {
+    it('é vazia sem câmera ou com o detector de rosto inativo', () => {
+        expect(headStatusLine({ cameraActive: false, faceTrackerStatus: 'idle', faceVisible: false })).toBe('')
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'idle', faceVisible: false })).toBe('')
+    })
+
+    it('avisa quando o detector de rosto está carregando', () => {
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'loading', faceVisible: false })).toMatch(
+            /rosto/i,
+        )
+    })
+
+    it('pede para centralizar quando o rosto some', () => {
+        const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: false })
+        expect(line).toMatch(/rosto fora do quadro/i)
+        expect(line).toMatch(/centralize/i)
+    })
+
+    it('fica vazia quando o rosto está à vista', () => {
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: true })).toBe('')
+    })
+
+    it('diz que a cabeça não está disponível quando o detector de rosto falha', () => {
+        const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'error', faceVisible: false })
+        expect(line).toMatch(/cabeça/i)
     })
 })

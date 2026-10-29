@@ -49,7 +49,6 @@ export interface HintInput {
     lastThrow: 'hit' | 'miss' | null
     cue: SwingCue
 }
-
 /** Dica curta do que corrigir agora; vazia quando está tudo certo. */
 export function guideHint({
     cameraActive,
@@ -68,5 +67,24 @@ export function guideHint({
     if (!gestureHeld && cue !== 'swing') {
         return 'Polegar, indicador e mindinho abertos; médio e anelar dobrados. Vale em qualquer ângulo.'
     }
+    return ''
+}
+
+export interface HeadStatusInput {
+    cameraActive: boolean
+    faceTrackerStatus: SwingTrackerStatus
+    /** Há rosto à vista agora. */
+    faceVisible: boolean
+}
+
+/**
+ * Status de uma linha da câmera pela cabeça; vazia quando está tudo certo (rosto à vista)
+ * ou quando o recurso não está ativo (sem câmera / detector de rosto parado).
+ */
+export function headStatusLine({ cameraActive, faceTrackerStatus, faceVisible }: HeadStatusInput): string {
+    if (!cameraActive || faceTrackerStatus === 'idle') return ''
+    if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
+    if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
+    if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
     return ''
 }

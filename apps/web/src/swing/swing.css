@@ -138,6 +138,22 @@
     align-self: flex-start;
 }
 
+.swing-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.swing-head .round-status {
+    margin: 0;
+    color: var(--paper);
+    font-size: var(--size-small);
+}
+
+.swing-head .ds-button {
+    align-self: flex-start;
+}
+
 .swing-side {
     display: flex;
     flex-direction: column;

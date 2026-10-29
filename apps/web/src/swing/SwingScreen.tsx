@@ -6,7 +6,7 @@ import { useCamera } from '../camera/useCamera.js'
 import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
@@ -79,6 +79,12 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         cue: game.cue,
     })
 
+    const headStatus = headStatusLine({
+        cameraActive: camera.isActive,
+        faceTrackerStatus: game.faceTrackerStatus,
+        faceVisible: game.faceVisible,
+    })
+
     return (
         <div className="swing-screen">
             <header className="swing-header">
@@ -149,6 +155,21 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                         videoRef={videoRef}
                         overlay={<HandOverlay canvasRef={overlayRef} />}
                     />
+                    {camera.isActive && game.faceTrackerStatus !== 'idle' && (
+                        <Panel raised aria-label="Câmera pela cabeça" className="swing-head">
+                            <Eyebrow>Câmera pela cabeça</Eyebrow>
+                            <p aria-live="polite" className="round-status" data-testid="head-status">
+                                {headStatus || 'Vire a cabeça para olhar em volta.'}
+                            </p>
+                            <Button
+                                variant="secondary"
+                                onClick={game.recenterHead}
+                                disabled={game.faceTrackerStatus !== 'ready'}
+                            >
+                                Centralizar
+                            </Button>
+                        </Panel>
+                    )}
                     <Panel raised aria-label="Como jogar">
                         <Eyebrow>Como jogar</Eyebrow>
                         <Steps
@@ -164,7 +185,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>
-                <SwingDebugPanel hands={game.handDebug} />
+                <SwingDebugPanel hands={game.handDebug} head={game.headDebug} />
             </DrawerPanel>
         </div>
     )
