@@ -7,7 +7,7 @@ domain: game
 capability: arranha-teia
 objective: add-head-tracking-camera
 summary: Acrescenta ao Arranha-Teia o giro da câmera pela cabeça. O MediaPipe Face Landmarker (mesmo pacote @mediapipe/tasks-vision das mãos, modelo face_landmarker.task servido pelo próprio app e conferido por SHA-256 no prepare:assets) dá a matriz de transformação facial; uma lógica pura e testada no pacote @guess-my-move/swing converte guinada e inclinação da cabeça num desvio do olhar, com correção do espelhamento, calibração do neutro, zona morta, suavização exponencial, ganho e limites, e volta suave a zero quando o rosto some. O desvio soma ao acompanhamento automático atual (a cabeça tem prioridade enquanto está fora da zona morta) e vale também para a mira da teia, que já sai da direção da câmera. A camada web alimenta mãos e rosto com o mesmo quadro, mostra status de uma linha, dica curta e o painel de depuração com a leitura da cabeça, e oferece um botão "Centralizar"; sem rosto o jogo segue como hoje e o teclado continua funcionando. Nenhuma imagem é gravada ou enviada. Issue #80. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; a implementação é test-first e o Gate 3 fica pendente do teste ao vivo do maintainer, sem afirmar desempenho (fps) nem precisão da pose sem medição.
-status: implementing
+status: validated
 owners:
     - wezercarvalho
 reviewers:

@@ -117,7 +117,7 @@ Após a revisão do dono, o desenho da escalada e da soltura foi refeito (ver `c
 
 | Risco                                                           | Mitigação                                                                                           | Rollback/contingência                             |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| O agarre prender o jogador sem saída                            | Quatro saídas independentes e teste de propriedade provando saída em tempo finito em qualquer caso  | Baixar `gripIdleMs`; forçar saída por tecla       |
+| O agarre prender o jogador sem saída                            | Quatro saídas independentes e teste de propriedade provando saída em tempo finito em qualquer caso  | Soltar o pedido, punho ou teia; saída por tecla   |
 | A soltura por gesto ser ruidosa                                 | É o punho fechado segurado por tempo (robusto, CQ-010); nunca é a única saída; o `z` foi abandonado | Trocar o gesto de soltura sem mudar a arquitetura |
 | Conflito de edição com a tarefa #80 nos arquivos compartilhados | Mudanças pequenas e localizadas; o grosso em `climb.ts` (novo)                                      | Resolver conflito preservando as duas mudanças    |
 | O fluxo de teia por mão (CQ-009) regredir                       | Campos novos opcionais; o agarre só age com contato + `grab`; suíte existente roda sem mudança      | Reverter o repasse no `world` se algo regredir    |

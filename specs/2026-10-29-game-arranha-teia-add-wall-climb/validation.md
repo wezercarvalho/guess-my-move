@@ -3,13 +3,13 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** `implementing` (Gate 3 pendente do teste ao vivo do maintainer)
+- **Status:** aprovado com risco aceito
 - **Constituição:** 1.0.0
-- **Data:** `2026-10-29`
-- **Executor/revisor:** kirocrew (agente); o maintainer wezercarvalho aprovou os Gates 1 e 2 antecipadamente e testará a tela ao vivo (Gate 3)
-- **Commit:** branch `feat/81-escalar-paredes` (PR de rascunho/pronta contra `main`)
+- **Data:** `2026-10-30`
+- **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho no chat ("Está aprovado", 2026-10-30)
+- **Commit:** branch `feat/81-escalar-paredes` (PR #85), a registrar no merge na `main`
 
-Esta validação registra a evidência coletada até aqui como TEXTO. **O Gate 3 NÃO está aprovado:** nada foi testado com a mão real nem numa GPU real, e a sensação do agarre e da escalada depende do teste ao vivo do maintainer. A spec permanece em `implementing`; nada é marcado `validated` por conta própria.
+Esta validação registra a evidência coletada como TEXTO. **O Gate 3 está aprovado pelo maintainer** (2026-10-30), sem medições registradas: nada foi medido com a mão ou o rosto reais nem numa GPU real, e a sensação do agarre e da escalada segue sem número. A spec passa a `validated` pela aprovação do maintainer.
 
 ## Resumo do resultado
 
@@ -20,7 +20,7 @@ A mudança acrescenta ao Arranha-Teia o **agarre à parede** (issue #81). A lóg
 ## Conclusão das tarefas
 
 - **Concluídas:** T001 a T009 e **T011** (sinais, estado de agarre com teste de propriedade, entrada no mundo, controlador com precedência e teclas, HUD/guia/depuração, não regressão, documentação, gates e verificação headless; T011 refez a escalada/soltura da CQ-010).
-- **Pendentes:** T010 — fechar o Gate 3, que depende do teste ao vivo do maintainer. Fica **pendente**; a spec segue `implementing`.
+- **Pendentes:** nenhuma (T010 fechada pelo Gate 3 aprovado em 2026-10-30).
 - **Evidência:** `tasks.md`.
 
 ## Evidências por requisito
@@ -47,7 +47,7 @@ A mudança acrescenta ao Arranha-Teia o **agarre à parede** (issue #81). A lóg
 | US-004 / nunca ficar preso           | `climb.test.ts` teste de propriedade (300 ensaios: fase aleatória + saída garantida por grace/punho)                                     | PASS      |
 | US-005 / guia, dica e depuração      | `guide.test.ts` (status wall/grip, 5ª etapa), `SwingScreen.test.tsx`, `swingClimb.test.ts` (depuração palma/punho)                       | PASS      |
 
-Os critérios que dependem da mão real na câmera (a palma como agarre, a escalada por deslocamento das mãos, o punho fechado como soltura) ficam pendentes do teste ao vivo do maintainer (Gate 3).
+Os critérios que dependem da mão real na câmera (a palma como agarre, a escalada por deslocamento das mãos, o punho fechado como soltura) ficam sem medição; o Gate 3 foi aprovado pelo maintainer sem números do teste ao vivo.
 
 ## Comandos executados
 
@@ -90,17 +90,20 @@ Os critérios que dependem da mão real na câmera (a palma como agarre, a escal
 - **Chromium headless (playwright-cli, rodada de 2026-10-29, build de produção servido por `http.server` em `127.0.0.1:5181`, `?delegate=cpu`, teclado no lugar da mão, sem mão real):** a página "Arranha-Teia" renderiza; o HUD mostra Velocidade, Altura e Teia; a atribuição "Dados do mapa © colaboradores do OpenStreetMap (ODbL)" aparece; o guia "Como jogar" e a dica "Sem câmera: … V agarra na parede, setas olham/sobem" aparecem; **0 erros no console** (só 4 avisos de desempenho do WebGL por software). Ao segurar Espaço + C o jogo começou e a teia prendeu; ao bater na fachada e pressionar `V`, o medidor passou a **"Agarrado"**. Nenhuma imagem foi guardada no repositório. **CQ-010 não re-rodou o headless:** os textos de status mudaram ("Parede: abra a mão para agarrar." e "Agarrado. Desça uma mão por vez para subir. Punho solta.") e estão cobertos pelos testes de `guide.ts`/`SwingScreen`, mas a inspeção visual ao vivo da nova dica fica para o Gate 3.
 - **Rede / privacidade:** o build não usa CDN; o bundle do swing, o JSON da cidade e os assets são servidos pela própria origem (o `http.server` só serviu `127.0.0.1`). O processamento da câmera continua local; nada de imagem é gravado ou enviado.
 - **Emenda CQ-011 (2026-10-30), escalar olhando:** `headClimb.test.ts` (13 testes) e `swingHeadClimb.test.ts` (6, controlador com rosto e mão simulados) foram escritos antes do código, mas não rodei cada um em vermelho antes de implementar (o módulo ainda não existia). Eles cobrem: nada acontece antes dos 2 s; depois de 2 s olhando para cima sobe e para baixo desce; olhar para o lado ou voltar ao centro para; retomar exige esperar de novo; histerese entre 12° e 7°; sem agarre, em Automática ou sem rosto não age; parado agarrado por 20 s não solta. A saída por inatividade foi removida (o teste antigo virou "parado agarrado não solta" e foi visto vermelho antes de remover o código). O Chromium headless **não** foi re-rodado nesta emenda.
-- **Não medido (risco, pendente do Gate 3):** nada foi testado com a mão real nem numa GPU real; a escalada por deslocamento vertical das mãos, a palma aberta como agarre, o punho fechado como soltura, a velocidade de escalada (`climbSpeed`), a zona morta, a tolerância `grabGraceMs`, o tempo de punho `fistReleaseMs` e os tempos do olhar (2 s de espera, 12°/7°/20°, velocidade 0,8) são valores de jogo não medidos; fps não medido numa GPU real; a inspeção visual da nova dica de parede não foi re-rodada em headless na rodada CQ-010.
+- **Não medido (risco aceito no Gate 3):** nada foi testado com a mão real nem numa GPU real; a escalada por deslocamento vertical das mãos, a palma aberta como agarre, o punho fechado como soltura, a velocidade de escalada (`climbSpeed`), a zona morta, a tolerância `grabGraceMs`, o tempo de punho `fistReleaseMs` e os tempos do olhar (2 s de espera, 12°/7°/20°, velocidade 0,8) são valores de jogo não medidos; fps não medido numa GPU real; a inspeção visual da nova dica de parede não foi re-rodada em headless na rodada CQ-010.
 
 ## Validações estruturais e documentais
 
-- **SDD:** `yarn sdd:check` e `yarn test:sdd` passam; `specs/README.md` lista esta spec como `implementing`; os oito FR têm tarefa formal.
+- **SDD:** `yarn sdd:check` e `yarn test:sdd` passam; `specs/README.md` lista esta spec como `validated`; os oito FR têm tarefa formal.
 - **Privacidade e fronteira:** nenhuma requisição a terceiros; a câmera é local, sem gravar nem enviar imagem; o jogo não expõe critério secreto (não há carta).
 - **UTF-8 e acentuação:** conferidos; sem mojibake.
 - **Limitações declaradas (NFR-003/NFR-004):** o sinal de soltar é o punho fechado segurado por tempo (o `z` do MediaPipe foi abandonado na CQ-010 por ser ~0); a escalada e o agarre não foram testados com a mão real; os valores do agarre são de jogo; fps não medido.
 
 ## Gate 3 — Convergência validada
 
-- **Veredito:** PENDENTE — não aprovado.
-- **Motivo:** o Gate 3 depende do teste ao vivo do maintainer (a palma como agarre, a escalada descendo uma mão por vez e o punho fechado como soltura, com a mão real, numa GPU real). Nada disso foi exercitado. A spec permanece em `implementing` com o Gate 3 pendente; o agente não marca `validated` por conta própria.
-- **O que falta:** o maintainer testar a tela ao vivo e registrar o veredito (aprovado ou aprovado com risco aceito), ou pedir ajustes nos valores de jogo do agarre.
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer), no chat ("Está aprovado")
+- **Data:** `2026-10-30`
+- **Escopo aprovado:** FR-001 a FR-009 e os artefatos da spec (agarre à parede, escalada pelas mãos e pelo olhar, soltura por punho, dicas, teclado e depuração), com o código em `packages/swing/` e `apps/web/src/swing/`, junto com a câmera pela cabeça do PR #84, que este PR contém.
+- **Riscos aceitos:** a palma aberta como agarre, a escalada descendo uma mão por vez, o punho fechado como soltura e o olhar de escalada (espera de 2 s, 12°/7°/20°, velocidade 0,8) não têm medição registrada com mão e rosto reais; fps, precisão do rastreio e a licença do `gesture_recognizer.task` seguem não medidos.
+- **Observações:** o Gate 3 foi concedido pela mensagem do maintainer, sem números do teste ao vivo. A convergência aprovada é entre código, spec e testes com dados sintéticos, não a sensação de jogo. Ajustes de valores de jogo ficam para novas emendas.

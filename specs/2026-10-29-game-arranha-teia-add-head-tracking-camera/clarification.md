@@ -41,7 +41,7 @@ Registro das perguntas, respostas e da primeira aprovação. As decisões compor
 - **Aprovador:** Wezer (@wezercarvalho)
 - **Referência:** mensagem do maintainer na sessão de 2026-10-29 — "Pode implementar cada um. Abre os PRs separados para cada Issue e me avisa quando tu terminar todos e eu puder testar." Aprova antecipadamente os Gates 1 e 2 das issues #80 e #81.
 - **Artefatos aprovados:** `spec.md`, `clarification.md`.
-- **Observações:** Aprovação antecipada; o Gate 3 (convergência validada) fica pendente do teste ao vivo do maintainer. Não se afirma desempenho (fps) nem precisão da pose da cabeça sem medição registrada.
+- **Observações:** Aprovação antecipada; o Gate 3 (convergência validada) foi aprovado pelo maintainer em 2026-10-30, sem medições. Não se afirma desempenho (fps) nem precisão da pose da cabeça sem medição registrada.
 
 ## CQ-010 — Correção da inversão e ajustes após o primeiro teste do dono
 
@@ -65,4 +65,4 @@ Emenda registrada depois que o dono testou a câmera pela cabeça (sessão de 20
 - **D-10.3 — Seletor "Direção do olhar":** **Automática** (câmera segue o movimento, setas ajustam) e **Rosto** (a cabeça soma o desvio). Padrão **Rosto**; escolha só em memória de sessão (sem localStorage). Em Automática o detector de rosto não é carregado (é liberado se estava) e o olhar da cabeça é descartado sem salto; "Centralizar" só no modo Rosto. O estado vive no `SwingController` (`setLookMode`, snapshot `lookMode`).
 - **D-10.4 — Legenda de teclado:** painel "Teclado" sempre visível, uma linha por grupo, com `<kbd>`; a lista é **dados exportados** (`KEYS` em `apps/web/src/swing/guide.ts`) para outro PR acrescentar linhas sem conflito de layout.
 
-Incorporadas em FR-011..FR-014. Gate 3 segue **pendente** do teste ao vivo do dono.
+Incorporadas em FR-011..FR-014. Gate 3 **aprovado** pelo maintainer em 2026-10-30, sem medições.

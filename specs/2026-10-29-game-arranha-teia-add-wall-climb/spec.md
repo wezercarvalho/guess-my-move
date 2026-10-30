@@ -6,8 +6,8 @@ strategy: sdd
 domain: game
 capability: arranha-teia
 objective: add-wall-climb
-summary: Acrescenta ao Arranha-Teia um estado de agarre à parede. Ao estar em contato com a fachada de um prédio, abrir as mãos agarra a parede; descer uma mão por vez (ou as duas) sobe, as duas mãos subindo juntas descem (como o Homem-Aranha). O punho fechado segurado solta da parede. A lógica nova é pura no pacote @guess-my-move/swing (estado de agarre no SwingState, entradas de agarre/escalada/soltura no SwingInput, máquina de estados provada por teste de propriedade a sair do agarre em tempo finito) e um gesto puro e testado que converte os landmarks de cada mão num sinal de escalada. A camada web integra no SwingController com regra de precedência da palma aberta (agarra com contato, solta a teia sem contato), teclas alternativas (V agarra, setas sobem/descem), HUD, guia e painel de depuração. Nenhuma precisão ou desempenho é afirmado sem medição; os testes usam dados sintéticos. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; Gate 3 fica pendente do teste ao vivo. Emenda CQ-010 (2026-10-30) refez a escalada e a soltura após a revisão do dono.
-status: implementing
+summary: Acrescenta ao Arranha-Teia um estado de agarre à parede. Ao estar em contato com a fachada de um prédio, abrir as mãos agarra a parede; descer uma mão por vez (ou as duas) sobe, as duas mãos subindo juntas descem (como o Homem-Aranha). O punho fechado segurado solta da parede. A lógica nova é pura no pacote @guess-my-move/swing (estado de agarre no SwingState, entradas de agarre/escalada/soltura no SwingInput, máquina de estados provada por teste de propriedade a sair do agarre em tempo finito) e um gesto puro e testado que converte os landmarks de cada mão num sinal de escalada. A camada web integra no SwingController com regra de precedência da palma aberta (agarra com contato, solta a teia sem contato), teclas alternativas (V agarra, setas sobem/descem), HUD, guia e painel de depuração. Nenhuma precisão ou desempenho é afirmado sem medição; os testes usam dados sintéticos. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; Gate 3 aprovado pelo maintainer em 2026-10-30. Emenda CQ-010 (2026-10-30) refez a escalada e a soltura após a revisão do dono.
+status: validated
 owners:
     - wezercarvalho
 reviewers:
@@ -49,7 +49,7 @@ A lógica nova é pura e vive no pacote `@guess-my-move/swing`, com teste antes 
 
 O gesto é outro módulo puro e testado: converte os landmarks das mãos num sinal de escalada (cada mão que desce na imagem puxa o corpo para cima, as duas subindo juntas descem — medido pelo deslocamento vertical dos pulsos entre quadros, com zona morta e limites) e, para soltar, lê o punho fechado de alguma mão (CQ-010; o sinal de profundidade `z` foi removido por ser estruturalmente ~0 no MediaPipe). Nenhuma precisão é afirmada; os testes usam dados sintéticos, declarados como tais. A camada web integra tudo no `SwingController`: a precedência da palma aberta (com contato agarra, sem contato solta a teia como hoje), as teclas alternativas, o HUD, o guia e o painel de depuração. O fluxo de teia por mão (CQ-009) não regride.
 
-Os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29 ("Pode implementar cada um. Abre os PRs separados para cada Issue e me avisa quando tu terminar todos e eu puder testar."). O Gate 3 fica pendente do teste ao vivo do maintainer; a spec permanece em `implementing`.
+Os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29 ("Pode implementar cada um. Abre os PRs separados para cada Issue e me avisa quando tu terminar todos e eu puder testar."). O Gate 3 foi aprovado pelo maintainer em 2026-10-30 ("Está aprovado", no chat), sem medições registradas; a spec está `validated`.
 
 ## Problema
 
@@ -85,7 +85,7 @@ A tentativa original de distinguir "puxar a mão para trás" pela profundidade `
 
 - **Jogador com câmera:** em contato com a parede, abre as mãos para agarrar; move as mãos alternadamente para subir ou descer; puxa a mão para trás para soltar; lê o HUD ("Agarrado").
 - **Jogador com teclado:** em contato com a parede, segura `V` para agarrar e usa as setas para cima/baixo para subir/descer; solta `V` para largar.
-- **Maintainer:** aprovou a intenção e o escopo (Gates 1 e 2) e testará a tela ao vivo (Gate 3 pendente).
+- **Maintainer:** aprovou a intenção e o escopo (Gates 1 e 2) e testará a tela ao vivo (Gate 3 aprovado em 2026-10-30).
 - **Pessoa que usa teclado para navegar a interface:** alcança as dicas, o guia e o painel de depuração com foco visível e ordem previsível.
 
 ## Histórias de usuário

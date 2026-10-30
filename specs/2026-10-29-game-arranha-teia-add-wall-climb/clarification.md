@@ -117,7 +117,7 @@ Esta clarificação registra as decisões de projeto do agarre à parede (issue 
 - **H-02:** O movimento alternado das mãos (uma sobe, outra desce) distingue-se do movimento conjunto pelo sinal do produto dos deslocamentos verticais; com zona morta, o ruído do rastreio não dispara escalada. Testado só com dados sintéticos.
 - **H-03:** O estado do mundo expõe (ou pode expor de forma pequena) se o jogador está em contato com uma parede no último passo, de modo que o `SwingController` aplique a precedência da palma aberta sem reimplementar a colisão.
 - Os valores de agarre (`climbSpeed`, zona morta, `gripIdleMs`, limite de profundidade) são de jogo, ajustáveis sem mudar a arquitetura; não há alvo de realismo nem de fps (NFR-003).
-- Nada foi verificado ao vivo com a mão real nem numa GPU real; a sensação do agarre e da escalada depende do teste do maintainer (Gate 3 pendente).
+- Nada foi verificado ao vivo com a mão real nem numa GPU real; a sensação do agarre e da escalada depende do teste do maintainer (Gate 3 aprovado pelo maintainer em 2026-10-30, sem medições).
 
 ## Questões resolvidas na aprovação da clarificação
 

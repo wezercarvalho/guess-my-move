@@ -1,6 +1,15 @@
 # Validação — 2026-10-29-game-arranha-teia-add-head-tracking-camera
 
-Spec em `implementing`; o Gate 3 (convergência validada) fica **pendente do teste ao vivo do maintainer**. Este documento registra os comandos rodados, o que foi verificado e o que **não** foi, de forma honesta. Nenhum número de desempenho é afirmado sem medição.
+## Estado
+
+- **Spec:** `spec.md`
+- **Status:** aprovado com risco aceito
+- **Constituição:** 1.0.0
+- **Data:** `2026-10-30`
+- **Executor/revisor:** kirocrew (agente); aprovação do maintainer wezercarvalho no chat ("Está aprovado", 2026-10-30)
+- **Commit:** branch `feat/80-camera-com-a-cabeca` (PR #84), contida na branch do PR #85; a registrar no merge na `main`
+
+Spec em `validated`; o Gate 3 (convergência validada) foi **aprovado pelo maintainer em 2026-10-30** ("Está aprovado", no chat), sem medições registradas. Este documento registra os comandos rodados, o que foi verificado e o que **não** foi, de forma honesta. Nenhum número de desempenho é afirmado sem medição.
 
 ## Comandos e resultados (worktree `wt-80`, 2026-10-29)
 
@@ -10,25 +19,29 @@ Spec em `implementing`; o Gate 3 (convergência validada) fica **pendente do tes
 | `yarn lint`                                 | PASSOU — 0 avisos, 0 erros (oxlint).                                                                                         |
 | `yarn test` (pacote `@guess-my-move/swing`) | PASSOU — inclui `headLook.test.ts` (15) e `world.test.ts` (17, com os novos `lookDelta`/`lookActive`).                       |
 | `yarn test` (app `@guess-my-move/web`)      | PASSOU — inclui `faceTracker.test.ts` (8), `swingHeadLook.test.ts` (9), `guide.test.ts` (15), `prepare-assets.test.mjs` (7). |
-| `yarn sdd:check`                            | PASSOU — catálogo, estados, gates, cobertura e links válidos; esta spec em `implementing`.                                   |
+| `yarn sdd:check`                            | PASSOU — catálogo, estados, gates, cobertura e links válidos; esta spec em `validated`.                                      |
 | `yarn docs:format:check`                    | PASSOU após `yarn docs:format:fix` (reformatou a tabela de `specs/README.md` e `research.md`).                               |
 | `yarn security:dependencies`                | (rodado no gate completo final — ver resumo do PR)                                                                           |
 | `yarn build` (app web)                      | PASSOU — `prepare:assets` baixou e conferiu o SHA-256 dos três modelos, `tsc --build` + `vite build` ok.                     |
 
-## Evidência por requisito
+## Evidências por requisito
 
-| Req    | Tarefa        | Evidência                                                                                                              | Veredito |
-| ------ | ------------- | ---------------------------------------------------------------------------------------------------------------------- | -------- |
-| FR-001 | T01, T02      | `headLook.test.ts`: identidade, guinada, inclinação e matriz inválida → `null`.                                        | PASS     |
-| FR-002 | T03, T08      | `headLook.test.ts` (espelhamento: direita→olhar cresce, esquerda→decresce; cima/baixo) e `swingHeadLook.test.ts`.      | PASS     |
-| FR-003 | T04, T08      | `headLook.test.ts`: calibração automática, `recenter`, não reage antes de calibrar.                                    | PASS     |
-| FR-004 | T05, T08      | `headLook.test.ts`: zona morta, ganho, limites de guinada/inclinação.                                                  | PASS     |
-| FR-005 | T06, T08      | `headLook.test.ts`: suavização exponencial (não salta de uma vez).                                                     | PASS     |
-| FR-006 | T07, T08      | `headLook.test.ts` (decai a zero, marca ausente) e `swingHeadLook.test.ts` (sem salto no 1º quadro sem rosto).         | PASS     |
-| FR-007 | T09, T10      | `world.test.ts`: `lookDelta` soma direto, respeita limite de inclinação, `lookActive` segura o olhar.                  | PASS     |
-| FR-008 | T11, T12, T13 | `faceTracker.test.ts` (GPU→CPU, matriz→orientação, null) e `prepare-assets.test.mjs` (FACE_MODEL com SHA-256).         | PASS     |
-| FR-009 | T14, T15      | `swingHeadLook.test.ts`: detector de rosto carrega com a câmera, mesmo quadro, falha não derruba o jogo.               | PASS     |
-| FR-010 | T16, T17      | `guide.test.ts` (headStatusLine) e `SwingScreen.test.tsx` (tela carrega, fallback) + painel de depuração com a cabeça. | PASS     |
+| Req    | Tarefa        | Evidência                                                                                                                                                   | Veredito |
+| ------ | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| FR-001 | T01, T02      | `headLook.test.ts`: identidade, guinada, inclinação e matriz inválida → `null`.                                                                             | PASS     |
+| FR-002 | T03, T08      | `headLook.test.ts` (espelhamento: direita→olhar cresce, esquerda→decresce; cima/baixo) e `swingHeadLook.test.ts`.                                           | PASS     |
+| FR-003 | T04, T08      | `headLook.test.ts`: calibração automática, `recenter`, não reage antes de calibrar.                                                                         | PASS     |
+| FR-004 | T05, T08      | `headLook.test.ts`: zona morta, ganho, limites de guinada/inclinação.                                                                                       | PASS     |
+| FR-005 | T06, T08      | `headLook.test.ts`: suavização exponencial (não salta de uma vez).                                                                                          | PASS     |
+| FR-006 | T07, T08      | `headLook.test.ts` (decai a zero, marca ausente) e `swingHeadLook.test.ts` (sem salto no 1º quadro sem rosto).                                              | PASS     |
+| FR-007 | T09, T10      | `world.test.ts`: `lookDelta` soma direto, respeita limite de inclinação, `lookActive` segura o olhar.                                                       | PASS     |
+| FR-008 | T11, T12, T13 | `faceTracker.test.ts` (GPU→CPU, matriz→orientação, null) e `prepare-assets.test.mjs` (FACE_MODEL com SHA-256).                                              | PASS     |
+| FR-009 | T14, T15      | `swingHeadLook.test.ts`: detector de rosto carrega com a câmera, mesmo quadro, falha não derruba o jogo.                                                    | PASS     |
+| FR-010 | T16, T17      | `guide.test.ts` (headStatusLine) e `SwingScreen.test.tsx` (tela carrega, fallback) + painel de depuração com a cabeça.                                      | PASS     |
+| FR-011 | T21           | `headLook.test.ts` e `faceTracker.test.ts`: matrizes `Ry`/`Rx` conhecidas fixam a convenção (direita ⇒ yaw > 0, cima ⇒ pitch > 0); `swingHeadLook.test.ts`. | PASS     |
+| FR-012 | T22           | `faceTracker.test.ts` (devolve orientação e pontos) e `faceOverlay.test.ts` (pontos esparsos, eixo espelhado, nada é guardado).                             | PASS     |
+| FR-013 | T23           | `swingHeadLook.test.ts` e `SwingScreen.test.tsx`: seletor Rosto/Automática; em Automática o detector não carrega e o desvio é descartado sem salto.         | PASS     |
+| FR-014 | T24           | `guide.test.ts` (`KEYS`) e `SwingScreen.test.tsx`: painel "Teclado" sempre visível com as teclas.                                                           | PASS     |
 
 ## Verificação visual headless (Chromium, câmera simulada)
 
@@ -44,10 +57,14 @@ Spec em `implementing`; o Gate 3 (convergência validada) fica **pendente do tes
 - **Precisão da pose da cabeça NÃO medida** (óculos, pouca luz, rosto parcial) — R-02.
 - **Licença do arquivo `face_landmarker.task` NÃO confirmada na fonte** — a seção de modelos do guia é renderizada por JavaScript e o card do modelo não foi extraído; declarado como não lido, na mesma situação dos `.task` de mão e de gesto (NFR-004, R-04). O pacote `@mediapipe/tasks-vision` é Apache-2.0, mas isso cobre o código, não o `.task`.
 
-## Veredito
+## Gate 3 — Convergência validada
 
-- **Processo:** todos os gates locais aplicáveis passaram (ver tabela); a lógica nova é test-first e coberta.
-- **Convergência (Gate 3):** **pendente** do teste ao vivo do maintainer (câmera e rosto reais, sensação do giro, fps). Não se declara `validated`.
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer), no chat ("Está aprovado")
+- **Data:** `2026-10-30`
+- **Escopo aprovado:** FR-001 a FR-014 e os artefatos da spec (giro da câmera pela cabeça, pontos do rosto no overlay, seletor Rosto/Automática, legenda de teclado), com o código em `packages/swing/` e `apps/web/`.
+- **Riscos aceitos:** o sentido do giro (derivado da matriz do MediaPipe e do relato do maintainer), o desenho dos pontos do rosto, o fps com mãos e rosto juntos, a precisão da pose e a licença do `face_landmarker.task` não têm medição registrada.
+- **Observações:** o Gate 3 foi concedido pela mensagem do maintainer, sem números do teste ao vivo. Processo: todos os gates locais aplicáveis passaram (ver tabela); a lógica nova é test-first e coberta. - **Convergência (Gate 3):** **aprovada** pelo maintainer em 2026-10-30, sem medições registradas (câmera e rosto reais, sensação do giro e fps não medidos): risco aceito.
 
 ## CQ-010 — Correção da inversão e ajustes (worktree `wt-80`, 2026-10-30)
 
@@ -61,7 +78,7 @@ Comandos rodados um a um (memória limitada; nunca em paralelo). Resultados REAI
 | `yarn build`                         | PASS — `prepare:assets` conferiu o SHA-256 dos três modelos, `tsc --build` + `vite build` ok (aviso pré-existente de tamanho de chunk do `swing`).                                                    |
 | `yarn test:gates`                    | PASS — 231 testes (hook/gate + auditoria de dependências).                                                                                                                                            |
 | `yarn test:sdd`                      | PASS — 109 testes.                                                                                                                                                                                    |
-| `yarn sdd:check`                     | PASS — catálogo, estados, gates, cobertura e links válidos; esta spec em `implementing`.                                                                                                              |
+| `yarn sdd:check`                     | PASS — catálogo, estados, gates, cobertura e links válidos; esta spec em `validated`.                                                                                                                 |
 | `yarn docs:format:check`             | PASS (ver nota abaixo; `yarn docs:format:fix` aplicado onde necessário).                                                                                                                              |
 | `yarn security:dependencies`         | PASS — `info=0 low=0 moderate=0 high=0 critical=0`.                                                                                                                                                   |
 
@@ -76,5 +93,5 @@ Comandos rodados um a um (memória limitada; nunca em paralelo). Resultados REAI
 ### O que NÃO foi verificado (honesto)
 
 - **Com rosto real:** o headless desta máquina não tem câmera simulada, então **o desenho dos pontos do rosto e o sentido do giro com a cabeça NÃO foram validados ao vivo**. A correção do sinal é **derivada** (matriz + relato do dono, ver `research.md`) e fixada por testes com matrizes conhecidas, não medida com instrumento. O desenho (`drawFace`) é coberto por teste com contexto 2D simulado, mas sem rosto real não há como confirmar o traçado na tela.
-- **fps com mãos + rosto, precisão da pose e a sensação do giro** seguem **pendentes do teste ao vivo do dono** (Gate 3). Nenhum número de desempenho é afirmado.
+- **fps com mãos + rosto, precisão da pose e a sensação do giro** seguem **não medidos** (Gate 3 aprovado pelo maintainer sem medições). Nenhum número de desempenho é afirmado.
 - **Licença do `face_landmarker.task`** segue não confirmada na fonte (NFR-004, R-04).

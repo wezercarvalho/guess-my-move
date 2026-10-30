@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão.
-- Estado desta spec: `implementing`. Os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29; o **Gate 3 fica pendente** do teste ao vivo do maintainer. A implementação é test-first; `validation.md` e o Gate 3 seguem ao fim.
+- Estado desta spec: `validated`. Os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29; o **Gate 3 foi aprovado** pelo maintainer em 2026-10-30. A implementação é test-first; `validation.md` e o Gate 3 seguem ao fim.
 
 ## Fase 1 — Sinais de gesto puros (packages/swing/climb.ts)
 
@@ -40,9 +40,9 @@
 
 - [x] T009 [SC-001] [SC-002] [SC-003] [SC-004] [SC-005] [SC-006] [NFR-001] [NFR-002] [NFR-003] [NFR-004] [NFR-005] Rodar `yarn check:all`, `yarn test:gates`, `yarn test:sdd`, `yarn sdd:check`, `yarn docs:format:check` e `yarn security:dependencies`; executar os dois pilotos automáticos descartáveis na cidade real (`midtown.json`): um sobe até o topo e sai no telhado, outro tenta sequências aleatórias e prova que o agarre nunca prende; rodar a inspeção em Chromium headless (teclado `V` + setas no lugar da mão): agarrar com contato de parede, subir, soltar, só requisições à própria origem, sem erros no console. Registrar tudo como TEXTO em `validation.md`, sem salvar imagens. Critério: gates verdes e evidência registrada
 
-## Fase final — Convergência (Gate 3, pendente)
+## Fase final — Convergência (Gate 3 aprovado)
 
-- [ ] T010 [SC-006] [NFR-003] Preencher `validation.md` (estado, evidências por requisito com uma linha PASS própria por FR, histórias, comandos, medições como texto, limitações) e deixar o **Gate 3 pendente** do teste ao vivo do maintainer; manter a spec em `implementing` (não marcar `validated` por conta própria). Critério: `validation.md` completo com o Gate 3 explicitamente pendente
+- [x] T010 [SC-006] [NFR-003] Preencher `validation.md` (estado, evidências por requisito com uma linha PASS própria por FR, histórias, comandos, medições como texto, limitações) e registrar o Gate 3: o maintainer aprovou em 2026-10-30 ("Está aprovado", no chat), sem medições registradas; a spec passa a `validated`. Critério: `validation.md` completo com o Gate 3 e os riscos aceitos explícitos
 
 ## Fase 9 — Emenda CQ-010 (refazer a escalada após a revisão do dono)
 
@@ -72,7 +72,7 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 
 - A Fase 1 (`climb.ts` sinais) e a Fase 2 (estado de agarre) são a base; a Fase 2 depende de `physics.ts`/`cityIndex.ts` existentes.
 - A Fase 3 (`world`) depois da Fase 2. A Fase 4 (controlador) depois das Fases 1 a 3. A Fase 5 (tela) depois da Fase 4.
-- A Fase 6 (não regressão) depois das Fases 2 a 5. A Fase 7 (docs) depois da Fase 5. A Fase 8 e o Gate 3 fecham, com o Gate 3 pendente do teste do maintainer.
+- A Fase 6 (não regressão) depois das Fases 2 a 5. A Fase 7 (docs) depois da Fase 5. A Fase 8 e o Gate 3 fecham, com o Gate 3 aprovado pelo maintainer em 2026-10-30.
 
 ## Análise de consistência
 
@@ -88,4 +88,4 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Data:** `2026-10-29`
 - **Artefatos aprovados:** `research.md`, `plan.md`, `tasks.md`
 - **Referência:** mensagem do maintainer na sessão de 2026-10-29 ("Pode implementar cada um. Abre os PRs separados para cada Issue e me avisa quando tu terminar todos e eu puder testar."), aprovando antecipadamente os Gates 1 e 2; issue 81 do repositório (ver `spec.md`).
-- **Exceções:** nenhuma. Aprovação antecipada no chat. O **Gate 3 NÃO** está aprovado: fica pendente do teste ao vivo do maintainer, e a spec permanece em `implementing` com o Gate 3 pendente, sem afirmar precisão nem desempenho sem medição.
+- **Exceções:** nenhuma. Aprovação antecipada no chat. O Gate 3 foi aprovado pelo maintainer em 2026-10-30 ("Está aprovado", no chat) e a spec passa a `validated`, sem afirmar precisão nem desempenho sem medição.
