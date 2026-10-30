@@ -67,12 +67,14 @@ export function drawFace(
     }
 
     // Eixo curto saindo do nariz na direção do olhar (yaw para os lados, pitch para cima).
+    // O canvas é espelhado por CSS (como o vídeo): `yaw > 0` (olha para a sua direita) é
+    // desenhado para -x do canvas, que aparece à direita na tela espelhada.
     const nose = landmarks[NOSE_TIP]
     if (orientation && nose) {
         const origin = point(nose)
         const axis = Math.min(area.width, area.height) * 0.22
         const end = {
-            x: origin.x + Math.sin(orientation.yaw) * axis,
+            x: origin.x - Math.sin(orientation.yaw) * axis,
             y: origin.y - Math.sin(orientation.pitch) * axis,
         }
         context.strokeStyle = 'rgba(224, 170, 8, 0.9)'

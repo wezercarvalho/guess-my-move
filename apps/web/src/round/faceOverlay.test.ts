@@ -57,6 +57,23 @@ describe('drawFace', () => {
         expect(context.lineTo).toHaveBeenCalled()
     })
 
+    it('o eixo aponta para -x do canvas quando olha para a direita (o canvas é espelhado por CSS)', () => {
+        const context = fakeContext()
+        drawFace(fakeCanvas(context), fakeVideo(), face, { yaw: 0.3, pitch: 0 })
+        const from = context.moveTo.mock.calls[0] as [number, number]
+        const to = context.lineTo.mock.calls[0] as [number, number]
+        expect(to[0]).toBeLessThan(from[0])
+        expect(to[1]).toBeCloseTo(from[1])
+    })
+
+    it('o eixo sobe na tela quando olha para cima', () => {
+        const context = fakeContext()
+        drawFace(fakeCanvas(context), fakeVideo(), face, { yaw: 0, pitch: 0.3 })
+        const from = context.moveTo.mock.calls[0] as [number, number]
+        const to = context.lineTo.mock.calls[0] as [number, number]
+        expect(to[1]).toBeLessThan(from[1])
+    })
+
     it('não desenha nada sem pontos', () => {
         const context = fakeContext()
         drawFace(fakeCanvas(context), fakeVideo(), [], { yaw: 0, pitch: 0 })
