@@ -148,19 +148,74 @@ describe('modo Bete: contra o bot', () => {
         return match.roundOutcomes()
     }
 
-    it('o jogador acertar antes do bot vence a rodada; 10 tiros sem acerto é empate', () => {
+    it('quem começa acerta e o outro erra no mesmo tiro: quem acertou vence', () => {
         const nunca = () => false
-        // Jogador acerta no 1º tiro na rodada 0 (jogador começa): vitória.
-        const soRodada0 = (r: number, t: number) => r === 0 && t === 1
-        const rodadas = partidaBot(soRodada0, nunca)
+        // Rodada 0 (jogador começa): o jogador acerta no 1º tiro e o bot erra o dele.
+        const rodadas = partidaBot((r, t) => r === 0 && t === 1, nunca)
         expect(rodadas[0]).toBe('win')
     })
 
-    it('o bot acertar antes do jogador perde a rodada para o jogador', () => {
+    it('o outro competidor sempre recebe o tiro de igual número, mesmo depois do acerto de quem começou', () => {
+        let tirosBot = 0
+        let match: ReturnType<typeof createMatch>
+        const bot: ShotSource = {
+            nextShot(field) {
+                if (match.currentRound() === 0) tirosBot++
+                return fonteBete({ acerta: false }).nextShot(field)
+            },
+        }
+        let tiro = 0
+        const jogador: ShotSource = {
+            nextShot(field) {
+                if (match.currentRound() === 0) tiro++
+                return fonteBete({ acerta: tiro === 1 }).nextShot(field)
+            },
+        }
+        match = createMatch({
+            mode: createBeteMode(),
+            opponent: 'bot',
+            sources: { player: jogador, bot },
+            physics: DEFAULT_PHYSICS,
+        })
+        let guarda = 0
+        while (match.currentRound() === 0 && !match.finished() && guarda++ < 2000) match.nextStep()
+        expect(tirosBot).toBe(1)
+        expect(match.roundOutcomes()[0]).toBe('win')
+    })
+
+    it('os dois acertam no mesmo número de tiro: a rodada empata, mesmo quem começou acertando antes', () => {
+        const rodadas = partidaBot(
+            (r, t) => r === 0 && t === 1,
+            (r, t) => r === 0 && t === 1,
+        )
+        expect(rodadas[0]).toBe('draw')
+    })
+
+    it('quem começa erra e o outro acerta no mesmo tiro: o outro vence a rodada', () => {
         const nunca = () => false
-        const botRodada0 = (r: number, t: number) => r === 0 && t === 1
-        const rodadas = partidaBot(nunca, botRodada0)
+        const rodadas = partidaBot(nunca, (r, t) => r === 0 && t === 1)
         expect(rodadas[0]).toBe('loss')
+    })
+
+    it('acertar em um tiro anterior vence quem acerta só depois', () => {
+        // Jogador acerta no 2º tiro; o bot só no 3º: o jogador vence a rodada.
+        const rodadas = partidaBot(
+            (r, t) => r === 0 && t === 2,
+            (r, t) => r === 0 && t === 3,
+        )
+        expect(rodadas[0]).toBe('win')
+    })
+
+    it('na rodada em que o bot começa, o jogador responde com o tiro de igual número', () => {
+        // Rodada 1 (bot começa): o bot acerta no 1º tiro; o jogador também: empate.
+        const rodadas = partidaBot(
+            (r, t) => r === 1 && t === 1,
+            (r, t) => r === 1 && t === 1,
+        )
+        expect(rodadas[1]).toBe('draw')
+        // Só o bot acerta: o bot vence a rodada.
+        const soBot = partidaBot(() => false, (r, t) => r === 1 && t === 1)
+        expect(soBot[1]).toBe('loss')
     })
 
     it('ninguém acerta em nenhuma rodada: 3 empates', () => {

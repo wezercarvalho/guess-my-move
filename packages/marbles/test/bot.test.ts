@@ -57,12 +57,12 @@ describe('bot: erro por semente', () => {
 
 /*
  * Os parâmetros de DEFAULT_BOT (desvio angular e de força) são PALPITES
- * INICIAIS a calibrar com uso real. A faixa de 30% a 60% abaixo é PROTEÇÃO DE
+ * INICIAIS a calibrar com uso real. A faixa de 55% a 80% abaixo é PROTEÇÃO DE
  * REGRESSÃO, não equilíbrio medido nem prova de diversão: trava a mira do bot
  * contra mudanças acidentais, não afirma que o jogo está balanceado.
  */
 describe('bot: DEFAULT_BOT (faixa de acerto e teto)', () => {
-    it('acerta entre 30% e 60% em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull', () => {
+    it('acerta entre 55% e 80% em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull', () => {
         const origem = { x: 100, y: 300 }
         const alvoCentro = { x: 500, y: 300 }
         const planejador = createBotPlanner(DEFAULT_BOT)
@@ -87,8 +87,8 @@ describe('bot: DEFAULT_BOT (faixa de acerto e teto)', () => {
             if (bateu) acertos++
         }
         const taxa = acertos / 1000
-        expect(taxa).toBeGreaterThanOrEqual(0.3)
-        expect(taxa).toBeLessThanOrEqual(0.6)
+        expect(taxa).toBeGreaterThanOrEqual(0.55)
+        expect(taxa).toBeLessThanOrEqual(0.8)
         expect(maiorVel).toBeLessThanOrEqual(TETO + 1e-9)
     })
 })

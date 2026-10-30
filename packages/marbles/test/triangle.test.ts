@@ -8,6 +8,7 @@ import {
 } from '../src/modes/triangle/index.js'
 import { type Body, DEFAULT_PHYSICS, isAtRest, stepBodies } from '../src/physics.js'
 import { createMatch } from '../src/match/index.js'
+import { createMatchSession } from '../src/match/session.js'
 
 const cfg = DEFAULT_TRIANGLE_CONFIG
 const centro = cfg.circleCenter
@@ -177,10 +178,23 @@ describe('modo Triângulo: contra o bot (resultado por capturas)', () => {
         expect(mode.resolveBotRound(0, 0)).toBe('draw')
     })
 
-    it('capturar mantém a vez; sem captura a vez passa', () => {
-        const mode = createTriangleMode()
-        expect(mode.nextTurn?.('opponent', 1)).toBe('keep')
-        expect(mode.nextTurn?.('opponent', 0)).toBe('opponent')
+    it('na sessão contra o bot, capturar uma bolinha passa a vez ao outro competidor', () => {
+        const { circleCenter: c, circleRadius, radius } = DEFAULT_TRIANGLE_CONFIG
+        const body = (x: number, y: number): Body => ({ pos: { x, y }, vel: { x: 0, y: 0 }, radius })
+        const session = createMatchSession({
+            modeId: 'triangle',
+            mode: createTriangleMode({
+                // Uma bolinha já fora do círculo: o 1º tiro captura uma.
+                formation: () => [body(c.x + circleRadius + radius + 5, c.y), body(c.x, c.y)],
+            }),
+            opponent: 'bot',
+            bot: { nextShot: () => ({ x: 0, y: 0 }) },
+        })
+        session.shooter()
+        session.firePlayerShot({ x: 0, y: 0 })
+        session.advance(16)
+        expect(session.snapshot().roundYield.player).toBe(1)
+        expect(session.snapshot().turn).toBe('opponent')
     })
 })
 

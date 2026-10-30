@@ -84,7 +84,7 @@ As issues #86 a #93 do repositório são a fonte de verdade das regras e dos nú
 
 ## Hipóteses remanescentes
 
-- **H-02 (faixa de acerto do bot):** os parâmetros de `DEFAULT_BOT` são palpites; a faixa de 30% a 60% é proteção de regressão, não equilíbrio medido. Validação: teste de 1000 tiros com sementes; calibração real com uso.
+- **H-02 (faixa de acerto do bot):** os parâmetros de `DEFAULT_BOT` são palpites; a faixa de 55% a 80% é proteção de regressão, não equilíbrio medido. Validação: teste de 1000 tiros com sementes; calibração real com uso.
 - **H-03 (velocidade de entrada da cova):** 120 unid/s é palpite de jogo, maior que `stopSpeed`; pode ser difícil para a mão. Validação: uso real e ajuste em configuração.
 - **H-04 (solver de colisão com seis bolinhas):** uma passada de colisão por passo pode estressar a formação do triângulo. Validação: folga inicial e teste de estabilidade sem tiro.
 - Nenhuma hipótese remanescente é crítica a ponto de bloquear o planejamento; todas têm forma de validação e valores em configuração.

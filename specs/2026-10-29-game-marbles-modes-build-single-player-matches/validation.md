@@ -48,10 +48,10 @@ medição de fps.
 | FR-001    | T001, T002       | `packages/marbles/test/aim.test.ts` (14 testes; controlador de mira pinça/estalo; não importa `physics.ts`/`round.ts`)                                                                                                                                      | PASS      |
 | FR-002    | T003, T016       | `packages/marbles/test/flick-replay.test.ts` (3) e `pinch.test.ts`/`flick.test.ts` verdes; paridade do bete preservada                                                                                                                                      | PASS      |
 | FR-003    | T004             | `packages/marbles/test/match.test.ts` (resultado da partida 2-1/1-1-1/3 empates/1-2; competidor do tiro corrente)                                                                                                                                           | PASS      |
-| FR-004    | T005             | `packages/marbles/test/match.test.ts` (modos de teste: alterna vez, mantém vez, limites, avaliação, esgotamento, vitória antecipada)                                                                                                                        | PASS      |
+| FR-004    | T005             | `packages/marbles/test/match.test.ts` (modos de teste: vez alternada, limites, avaliação, esgotamento, vitória antecipada)                                                                                                                                  | PASS      |
 | FR-005    | T006             | `packages/marbles/test/match.test.ts` (meta sem vez; bot com ordem alternada por rodada)                                                                                                                                                                    | PASS      |
 | FR-006    | T007, T008       | `packages/marbles/test/match.test.ts` (fonte do tiro; cadeia atribuída ao atirador; determinismo) e `match-session-equivalence.test.ts` (6)                                                                                                                 | PASS      |
-| FR-007    | T009–T012        | `packages/marbles/test/bot.test.ts` (parada a <= 1 unidade; semente; faixa 30%–60%; teto `gain · maxPull`) e `apps/web/src/marbles/marblesController.test.ts` (semente sorteada por partida)                                                                | PASS      |
+| FR-007    | T009–T012        | `packages/marbles/test/bot.test.ts` (parada a <= 1 unidade; semente; faixa 55%–80%; teto `gain · maxPull`) e `apps/web/src/marbles/marblesController.test.ts` (semente sorteada por partida)                                                                | PASS      |
 | FR-008    | T013–T016        | `packages/marbles/test/bete.test.ts` (12; meta e bot)                                                                                                                                                                                                       | PASS      |
 | FR-009    | T021–T023        | `packages/marbles/test/triangle.test.ts` (11; formação, captura, cadeia, meta e bot)                                                                                                                                                                        | PASS      |
 | FR-010    | T024–T026        | `packages/marbles/test/hole.test.ts` (11; entrada por velocidade, permanência, meta e bot)                                                                                                                                                                  | PASS      |
@@ -68,7 +68,7 @@ medição de fps.
 | US-002 / motor de partida  | `match.test.ts` + `match-session-equivalence.test.ts`: 3 rodadas, vez, resultado, mesma regra pela sessão e por `createMatch` | PASS      |
 | US-003 / bot por simulação | `bot.test.ts`: parada a <= 1 unidade, semente determinística, faixa de acerto                                                 | PASS      |
 | US-004 / Bete              | `bete.test.ts`: acerto cedo vence, tarde empata, sem acerto perde (meta e bot)                                                | PASS      |
-| US-005 / Triângulo         | `triangle.test.ts`: captura para fora do círculo, cadeia, mantém a vez                                                        | PASS      |
+| US-005 / Triângulo         | `triangle.test.ts`: captura para fora do círculo, cadeia, vez alternada                                                       | PASS      |
 | US-006 / Cova              | `hole.test.ts`: entrada só devagar nas 3 covas em ordem                                                                       | PASS      |
 | US-007 / conduzir na tela  | `marblesController.test.ts` + `MarblesScreen.test.tsx`: escolha, placar, vez, fim de partida                                  | PASS      |
 | US-008 / ajuda por modo    | `guideSteps.test.tsx`: 3 modos × 2 adversários, regras de vitória/derrota/empate                                              | PASS      |
@@ -94,8 +94,8 @@ virar um laço fino sobre a sessão.
 
 - **Protocolo e amostra:** não há benchmark ao vivo. A única medição automatizada é o teste de
   faixa de acerto do bot (`bot.test.ts`): 1000 tiros com sementes distintas contra um alvo a
-  400 unidades, raio 14, acerto entre 30% e 60%.
-- **Métricas:** a faixa 30%–60% é **proteção de regressão**, não equilíbrio medido com uso real.
+  400 unidades, raio 14, acerto entre 55% e 80%.
+- **Métricas:** a faixa 55%–80% é **proteção de regressão**, não equilíbrio medido com uso real.
   Nenhuma taxa de acerto, equilíbrio ou diversão é afirmada.
 - **Limitações:** nenhuma medição de fps, de latência ao vivo nem de usabilidade com a mão real.
 

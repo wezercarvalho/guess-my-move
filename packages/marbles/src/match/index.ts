@@ -18,9 +18,6 @@ export type Opponent = 'target' | 'bot'
 /** Resultado de uma rodada ou da partida, do ponto de vista do jogador. */
 export type Outcome = 'win' | 'draw' | 'loss'
 
-/** Decisão de vez devolvida pelo modo: alterna, ou mantém com o competidor atual. */
-export type NextTurn = Competitor | 'keep'
-
 /**
  * Geometria do modo para a tela desenhar além dos corpos: o círculo do
  * triângulo e as covas (com a ativa destacada). É só apresentação — o motor não
@@ -116,12 +113,6 @@ export interface Mode {
     isFinished?(competitor: Competitor): boolean
     /** Avalia o campo em repouso após um tiro. */
     evaluate(context: EvaluationContext): Evaluation
-    /**
-     * De quem é a próxima vez. `defaultAlternate` é o outro competidor (a
-     * alternância padrão); `yielded` é o que o tiro corrente rendeu. Ausente =
-     * alterna sempre.
-     */
-    nextTurn?(defaultAlternate: Competitor, yielded: number): NextTurn
     /**
      * Geometria extra para a tela desenhar (círculo, covas com a ativa), do
      * ponto de vista do competidor da vez. Ausente = só os corpos do campo.

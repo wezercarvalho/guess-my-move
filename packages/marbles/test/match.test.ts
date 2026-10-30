@@ -49,29 +49,6 @@ function modoBeteTeste(opts: { limiteMeta?: number; limiteBot?: number } = {}): 
     }
 }
 
-/** Modo de teste que mantém a vez quando o tiro rendeu (como o triângulo). */
-function modoMantemVez(): Mode {
-    return {
-        name: 'mantem-teste',
-        helpText: 'Capture para manter a vez. Mais capturas vence; iguais empatam; menos perde.',
-        roundsPerMatch: 1,
-        buildRound() {
-            return [bola(150)]
-        },
-        shotLimit() {
-            return 4
-        },
-        evaluate(context) {
-            // "Rende" quando o tiro foi forte (vx != 0 deixou a bolinha longe do início).
-            const yielded = context.field[0].pos.x > 300 ? 1 : 0
-            return { yield: yielded, finished: false, outcome: null }
-        },
-        nextTurn(defaultAlternate, yielded) {
-            return yielded > 0 ? 'keep' : defaultAlternate
-        },
-    }
-}
-
 /** Joga a partida inteira com as fontes dadas e devolve os resultados por rodada. */
 function jogar(
     mode: Mode,
@@ -153,20 +130,6 @@ describe('motor de partida: contra o bot', () => {
         })
         expect(match.startsRound(0)).toBe('player')
         expect(match.startsRound(1)).toBe('player')
-    })
-})
-
-describe('contrato de modo: vez', () => {
-    it('o modo que mantém a vez após render não passa a vez; o padrão alterna', () => {
-        const alterna = modoBeteTeste()
-        const vezAlterna = alterna.nextTurn
-            ? alterna.nextTurn('opponent', 0)
-            : 'opponent'
-        expect(vezAlterna).toBe('opponent')
-
-        const mantem = modoMantemVez()
-        expect(mantem.nextTurn?.('opponent', 1)).toBe('keep')
-        expect(mantem.nextTurn?.('opponent', 0)).toBe('opponent')
     })
 })
 

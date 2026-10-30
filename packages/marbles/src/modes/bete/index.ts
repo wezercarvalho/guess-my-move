@@ -53,13 +53,14 @@ export const DEFAULT_BETE_CONFIG: BeteConfig = {
 
 const HELP_TEXT =
     'Puxe a pinça e solte para lançar a bolinha no alvo. Contra a meta: acertar logo é vitória, ' +
-    'acertar tarde é empate e errar os cinco tiros é derrota. Contra o bot: quem acerta primeiro vence, ' +
-    'o outro leva a derrota e dez tiros sem acerto dão empate.'
+    'acertar tarde é empate e errar os cinco tiros é derrota. Contra o bot: os dois atiram o mesmo número ' +
+    'de vezes; acertar num tiro antes do outro é vitória, o outro leva a derrota, e acertar no mesmo ' +
+    'número de tiro ou errar os cinco dá empate.'
 
 /** Regras curtas por adversário (no máximo 2 frases cada). */
 const RULES = {
     target: 'Acertar o alvo logo é vitória e acertar tarde é empate. Errar os cinco tiros é derrota.',
-    bot: 'Quem acerta o alvo primeiro vence e o outro leva a derrota. Dez tiros sem acerto dão empate.',
+    bot: 'Os dois atiram o mesmo número de vezes: quem acerta em menos tiros vence e o outro leva a derrota. Acertar no mesmo tiro ou errar os cinco dá empate.',
 }
 
 export const DEFAULT_BETE_MODE: Mode = createBeteMode()
@@ -71,6 +72,9 @@ export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
     let roundIndex = 0
     let playerShots = 0
     let opponentShots = 0
+    /** Quem já acertou o alvo nesta rodada (contra o bot, a rodada só fecha com os tiros emparelhados). */
+    let playerHit = false
+    let opponentHit = false
 
     function targetFor(n: number): Vec {
         return cfg.targetPositions[n % cfg.targetPositions.length]
@@ -87,6 +91,8 @@ export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
         roundIndex = n
         playerShots = 0
         opponentShots = 0
+        playerHit = false
+        opponentHit = false
         return initialField(n)
     }
 
@@ -108,15 +114,27 @@ export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
                 const outcome = shotsSpent <= cfg.winByShot ? 'win' : 'draw'
                 return { yield: 1, finished: true, outcome, field: reset }
             }
-            // Contra o bot: quem acerta primeiro decide a rodada.
-            const outcome = competitor === 'player' ? 'win' : 'loss'
-            return { yield: 1, finished: true, outcome, field: reset }
+            // Contra o bot: o acerto vale, mas a rodada só fecha com os tiros emparelhados (abaixo).
+            if (competitor === 'player') playerHit = true
+            else opponentHit = true
         }
 
-        // Sem acerto: se este tiro esgotou a rodada, decide aqui (empate contra o bot).
+        if (opponent === 'bot') {
+            // Os dois atiram o mesmo número de vezes: com o par de tiros completo, quem acertou vence;
+            // se os dois acertaram no mesmo número de tiro, empata.
+            if (playerShots === opponentShots && (playerHit || opponentHit)) {
+                const outcome = playerHit && opponentHit ? 'draw' : playerHit ? 'win' : 'loss'
+                return { yield: hit ? 1 : 0, finished: true, outcome, field: reset }
+            }
+            if (exhausted(opponent)) {
+                return { yield: hit ? 1 : 0, finished: true, outcome: 'draw', field: reset }
+            }
+            return { yield: hit ? 1 : 0, finished: false, outcome: null, field: reset }
+        }
+
+        // Contra a meta, sem acerto: se este tiro esgotou a rodada, é derrota.
         if (exhausted(opponent)) {
-            const outcome = opponent === 'bot' ? 'draw' : 'loss'
-            return { yield: 0, finished: true, outcome, field: reset }
+            return { yield: 0, finished: true, outcome: 'loss', field: reset }
         }
         return { yield: 0, finished: false, outcome: null, field: reset }
     }

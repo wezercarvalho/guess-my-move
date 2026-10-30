@@ -29,14 +29,15 @@ export interface BotConfig {
 }
 
 /**
- * Nível único. angularDeviation ~3,2° e powerDeviation ~9% calibrados por busca
- * para cair na faixa de 30% a 60% de acerto a 400 unidades (raio 14), ficando
- * perto do meio (~50%). Palpites a calibrar com uso real; a faixa é proteção de
- * regressão, não equilíbrio medido.
+ * Nível único. angularDeviation ~2,0° e powerDeviation ~6% calibrados por busca
+ * para cair na faixa de 55% a 80% de acerto a 400 unidades (raio 14), ficando
+ * perto de ~65%: o primeiro nível (~50%) pareceu fácil demais no teste com a
+ * mão real. Palpites a calibrar com uso real; a faixa é proteção de regressão,
+ * não equilíbrio medido.
  */
 export const DEFAULT_BOT: BotConfig = {
-    angularDeviation: 0.055,
-    powerDeviation: 0.09,
+    angularDeviation: 0.035,
+    powerDeviation: 0.06,
     shot: DEFAULT_SHOT,
 }
 

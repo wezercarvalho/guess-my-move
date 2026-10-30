@@ -39,11 +39,11 @@ Toda a lógica determinística fica em `@guess-my-move/marbles`, sem DOM, sem Me
 
 ### Contrato de modo que nasce com o que os três modos precisam e nada além
 
-A issue #87 alerta para um contrato grande demais. **Decisão:** o contrato declara exatamente (a) montagem do campo por rodada, (b) limite de tiros por competidor e por adversário, (c) avaliação do campo em repouso (o que o tiro rendeu, se a rodada terminou e o resultado), e (d) de quem é a próxima vez (padrão alterna, o modo pode manter). Nada além. **Alternativa rejeitada:** um contrato que também fixasse o número de competidores ou o limite de tiros no motor — a issue proíbe, porque o triângulo mantém a vez e os limites diferem por modo e por adversário.
+A issue #87 alerta para um contrato grande demais. **Decisão:** o contrato declara exatamente (a) montagem do campo por rodada, (b) limite de tiros por competidor e por adversário, (c) avaliação do campo em repouso (o que o tiro rendeu, se a rodada terminou e o resultado), e (d) de quem é a próxima vez (padrão alterna, o modo pode manter). Nada além. **Alternativa rejeitada:** um contrato que também fixasse o número de competidores ou o limite de tiros no motor — a issue proíbe, porque os limites diferem por modo e por adversário.
 
 ### Vez decidida pelo modo, não pelo motor
 
-O bete e a cova alternam a vez a cada tiro; o triângulo mantém a vez enquanto o jogador captura. **Decisão:** o motor pergunta ao modo de quem é a próxima vez (padrão: alterna); o triângulo responde "mantém" quando o tiro capturou. **Alternativa rejeitada:** fixar a alternância no motor (não serve ao triângulo).
+Os três modos alternam a vez a cada tiro. **Decisão (revisada após o teste com a mão real):** o motor fixa a alternância; o gancho `nextTurn`, que existia só para o Triângulo manter a vez ao capturar, foi removido junto com essa regra. **Alternativa rejeitada:** manter a vez ao capturar (com o bot a ~65% de acerto ele esvaziava o círculo sem o jogador atirar).
 
 ### Bot por simulação, não por fórmula contínua
 
@@ -65,6 +65,6 @@ A issue #87 pede uma interface de fonte do tiro atrás da qual o motor recebe o 
 ## Limitações declaradas (sem medição)
 
 - Os valores de jogo (3 rodadas, 5/8/9 tiros, metas de vitória, 3 posições/layouts, velocidade de entrada 120, `DEFAULT_BOT`) são **palpites iniciais a calibrar com uso real**, fixados em configuração (NFR-002).
-- A **faixa de acerto do bot** (30% a 60% em 1000 tiros) é **proteção de regressão, não equilíbrio medido** nem prova de diversão (NFR-004, H-02).
+- A **faixa de acerto do bot** (55% a 80% em 1000 tiros) é **proteção de regressão, não equilíbrio medido** nem prova de diversão (NFR-004, H-02).
 - A **velocidade de entrada da cova** pode ser difícil para a mão; é um palpite a calibrar (H-03).
 - Não há **teste ao vivo com a mão real** nesta entrega; a verificação é por testes e, na tela, por câmera e rastreador simulados.

@@ -174,11 +174,10 @@ export function createMatchSession(
         phase = turnPhase()
     }
 
-    function nextTurnAfter(yieldedNow: number): Competitor {
+    /** A vez alterna a cada tiro; passa adiante se o outro já esgotou os tiros ou cumpriu o objetivo. */
+    function nextTurnAfter(): Competitor {
         if (opponent === 'target') return 'player'
-        const alternate = other(turn)
-        const decision = mode.nextTurn ? mode.nextTurn(alternate, yieldedNow) : alternate
-        const target: Competitor = decision === 'keep' ? turn : decision
+        const target = other(turn)
         if (limitReached(target) && !limitReached(other(target))) return other(target)
         return target
     }
@@ -244,7 +243,7 @@ export function createMatchSession(
             endRound('loss')
             return
         }
-        turn = nextTurnAfter(evaluation.yield)
+        turn = nextTurnAfter()
         settleTurn()
     }
 
@@ -321,7 +320,7 @@ export function createMatchSession(
                         endRound('loss')
                         return
                     }
-                    turn = nextTurnAfter(0)
+                    turn = nextTurnAfter()
                     settleTurn()
                     return
                 }

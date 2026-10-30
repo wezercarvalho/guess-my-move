@@ -39,7 +39,6 @@ export {
     type Match,
     type MatchConfig,
     type Mode,
-    type NextTurn,
     type Opponent,
     type Outcome,
     type ShotSource,

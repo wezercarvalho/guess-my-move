@@ -12,7 +12,6 @@ import {
     type EvaluationContext,
     type Evaluation,
     type Mode,
-    type NextTurn,
     type Opponent,
     type Outcome,
 } from '../../match/index.js'
@@ -56,13 +55,13 @@ export const DEFAULT_TRIANGLE_CONFIG: TriangleConfig = {
 
 const HELP_TEXT =
     'Lance a bolinha de tiro para empurrar as seis de dentro do círculo para fora. Contra a meta: tirar ' +
-    'as seis é vitória, quatro ou cinco é empate e três ou menos é derrota. Contra o bot: cada captura ' +
-    'mantém a sua vez e, ao fim, mais capturas é vitória, menos é derrota e empate quando empatam.'
+    'as seis é vitória, quatro ou cinco é empate e três ou menos é derrota. Contra o bot: um tiro para ' +
+    'cada um, sempre; ao fim, mais capturas é vitória, menos é derrota e empate quando empatam.'
 
 /** Regras curtas por adversário (no máximo 2 frases cada). */
 const RULES = {
     target: 'Tirar as seis bolinhas do círculo é vitória e quatro ou cinco é empate. Três ou menos é derrota.',
-    bot: 'Cada captura mantém a sua vez; ao fim, mais capturas é vitória e menos é derrota. Empatar as capturas é empate.',
+    bot: 'Um tiro para cada um, sempre; ao fim, mais capturas é vitória e menos é derrota. Empatar as capturas é empate.',
 }
 
 /** Formação padrão: fileiras de 1, 2 e 3 com folga entre centros, toda dentro do círculo. */
@@ -183,11 +182,6 @@ export function createTriangleMode(overrides: Partial<TriangleConfig> = {}): Tri
         return { yield: captured.length, finished: false, outcome: null, field: nextField }
     }
 
-    function nextTurn(defaultAlternate: Competitor, yielded: number): NextTurn {
-        // Capturar ao menos uma mantém a vez; sem captura, a vez passa.
-        return yielded > 0 ? 'keep' : defaultAlternate
-    }
-
     return {
         name: 'Triângulo',
         helpText: HELP_TEXT,
@@ -197,7 +191,6 @@ export function createTriangleMode(overrides: Partial<TriangleConfig> = {}): Tri
         buildRound,
         shotLimit: (_competitor, opponent) => (opponent === 'target' ? cfg.shotLimitTarget : cfg.shotLimitBot),
         evaluate,
-        nextTurn,
         describe: () => ({
             circle: { x: cfg.circleCenter.x, y: cfg.circleCenter.y, radius: cfg.circleRadius },
         }),

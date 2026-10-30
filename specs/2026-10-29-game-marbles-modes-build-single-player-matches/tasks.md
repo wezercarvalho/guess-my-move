@@ -16,7 +16,7 @@
 ## Fase 2 — Motor de partida e contrato de modo (issue #87)
 
 - [x] T004 [US-002] [FR-003] Escrever o teste falhando de `packages/marbles/test/match.test.ts` para o motor: 3 rodadas, competidor do tiro corrente, resultado da partida (2 vitórias e 1 derrota = vitória; 1-1-1 = empate; 3 empates = empate; 1 vitória e 2 derrotas = derrota), sem importar DOM, MediaPipe nem relógio; confirmar a falha esperada
-- [x] T005 [US-002] [FR-004] Escrever o teste falhando do contrato de modo em `match.test.ts` (dois modos de teste: um que alterna a vez a cada tiro e um que mantém a vez após captura; limite de tiros por competidor e por adversário; avaliação do campo em repouso com o que o tiro rendeu, se terminou e o resultado; esgotamento de tiros não prende a rodada; vitória decidida encerra sem gastar os tiros restantes) e implementar o contrato até verde
+- [x] T005 [US-002] [FR-004] Escrever o teste falhando do contrato de modo em `match.test.ts` (modo de teste com vez alternada a cada tiro; limite de tiros por competidor e por adversário; avaliação do campo em repouso com o que o tiro rendeu, se terminou e o resultado; esgotamento de tiros não prende a rodada; vitória decidida encerra sem gastar os tiros restantes) e implementar o contrato até verde
 - [x] T006 [US-002] [FR-005] Escrever o teste falhando dos adversários meta e bot em `match.test.ts` (contra a meta não há vez; contra o bot o jogador começa a rodada 1, a ordem alterna por rodada, tiro fora da vez não tem efeito) e implementar até verde
 - [x] T007 [US-002] [FR-006] Escrever o teste falhando da interface de **fonte do tiro** em `match.test.ts` (o motor recebe o tiro por `ShotSource`; a cadeia — bolinha empurrada por outra que sai do campo — é atribuída ao competidor do tiro corrente; a mesma sequência e a mesma semente produzem o mesmo resultado) e implementar o motor (`packages/marbles/src/match/`) até verde
 - [x] T008 [US-002] [SC-002] [NFR-001] Confirmar o determinismo do motor (mesmas leituras e semente → mesmo resultado) com teste direcionado e integrar o contrato e a fonte do tiro na API pública em `packages/marbles/src/index.ts`
@@ -25,14 +25,14 @@
 
 - [x] T009 [US-003] [FR-007] Escrever o teste falhando de `packages/marbles/test/bot.test.ts` (erro zero: a bolinha para a <= 1 unidade do ponto na física real `stepBodies` para pontos entre 50 e 700 unidades numa trajetória livre) e confirmar a falha esperada
 - [x] T010 [US-003] [FR-007] Implementar `packages/marbles/src/bot/` (direção até um ponto; velocidade para parar no ponto por **busca com `stepBodies`**, não pela fórmula contínua) e confirmar o teste de parada verde
-- [x] T011 [US-003] [FR-007] [SC-003] Escrever e passar os testes de erro controlado por semente (mesma semente e campo → tiro idêntico; sementes diferentes → tiros diferentes), do nível `DEFAULT_BOT` (1000 tiros com sementes distintas contra um alvo a 400 unidades, raio 14, taxa de acerto entre 30% e 60%) e do teto de velocidade (nenhum tiro excede `gain · maxPull`), com o planejador atendendo à interface de fonte do tiro
+- [x] T011 [US-003] [FR-007] [SC-003] Escrever e passar os testes de erro controlado por semente (mesma semente e campo → tiro idêntico; sementes diferentes → tiros diferentes), do nível `DEFAULT_BOT` (1000 tiros com sementes distintas contra um alvo a 400 unidades, raio 14, taxa de acerto entre 55% e 80%) e do teto de velocidade (nenhum tiro excede `gain · maxPull`), com o planejador atendendo à interface de fonte do tiro
 - [x] T012 [US-003] [NFR-002] [NFR-004] Fixar `DEFAULT_BOT` em configuração e declarar no código e no teste que os valores são palpites a calibrar e que a faixa de acerto é proteção de regressão, não equilíbrio medido
 
 ## Fase 4 — Bete como modo (issue #89)
 
 - [x] T013 [US-004] [FR-008] Escrever o teste falhando de `packages/marbles/test/bete.test.ts` (contra a meta: acerto no 3º tiro = vitória e encerra; 4º ou 5º = empate; 5 sem acertar = derrota) e confirmar a falha esperada
 - [x] T014 [US-004] [FR-008] Implementar `packages/marbles/src/modes/bete/` como modo (campo atual; alvo em 3 posições fixas, uma por rodada, igual para os dois; após erro a bolinha de tiro volta ao ponto de partida e o alvo à posição da rodada; ponto de chegada do bot = o alvo) e passar o teste contra a meta
-- [x] T015 [US-004] [FR-008] Escrever e passar o teste do Bete contra o bot (vez alternada a cada tiro, até 5 tiros por competidor; quem acerta primeiro vence e encerra; 10 tiros sem acerto = empate; na rodada 2 o bot atira primeiro e na 3 o jogador; alvo na mesma posição para os dois dentro da rodada)
+- [x] T015 [US-004] [FR-008] Escrever e passar o teste do Bete contra o bot (vez alternada a cada tiro, até 5 tiros por competidor; os dois atiram o mesmo número de vezes (acertar em menos tiros vence; no mesmo tiro empata; 5 tiros cada sem acerto = empate); na rodada 2 o bot atira primeiro e na 3 o jogador; alvo na mesma posição para os dois dentro da rodada)
 - [x] T016 [US-004] [FR-002] [FR-011] [NFR-005] `helpText` do Bete declarado (cita vitória, derrota e empate). **Concluído na etapa 3 (#92):** depois de migrar `apps/web` para o motor, o bete solo antigo (`createBeteRound`/`round.ts` e `round.test.ts`) foi removido e os exports de `index.ts` atualizados; os casos ainda relevantes do bete solo já estavam migrados (mira em `aim.test.ts`, resultado em `bete.test.ts`, estalo em `flick-replay.test.ts`). `flick-replay.test.ts` e os detectores de pinça/estalo seguem verdes.
 
 ## Fase 5 — Conduzir a partida na tela, com o Bete (issue #92)
@@ -46,7 +46,7 @@
 
 - [x] T021 [US-005] [FR-009] Escrever o teste falhando de `packages/marbles/test/triangle.test.ts` (formação inicial: 6 bolinhas dentro do círculo, nenhum par de centros a menos que a soma dos raios, nenhuma bolinha se move sozinha sem tiro) e confirmar a falha esperada
 - [x] T022 [US-005] [FR-009] Implementar `packages/marbles/src/modes/triangle/` (círculo, 6 bolinhas em fileiras 1/2/3 com folga, bolinha de tiro de ponto fixo; captura quando uma bolinha para totalmente fora do círculo, atribuída ao competidor do tiro inclusive em cadeia; bolinha capturada sai e as demais ficam; 3 rodadas com a mesma formação) e passar o teste de captura e de cadeia
-- [x] T023 [US-005] [FR-009] [FR-011] Escrever e passar os testes do Triângulo contra a meta (até 8 tiros; 6 capturas = vitória e encerra na 6ª; 4 ou 5 = empate; <= 3 = derrota) e contra o bot (captura mantém a vez; sem captura a vez passa; até 5 tiros por competidor; mais capturas vence; iguais, inclusive 0 a 0, empatam; ponto de chegada do bot = bolinha mais próxima da borda, mirando para fora — `triangleBotAimPoint`), e declarar o `helpText` do Triângulo
+- [x] T023 [US-005] [FR-009] [FR-011] Escrever e passar os testes do Triângulo contra a meta (até 8 tiros; 6 capturas = vitória e encerra na 6ª; 4 ou 5 = empate; <= 3 = derrota) e contra o bot (a vez passa a cada tiro, com ou sem captura; até 5 tiros por competidor; mais capturas vence; iguais, inclusive 0 a 0, empatam; ponto de chegada do bot = bolinha mais próxima da borda, mirando para fora — `triangleBotAimPoint`), e declarar o `helpText` do Triângulo
 
 ## Fase 7 — Modo Cova (issue #91)
 
@@ -75,7 +75,7 @@
 | FR-004    | T005                   | testes de `match` com modos de teste (vez, limites, avaliação, esgotamento, vitória) |
 | FR-005    | T006                   | testes de `match` (meta sem vez; bot com alternância; tiro fora da vez)              |
 | FR-006    | T007                   | testes de `match` com fonte do tiro e cadeia; determinismo                           |
-| FR-007    | T009, T010, T011, T012 | testes de `bot` (parada a 1 unidade; semente; faixa 30–60%; teto `gain · maxPull`)   |
+| FR-007    | T009, T010, T011, T012 | testes de `bot` (parada a 1 unidade; semente; faixa 55–80%; teto `gain · maxPull`)   |
 | FR-008    | T013, T014, T015, T016 | testes de `bete` (meta e bot); remoção do bete solo antigo                           |
 | FR-009    | T021, T022, T023       | testes de `triangulo` (formação, captura, cadeia, meta e bot)                        |
 | FR-010    | T024, T025, T026       | testes de `cova` (entrada por velocidade, permanência, meta e bot)                   |
