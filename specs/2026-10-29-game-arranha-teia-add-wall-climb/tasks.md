@@ -9,12 +9,12 @@
 
 ## Fase 1 — Sinais de gesto puros (packages/swing/climb.ts)
 
-- [x] T001 [US-002] [US-003] [FR-004] Escrever `packages/swing/test/climbSignal.test.ts` falhando e implementar, em `packages/swing/src/climb.ts`, as funções puras `climbSignal(dyLeft, dyRight, config)` (movimento alternado reduzido a -1..1, com zona morta `climbDeadzone` e saturação; positivo quando uma mão desce e a outra sobe, negativo no oposto, zero na zona morta) e `pullBackSignal(dzLeft, dzRight, config)` (verdadeiro quando uma mão se afasta da câmera além de `pullBackThreshold`). Dados sintéticos, sem afirmar precisão. Critério: testes verdes vistos vermelhos antes
+- [x] T001 [US-002] [US-003] [FR-004] Escrever `packages/swing/test/climbSignal.test.ts` falhando e implementar, em `packages/swing/src/climb.ts`, as funções puras `climbSignal(dyLeft, dyRight, config)` (movimento alternado reduzido a -1..1, com zona morta `climbDeadzone` e saturação; positivo quando uma mão desce e a outra sobe, negativo no oposto, zero na zona morta) e `pullBackSignal(dzLeft, dzRight, config)` (verdadeiro quando uma mão se afasta da câmera além de `pullBackThreshold`). Dados sintéticos, sem afirmar precisão. Critério: testes verdes vistos vermelhos antes _(revisto em T011/CQ-010: `climbSignal` passou a `up − down` e `pullBackSignal` foi removido)_
 
 ## Fase 2 — Estado de agarre na física pura (packages/swing)
 
 - [x] T002 [US-001] [US-002] [FR-001] [FR-002] Escrever `packages/swing/test/climb.test.ts` falhando para o estado de agarre e implementar `WallGrip`, `SwingState.grip`, `touchingWall` e `stepGrip` em `packages/swing/src/climb.ts` com a chamada em `packages/swing/src/physics.ts`: entra só com contato de parede (`Contact.kind !== 'roof'`) mais `grab` em alguma mão (zera a velocidade, solta as teias presas, guarda a normal); agarrado, sem gravidade e sem deslize, sobe/desce por `climb * climbSpeed` limitado, colado à parede; sem contato não agarra. Critério: testes verdes vistos vermelhos antes
-- [x] T003 [US-004] [FR-003] Escrever os testes falhando das quatro saídas do agarre e o **teste de propriedade** (`SC-002`) em `climb.test.ts` e implementar as saídas em `stepGrip`: (a) `grab` vazio ou `release`; (b) teia presa no passo; (c) topo do prédio → telhado (`grounded`); (d) inatividade acima de `gripIdleMs`. O teste de propriedade roda muitas sequências aleatórias de `grab`/`climb`/`release` e exige que o jogador saia do agarre em um número finito de passos. Critério: testes verdes vistos vermelhos antes
+- [x] T003 [US-004] [FR-003] Escrever os testes falhando das quatro saídas do agarre e o **teste de propriedade** (`SC-002`) em `climb.test.ts` e implementar as saídas em `stepGrip`: (a) `grab` vazio ou `release`; (b) teia presa no passo; (c) topo do prédio → telhado (`grounded`); (d) inatividade acima de `gripIdleMs`. O teste de propriedade roda muitas sequências aleatórias de `grab`/`climb`/`release` e exige que o jogador saia do agarre em um número finito de passos. Critério: testes verdes vistos vermelhos antes _(revisto em T011/CQ-010: saída (a) passou a ser perder o agarre além de `grabGraceMs` OU punho segurado `fistReleaseMs`)_
 
 ## Fase 3 — Entrada por passo no mundo (packages/swing/world.ts)
 
@@ -22,11 +22,11 @@
 
 ## Fase 4 — Camada web: controlador, precedência e teclas (apps/web/src/swing)
 
-- [x] T005 [US-001] [FR-005] [FR-006] Escrever os casos novos falhando em `apps/web/src/swing/swingController.test.ts` e implementar no `swingController.ts`: guardar o pulso anterior por mão e calcular `dy`/`dz`, chamar `climbSignal`/`pullBackSignal`, aplicar a precedência da palma (`touchingWall` + palma aberta → `grab` do lado; senão a palma segue soltando a teia), e as teclas `V` (agarrar enquanto segurada) e setas para cima/baixo (reaproveitadas como `climb` quando agarrado), alimentando o `SwingInput`. Mudanças pequenas e localizadas. Critério: casos novos verdes, testes de teia por mão sem regressão
+- [x] T005 [US-001] [FR-005] [FR-006] Escrever os casos novos falhando em `apps/web/src/swing/swingController.test.ts` e implementar no `swingController.ts`: guardar o pulso anterior por mão e calcular `dy`/`dz`, chamar `climbSignal`/`pullBackSignal`, aplicar a precedência da palma (`touchingWall` + palma aberta → `grab` do lado; senão a palma segue soltando a teia), e as teclas `V` (agarrar enquanto segurada) e setas para cima/baixo (reaproveitadas como `climb` quando agarrado), alimentando o `SwingInput`. Mudanças pequenas e localizadas. Critério: casos novos verdes, testes de teia por mão sem regressão _(revisto em T011/CQ-010: o controlador passou a calcular só `dy`, a soltura virou punho (`isFist`) e a dica de parede ganhou janela de ~600 ms)_
 
 ## Fase 5 — Camada web: guia, HUD e depuração (apps/web/src/swing)
 
-- [x] T006 [US-005] [FR-007] Escrever os casos novos falhando e implementar: o medidor de estado mostra "Agarrado" quando `grip` não é nulo (`SwingScreen.tsx`); o guia e a linha de status ganham a dica curta do agarre ("Na parede: mãos abertas, alterne para subir. Puxe a mão para soltar.") (`guide.ts`); o `SwingDebugPanel.tsx` mostra, por mão, o sinal de escalada e o de soltar. Textos curtos. Critério: casos novos verdes em `SwingScreen.test.tsx` e `guide.test.ts`
+- [x] T006 [US-005] [FR-007] Escrever os casos novos falhando e implementar: o medidor de estado mostra "Agarrado" quando `grip` não é nulo (`SwingScreen.tsx`); o guia e a linha de status ganham a dica curta do agarre ("Na parede: mãos abertas, alterne para subir. Puxe a mão para soltar.") (`guide.ts`); o `SwingDebugPanel.tsx` mostra, por mão, o sinal de escalada e o de soltar. Textos curtos. Critério: casos novos verdes em `SwingScreen.test.tsx` e `guide.test.ts` _(revisto em T011/CQ-010: status de parede "Parede: abra a mão para agarrar." e agarrado "Agarrado. Desça uma mão por vez para subir. Punho solta."; depuração por mão palma/punho e global contato/agarrado/sinal)_
 
 ## Fase 6 — Não regressão do fluxo de teia por mão
 
@@ -44,18 +44,22 @@
 
 - [ ] T010 [SC-006] [NFR-003] Preencher `validation.md` (estado, evidências por requisito com uma linha PASS própria por FR, histórias, comandos, medições como texto, limitações) e deixar o **Gate 3 pendente** do teste ao vivo do maintainer; manter a spec em `implementing` (não marcar `validated` por conta própria). Critério: `validation.md` completo com o Gate 3 explicitamente pendente
 
+## Fase 9 — Emenda CQ-010 (refazer a escalada após a revisão do dono)
+
+- [x] T011 [US-002] [US-003] [US-005] [FR-002] [FR-003] [FR-004] [FR-007] Refazer a escalada e a soltura (CQ-010), test-first: reescrever `climbSignal` para `up = max(0,dyEsq)+max(0,dyDir)`, `down = min(max(0,-dyEsq),max(0,-dyDir))`, `climb = clamp(up-down)` (alternar as mãos dá subida líquida — teste explícito); trocar a soltura para o **punho fechado** (`isFist`) segurado por `fistReleaseMs` e REMOVER `pullBackSignal`/`pullBackThreshold`/`dz`/o `z` do pulso e o "puxar para trás" da depuração; acrescentar a tolerância `grabGraceMs` para a perda curta da mão; acrescentar o cue `wall` (dica "Parede: abra a mão para agarrar.", mantida ~600 ms no controlador) e `grip` ("Agarrado. Desça uma mão por vez para subir. Punho solta."), a 5ª etapa do guia e a dica quando a palma some; depuração por mão (palma/punho) e global (contato/agarrado/sinal). Critério: testes novos verdes vistos vermelhos antes; suíte sem regressão
+
 ## Cobertura
 
-| Requisito | Tarefas    | Evidência esperada                                                                    |
-| --------- | ---------- | ------------------------------------------------------------------------------------- |
-| FR-001    | T002       | `climb`/`physics` tests: entra só com contato; zera velocidade; solta teias           |
-| FR-002    | T002, T004 | `climb`/`world` tests: sobe/desce por `climb`, limitado, colado à parede              |
-| FR-003    | T003       | `climb` tests + teste de propriedade: as quatro saídas e a saída em tempo finito      |
-| FR-004    | T001       | `climbSignal` tests: movimento alternado, zona morta, saturação, `pullBackSignal`     |
-| FR-005    | T005       | `swingController` test: precedência da palma (contato agarra, sem contato solta teia) |
-| FR-006    | T005       | `swingController`/`guide` tests: teclas `V` e setas, integração do agarre             |
-| FR-007    | T006       | `SwingScreen`/`guide`/debug tests: medidor "Agarrado", dica, sinais por mão           |
-| FR-008    | T007       | suíte completa verde: `twoWebs`, `moves`, `sides`, `swingHands` sem regressão         |
+| Requisito | Tarefas          | Evidência esperada                                                                    |
+| --------- | ---------------- | ------------------------------------------------------------------------------------- |
+| FR-001    | T002             | `climb`/`physics` tests: entra só com contato; zera velocidade; solta teias           |
+| FR-002    | T002, T004, T011 | `climb`/`world` tests: sobe/desce por `climb` (up−down, CQ-010), limitado, colado     |
+| FR-003    | T003, T011       | `climb` tests + propriedade: saídas (grace, punho, teia, topo, inatividade) finitas   |
+| FR-004    | T001, T011       | `climbSignal` tests: up−down, zona morta, saturação; soltura por punho (CQ-010)       |
+| FR-005    | T005             | `swingController` test: precedência da palma (contato agarra, sem contato solta teia) |
+| FR-006    | T005             | `swingController`/`guide` tests: teclas `V` e setas, integração do agarre             |
+| FR-007    | T006, T011       | `SwingScreen`/`guide`/debug tests: "Agarrado", dica de parede, palma/punho por mão    |
+| FR-008    | T007             | suíte completa verde: `twoWebs`, `moves`, `sides`, `swingHands` sem regressão         |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -70,7 +74,7 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação antecipada do maintainer wezercarvalho
 - **Data:** `2026-10-29`
-- **Lacunas:** nenhuma. Todos os oito FR têm tarefa formal (FR-001 em T002, FR-002 em T002/T004, FR-003 em T003, FR-004 em T001, FR-005 em T005, FR-006 em T005, FR-007 em T006, FR-008 em T007). Os critérios de sucesso têm cobertura: SC-001 pelos testes do estado de agarre (T002/T003), SC-002 pelo teste de propriedade (T003), SC-003 pelos testes de `climbSignal`/`pullBackSignal` (T001), SC-004 pelo teste do controlador (T005), SC-005 pelos pilotos automáticos e pela inspeção headless (T009), SC-006 pelos gates (T009). Os NFR: NFR-001 pela estratégia test-first de cada parte (T001 a T006), NFR-002 pelos gates (T007/T009), NFR-003 pela ausência de afirmação de precisão/fps (T008/T009/T010), NFR-004 pela verificação de rede e privacidade (T008/T009), NFR-005 pelos pilotos automáticos registrados como texto (T009). O Gate 3 fica pendente do teste ao vivo (T010), e a spec permanece em `implementing`.
+- **Lacunas:** nenhuma. Todos os oito FR têm tarefa formal (FR-001 em T002, FR-002 em T002/T004/T011, FR-003 em T003/T011, FR-004 em T001/T011, FR-005 em T005, FR-006 em T005, FR-007 em T006/T011, FR-008 em T007). A emenda **CQ-010** (T011) refez a escalada (fórmula up−down), a soltura (punho no lugar do `z`), a tolerância de perda curta e as dicas de parede, mantida a cobertura test-first. Os critérios de sucesso têm cobertura: SC-001 pelos testes do estado de agarre (T002/T003/T011), SC-002 pelo teste de propriedade (T003/T011), SC-003 pelos testes de `climbSignal` (T001/T011), SC-004 pelo teste do controlador (T005), SC-005 pelos pilotos automáticos e pela inspeção headless (T009), SC-006 pelos gates (T009). Os NFR: NFR-001 pela estratégia test-first de cada parte (T001 a T006, T011), NFR-002 pelos gates (T007/T009), NFR-003 pela ausência de afirmação de precisão/fps (T008/T009/T010), NFR-004 pela verificação de rede e privacidade (T008/T009), NFR-005 pelos pilotos automáticos registrados como texto (T009). O Gate 3 fica pendente do teste ao vivo (T010), e a spec permanece em `implementing`.
 
 ## Gate 2 — Plano e tarefas aprovados
 

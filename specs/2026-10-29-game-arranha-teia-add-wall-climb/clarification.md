@@ -79,9 +79,28 @@ Esta clarificação registra as decisões de projeto do agarre à parede (issue 
 - **Alternativas rejeitadas:** criar teclas dedicadas de subir/descer (desnecessário; as setas servem); usar Espaço (já lança a teia do centro).
 - **Seções atualizadas em `spec.md`:** FR-006.
 
+### CQ-010 — Emenda após a revisão do dono: agarre sem dica e escalada que não anda
+
+- **Data:** `2026-10-30`
+- **Impacto:** alto
+- **O que o dono viu:** testou a tela e **não entendeu como agarrar**; não havia dica para encostar/abrir a mão, e a escalada não respondia.
+- **O que o revisor achou no código (`climb.ts`, `swingController.ts`):**
+    1. Nenhuma dica ensinava a agarrar — o texto da escalada só aparecia quando o jogador JÁ estava agarrado.
+    2. `climbSignal = (dyEsq - dyDir)/2` invertia o sinal a cada braçada: alternar as mãos de verdade dava movimento líquido ~0 (a escalada "não andava").
+    3. `pullBackSignal` usava o `z` do PULSO (landmark 0), mas no MediaPipe o `z` tem origem no pulso e fica ~0: o sinal quase nunca disparava — código morto na prática.
+    4. O agarre caía ao primeiro quadro sem as duas mãos (sem tolerância).
+- **Decisão:** **RESOLVIDA** — o desenho da escalada e da soltura foi refeito, mantendo as decisões de precedência (CQ-001), teia ao agarrar (CQ-002) e teclado (CQ-006):
+    - **Subir:** cada mão que DESCE na imagem puxa o corpo para cima — `up = max(0,dyEsq) + max(0,dyDir)`; **descer** só com as DUAS mãos subindo juntas — `down = min(max(0,-dyEsq), max(0,-dyDir))`; `climb = clamp(up - down)`. Uma mão ausente conta `dy = 0`. Alternar as mãos passa a dar subida líquida positiva (testado).
+    - **Soltar:** passa a ser o **punho fechado** (`isFist`) de qualquer mão, segurado por `fistReleaseMs`. O sinal de profundidade (`pullBackSignal`, `pullBackThreshold`, `dz`, o `z` do pulso) foi **removido** — era código morto. As outras saídas continuam (perder o agarre além da tolerância, lançar teia, topo→telhado, inatividade).
+    - **Tolerância (`grabGraceMs`):** uma perda curta da mão/palma no meio da escalada não solta mais na hora.
+    - **Dica de parede:** novo estado de orientação `wall` (encostado, sem agarre) → "Parede: abra a mão para agarrar.", mantido por ~600 ms no controlador para não piscar; agarrado → "Agarrado. Desça uma mão por vez para subir. Punho solta."; guia com a 5ª etapa de parede e `currentStep` coerente; dica de correção quando a palma some.
+- **Razão:** a fórmula antiga cancelava o movimento alternado (o gesto natural de escalar), e o `z` do pulso é estruturalmente ~0 no MediaPipe (documentação do Hand Landmarker: origem do `z` no pulso), então "puxar para trás" nunca funcionaria. O punho fechado é um gesto robusto e livre (a palma agarra, a pose lança, o punho com teia puxa — sem teia, no agarre, o punho solta). A dica ao encostar resolve o que o dono não entendeu.
+- **Alternativas rejeitadas:** manter o `z` como sinal de soltar (não medido, estruturalmente ~0 — frágil e, na prática, inoperante); manter a fórmula alternada por produto (dava líquido ~0 ao alternar de verdade); baixar a mão rápido para soltar (confunde com descer).
+- **Seções atualizadas em `spec.md`:** FR-002, FR-003, FR-004, FR-007; H-01 revista; US-003 (soltar por punho).
+
 ## Hipóteses remanescentes
 
-- **H-01:** O `z` dos landmarks do MediaPipe (profundidade relativa) é suficiente para detectar "puxar a mão para trás" como um aumento além de um limite. É aproximado e **não foi medido ao vivo**; por isso o sinal de soltar nunca é a única saída do agarre (há `grab` vazio, inatividade, teia e topo).
+- **H-01 (revista na CQ-010):** a hipótese original — o `z` dos landmarks do MediaPipe (profundidade relativa ao pulso) detecta "puxar a mão para trás" — foi **descartada**: o `z` tem origem no pulso e fica ~0, então o sinal era código morto. Soltar passou a ser o **punho fechado** segurado por tempo (`isFist`, `fistReleaseMs`), que é robusto. O agarre continua com várias saídas (perder o pedido além da tolerância, inatividade, teia, topo), então nenhuma depende de medição não feita ao vivo.
 - **H-02:** O movimento alternado das mãos (uma sobe, outra desce) distingue-se do movimento conjunto pelo sinal do produto dos deslocamentos verticais; com zona morta, o ruído do rastreio não dispara escalada. Testado só com dados sintéticos.
 - **H-03:** O estado do mundo expõe (ou pode expor de forma pequena) se o jogador está em contato com uma parede no último passo, de modo que o `SwingController` aplique a precedência da palma aberta sem reimplementar a colisão.
 - Os valores de agarre (`climbSpeed`, zona morta, `gripIdleMs`, limite de profundidade) são de jogo, ajustáveis sem mudar a arquitetura; não há alvo de realismo nem de fps (NFR-003).

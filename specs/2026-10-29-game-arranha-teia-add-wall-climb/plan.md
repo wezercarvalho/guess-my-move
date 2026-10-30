@@ -104,15 +104,24 @@ specs/2026-10-29-game-arranha-teia-add-wall-climb/            esta spec (spec, c
 5. rodar os pilotos automáticos descartáveis e a inspeção em Chromium headless, registrando como texto em `validation.md`;
 6. atualizar a documentação e o catálogo e rodar os gates oficiais.
 
+## Emenda CQ-010 (2026-10-30) — refazer a escalada
+
+Após a revisão do dono, o desenho da escalada e da soltura foi refeito (ver `clarification.md`, CQ-010), mantendo entrada, precedência (CQ-001), teia-ao-agarrar (CQ-002) e teclado (CQ-006):
+
+- `climbSignal` deixou de ser `(dyEsq − dyDir)/2` (que cancelava o movimento alternado) e passou a `up = max(0,dyEsq)+max(0,dyDir)`, `down = min(max(0,-dyEsq),max(0,-dyDir))`, `climb = clamp(up − down)`; uma mão ausente conta `dy = 0`.
+- A soltura passou a ser o punho fechado (`isFist`) segurado por `fistReleaseMs`; `pullBackSignal`, `pullBackThreshold`, `dz` e o `z` do pulso foram REMOVIDOS (código morto: o `z` do MediaPipe tem origem no pulso e fica ~0).
+- `GripConfig` ganhou `grabGraceMs` (tolera a perda curta da mão/palma) e `fistReleaseMs`; `WallGrip` ganhou `graceMs`/`fistMs`.
+- `cue.ts` ganhou `wall` (encostado, sem agarre) e `grip` (agarrado); `guide.ts` ganhou a 5ª etapa e os status "Parede: abra a mão para agarrar." e "Agarrado. Desça uma mão por vez para subir. Punho solta."; o controlador mantém a dica de parede ~600 ms para não piscar; a depuração passou a mostrar palma/punho por mão e contato/agarrado/sinal global.
+
 ## Riscos, rollout e rollback
 
-| Risco                                                           | Mitigação                                                                                          | Rollback/contingência                            |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| O agarre prender o jogador sem saída                            | Quatro saídas independentes e teste de propriedade provando saída em tempo finito em qualquer caso | Baixar `gripIdleMs`; forçar saída por tecla      |
-| O `z` do MediaPipe (soltar) ser ruidoso                         | Nunca é a única saída; limite com margem; declarado como hipótese não medida                       | Trocar o sinal de soltar sem mudar a arquitetura |
-| Conflito de edição com a tarefa #80 nos arquivos compartilhados | Mudanças pequenas e localizadas; o grosso em `climb.ts` (novo)                                     | Resolver conflito preservando as duas mudanças   |
-| O fluxo de teia por mão (CQ-009) regredir                       | Campos novos opcionais; o agarre só age com contato + `grab`; suíte existente roda sem mudança     | Reverter o repasse no `world` se algo regredir   |
-| Afirmar precisão/desempenho sem medição                         | Não afirmar; valores de jogo; headless só prova fluxo, não fps (NFR-003/NFR-004)                   | Medir com mão real/GPU numa sessão futura        |
+| Risco                                                           | Mitigação                                                                                           | Rollback/contingência                             |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| O agarre prender o jogador sem saída                            | Quatro saídas independentes e teste de propriedade provando saída em tempo finito em qualquer caso  | Baixar `gripIdleMs`; forçar saída por tecla       |
+| A soltura por gesto ser ruidosa                                 | É o punho fechado segurado por tempo (robusto, CQ-010); nunca é a única saída; o `z` foi abandonado | Trocar o gesto de soltura sem mudar a arquitetura |
+| Conflito de edição com a tarefa #80 nos arquivos compartilhados | Mudanças pequenas e localizadas; o grosso em `climb.ts` (novo)                                      | Resolver conflito preservando as duas mudanças    |
+| O fluxo de teia por mão (CQ-009) regredir                       | Campos novos opcionais; o agarre só age com contato + `grab`; suíte existente roda sem mudança      | Reverter o repasse no `world` se algo regredir    |
+| Afirmar precisão/desempenho sem medição                         | Não afirmar; valores de jogo; headless só prova fluxo, não fps (NFR-003/NFR-004)                    | Medir com mão real/GPU numa sessão futura         |
 
 ## Constitution Check — pós-design
 

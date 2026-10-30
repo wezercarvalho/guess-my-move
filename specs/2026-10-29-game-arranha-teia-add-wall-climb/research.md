@@ -14,8 +14,8 @@ Esta pesquisa registra as decisões de projeto do agarre à parede, a máquina d
 
 O agarre é um estado novo do jogador na física pura (`packages/swing`), não uma lógica da tela. A tela só traduz os gestos/teclas em três entradas novas e lê o estado; toda a regra de colar, subir, descer e sair fica testável sem navegador. Isso segue a separação já usada no jogo (lógica pura vs apresentação) e torna a prova de "nunca prender" um teste puro.
 
-- **Estado:** `SwingState.grip: WallGrip | null`, com `WallGrip = { normal: Vec3, idleMs: number }` — a normal da parede agarrada (para a tela e para manter o jogador encostado) e o tempo acumulado sem movimento de escalada (para a saída por inatividade). `null` fora do agarre.
-- **Entrada:** `SwingInput` ganha `grab?: SlotFlags` (pedido de agarrar por mão), `climb?: number` (sinal de escalada -1..1, já reduzido do movimento alternado) e `release?: boolean` (puxar a mão para trás). Campos opcionais: os testes e o controlador existentes que não os passam seguem sem agarre.
+- **Estado:** `SwingState.grip: WallGrip | null`, com `WallGrip = { normal: Vec3, wallTop: number, idleMs: number, graceMs: number, fistMs: number }` — a normal da parede agarrada, o topo do prédio, e os relógios de inatividade, de tolerância à perda curta da mão (`graceMs`) e de punho segurado (`fistMs`). `null` fora do agarre. _(CQ-010: `graceMs`/`fistMs` acrescentados.)_
+- **Entrada:** `SwingInput` ganha `grab?: SlotFlags` (pedido de agarrar por mão), `climb?: number` (sinal de escalada -1..1) e `releaseFist?: boolean` (punho fechado de alguma mão pedindo soltar). _(CQ-010: era `release?: boolean` do "puxar para trás".)_ Campos opcionais: os testes e o controlador existentes que não os passam seguem sem agarre.
 
 ## Máquina de estados do agarre e a prova de saída em tempo finito
 
@@ -24,14 +24,14 @@ Três situações: **solto** (regime normal), **entrando** e **agarrado**.
 - **Entrar (solto → agarrado):** só quando, no passo, há contato com uma parede (`contact.kind !== 'roof'`) **e** `grab` é pedido em alguma mão. Ao entrar: `velocity` zera, as teias presas são soltas (CQ-002), `grip` guarda a normal da parede e `idleMs = 0`.
 - **Agarrado:** a gravidade e o deslize não agem. A posição ao longo da vertical muda por `climb * climbSpeed * dt` (sobe/desce), limitada. A colisão da parede (`index.resolve`) continua resolvendo a posição horizontal, mantendo o jogador colado. Quando `|climb|` está na zona morta, `idleMs += dt*1000`; senão `idleMs = 0`.
 - **Sair (agarrado → solto):** em QUALQUER uma destas, com `grip = null` e a física normal voltando:
-    1. `grab` vazio (nenhuma mão pede o agarre) ou `release` verdadeiro;
+    1. `grab` vazio (nenhuma mão pede o agarre) por mais que `grabGraceMs`, OU `releaseFist` (punho fechado) segurado por `fistReleaseMs`; _(CQ-010)_
     2. há teia presa no passo (o jogador lançou uma teia);
     3. a altura do agarre passa da altura do prédio em contato (topo) → sai para o telhado, `grounded = true`;
     4. `idleMs > gripIdleMs` (sem movimento de escalada por tempo acima da tolerância).
 
 **Prova de saída em tempo finito (informal, provada por teste de propriedade):** seja qual for a sequência de entradas a partir do estado agarrado, em cada passo uma de três coisas vale:
 
-- se em algum passo `grab` ficar vazio ou `release` for verdadeiro, sai (regra 1) — fim;
+- se em algum passo `grab` ficar vazio por mais que `grabGraceMs`, ou o punho for fechado e segurado por `fistReleaseMs`, sai (regra 1) — fim;
 - se `grab` continuar pedido e `|climb|` ficar na zona morta, `idleMs` cresce monotonicamente por `dt` a cada passo e, em no máximo `ceil(gripIdleMs / (dt*1000))` passos, ultrapassa `gripIdleMs` e sai (regra 4) — fim;
 - se `grab` continuar pedido e `|climb|` sair da zona morta, a altura muda por pelo menos `climbDeadzone*climbSpeed*dt` por passo no sentido do sinal; subindo, a altura é limitada pela altura do prédio em contato (finita) e, ao passar dela, sai para o telhado (regra 3) — fim; descendo, chega ao chão (y = eyeHeight), onde não há mais contato de parede acima do chão e a saída por topo/colisão e a inatividade (ao parar) encerram.
 
@@ -39,8 +39,8 @@ Como cada ramo leva a uma saída em um número finito de passos, **nenhuma sequ�
 
 ## Sinais de gesto (módulo puro `climb.ts`)
 
-- **Sinal de escalada (`climbSignal`)**: recebe, por mão, o deslocamento vertical do pulso entre dois quadros (`dyLeft`, `dyRight`, em coordenadas normalizadas de imagem, y para baixo). O movimento alternado é `s = (dyLeft) * (-dyRight)` com sinais opostos; de forma robusta, usa-se a média do "puxar para cima" de cada mão: a mão que desce na imagem (dy positivo, y cresce para baixo) empurra o corpo para cima. O resultado é a soma dos componentes de subida de cada mão menos os de descida, com zona morta (`climbDeadzone`) e saturação em 1, devolvendo -1..1. Puro, sem estado: o controlador guarda o quadro anterior e passa os deltas.
-- **Sinal de soltar (`pullBackSignal`)**: recebe a variação de profundidade do pulso (`dz`) de cada mão entre quadros; devolve verdadeiro quando a mão se afasta da câmera além de `pullBackThreshold` (o `z` do MediaPipe cresce para longe). Aproximado (H-01).
+- **Sinal de escalada (`climbSignal`)**: recebe, por mão, o deslocamento vertical do pulso entre dois quadros (`dyLeft`, `dyRight`, em coordenadas normalizadas de imagem, y para baixo). _(CQ-010: a fórmula antiga `(dyLeft - dyRight)/2` invertia o sinal a cada braçada e dava líquido ~0 ao alternar.)_ A nova regra: cada mão que desce na imagem (dy > 0) puxa o corpo para cima — `up = max(0,dyLeft) + max(0,dyRight)`; as DUAS mãos subindo juntas descem — `down = min(max(0,-dyLeft), max(0,-dyRight))`, zero se uma mão não sobe; `climb = clamp(up - down)` com zona morta (`climbDeadzone`) e saturação em 1, devolvendo -1..1. Uma mão ausente conta `dy = 0`. Puro, sem estado: o controlador guarda o quadro anterior e passa os deltas.
+- **Sinal de soltar (punho)**: _(CQ-010)_ a soltura passou a ser o punho fechado (`isFist`) de alguma mão, segurado por `fistReleaseMs` no passo do agarre. O `pullBackSignal` por profundidade `z` foi REMOVIDO: o `z` do MediaPipe tem origem no pulso e fica ~0, então era código morto (documentação do Hand Landmarker; não medido ao vivo).
 - Ambos são funções puras, testadas com **dados sintéticos** (números de deslocamento), sem afirmar precisão. Os testes declaram que os dados são sintéticos e que o `z` é aproximado.
 
 ## Precedência do gesto da palma aberta (camada web)
@@ -54,25 +54,26 @@ Assim a palma aberta não precisa de um gesto novo e o significado é desambigua
 
 ## Valores de jogo (não realistas, ajustáveis)
 
-| Constante           | Valor inicial | Papel                                                               |
-| ------------------- | ------------- | ------------------------------------------------------------------- |
-| `climbSpeed`        | 6 m/s         | velocidade máxima de subida/descida na parede                       |
-| `climbDeadzone`     | 0,06          | abaixo disto o `climb` conta como zero (zona morta do movimento)    |
-| `gripIdleMs`        | 1500 ms       | tempo sem movimento de escalada que solta o agarre sozinho          |
-| `pullBackThreshold` | 0,08          | aumento de profundidade do pulso (z) que conta como "puxar p/ trás" |
+| Constante       | Valor inicial | Papel                                                              |
+| --------------- | ------------- | ------------------------------------------------------------------ |
+| `climbSpeed`    | 6 m/s         | velocidade máxima de subida/descida na parede                      |
+| `climbDeadzone` | 0,06          | abaixo disto o `climb` conta como zero (zona morta do movimento)   |
+| `gripIdleMs`    | 1500 ms       | tempo sem movimento de escalada que solta o agarre sozinho         |
+| `grabGraceMs`   | 300 ms        | tolerância à perda curta da mão/palma no meio da escalada (CQ-010) |
+| `fistReleaseMs` | 250 ms        | tempo com o punho fechado que solta o agarre de propósito (CQ-010) |
 
 Os valores são palpites de jogo, declarados como tais; serão ajustados pelo teste do maintainer. Nenhuma afirmação de precisão, fps ou latência é feita.
 
 ## Verificação planejada
 
-- **Testes puros (Vitest):** estado de agarre (entrar só com contato de parede; colar; subir/descer com `climb`; sair por `grab` vazio, `release`, teia, topo e inatividade) e o teste de propriedade de saída em tempo finito; o módulo `climb.ts` (sinal positivo/negativo/zona morta/saturação e o `pullBackSignal`), com dados sintéticos.
+- **Testes puros (Vitest):** estado de agarre (entrar só com contato de parede; colar; subir/descer com `climb`; sair por perder o agarre além de `grabGraceMs`, punho segurado `fistReleaseMs`, teia, topo e inatividade) e o teste de propriedade de saída em tempo finito; o módulo `climb.ts` (`climbSignal` por `up − down`: sobe quando uma mão desce, desce só com as duas subindo, zona morta e saturação), com dados sintéticos.
 - **Controlador (Vitest, mãos simuladas):** agarrar com contato de parede, subir, descer, soltar; a precedência da palma aberta (sem contato solta a teia); os testes de teia por mão não regridem.
 - **Pilotos automáticos descartáveis (cidade real `midtown.json`):** um sobe até o topo e sai no telhado; outro tenta sequências aleatórias e prova que o agarre nunca prende. Registrados como texto.
 - **Chromium headless (teclado no lugar da mão):** agarrar (`V`) com contato de parede, subir (setas), soltar; só requisições à própria origem; sem erros no console. Registrado como texto, sem imagens.
 
 ## Limitações declaradas (sem medição)
 
-- O `z` do MediaPipe ("puxar a mão para trás") é aproximado e não foi medido ao vivo; o sinal de soltar nunca é a única saída.
-- A distinção do movimento alternado foi validada só com dados sintéticos; nada com a mão real.
+- O sinal de soltar é o punho fechado segurado por tempo; a tentativa original pela profundidade `z` foi removida (CQ-010) por o `z` ser estruturalmente ~0 no MediaPipe. O agarre nunca depende de uma única saída.
+- A escalada (`up − down`) e os valores de jogo foram validados só com dados sintéticos; nada com a mão real.
 - A sensação da escalada, a velocidade (`climbSpeed`), a zona morta e a tolerância de inatividade são valores de jogo, não medidos.
 - Nenhum teste ao vivo com a mão real nem medição de fps numa GPU real antes do Gate 3.
