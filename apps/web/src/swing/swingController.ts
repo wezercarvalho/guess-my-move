@@ -2,22 +2,35 @@ import {
     type City,
     type SwingCue,
     type SwingInput,
+    type SwingState,
     type SwingWorld,
     type HandMetrics,
+    type HeadLook,
+    type HeadClimb,
+    type HeadClimbState,
+    type HeadLookState,
+    type FaceReading,
     type TriggerGesture,
     type WebSide,
     type WebTrigger,
     DEFAULT_SWING,
+    climbSignal,
     createCityIndex,
+    createHeadClimb,
+    createHeadLook,
     createSwingWorld,
     createWebTrigger,
     handMetrics,
     handSide,
+    isFist,
+    isOpenPalm,
     swingCue,
     webSignal,
 } from '@guess-my-move/swing'
 
 import { drawHands } from '../round/handOverlay.js'
+import { drawFace } from '../round/faceOverlay.js'
+import { type CreateFaceTracker, type FaceTracker } from '../tracker/faceTracker.js'
 import { type CreateHandTracker, type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
 import { type CreateSwingRenderer, type SwingRenderer } from './cityRenderer.js'
 import { drawReticle, reticlePlacement } from './reticle.js'
@@ -28,6 +41,9 @@ export type SwingTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
 /** `loading`: baixando a cidade; `playing`: jogo rodando; `error`: cidade ou 3D indisponível. */
 export type SwingPhase = 'loading' | 'playing' | 'error'
 
+/** Direção do olhar: `auto` (câmera segue o movimento, setas ajustam) ou `face` (a cabeça soma o desvio). */
+export type LookMode = 'auto' | 'face'
+
 export interface SwingHud {
     speedKmh: number
     /** Altura do olho acima do chão, em metros. */
@@ -37,6 +53,8 @@ export interface SwingHud {
     webAttached: boolean
     /** Lados das teias presas (-1 esquerda, 0 centro, 1 direita); vazio sem teia. */
     webSides: WebSide[]
+    /** Agarrado a uma parede (escalando). */
+    gripped: boolean
     /** O primeiro gesto de teia já aconteceu; antes disso o jogador espera no início. */
     started: boolean
 }
@@ -44,6 +62,8 @@ export interface SwingHud {
 /** Dependências do controlador; em testes, a cidade, o 3D, o relógio e as teclas são simulados. */
 export interface SwingEnv {
     createTracker: CreateHandTracker
+    /** Detector de rosto para girar a câmera com a cabeça; ausente desliga o recurso (fallback = hoje). */
+    createFaceTracker?: CreateFaceTracker
     loadCity: () => Promise<City>
     createRenderer: CreateSwingRenderer
     requestFrame: (callback: () => void) => number
@@ -70,6 +90,27 @@ export interface HandDebug {
     /** Gesto que o jogo entendeu (a geometria decide primeiro), se algum. */
     signal: string | null
     metrics: HandMetrics | null
+    /** Palma aberta (candidata a agarrar a parede). */
+    openPalm: boolean
+    /** Punho fechado (pedido de soltar a parede quando agarrado). */
+    fist: boolean
+}
+
+/** O que o detector de rosto lê da cabeça, para o painel de depuração. */
+export interface HeadDebug {
+    /** Direção do olhar ativa: `auto` ou `face`. */
+    lookMode: LookMode
+    /** Há rosto à vista. */
+    faceVisible: boolean
+    /** O neutro já foi calibrado. */
+    calibrated: boolean
+    /** Desvio de guinada aplicado ao olhar, em graus. */
+    yawDeg: number
+    /** Desvio de inclinação aplicado ao olhar, em graus. */
+    pitchDeg: number
+    /** Escalar olhando: direção pedida e quanto da espera passou (0 a 1). */
+    climbIntent: 'up' | 'down' | null
+    climbProgress: number
 }
 
 export interface SwingSnapshot {
@@ -77,6 +118,13 @@ export interface SwingSnapshot {
     failure: string | null
     trackerStatus: SwingTrackerStatus
     trackerFailure: string | null
+    /** Estado do detector de rosto (câmera que gira com a cabeça). */
+    faceTrackerStatus: SwingTrackerStatus
+    faceTrackerFailure: string | null
+    /** Há rosto à vista agora. */
+    faceVisible: boolean
+    /** Direção do olhar ativa: `auto` (sem rosto) ou `face` (câmera pela cabeça). */
+    lookMode: LookMode
     handVisible: boolean
     /** O gesto de teia está sendo segurado (não conta a tecla). */
     gestureHeld: boolean
@@ -88,6 +136,12 @@ export interface SwingSnapshot {
     pulling: boolean
     /** Leitura de cada mão, para o painel de depuração. */
     handDebug: readonly HandDebug[]
+    /** Agarre, para a depuração: em contato com a parede, agarrado e o sinal de escalada (-1..1). */
+    grabDebug: { touchingWall: boolean; gripped: boolean; climb: number }
+    /** Leitura da cabeça, para o painel de depuração. */
+    headDebug: HeadDebug
+    /** Escalar olhando: para onde o olhar pede (esperando ou escalando), a espera (0 a 1) e se já escala. */
+    headClimb: { intent: 'up' | 'down' | null; progress: number; climbing: boolean }
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
@@ -99,11 +153,13 @@ export interface SwingSnapshot {
 const PUBLISH_INTERVAL_MS = 100
 /** Sem quadro novo da câmera por este tempo, a mão conta como perdida. */
 const STALE_HAND_MS = 500
+/** A dica "Parede: abra a mão" fica por este tempo após o último contato, para não piscar. */
+const WALL_HINT_MS = 600
 
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha desconhecida.'
 
-const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSides: [], started: false }
+const EMPTY_HUD: SwingHud = { speedKmh: 0, altitude: 0, webs: 0, distance: 0, webAttached: false, webSides: [], gripped: false, started: false }
 
 /**
  * Orquestra o mundo do jogo, o desenho 3D, a câmera com o detector de mão e o teclado,
@@ -138,14 +194,43 @@ export class SwingController {
     private trackerStatus: SwingTrackerStatus = 'idle'
     private trackerFailure: string | null = null
     private loadToken = 0
+    private faceTracker: FaceTracker | null = null
+    private faceTrackerStatus: SwingTrackerStatus = 'idle'
+    private faceTrackerFailure: string | null = null
+    private faceLoadToken = 0
+    private readonly headLook: HeadLook = createHeadLook()
+    /** Escalar olhando: segurar o olhar para cima/baixo agarrado, por ~2 s, escala. */
+    private readonly headClimb: HeadClimb = createHeadClimb()
+    private headClimbState: HeadClimbState = { climb: 0, intent: null, progress: 0, climbing: false }
+    private headState: HeadLookState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+    /** Último desvio da cabeça já aplicado ao olhar; o próximo passo soma só a variação. */
+    private appliedHead = { yaw: 0, pitch: 0 }
+    /** Leitura do rosto no quadro de câmera mais recente (`null` sem rosto). */
+    private lastFace: FaceReading | null = null
+    /** Direção do olhar: `face` (padrão) usa a cabeça; `auto` não carrega o detector de rosto. */
+    private lookMode: LookMode = 'face'
     private hand: TrackedHand | null = null
     private hands: TrackedHand[] = []
     private handDebug: HandDebug[] = []
     private pulls = { left: false, right: false }
     private lastHandAt = 0
     private held = { left: false, right: false }
+    /** Mãos abertas em contato com a parede: agarrar daquele lado. */
+    private grabs = { left: false, right: false }
+    /** Sinal de escalada da câmera (-1 a 1), do movimento vertical das mãos. */
+    private climb = 0
+    /** Punho fechado de alguma mão: pedido de soltar da parede. */
+    private releaseFist = false
+    /** Posição vertical anterior do pulso de cada mão (y), para o sinal de escalada. */
+    private prevWrist: { left: number | null; right: number | null } = {
+        left: null,
+        right: null,
+    }
+    /** Último instante, em ms, em que o jogador encostou numa parede (para a dica não piscar). */
+    private wallContactAt = -Infinity
     private readonly sideKeys = { left: 'z', right: 'x' }
     private readonly pullKey = 'c'
+    private readonly grabKey = 'v'
     private lastThrow: 'hit' | 'miss' | null = null
     private counted = { webs: 0, misses: 0 }
     private lastVideoTime = -1
@@ -208,6 +293,14 @@ export class SwingController {
         this.tracker?.close()
         this.tracker = null
         this.trackerStatus = 'idle'
+        this.faceLoadToken++
+        this.faceTracker?.close()
+        this.faceTracker = null
+        this.faceTrackerStatus = 'idle'
+        this.headLook.reset()
+        this.headClimb.reset()
+        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.appliedHead = { yaw: 0, pitch: 0 }
         this.hand = null
         this.snapshot = this.buildSnapshot()
     }
@@ -215,6 +308,31 @@ export class SwingController {
     setCamera(active: boolean): void {
         this.cameraActive = active
         if (!active) this.dropHand()
+        this.sync()
+    }
+
+    /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
+    readonly recenterHead = (): void => {
+        this.headLook.recenter()
+        this.emit()
+    }
+
+    /**
+     * Escolhe a direção do olhar. `auto` segue o movimento (como antes do #80) e NÃO carrega
+     * o detector de rosto (libera se já carregado); `face` soma o desvio da cabeça. Ao sair de
+     * `face`, o desvio já aplicado é descartado sem salto (o olhar fica onde está e o
+     * acompanhamento automático assume daí). Seguro de trocar durante o jogo.
+     */
+    readonly setLookMode = (mode: LookMode): void => {
+        if (mode === this.lookMode) return
+        this.lookMode = mode
+        if (mode === 'auto' && this.faceTracker) this.releaseFaceTracker()
+        // Em qualquer troca, zera o "já aplicado" para não somar/subtrair o desvio de uma vez.
+        this.headLook.reset()
+        this.headClimb.reset()
+        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.appliedHead = { yaw: 0, pitch: 0 }
+        this.lastFace = null
         this.sync()
     }
 
@@ -236,6 +354,11 @@ export class SwingController {
         this.triggers.right.reset()
         this.held = { left: false, right: false }
         this.pulls = { left: false, right: false }
+        this.grabs = { left: false, right: false }
+        this.climb = 0
+        this.releaseFist = false
+        this.prevWrist = { left: null, right: null }
+        this.wallContactAt = -Infinity
         this.lastThrow = null
         this.counted = { webs: 0, misses: 0 }
         this.emit()
@@ -267,8 +390,51 @@ export class SwingController {
     private sync(): void {
         if (this.attached && this.cameraActive && this.trackerStatus === 'idle') this.loadTracker()
         if (!this.cameraActive && this.tracker) this.releaseTracker()
+        if (this.attached && this.cameraActive && this.lookMode === 'face' && this.env.createFaceTracker && this.faceTrackerStatus === 'idle') {
+            this.loadFaceTracker()
+        }
+        if ((!this.cameraActive || this.lookMode === 'auto') && this.faceTracker) this.releaseFaceTracker()
         this.ensureLoop()
         this.emit()
+    }
+
+    /** Carrega o detector de rosto (opcional); sua falha não impede o jogo nem o detector de mão. */
+    private loadFaceTracker(): void {
+        const create = this.env.createFaceTracker
+        if (!create) return
+        const token = ++this.faceLoadToken
+        this.faceTrackerStatus = 'loading'
+        create().then(
+            (tracker) => {
+                if (token !== this.faceLoadToken || !this.attached) {
+                    tracker.close()
+                    return
+                }
+                this.faceTracker = tracker
+                this.faceTrackerStatus = 'ready'
+                this.headLook.reset()
+                this.headClimb.reset()
+                this.appliedHead = { yaw: 0, pitch: 0 }
+                this.sync()
+            },
+            (error: unknown) => {
+                if (token !== this.faceLoadToken || !this.attached) return
+                this.faceTrackerStatus = 'error'
+                this.faceTrackerFailure = messageOf(error)
+                this.emit()
+            },
+        )
+    }
+
+    private releaseFaceTracker(): void {
+        this.faceLoadToken++
+        this.faceTracker?.close()
+        this.faceTracker = null
+        this.faceTrackerStatus = 'idle'
+        this.headLook.reset()
+        this.headClimb.reset()
+        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.appliedHead = { yaw: 0, pitch: 0 }
     }
 
     private loadTracker(): void {
@@ -306,6 +472,11 @@ export class SwingController {
         this.hand = null
         this.hands = []
         this.handDebug = []
+        this.grabs = { left: false, right: false }
+        this.climb = 0
+        this.releaseFist = false
+        this.prevWrist = { left: null, right: null }
+        this.lastFace = null
         const now = this.env.now()
         this.applyTriggers({ left: null, right: null }, now)
         const overlay = this.surfaces.getOverlay()
@@ -334,6 +505,39 @@ export class SwingController {
         this.lastNow = now
 
         this.readHand(now)
+        const touchingWall = world.state.touchingWall
+        const gripped = world.state.grip !== null
+        // Precedência da palma aberta: só agarra em contato com a parede; senão a palma segue
+        // soltando a teia. A tecla V agarra (centro) enquanto segurada.
+        const grabKey = this.keys.has(this.grabKey)
+        const grab =
+            touchingWall || gripped
+                ? {
+                      left: this.grabs.left,
+                      right: this.grabs.right,
+                      center: grabKey,
+                  }
+                : { center: grabKey && touchingWall }
+        // Escalada: a câmera dá o movimento das mãos; agarrado, as setas sobem/descem também.
+        // No modo Rosto, agarrado, segurar o olhar para cima/baixo por ~2 s também escala.
+        const keyClimb = gripped ? this.keyAxis('ArrowUp', 'ArrowDown') : 0
+        const head = this.updateHeadLook(dt)
+        this.headClimbState = this.headClimb.update(
+            {
+                pitch: this.headState.pitchOffset,
+                yaw: this.headState.yawOffset,
+                active:
+                    gripped &&
+                    this.lookMode === 'face' &&
+                    this.faceTracker !== null &&
+                    this.headState.faceVisible &&
+                    this.headState.calibrated,
+            },
+            dt * 1000,
+        )
+        const climb = [this.climb, keyClimb, this.headClimbState.climb].reduce((best, value) =>
+            Math.abs(value) > Math.abs(best) ? value : best,
+        )
         const input: SwingInput = {
             // Cada mão segura a própria teia; Espaço é a teia do centro (teclado).
             held: {
@@ -345,11 +549,19 @@ export class SwingController {
             pull: this.keys.has(this.pullKey)
                 ? { left: true, center: true, right: true }
                 : { left: this.pulls.left, right: this.pulls.right },
-            // A câmera é automática (segue o movimento); as setas só ajustam o olhar.
+            // Mãos abertas em contato com a parede agarram; V agarra pelo teclado.
+            grab,
+            climb,
+            releaseFist: this.releaseFist,
+            // A câmera é automática (segue o movimento); as setas só ajustam o olhar (fora do agarre).
             yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
-            pitchRate: this.keyAxis('ArrowUp', 'ArrowDown'),
+            pitchRate: gripped ? 0 : this.keyAxis('ArrowUp', 'ArrowDown'),
+            // A cabeça soma um desvio ao olhar enquanto há rosto; a mira da teia segue junto.
+            lookDelta: head.delta,
+            lookActive: head.active,
         }
         world.advance(input, dt)
+        if (world.state.touchingWall) this.wallContactAt = now
         this.noteThrow(world)
         renderer.render(world.state)
 
@@ -372,6 +584,29 @@ export class SwingController {
         if (webs > this.counted.webs) this.lastThrow = 'hit'
         else if (misses > this.counted.misses) this.lastThrow = 'miss'
         this.counted = { webs, misses }
+    }
+
+    /**
+     * Avança o olhar da cabeça com `dt` (a suavização progride a cada quadro de tela, não só
+     * quando chega um quadro novo da câmera) e devolve a VARIAÇÃO do desvio desde o último
+     * passo, para somar ao olhar sem acumular, e se a cabeça está comandando agora.
+     */
+    private updateHeadLook(dt: number): { delta: { yaw: number; pitch: number }; active: boolean } {
+        if (this.faceTracker === null) return { delta: { yaw: 0, pitch: 0 }, active: false }
+        this.headState = this.headLook.update(this.lastFace?.orientation ?? null, dt)
+        const delta = {
+            yaw: this.headState.yawOffset - this.appliedHead.yaw,
+            pitch: this.headState.pitchOffset - this.appliedHead.pitch,
+        }
+        this.appliedHead = { yaw: this.headState.yawOffset, pitch: this.headState.pitchOffset }
+        // Ativa (segura o olhar contra o acompanhamento automático) enquanto há rosto e um desvio.
+        const active =
+            this.headState.faceVisible &&
+            (Math.abs(this.headState.yawOffset) > 1e-4 ||
+                Math.abs(this.headState.pitchOffset) > 1e-4 ||
+                Math.abs(delta.yaw) > 1e-5 ||
+                Math.abs(delta.pitch) > 1e-5)
+        return { delta, active }
     }
 
     /** Mostra, antes de lançar, onde a teia prenderia a partir de cada mão que está sem teia. */
@@ -401,32 +636,48 @@ export class SwingController {
     private readHand(now: number): void {
         const { tracker } = this
         const video = this.surfaces.getVideo()
-        if (!tracker || !video || !this.cameraActive) return
+        if (!video || !this.cameraActive) return
+        if (!tracker && !this.faceTracker) return
         if (video.readyState >= 2 && video.videoWidth > 0 && this.takeNewCameraFrame(video)) {
-            let hands: TrackedHand[]
-            try {
-                hands = this.detectHands(tracker, video, now)
-            } catch (error) {
-                this.releaseTracker()
-                this.trackerStatus = 'error'
-                this.trackerFailure = messageOf(error)
-                this.dropHand()
-                return
+            // O MESMO quadro da câmera alimenta mãos e rosto.
+            this.readFace(video, now)
+            let hands: TrackedHand[] = []
+            if (tracker) {
+                try {
+                    hands = this.detectHands(tracker, video, now)
+                } catch (error) {
+                    this.releaseTracker()
+                    this.trackerStatus = 'error'
+                    this.trackerFailure = messageOf(error)
+                    this.dropHand()
+                    return
+                }
+                this.lastHandAt = now
+                this.hands = hands
+                this.hand = hands[0] ?? null
+                this.applyTriggers(this.signalsBySide(hands), now)
             }
-            this.lastHandAt = now
-            this.hands = hands
-            this.hand = hands[0] ?? null
-            this.applyTriggers(this.signalsBySide(hands), now)
-            const overlay = this.surfaces.getOverlay()
-            if (overlay) {
-                drawHands(
-                    overlay,
-                    video,
-                    hands.map((tracked) => tracked.landmarks),
-                )
-            }
+            this.drawOverlay(video, hands)
         } else if (this.hands.length > 0 && now - this.lastHandAt > STALE_HAND_MS) {
             this.dropHand()
+        }
+    }
+
+    /**
+     * Desenha, no mesmo overlay espelhado, o esqueleto das mãos e — no modo Rosto, com rosto
+     * à vista — o esboço esparso do rosto e o eixo do olhar. O desenho das mãos limpa o
+     * canvas; o rosto é desenhado por cima. Os pontos do rosto são transitórios, nunca guardados.
+     */
+    private drawOverlay(video: HTMLVideoElement, hands: TrackedHand[]): void {
+        const overlay = this.surfaces.getOverlay()
+        if (!overlay) return
+        drawHands(
+            overlay,
+            video,
+            hands.map((tracked) => tracked.landmarks),
+        )
+        if (this.lookMode === 'face' && this.lastFace && this.lastFace.landmarks.length > 0) {
+            drawFace(overlay, video, this.lastFace.landmarks, this.lastFace.orientation)
         }
     }
 
@@ -441,6 +692,23 @@ export class SwingController {
         this.pulls = { left: left.pull, right: right.pull }
     }
 
+    /**
+     * Lê o rosto no quadro novo e guarda a orientação da cabeça (`null` sem rosto). A falha
+     * do detector de rosto o desliga, sem derrubar o jogo nem o detector de mão.
+     */
+    private readFace(video: HTMLVideoElement, now: number): void {
+        const face = this.faceTracker
+        if (!face) return
+        try {
+            this.lastFace = face.detect(video, now)
+        } catch (error) {
+            this.releaseFaceTracker()
+            this.faceTrackerStatus = 'error'
+            this.faceTrackerFailure = messageOf(error)
+            this.lastFace = null
+        }
+    }
+
     private detectHands(tracker: HandTracker, video: HTMLVideoElement, now: number): TrackedHand[] {
         if (tracker.detectAll) return tracker.detectAll(video, now).slice(0, 2)
         const single = tracker.detect(video, now)
@@ -448,8 +716,10 @@ export class SwingController {
     }
 
     /**
-     * O gesto de teia de cada lado da tela. Com duas mãos, a mais à esquerda da tela
-     * espelhada é a esquerda; com uma, vale o lado em que ela aparece.
+     * O gesto de teia de cada lado da tela, e os sinais do agarre. Com duas mãos, a mais à
+     * esquerda da tela espelhada é a esquerda; com uma, vale o lado em que ela aparece. Além
+     * do gesto de teia, lê a palma aberta (candidata a agarrar), o punho fechado (soltar da
+     * parede) e o deslocamento vertical do pulso de cada mão (escalada).
      */
     private signalsBySide(hands: TrackedHand[]): {
         left: TriggerGesture | null
@@ -460,6 +730,12 @@ export class SwingController {
             right: null,
         }
         this.handDebug = []
+        const openPalm = { left: false, right: false }
+        const closedFist = { left: false, right: false }
+        const wrist: { left: number | null; right: number | null } = {
+            left: null,
+            right: null,
+        }
         // A imagem da câmera é invertida: o maior x cru fica mais à esquerda na tela.
         const order = hands
             .map((tracked, index) => ({ tracked, index, x: tracked.landmarks[9]?.x ?? 0.5 }))
@@ -468,13 +744,31 @@ export class SwingController {
             const side = order.length === 2 ? (position === 0 ? 'left' : 'right') : handSide(tracked.landmarks)
             const signal = webSignal(tracked.landmarks, tracked.gesture)
             signals[side] = signal
+            const palmOpen = isOpenPalm(tracked.landmarks)
+            const fistClosed = isFist(tracked.landmarks)
+            openPalm[side] = palmOpen
+            closedFist[side] = fistClosed
+            const w = tracked.landmarks[0] as { x: number; y: number } | undefined
+            if (w) wrist[side] = w.y
             this.handDebug.push({
                 side: side === 'left' ? 'esq.' : 'dir.',
                 label: tracked.gesture?.name ?? null,
                 signal: signal?.name ?? null,
                 metrics: handMetrics(tracked.landmarks),
+                openPalm: palmOpen,
+                fist: fistClosed,
             })
         })
+
+        // Escalada: deslocamento vertical do pulso de cada mão. Descer na imagem puxa o corpo
+        // para cima; as duas subindo ao mesmo tempo descem (regra em `climbSignal`).
+        const dyLeft = this.prevWrist.left !== null && wrist.left !== null ? wrist.left - this.prevWrist.left : 0
+        const dyRight = this.prevWrist.right !== null && wrist.right !== null ? wrist.right - this.prevWrist.right : 0
+        this.climb = climbSignal(dyLeft, dyRight)
+        // Soltar da parede: punho fechado de qualquer mão (o passo exige segurá-lo por tempo).
+        this.releaseFist = closedFist.left || closedFist.right
+        this.grabs = openPalm
+        this.prevWrist = wrist
         return signals
     }
 
@@ -547,6 +841,7 @@ export class SwingController {
                   distance: Math.round(state.stats.distance),
                   webAttached: state.webs.length > 0,
                   webSides: state.webs.map((web) => web.side),
+                  gripped: state.grip !== null,
                   started: state.started,
               }
             : EMPTY_HUD
@@ -555,20 +850,56 @@ export class SwingController {
             failure: this.failure,
             trackerStatus: this.trackerStatus,
             trackerFailure: this.trackerFailure,
+            faceTrackerStatus: this.faceTrackerStatus,
+            faceTrackerFailure: this.faceTrackerFailure,
+            faceVisible: this.headState.faceVisible,
+            lookMode: this.lookMode,
             handVisible: this.hand !== null,
             gestureHeld: this.held.left || this.held.right,
             held: { ...this.held },
             handsVisible: this.hands.length,
             pulling: this.pulls.left || this.pulls.right,
             handDebug: [...this.handDebug],
-            cue: state ? swingCue(state) : 'start',
+            headClimb: {
+                intent: this.headClimbState.intent,
+                progress: this.headClimbState.progress,
+                climbing: this.headClimbState.climbing,
+            },
+            headDebug: {
+                lookMode: this.lookMode,
+                faceVisible: this.headState.faceVisible,
+                calibrated: this.headState.calibrated,
+                yawDeg: Math.round((this.headState.yawOffset * 180) / Math.PI),
+                pitchDeg: Math.round((this.headState.pitchOffset * 180) / Math.PI),
+                climbIntent: this.headClimbState.intent,
+                climbProgress: this.headClimbState.progress,
+            },
+            grabDebug: {
+                touchingWall: state?.touchingWall ?? false,
+                gripped: state?.grip != null,
+                climb: this.climb,
+            },
+            cue: this.currentCue(state),
             lastThrow: this.lastThrow,
             hud,
             attribution: this.city?.attribution ?? '',
         }
     }
+
+    /**
+     * O gesto a sugerir. Parte de `swingCue`, mas mantém a dica de parede ("abra a mão para
+     * agarrar") por um instante após o último contato, para o status não piscar quando o
+     * jogador roça a fachada.
+     */
+    private currentCue(state: SwingState | undefined): SwingCue {
+        if (!state) return 'start'
+        const base = swingCue(state)
+        if (base === 'wall' || state.grip !== null || state.webs.length > 0 || !state.started) return base
+        const recentWall = this.env.now() - this.wallContactAt <= WALL_HINT_MS
+        return recentWall ? 'wall' : base
+    }
 }
 
 /** Teclas que o jogo usa (e que não devem rolar a página). */
-const CONTROL_KEYS = new Set([' ', 'z', 'x', 'c', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
+const CONTROL_KEYS = new Set([' ', 'z', 'x', 'c', 'v', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
 

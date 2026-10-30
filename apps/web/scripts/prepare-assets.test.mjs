@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { GESTURE_MODEL, MODEL, copyWasm, ensureModel, sha256Hex } from './prepare-assets.mjs'
+import { FACE_MODEL, GESTURE_MODEL, MODEL, copyWasm, ensureModel, sha256Hex } from './prepare-assets.mjs'
 
 const bytes = Buffer.from('conteudo-do-modelo')
 const model = { file: 'm.task', url: 'https://exemplo.invalid/m.task', sha256: sha256Hex(bytes) }
@@ -83,13 +83,15 @@ describe('copyWasm', () => {
 })
 
 describe('modelos preparados', () => {
-    it('o detector de mão e o reconhecedor de gestos têm arquivo, URL do Google e SHA-256 próprios', () => {
-        for (const entry of [MODEL, GESTURE_MODEL]) {
+    it('o detector de mão, o reconhecedor de gestos e o detector de rosto têm arquivo, URL do Google e SHA-256 próprios', () => {
+        for (const entry of [MODEL, GESTURE_MODEL, FACE_MODEL]) {
             assert.match(entry.file, /\.task$/)
             assert.match(entry.url, /^https:\/\/storage\.googleapis\.com\/mediapipe-models\//)
             assert.match(entry.sha256, /^[0-9a-f]{64}$/)
         }
-        assert.notEqual(MODEL.file, GESTURE_MODEL.file)
-        assert.notEqual(MODEL.sha256, GESTURE_MODEL.sha256)
+        const files = [MODEL.file, GESTURE_MODEL.file, FACE_MODEL.file]
+        const hashes = [MODEL.sha256, GESTURE_MODEL.sha256, FACE_MODEL.sha256]
+        assert.equal(new Set(files).size, 3)
+        assert.equal(new Set(hashes).size, 3)
     })
 })

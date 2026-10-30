@@ -1,4 +1,5 @@
 import { type CityIndex } from './cityIndex.js'
+import { DEFAULT_GRIP, type GripConfig, type WallGrip, stepGrip } from './climb.js'
 import { type Vec3, forwardFromAngles } from './vec.js'
 import { DEFAULT_WEB, type WebConfig } from './web.js'
 
@@ -73,6 +74,8 @@ export interface SwingConfig {
     followPitchMax: number
     /** Teia no céu quando nenhum prédio é alcançável; `null` desliga. */
     skyWeb: SkyWebConfig | null
+    /** Agarre à parede: velocidade de escalada, zona morta, tolerância e limite de profundidade. */
+    grip: GripConfig
     /** Altura do ponto de partida, em metros. */
     spawnHeight: number
     /** Velocidade para a frente ao começar, em m/s. */
@@ -111,6 +114,7 @@ export const DEFAULT_SWING: SwingConfig = {
     followPitchMin: degrees(-20),
     followPitchMax: degrees(35),
     skyWeb: { distance: 60, rise: 70, maxAltitude: 220 },
+    grip: DEFAULT_GRIP,
     spawnHeight: 90,
     spawnSpeed: 10,
 }
@@ -149,6 +153,10 @@ export interface SwingState {
     webs: ActiveWeb[]
     /** Em pé no chão ou num telhado no último passo. */
     grounded: boolean
+    /** Agarrado a uma parede; `null` fora do agarre. */
+    grip: WallGrip | null
+    /** Encostado numa parede de prédio no último passo (desambigua a palma aberta na tela). */
+    touchingWall: boolean
     /** O jogo começou (primeiro gesto de teia); antes disso o jogador fica parado no início. */
     started: boolean
     stats: SwingStats
@@ -162,6 +170,8 @@ export function createSwingState(position: Vec3, yaw = 0, pitch = degrees(10)): 
         pitch,
         webs: [],
         grounded: false,
+        grip: null,
+        touchingWall: false,
         started: false,
         stats: { distance: 0, webs: 0, misses: 0, topSpeed: 0 },
     }
@@ -174,16 +184,51 @@ export interface StepEvents {
 
 /**
  * Avança o jogador `dt` segundos: corda, gravidade, arrasto, colisão com prédios, chão e
- * limites do mapa. Altera `state` no lugar.
+ * limites do mapa. Com o jogador agarrado à parede, a gravidade e a corda não agem: ele
+ * sobe/desce colado à fachada. Altera `state` no lugar. `input` traz o pedido de agarre,
+ * o sinal de escalada e o de soltar; omiti-lo mantém o comportamento sem agarre.
  */
 export function stepPlayer(
     index: CityIndex,
     state: SwingState,
     dt: number,
     config: SwingConfig = DEFAULT_SWING,
+    input: PlayerStep = {},
 ): StepEvents {
     const { position, velocity } = state
     const before = { x: position.x, z: position.z }
+    const grab = SLOT_KEYS.some((slot) => input.grab?.[slot])
+    let exitedGrip = false
+
+    // Regime de agarre: colado à parede, sem gravidade nem corda. Move na vertical por climb,
+    // resolve a colisão para ficar encostado e sai por uma das quatro condições.
+    if (state.grip !== null) {
+        const stepResult = stepGrip(
+            state,
+            { grab, climb: input.climb ?? 0, releaseFist: Boolean(input.releaseFist), hasWeb: state.webs.length > 0 },
+            dt,
+            latestContact(index, state, config),
+            config.grip,
+            () => wallTop(index, state, config, state.grip?.normal),
+            config.radius,
+        )
+        if (stepResult.gripped) {
+            // Mantém o jogador encostado na fachada (resolve só a posição horizontal).
+            const contact = index.resolve(position, config.radius)
+            if (contact && contact.kind !== 'roof') {
+                position.x = contact.position.x
+                position.z = contact.position.z
+                state.touchingWall = true
+            } else if (contact && contact.kind === 'roof') {
+                position.y = contact.position.y
+            }
+            clampToBounds(index, state, config)
+            state.stats.distance += Math.hypot(position.x - before.x, position.z - before.z)
+            return { wallHit: false }
+        }
+        // Saiu do agarre neste passo: segue para a física normal (sem reentrar agora).
+        exitedGrip = true
+    }
 
     // Com mais de uma teia, a assistência de cada uma é dividida: duas cordas seguram, não aceleram em dobro.
     const share = 1 / Math.max(1, state.webs.length)
@@ -252,6 +297,7 @@ export function stepPlayer(
     }
 
     state.grounded = false
+    state.touchingWall = false
     let wallHit = false
     const contact = index.resolve(position, config.radius)
     if (contact) {
@@ -276,7 +322,17 @@ export function stepPlayer(
             velocity.y = contact.normal.y * normal + (velocity.y - contact.normal.y * normal) * slide
             velocity.z = contact.normal.z * normal + (velocity.z - contact.normal.z * normal) * slide
             wallHit = true
+            state.touchingWall = true
         }
+    }
+
+    // Agarrar: contato de parede neste passo mais o pedido de agarrar. Entra no regime,
+    // zera a velocidade e solta as teias presas (um regime de cada vez). Não reentra no
+    // mesmo passo em que saiu (ex.: saída por teia lançada).
+    if (state.grip === null && !exitedGrip && grab && state.touchingWall && contact && contact.kind !== 'roof') {
+        state.grip = { normal: { ...contact.normal }, wallTop: wallTop(index, state, config, contact.normal), graceMs: 0, fistMs: 0 }
+        state.velocity = { x: 0, y: 0, z: 0 }
+        state.webs = []
     }
 
     if (position.y < config.eyeHeight) {
@@ -285,6 +341,43 @@ export function stepPlayer(
         state.grounded = true
     }
 
+    clampToBounds(index, state, config)
+
+    state.stats.distance += Math.hypot(position.x - before.x, position.z - before.z)
+    state.stats.topSpeed = Math.max(
+        state.stats.topSpeed,
+        Math.hypot(velocity.x, velocity.y, velocity.z),
+    )
+    return { wallHit }
+}
+
+/** Pedido do jogador que o passo precisa para o agarre (subconjunto de SwingInput). */
+export interface PlayerStep {
+    grab?: Partial<Record<'left' | 'center' | 'right', boolean>> | undefined
+    climb?: number | undefined
+    /** Punho fechado pedindo soltar da parede (solta ao segurar além de `fistReleaseMs`). */
+    releaseFist?: boolean | undefined
+}
+
+const SLOT_KEYS = ['left', 'center', 'right'] as const
+
+/** Contato de parede mais recente, sem alterar o estado (para o agarre acompanhar a fachada). */
+function latestContact(index: CityIndex, state: SwingState, config: SwingConfig) {
+    return index.resolve(state.position, config.radius)
+}
+
+/** Altura do prédio agarrado: amostra o apoio um pouco para dentro da fachada (contra a normal). */
+function wallTop(index: CityIndex, state: SwingState, config: SwingConfig, normal: Vec3 | undefined): number {
+    if (!normal) return Infinity
+    const inX = state.position.x - normal.x * (config.radius + 1)
+    const inZ = state.position.z - normal.z * (config.radius + 1)
+    const top = index.supportHeight(inX, inZ)
+    return top > 0 ? top + config.radius : Infinity
+}
+
+/** Mantém o jogador dentro da área jogável (parede invisível no limite). */
+function clampToBounds(index: CityIndex, state: SwingState, config: SwingConfig): void {
+    const { position, velocity } = state
     const bounds = index.playBounds
     const minX = bounds.minX + config.boundsMargin
     const maxX = bounds.maxX - config.boundsMargin
@@ -304,11 +397,4 @@ export function stepPlayer(
         position.z = maxZ
         if (velocity.z > 0) velocity.z = 0
     }
-
-    state.stats.distance += Math.hypot(position.x - before.x, position.z - before.z)
-    state.stats.topSpeed = Math.max(
-        state.stats.topSpeed,
-        Math.hypot(velocity.x, velocity.y, velocity.z),
-    )
-    return { wallHit }
 }

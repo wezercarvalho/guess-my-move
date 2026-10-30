@@ -3,10 +3,10 @@ import { useEffect, useRef } from 'react'
 import { CameraPanel } from '../camera/CameraPanel.js'
 import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
-import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, Steps, useDrawer } from '../design/index.js'
+import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { STEPS, currentStep, guideHint, statusLine } from './guide.js'
+import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
@@ -20,10 +20,17 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
+    if (game.hud.gripped) return gripStatusLine(game.lookMode === 'face' && game.faceVisible ? game.headClimb : null)
     return statusLine(game.cue)
 }
 
 const SIDE_NAMES = { '-1': 'esquerda', '0': 'centro', '1': 'direita' } as const
+
+/** Opções do seletor "Direção do olhar": padrão Rosto. */
+const LOOK_MODE_OPTIONS = [
+    { value: 'face', label: 'Rosto' },
+    { value: 'auto', label: 'Automática' },
+] as const
 
 /** Mãos com teia presa, para o medidor da tela. */
 function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
@@ -75,8 +82,15 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         trackerStatus: game.trackerStatus,
         handVisible: game.handVisible,
         gestureHeld: game.gestureHeld,
+        gripped: game.hud.gripped,
         lastThrow: game.lastThrow,
         cue: game.cue,
+    })
+
+    const headStatus = headStatusLine({
+        cameraActive: camera.isActive,
+        faceTrackerStatus: game.faceTrackerStatus,
+        faceVisible: game.faceVisible,
     })
 
     return (
@@ -108,7 +122,9 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             </div>
                             <div>
                                 <dt>Teia</dt>
-                                <dd data-testid="hud-web">{webLabel(game.hud.webSides)}</dd>
+                                <dd data-testid="hud-web">
+                                    {game.hud.gripped ? 'Agarrado' : webLabel(game.hud.webSides)}
+                                </dd>
                             </div>
                         </dl>
                     </div>
@@ -149,6 +165,36 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                         videoRef={videoRef}
                         overlay={<HandOverlay canvasRef={overlayRef} />}
                     />
+                    {camera.isActive && (
+                        <Panel raised aria-label="Direção do olhar" className="swing-head">
+                            <Eyebrow>Direção do olhar</Eyebrow>
+                            <SegmentedControl
+                                legend="Direção do olhar"
+                                name="swing-look-mode"
+                                value={game.lookMode}
+                                options={LOOK_MODE_OPTIONS}
+                                onChange={game.setLookMode}
+                            />
+                            {game.lookMode === 'face' ? (
+                                <>
+                                    <p aria-live="polite" className="round-status" data-testid="head-status">
+                                        {headStatus || 'Vire a cabeça para olhar em volta.'}
+                                    </p>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={game.recenterHead}
+                                        disabled={game.faceTrackerStatus !== 'ready'}
+                                    >
+                                        Centralizar
+                                    </Button>
+                                </>
+                            ) : (
+                                <p className="round-status" data-testid="head-status">
+                                    Câmera automática. As setas ajustam o olhar.
+                                </p>
+                            )}
+                        </Panel>
+                    )}
                     <Panel raised aria-label="Como jogar">
                         <Eyebrow>Como jogar</Eyebrow>
                         <Steps
@@ -160,11 +206,27 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             {hint}
                         </p>
                     </Panel>
+                    <Panel raised aria-label="Teclado" className="swing-keys-panel">
+                        <Eyebrow>Teclado</Eyebrow>
+                        <ul className="swing-keys" data-testid="keyboard-legend">
+                            {KEYS.map((group) => (
+                                <li key={group.action}>
+                                    {group.keys.map((key, index) => (
+                                        <span key={key}>
+                                            {index > 0 ? ' ' : ''}
+                                            <kbd>{key}</kbd>
+                                        </span>
+                                    ))}{' '}
+                                    {group.action}
+                                </li>
+                            ))}
+                        </ul>
+                    </Panel>
                     <PrivacyNotice />
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>
-                <SwingDebugPanel hands={game.handDebug} />
+                <SwingDebugPanel hands={game.handDebug} head={game.headDebug} grab={game.grabDebug} />
             </DrawerPanel>
         </div>
     )

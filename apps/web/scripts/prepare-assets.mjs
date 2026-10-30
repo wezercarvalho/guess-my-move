@@ -19,6 +19,13 @@ export const GESTURE_MODEL = {
     sha256: '97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482',
 }
 
+/** Detector de rosto do Arranha-Teia (matriz de transformação facial para o olhar da câmera). */
+export const FACE_MODEL = {
+    file: 'face_landmarker.task',
+    url: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+    sha256: '64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff',
+}
+
 export function sha256Hex(bytes) {
     return createHash('sha256').update(bytes).digest('hex')
 }
@@ -82,7 +89,7 @@ async function main() {
 
     const copied = await copyWasm({ from: wasmSource, to: join(publicDir, 'wasm') })
     const statuses = []
-    for (const model of [MODEL, GESTURE_MODEL]) {
+    for (const model of [MODEL, GESTURE_MODEL, FACE_MODEL]) {
         statuses.push(`${model.file} (${await ensureModel({ dir: publicDir, model })})`)
     }
     console.log(`MediaPipe: wasm (${copied} arquivo(s) copiado(s)), modelos ${statuses.join(', ')}.`)
