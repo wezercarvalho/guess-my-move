@@ -1,4 +1,10 @@
-import { type BeteConfig, type BeteSnapshot, DEFAULT_BETE } from '@guess-my-move/marbles'
+import {
+    type Body,
+    type Competitor,
+    type FieldDecor,
+    DEFAULT_PHYSICS,
+    type Vec,
+} from '@guess-my-move/marbles'
 
 type Context = CanvasRenderingContext2D
 
@@ -22,7 +28,7 @@ function ring(context: Context, x: number, y: number, radius: number, dash: numb
 }
 
 /** Seta tracejada da bolinha de tiro na direção da velocidade, com ponta aberta. */
-function arrow(context: Context, from: BeteSnapshot['shooter'], velocity: { x: number; y: number }, power: number): void {
+function arrow(context: Context, from: Vec, velocity: Vec, power: number): void {
     const speed = Math.hypot(velocity.x, velocity.y)
     if (speed === 0) return
     const ux = velocity.x / speed
@@ -43,26 +49,66 @@ function arrow(context: Context, from: BeteSnapshot['shooter'], velocity: { x: n
 
 /** Cursor da mão no campo: posição da pinça e se está fechada. */
 export interface HandCursor {
-    point: { x: number; y: number }
+    point: Vec
     closed: boolean
 }
 
+/** Mira em andamento a desenhar: elástico da pinça e/ou seta do estalo. */
+export interface AimDraw {
+    pinch: Vec
+    shot: { velocity: Vec; power: number } | null
+    direction: Vec | null
+}
+
+/** O que a tela entrega ao desenho do campo de um modo qualquer. */
+export interface FieldDraw {
+    field: readonly Body[]
+    decor: FieldDecor | null
+    aim: AimDraw | null
+    hand: HandCursor | null
+    /** Dono da bolinha de tiro (índice 0): define a cor. Ausente = o jogador. */
+    shooterOwner?: Competitor
+}
+
+/** Cor da bolinha de tiro de cada competidor: o bot é roxo para não se confundir com o jogador. */
+const SHOOTER_COLOR: Record<Competitor, string> = {
+    player: '#3b82f6',
+    opponent: '#8b5cf6',
+}
+
+/** Desenha o círculo do triângulo ou as covas (com a ativa destacada). */
+function drawDecor(context: Context, decor: FieldDecor): void {
+    if (decor.circle) {
+        context.lineWidth = 2
+        context.strokeStyle = 'rgba(60, 40, 20, 0.55)'
+        ring(context, decor.circle.x, decor.circle.y, decor.circle.radius, [6, 6])
+    }
+    if (decor.holes) {
+        const { positions, radius, active } = decor.holes
+        positions.forEach((pos, index) => {
+            context.beginPath()
+            context.arc(pos.x, pos.y, radius, 0, Math.PI * 2)
+            context.fillStyle = '#3a2a16'
+            context.fill()
+            context.lineWidth = index === active ? 4 : 2
+            context.strokeStyle = index === active ? '#f2c14e' : 'rgba(60, 40, 20, 0.6)'
+            context.stroke()
+        })
+    }
+}
+
 /**
- * Desenha o campo 2D visto de cima: terreno, marca do ponto de partida, bolinha
- * de tiro, alvo, o cursor da mão (quando visível) e, durante a mira, o elástico,
- * o cursor da pinça e a seta de previsão. As coordenadas são as do campo; o CSS
- * escala o canvas.
+ * Desenha o campo 2D visto de cima para QUALQUER modo: terreno, a geometria do
+ * modo (círculo do triângulo, covas com a ativa destacada), os corpos (a bolinha
+ * de tiro em azul e as demais em vermelho), o cursor da mão e, durante a mira, o
+ * elástico/seta de previsão. As coordenadas são as do campo; o CSS escala o
+ * canvas. O desenho não conhece regras de modo: consome só corpos e geometria.
  */
-export function drawField(
-    canvas: HTMLCanvasElement,
-    snapshot: BeteSnapshot,
-    hand: HandCursor | null = null,
-    config: BeteConfig = DEFAULT_BETE,
-): void {
+export function drawField(canvas: HTMLCanvasElement, draw: FieldDraw): void {
     const context = canvas.getContext('2d')
     if (!context) return
-    const { width, height } = config.physics
-    const { radius, shooterStart } = config
+    const { width, height } = DEFAULT_PHYSICS
+    const { field, decor, aim, hand, shooterOwner = 'player' } = draw
 
     context.clearRect(0, 0, width, height)
     context.fillStyle = '#b98f5e'
@@ -71,21 +117,32 @@ export function drawField(
     context.strokeStyle = '#7a5a34'
     context.strokeRect(3, 3, width - 6, height - 6)
 
-    context.lineWidth = 2
-    context.strokeStyle = 'rgba(60, 40, 20, 0.45)'
-    ring(context, shooterStart.x, shooterStart.y, radius + 8, [4, 4])
+    if (decor) drawDecor(context, decor)
 
-    marble(context, snapshot.target.x, snapshot.target.y, radius, '#e5533d')
-    marble(context, snapshot.shooter.x, snapshot.shooter.y, radius, '#3b82f6')
+    // A bolinha de tiro (índice 0) tem a cor do dono; as demais são vermelhas.
+    field.forEach((body, index) => {
+        marble(
+            context,
+            body.pos.x,
+            body.pos.y,
+            body.radius,
+            index === 0 ? SHOOTER_COLOR[shooterOwner] : '#e5533d',
+        )
+    })
+    // Bolinhas paradas de quem não está na vez, na cor do dono (Cova contra o bot).
+    decor?.resting?.forEach((rest) => {
+        marble(context, rest.pos.x, rest.pos.y, rest.radius, SHOOTER_COLOR[rest.owner])
+    })
 
-    if (snapshot.flick) {
+    const shooter = field.length > 0 ? field[0].pos : { x: 0, y: 0 }
+
+    if (aim?.direction) {
         context.lineCap = 'round'
         context.lineWidth = 3
         context.strokeStyle = '#1e3a8a'
-        arrow(context, snapshot.shooter, snapshot.flick.direction, 0.3)
+        arrow(context, shooter, aim.direction, 0.3)
     }
 
-    const { aim } = snapshot
     if (hand && !aim) {
         context.lineWidth = 3
         if (hand.closed) {
@@ -100,13 +157,14 @@ export function drawField(
             context.stroke()
         }
     }
-    if (aim) {
+
+    if (aim && !aim.direction) {
         context.lineCap = 'round'
         context.lineWidth = 3
         context.strokeStyle = '#2f855a'
         context.beginPath()
         context.moveTo(aim.pinch.x, aim.pinch.y)
-        context.lineTo(snapshot.shooter.x, snapshot.shooter.y)
+        context.lineTo(shooter.x, shooter.y)
         context.stroke()
 
         context.beginPath()
@@ -117,7 +175,7 @@ export function drawField(
         if (aim.shot) {
             context.lineWidth = 3
             context.strokeStyle = '#1e3a8a'
-            arrow(context, snapshot.shooter, aim.shot.velocity, aim.shot.power)
+            arrow(context, shooter, aim.shot.velocity, aim.shot.power)
         }
     }
 }

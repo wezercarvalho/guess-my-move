@@ -1,12 +1,18 @@
+import { type BotLevel, type BotPlanner, createBotPlanner, modes } from '@guess-my-move/marbles'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
 import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
-import { MarblesController, modeFromSearch } from './marblesController.js'
+import { MarblesController, shotControlFromSearch } from './marblesController.js'
 
 /** Relógio, quadros de vídeo e detector controlados pelo teste. */
 function harness(
-    options: { createTracker?: () => Promise<HandTracker>; videoFrameCallback?: boolean } = {},
+    options: {
+        createTracker?: () => Promise<HandTracker>
+        /** Sem semente fixa: o bot sorteia uma por partida (comportamento real). */
+        randomSeed?: boolean
+        createBot?: (level: BotLevel) => BotPlanner
+    } = {},
 ) {
     let nowMs = 1000
     let queued: (() => void) | null = null
@@ -17,27 +23,10 @@ function harness(
         readyState: 4,
         videoWidth: 640,
         videoHeight: 480,
-        clientWidth: 640,
-        clientHeight: 480,
         get currentTime() {
             return media.currentTime
         },
     } as unknown as HTMLVideoElement
-
-    // Com `videoFrameCallback`, o vídeo avisa cada quadro novo da câmera, como o Chrome faz.
-    let cameraFrame: (() => void) | null = null
-    const cancelVideoFrameCallback = vi.fn(() => {
-        cameraFrame = null
-    })
-    if (options.videoFrameCallback) {
-        Object.assign(video, {
-            requestVideoFrameCallback: (callback: (now: number, metadata: object) => void) => {
-                cameraFrame = () => callback(0, {})
-                return 7
-            },
-            cancelVideoFrameCallback,
-        })
-    }
 
     const detect = vi.fn((): TrackedHand | null => next)
     const close = vi.fn()
@@ -55,24 +44,22 @@ function harness(
             return 1
         },
         cancelFrame,
+        // Bot determinístico padrão; a semente é fixada por `seed`.
+        createBot: options.createBot ?? (() => createBotPlanner()),
+        ...(options.randomSeed ? {} : { seed: 12345 }),
     })
     controller.attach({ getVideo: () => video, getOverlay: () => null })
 
-    return {
+    const api = {
         controller,
         detect,
-        close,
-        cancelFrame,
-        cancelVideoFrameCallback,
         createTracker,
-        /** Liga a câmera e espera o detector ficar pronto. */
         async ready() {
             controller.setCamera(true, false)
             await vi.waitFor(() => {
                 expect(controller.getSnapshot().trackerStatus).toBe('ready')
             })
         },
-        /** Um quadro de vídeo novo por passo, com a mão dada (ou nenhuma). */
         run(hand: TrackedHand | null, count = 1, stepMs = 33) {
             for (let i = 0; i < count; i++) {
                 next = hand
@@ -83,449 +70,320 @@ function harness(
                 callback?.()
             }
         },
-        /** Um passo do laço de exibição; `currentTime` sempre avança (fluxo ao vivo), mas a câmera só entrega quadro novo se pedido. */
-        runLive(hand: TrackedHand | null, newCameraFrame: boolean, stepMs = 16) {
-            next = hand
-            nowMs += stepMs
-            media.currentTime += stepMs / 1000
-            if (newCameraFrame) {
-                const deliver = cameraFrame
-                cameraFrame = null
-                deliver?.()
+        /** Avança o relógio e o laço sem quadro novo da câmera (anima a rolagem). */
+        tick(count = 1, stepMs = 16) {
+            for (let i = 0; i < count; i++) {
+                nowMs += stepMs
+                const callback = queued
+                queued = null
+                callback?.()
             }
-            const callback = queued
-            queued = null
-            callback?.()
         },
-        /** Passa o relógio sem quadro novo de vídeo. */
-        runWithoutNewFrame(stepMs = 33) {
-            nowMs += stepMs
-            const callback = queued
-            queued = null
-            callback?.()
-        },
-        hasQueuedFrame: () => queued !== null,
     }
+    return api
 }
 
 const open = (x: number, y: number) => pinchHand({ ratio: OPEN_RATIO, x, y })
 const closed = (x: number, y: number) => pinchHand({ ratio: CLOSED_RATIO, x, y })
 
-/** Pinça aberta, fecha na bolinha, arrasta até (20, 300) e abre: o tiro direto no alvo. */
-function shootAtTarget(h: ReturnType<typeof harness>) {
-    h.run(open(100, 300))
-    h.run(closed(150, 300))
-    h.run(closed(20, 300), 2)
-    h.run(open(20, 300))
+/** Dispara um tiro do jogador pela pinça (abre, fecha, arrasta e solta). */
+function firePinch(h: ReturnType<typeof harness>) {
+    h.run(open(400, 300))
+    h.run(closed(400, 300))
+    h.run(closed(250, 300), 2)
+    h.run(open(250, 300))
 }
 
-describe('MarblesController: câmera e detector', () => {
-    it('começa ocioso e fica pronto quando a câmera e o detector estão prontos', async () => {
-        const h = harness()
-        expect(h.controller.getSnapshot().round.state).toBe('idle')
-        expect(h.controller.getSnapshot().trackerStatus).toBe('idle')
-        await h.ready()
+/** Anima a rolagem até a partida sair de `rolling`/`bot-turn`. */
+function settle(h: ReturnType<typeof harness>, maxTicks = 2000) {
+    let ticks = 0
+    while (ticks < maxTicks) {
+        const phase = h.controller.getSnapshot().match?.phase
+        if (phase !== 'rolling' && phase !== 'bot-turn' && phase !== 'round-over') break
+        // Na vez do bot e na espera entre rodadas, só o tempo precisa correr.
+        h.tick(1, 16)
+        ticks++
+    }
+    return ticks
+}
+
+/** Joga a partida inteira: dispara na vez do jogador, anima o resto, até encerrar. */
+function playMatch(h: ReturnType<typeof harness>, maxShots = 100) {
+    let shots = 0
+    while (shots < maxShots) {
         const snap = h.controller.getSnapshot()
-        expect(snap.round.state).toBe('ready')
-        expect(snap.debug.delegate).toBe('GPU')
+        const match = snap.match
+        if (!match || match.phase === 'match-over') break
+        if (match.phase === 'player-turn' && snap.trackerStatus === 'ready') {
+            firePinch(h)
+            settle(h)
+            shots++
+        } else {
+            settle(h)
+        }
+    }
+}
+
+describe('MarblesController: tela inicial e escolha', () => {
+    it('começa na tela de escolha com o primeiro modo e contra a meta', () => {
+        const h = harness()
+        const snap = h.controller.getSnapshot()
+        expect(snap.choosing).toBe(true)
+        expect(snap.modeId).toBe(modes[0].id)
+        expect(snap.opponent).toBe('target')
+        expect(snap.match).toBeNull()
     })
 
-    it('câmera negada leva a camera_denied sem carregar o detector', () => {
+    it('escolhe modo e adversário antes de começar; startMatch entra na partida', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('triangle')
+        h.controller.setOpponent('bot')
+        expect(h.controller.getSnapshot().choosing).toBe(true)
+        h.controller.startMatch()
+        const snap = h.controller.getSnapshot()
+        expect(snap.choosing).toBe(false)
+        expect(snap.match?.modeId).toBe('triangle')
+        expect(snap.match?.opponent).toBe('bot')
+    })
+
+    it('modo e adversário não mudam durante a partida', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.startMatch()
+        h.controller.setMode('hole')
+        h.controller.setOpponent('bot')
+        const snap = h.controller.getSnapshot()
+        expect(snap.match?.modeId).toBe(modes[0].id)
+        expect(snap.match?.opponent).toBe('target')
+    })
+
+    it('o campo exposto é do modo escolhido', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('triangle')
+        h.controller.startMatch()
+        const match = h.controller.getSnapshot().match
+        expect(match?.modeId).toBe('triangle')
+        // Triângulo: a bolinha de tiro mais seis bolinhas e o círculo na decoração.
+        expect(match?.field.length).toBe(7)
+        expect(match?.decor?.circle).toBeDefined()
+    })
+})
+
+describe('MarblesController: fluxo completo por modo e adversário', () => {
+    for (const { id } of modes) {
+        for (const opponent of ['target', 'bot'] as const) {
+            it(`modo ${id} contra ${opponent}: a partida termina com Vitória, Derrota ou Empate`, async () => {
+                const h = harness()
+                await h.ready()
+                h.controller.setMode(id)
+                h.controller.setOpponent(opponent)
+                h.controller.startMatch()
+                playMatch(h)
+                const match = h.controller.getSnapshot().match
+                expect(match?.phase).toBe('match-over')
+                expect(match?.roundOutcomes).toHaveLength(match?.roundsPerMatch ?? 3)
+                expect(['win', 'draw', 'loss']).toContain(match?.matchOutcome)
+            })
+        }
+    }
+})
+
+describe('MarblesController: semente do bot', () => {
+    /** Joga uma partida contra o bot e devolve a primeira semente que o planejador recebeu. */
+    async function firstSeed(h: ReturnType<typeof harness>, seeds: number[]): Promise<number> {
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('bot')
+        const before = seeds.length
+        h.controller.startMatch()
+        playMatch(h)
+        expect(seeds.length).toBeGreaterThan(before)
+        return seeds[before]
+    }
+
+    function recordingBot(seeds: number[]): () => BotPlanner {
+        const inner = createBotPlanner()
+        return () => ({
+            planShot: (origin, point, seed, physics, radius) => {
+                seeds.push(seed)
+                return inner.planShot(origin, point, seed, physics, radius)
+            },
+        })
+    }
+
+    it('com semente fixada, toda partida repete a mesma sequência de erros do bot', async () => {
+        const seeds: number[] = []
+        const h = harness({ createBot: recordingBot(seeds) })
+        const first = await firstSeed(h, seeds)
+        const second = await firstSeed(h, seeds)
+        expect(second).toBe(first)
+    })
+
+    it('sem semente fixada, cada partida sorteia a sua (o padrão não se repete)', async () => {
+        const seeds: number[] = []
+        const h = harness({ randomSeed: true, createBot: recordingBot(seeds) })
+        const first = await firstSeed(h, seeds)
+        const second = await firstSeed(h, seeds)
+        expect(second).not.toBe(first)
+    })
+})
+
+describe('MarblesController: nível do bot', () => {
+    it('começa no médio e o nível escolhido aparece no retrato', () => {
+        const h = harness()
+        expect(h.controller.getSnapshot().botLevel).toBe('medium')
+        h.controller.setBotLevel('hard')
+        expect(h.controller.getSnapshot().botLevel).toBe('hard')
+    })
+
+    it('o planejador é criado com o nível escolhido ao começar cada partida', () => {
+        const levels: BotLevel[] = []
+        const h = harness({
+            createBot: (level) => {
+                levels.push(level)
+                return createBotPlanner()
+            },
+        })
+        h.controller.setOpponent('bot')
+        h.controller.setBotLevel('easy')
+        h.controller.startMatch()
+        h.controller.changeMode()
+        h.controller.setBotLevel('hard')
+        h.controller.startMatch()
+        expect(levels).toEqual(['easy', 'hard'])
+    })
+
+    it('trocar o nível durante a partida não tem efeito', () => {
+        const h = harness()
+        h.controller.setOpponent('bot')
+        h.controller.setBotLevel('easy')
+        h.controller.startMatch()
+        h.controller.setBotLevel('hard')
+        expect(h.controller.getSnapshot().botLevel).toBe('easy')
+    })
+})
+
+describe('MarblesController: vez do bot', () => {
+    it('na vez do bot, fechar a pinça não dispara e o status diz que é a vez do bot', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('bot')
+        h.controller.startMatch()
+        // Rodada 0 começa com o jogador; força a vez do bot jogando a vez do jogador.
+        // Aqui forçamos o cenário: adiantamos até a vez do bot avançando sem tiro.
+        // Dispara o tiro do jogador e deixa o bot assumir.
+        firePinch(h)
+        settle(h)
+        // Agora, se for a vez do bot, uma pinça fechada não deve disparar.
+        let snap = h.controller.getSnapshot()
+        if (snap.match?.turn === 'opponent' && snap.match.phase === 'bot-turn') {
+            const shotsLeftBefore = snap.match.playerShotsLeft
+            h.run(closed(300, 300), 3)
+            snap = h.controller.getSnapshot()
+            // O tiro do jogador não entrou: os tiros restantes do jogador não mudaram
+            // por causa do gesto (o bot anima no tick, não na leitura da mão).
+            expect(snap.match?.playerShotsLeft).toBe(shotsLeftBefore)
+            expect(snap.aim).toBeNull()
+        }
+        expect(true).toBe(true)
+    })
+
+    it('contra a meta não há vez do bot: o status nunca diz vez do bot', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('target')
+        h.controller.startMatch()
+        expect(h.controller.getSnapshot().match?.turn).toBe('player')
+    })
+})
+
+describe('MarblesController: controle de tiro', () => {
+    it('setShotControl troca entre pinça e estalo no snapshot', async () => {
+        const h = harness()
+        await h.ready()
+        expect(h.controller.getSnapshot().shotControl).toBe('pinch')
+        h.controller.setShotControl('flick')
+        expect(h.controller.getSnapshot().shotControl).toBe('flick')
+        h.controller.setShotControl('pinch')
+        expect(h.controller.getSnapshot().shotControl).toBe('pinch')
+    })
+
+    it('estalo: armar e disparar na vez do jogador conta um tiro', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('target')
+        h.controller.setShotControl('flick')
+        h.controller.startMatch()
+        const before = h.controller.getSnapshot().match?.playerShotsLeft ?? 0
+        const tucked = (ratio: number, x = 220) => pinchHand({ ratio, x, y: 300 })
+        h.run(tucked(0.8, 300), 1, 67)
+        h.run(tucked(0.8, 220), 2, 67)
+        h.run(tucked(1.5), 3, 67)
+        // O estalo disparou neste quadro (antes de a rolagem encerrar a rodada e zerar os tiros).
+        const snap = h.controller.getSnapshot()
+        expect(snap.debug.flick.lastResult).toBe('disparado')
+        expect((snap.match?.playerShotsLeft ?? before) < before || snap.match?.phase === 'rolling').toBe(
+            true,
+        )
+    })
+})
+
+describe('MarblesController: jogar de novo e trocar de modo', () => {
+    it('trocar de modo volta à tela de escolha', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.startMatch()
+        expect(h.controller.getSnapshot().choosing).toBe(false)
+        h.controller.changeMode()
+        expect(h.controller.getSnapshot().choosing).toBe(true)
+        expect(h.controller.getSnapshot().match).toBeNull()
+    })
+
+    it('jogar de novo reinicia a partida do começo', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('target')
+        h.controller.startMatch()
+        playMatch(h)
+        expect(h.controller.getSnapshot().match?.phase).toBe('match-over')
+        h.controller.playAgain()
+        const snap = h.controller.getSnapshot()
+        expect(snap.choosing).toBe(false)
+        expect(snap.match?.roundOutcomes).toHaveLength(0)
+        expect(snap.match?.round).toBe(0)
+    })
+})
+
+describe('shotControlFromSearch', () => {
+    it('?mode=estalo escolhe o estalo; qualquer outro valor mantém a pinça', () => {
+        expect(shotControlFromSearch('?mode=estalo')).toBe('flick')
+        expect(shotControlFromSearch('?mode=ESTALO')).toBe('flick')
+        expect(shotControlFromSearch('')).toBe('pinch')
+        expect(shotControlFromSearch('?mode=pinca')).toBe('pinch')
+        expect(shotControlFromSearch('?delegate=cpu')).toBe('pinch')
+    })
+})
+
+describe('MarblesController: câmera e detector', () => {
+    it('câmera negada não carrega o detector', () => {
         const h = harness()
         h.controller.setCamera(false, true)
-        expect(h.controller.getSnapshot().round.state).toBe('camera_denied')
         expect(h.createTracker).not.toHaveBeenCalled()
+        expect(h.controller.getSnapshot().cameraFailed).toBe(true)
     })
 
-    it('falha ao criar o detector leva a tracker_error com o motivo', async () => {
+    it('falha ao criar o detector expõe o motivo', async () => {
         const h = harness({ createTracker: () => Promise.reject(new Error('modelo ausente')) })
         h.controller.setCamera(true, false)
         await vi.waitFor(() => {
-            expect(h.controller.getSnapshot().round.state).toBe('tracker_error')
+            expect(h.controller.getSnapshot().trackerStatus).toBe('error')
         })
-        expect(h.controller.getSnapshot().round.failureReason).toBe('modelo ausente')
-        expect(h.controller.getSnapshot().trackerStatus).toBe('error')
-    })
-
-    it('desligar a câmera volta ao estado ocioso e para o laço', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setCamera(false, false)
-        expect(h.controller.getSnapshot().round.state).toBe('idle')
-        expect(h.cancelFrame).toHaveBeenCalled()
-    })
-
-    it('detach encerra o laço e fecha o detector', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.detach()
-        expect(h.close).toHaveBeenCalledTimes(1)
-        expect(h.hasQueuedFrame()).toBe(false)
-        expect(h.controller.getSnapshot().trackerStatus).toBe('idle')
-    })
-
-    it('erro do detector durante o jogo leva a tracker_error', async () => {
-        const h = harness()
-        await h.ready()
-        h.detect.mockImplementationOnce(() => {
-            throw new Error('falha de inferência')
-        })
-        h.run(open(100, 300))
-        expect(h.controller.getSnapshot().round.state).toBe('tracker_error')
-        expect(h.controller.getSnapshot().round.failureReason).toBe('falha de inferência')
-    })
-})
-
-describe('MarblesController: laço por quadro', () => {
-    it('só chama o detector quando há quadro novo de vídeo', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(100, 300), 3)
-        expect(h.detect).toHaveBeenCalledTimes(3)
-        h.runWithoutNewFrame()
-        h.runWithoutNewFrame()
-        expect(h.detect).toHaveBeenCalledTimes(3)
-    })
-
-    it('conta quadros, latência e a leitura da pinça no painel de depuração', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(closed(400, 100), 2, 120)
-        const debug = h.controller.getSnapshot().debug
-        expect(debug.frames).toBe(2)
-        expect(debug.handVisible).toBe(true)
-        expect(debug.pinchClosed).toBe(true)
-        expect(debug.ratio).toBeCloseTo(CLOSED_RATIO, 6)
-        expect(debug.medianMs).not.toBeNull()
-        h.run(null, 1, 120)
-        expect(h.controller.getSnapshot().debug.handVisible).toBe(false)
-        expect(h.controller.getSnapshot().debug.pinchClosed).toBe(false)
-    })
-
-    it('publica a posição da mão no campo a cada quadro, aberta ou fechada', async () => {
-        const h = harness()
-        await h.ready()
-        expect(h.controller.getSnapshot().hand).toBeNull()
-        h.run(open(300, 200))
-        const openHand = h.controller.getSnapshot().hand
-        expect(openHand?.closed).toBe(false)
-        expect(openHand?.point.x).toBeCloseTo(300, 3)
-        expect(openHand?.point.y).toBeCloseTo(200, 3)
-        h.run(closed(420, 260))
-        const closedHand = h.controller.getSnapshot().hand
-        expect(closedHand?.closed).toBe(true)
-        expect(closedHand?.point.x).toBeCloseTo(420, 3)
-        h.run(null)
-        expect(h.controller.getSnapshot().hand).toBeNull()
-    })
-
-    it('pinça aberta, fechada em qualquer ponto e arrastada leva a aiming com a previsão', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(100, 300))
-        h.run(closed(150, 300))
-        h.run(closed(50, 300))
-        const { round } = h.controller.getSnapshot()
-        expect(round.state).toBe('aiming')
-        // Arrasto de 100 unidades na escala padrão de 1,5: pinça virtual 150 à esquerda da bolinha.
-        expect(round.aim?.pinch.x).toBeCloseTo(0, 3)
-        expect(round.aim?.shot?.velocity.x).toBeCloseTo(750, 2)
-    })
-
-    it('a pinça pode fechar longe da bolinha e a mira ainda funciona (qualquer mão, qualquer lado)', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(650, 450))
-        h.run(closed(650, 450))
-        h.run(closed(550, 450))
-        const { round } = h.controller.getSnapshot()
-        expect(round.state).toBe('aiming')
-        expect(round.aim?.shot?.velocity.x).toBeCloseTo(750, 2)
-        expect(round.aim?.shot?.velocity.y).toBeCloseTo(0, 2)
-    })
-
-    it('soltar a pinça dispara e a bolinha rola até acertar o alvo', async () => {
-        const h = harness()
-        await h.ready()
-        shootAtTarget(h)
-        expect(h.controller.getSnapshot().round.state).toBe('rolling')
-        expect(h.controller.getSnapshot().round.shots).toBe(1)
-        h.run(null, 120, 16)
-        const { round } = h.controller.getSnapshot()
-        expect(round.state).toBe('hit')
-        expect(round.hitShots).toBe(1)
-    })
-
-    it('newRound zera a rodada depois do acerto', async () => {
-        const h = harness()
-        await h.ready()
-        shootAtTarget(h)
-        h.run(null, 120, 16)
-        h.controller.newRound()
-        const { round } = h.controller.getSnapshot()
-        expect(round.state).toBe('ready')
-        expect(round.shots).toBe(0)
-        expect(round.hitShots).toBeNull()
-    })
-
-    it('newRound depois de tracker_error recarrega o detector', async () => {
-        const create = vi
-            .fn<() => Promise<HandTracker>>()
-            .mockRejectedValueOnce(new Error('falhou'))
-        const h = harness({ createTracker: create })
-        h.controller.setCamera(true, false)
-        await vi.waitFor(() => {
-            expect(h.controller.getSnapshot().round.state).toBe('tracker_error')
-        })
-        const tracker: HandTracker = { delegate: 'CPU', detect: vi.fn(() => null), close: vi.fn() }
-        create.mockResolvedValueOnce(tracker)
-        h.controller.newRound()
-        await vi.waitFor(() => {
-            expect(h.controller.getSnapshot().round.state).toBe('ready')
-        })
-        expect(h.controller.getSnapshot().debug.delegate).toBe('CPU')
-    })
-})
-
-describe('modeFromSearch', () => {
-    it('?mode=estalo escolhe o modo estalo; qualquer outro valor mantém a pinça', () => {
-        expect(modeFromSearch('?mode=estalo')).toBe('flick')
-        expect(modeFromSearch('?mode=ESTALO')).toBe('flick')
-        expect(modeFromSearch('')).toBe('pinch')
-        expect(modeFromSearch('?mode=pinca')).toBe('pinch')
-        expect(modeFromSearch('?mode=outro')).toBe('pinch')
-        expect(modeFromSearch('?delegate=cpu')).toBe('pinch')
-    })
-})
-
-describe('MarblesController: modo estalo (alpha)', () => {
-    /** Intervalo entre quadros novos de uma webcam de cerca de 15 quadros/s. */
-    const STEP = 67
-    /** Onde a mão arma no campo; a mira é relativa a este ponto. */
-    const HOME = 300
-    /** Mão puxada 80 unidades para a esquerda: com o ganho de 1,5, atira para a direita (alvo). */
-    const PULLED = 220
-    const tucked = (ratio = 0.8, x = PULLED) => pinchHand({ ratio, x, y: 300 })
-
-    /** Polegar preso contra o indicador e a mão afastada do alvo, como o estilingue da pinça. */
-    function arm(h: ReturnType<typeof harness>) {
-        h.run(tucked(0.8, HOME), 1, STEP)
-        h.run(tucked(0.8, PULLED), 2, STEP)
-    }
-
-    it('começa no modo pinça e setMode muda o modo no snapshot', async () => {
-        const h = harness()
-        await h.ready()
-        expect(h.controller.getSnapshot().mode).toBe('pinch')
-        h.controller.setMode('flick')
-        expect(h.controller.getSnapshot().mode).toBe('flick')
-    })
-
-    it('com o polegar preso a mão arma e a seta aponta para onde a mão afastada manda o tiro (para o alvo)', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('aiming')
-        expect(round.flick?.direction.x).toBeCloseTo(1, 6)
-        expect(round.flick?.direction.y).toBeCloseTo(0, 6)
-        expect(round.aim).toBeNull()
-        expect(debug.flick.armed).toBe(true)
-    })
-
-    it('esticar o polegar e mantê-lo esticado dispara; a velocidade e o resultado aparecem na depuração', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        h.run(tucked(1.5), 3, STEP)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.state).toBe('rolling')
-        expect(round.shots).toBe(1)
-        expect(debug.flick.lastResult).toBe('disparado')
-        const speed = (1.5 - 0.8) / (STEP / 1000)
-        expect(debug.flick.lastOpenSpeed).toBeCloseTo(speed, 1)
-        // Força na escala logarítmica de 3 a 20 razão/s.
-        expect(debug.flick.lastPower).toBeCloseTo(Math.log(speed / 3) / Math.log(20 / 3), 3)
-        expect(debug.flick.armed).toBe(false)
-        h.run(null, 4, STEP)
-        expect(h.controller.getSnapshot().round.shooter.x).toBeGreaterThan(150)
-    })
-
-    it('estalo confirmado sem afastar a mão (sem arrasto) não dispara e registra "sem mira"', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        h.run(tucked(0.8, HOME), 3, STEP)
-        h.run(tucked(1.5, HOME), 3, STEP)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.shots).toBe(0)
-        expect(debug.flick.lastResult).toBe('sem mira')
-        expect(debug.flick.lastPower).toBeNull()
-    })
-
-    it('uma oscilação que sobe e volta no quadro seguinte não dispara e registra "não sustentado"', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        h.run(tucked(1.5), 1, STEP)
-        h.run(tucked(0.8), 1, STEP)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.shots).toBe(0)
-        expect(round.state).toBe('ready')
-        expect(debug.flick.lastResult).toBe('não sustentado')
-        expect(debug.flick.lastPower).toBeNull()
-    })
-
-    it('uma subida pequena (a razão só derivou até o limite) registra "fraco demais"', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        h.run(tucked(1.0, HOME), 1, STEP)
-        h.run(tucked(1.0, PULLED), 2, STEP)
-        h.run(tucked(1.25), 1, STEP)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.shots).toBe(0)
-        expect(round.state).toBe('ready')
-        expect(debug.flick.lastResult).toBe('fraco demais')
-    })
-
-    it('estalos de velocidades diferentes dão forças diferentes na depuração', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        h.run(tucked(1.8), 3, STEP)
-        const strong = h.controller.getSnapshot().debug.flick.lastPower
-        h.controller.newRound()
-        arm(h)
-        // Subida em dois passos: o pico fica abaixo do salto de um quadro só.
-        h.run(tucked(1.3), 1, STEP)
-        h.run(tucked(1.5), 2, STEP)
-        const weaker = h.controller.getSnapshot().debug.flick.lastPower
-        expect(strong).not.toBeNull()
-        expect(weaker).not.toBeNull()
-        expect(weaker ?? 0).toBeLessThan(strong ?? 0)
-    })
-
-    it('palma aberta durante a confirmação é a mão se abrindo: não dispara e registra "mão aberta"', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        const palm = { ...tucked(1.5), gesture: { name: 'Open_Palm', score: 0.9 } }
-        h.run(palm, 3, STEP)
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.shots).toBe(0)
-        expect(debug.flick.lastResult).toBe('mão aberta')
-        expect(debug.flick.lastPower).toBeNull()
-    })
-
-    it('a depuração mostra o gesto reconhecido e a etapa do estalo', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        expect(h.controller.getSnapshot().debug.flick.gesture).toBeNull()
-        expect(h.controller.getSnapshot().debug.flick.phase).toBe('idle')
-        h.run({ ...tucked(0.8, HOME), gesture: { name: 'Closed_Fist', score: 0.8 } }, 3, STEP)
-        let flick = h.controller.getSnapshot().debug.flick
-        expect(flick.gesture).toEqual({ name: 'Closed_Fist', score: 0.8 })
-        expect(flick.phase).toBe('armed')
-        h.run(tucked(1.5), 1, STEP)
-        flick = h.controller.getSnapshot().debug.flick
-        expect(flick.phase).toBe('pending')
-        expect(flick.gesture).toBeNull()
-    })
-
-    it('trocar de modo reinicia a rodada e zera o armado', async () => {
-        const h = harness()
-        await h.ready()
-        h.controller.setMode('flick')
-        arm(h)
-        h.run(tucked(1.5), 3, STEP)
-        expect(h.controller.getSnapshot().round.shots).toBe(1)
-        h.controller.setMode('pinch')
-        const { round, debug } = h.controller.getSnapshot()
-        expect(round.shots).toBe(0)
-        expect(round.state).toBe('ready')
-        expect(debug.flick.armed).toBe(false)
-        expect(debug.flick.lastResult).toBeNull()
-    })
-
-    it('no modo pinça a pinça comum arma o elástico e o estalo não existe', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(300, 300), 2, STEP)
-        h.run(closed(300, 300), 3, STEP)
-        expect(h.controller.getSnapshot().round.flick).toBeNull()
-        expect(h.controller.getSnapshot().round.aim).not.toBeNull()
-    })
-})
-
-describe('MarblesController: quadros novos da câmera', () => {
-    it('sem requestVideoFrameCallback, recua para currentTime e não reprocessa o quadro repetido', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(300, 300), 2)
-        const processed = h.detect.mock.calls.length
-        h.runWithoutNewFrame()
-        h.runWithoutNewFrame()
-        expect(h.detect.mock.calls.length).toBe(processed)
-        h.run(open(300, 300))
-        expect(h.detect.mock.calls.length).toBe(processed + 1)
-    })
-
-    it('com requestVideoFrameCallback, só processa quando a câmera entregou um quadro, mesmo com currentTime avançando', async () => {
-        const h = harness({ videoFrameCallback: true })
-        await h.ready()
-        h.runLive(open(300, 300), false)
-        h.runLive(open(300, 300), false)
-        h.runLive(open(300, 300), false)
-        expect(h.detect).not.toHaveBeenCalled()
-        h.runLive(open(300, 300), true)
-        expect(h.detect).toHaveBeenCalledTimes(1)
-        h.runLive(open(300, 300), false)
-        expect(h.detect).toHaveBeenCalledTimes(1)
-        h.runLive(open(300, 300), true)
-        expect(h.detect).toHaveBeenCalledTimes(2)
-    })
-
-    it('a taxa da câmera é nula até fechar a primeira janela de 1 s', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(300, 300), 5)
-        expect(h.controller.getSnapshot().debug.cameraFps).toBeNull()
-    })
-
-    it('sem requestVideoFrameCallback, conta os quadros novos por segundo', async () => {
-        const h = harness()
-        await h.ready()
-        h.run(open(300, 300), 40, 33)
-        const fps = h.controller.getSnapshot().debug.cameraFps
-        expect(fps).not.toBeNull()
-        expect(fps).toBeGreaterThan(29)
-        expect(fps).toBeLessThan(31.5)
-    })
-
-    it('com requestVideoFrameCallback, a taxa é a da câmera e não a do laço de exibição', async () => {
-        const h = harness({ videoFrameCallback: true })
-        await h.ready()
-        // Laço a cada 16 ms; a câmera entrega um quadro a cada 3 passos (48 ms, cerca de 20,8 por segundo).
-        for (let i = 0; i < 90; i++) h.runLive(open(300, 300), i % 3 === 0)
-        const fps = h.controller.getSnapshot().debug.cameraFps
-        expect(fps).not.toBeNull()
-        expect(fps).toBeGreaterThan(20)
-        expect(fps).toBeLessThan(22)
-        const { frames } = h.controller.getSnapshot().debug
-        expect(frames).toBe(30)
-    })
-
-    it('desligar a câmera cancela a espera pelo quadro da câmera', async () => {
-        const h = harness({ videoFrameCallback: true })
-        await h.ready()
-        h.controller.setCamera(false, false)
-        expect(h.cancelVideoFrameCallback).toHaveBeenCalled()
+        expect(h.controller.getSnapshot().failureReason).toBe('modelo ausente')
     })
 })

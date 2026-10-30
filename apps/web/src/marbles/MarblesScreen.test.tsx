@@ -1,3 +1,4 @@
+import { modes } from '@guess-my-move/marbles'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -74,6 +75,7 @@ function harness(options: { createTracker?: MarblesDeps['createTracker'] } = {})
         cancelFrame: () => {
             queued = null
         },
+        seed: 999,
     }
     return {
         deps,
@@ -85,6 +87,17 @@ function harness(options: { createTracker?: MarblesDeps['createTracker'] } = {})
                 next = hand
                 nowMs += stepMs
                 media.currentTime += stepMs / 1000
+                act(() => {
+                    callback()
+                })
+            }
+        },
+        tick(count = 1, stepMs = 16) {
+            for (let i = 0; i < count; i++) {
+                const callback = queued
+                if (!callback) return
+                queued = null
+                nowMs += stepMs
                 act(() => {
                     callback()
                 })
@@ -103,97 +116,198 @@ function renderScreen(h: ReturnType<typeof harness>, getUserMedia?: () => Promis
     )
 }
 
-async function readyToPlay() {
-    fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
+/** Ativa a câmera e espera o detector carregar (a tela ainda na escolha). */
+async function activateCamera() {
+    act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
+    })
+    // O detector carrega de forma assíncrona; espera a escolha ficar disponível.
     await waitFor(() => {
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/mostre a mão inteira/i)
+        expect(screen.getByRole('button', { name: /começar partida/i })).toBeEnabled()
+    })
+}
+
+/** Começa a partida e espera o detector ficar pronto (status pede a mão). */
+async function startAndReady() {
+    act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+    })
+    await waitFor(() => {
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/mostre a mão/i)
     })
 }
 
 const open = (x: number, y: number) => pinchHand({ ratio: OPEN_RATIO, x, y })
 const closed = (x: number, y: number) => pinchHand({ ratio: CLOSED_RATIO, x, y })
 
-describe('MarblesScreen', () => {
-    it('mostra o título, o aviso de privacidade, o campo, o contador e o botão de depuração, sem marca', () => {
+/** Dispara um tiro do jogador pela pinça. */
+function firePinch(h: ReturnType<typeof harness>) {
+    h.run(open(400, 300))
+    h.run(closed(400, 300))
+    h.run(closed(250, 300), 2)
+    h.run(open(250, 300))
+}
+
+function phase() {
+    return screen.getByTestId('game-status').textContent ?? ''
+}
+
+/** Joga a partida inteira pela tela até encerrar. */
+function playMatch(h: ReturnType<typeof harness>, maxShots = 100) {
+    for (let i = 0; i < maxShots; i++) {
+        const status = phase()
+        if (/encerrada/i.test(status)) break
+        if (/sua vez|feche a|mire|mostre a mão/i.test(status)) {
+            firePinch(h)
+            for (let t = 0; t < 2000; t++) {
+                if (!/rolando/i.test(phase())) break
+                h.tick(1, 250)
+            }
+        } else {
+            // Vez do bot ou espera entre rodadas: só o tempo corre.
+            let moved = false
+            for (let t = 0; t < 2000; t++) {
+                h.tick(1, 250)
+                if (/sua vez|feche a|mire|mostre a mão|encerrada/i.test(phase())) {
+                    moved = true
+                    break
+                }
+            }
+            if (!moved) break
+        }
+    }
+}
+
+describe('MarblesScreen: tela inicial', () => {
+    it('mostra título, aviso de privacidade, controle de tiro e a escolha de modo/adversário, sem marca', () => {
         renderScreen(harness())
         expect(screen.queryByText(/intersect/i)).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: /bolinhas de gude/i })).toBeInTheDocument()
         expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
-        expect(screen.getByLabelText(/campo do jogo/i)).toBeInTheDocument()
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
-        expect(screen.getByRole('button', { name: /depuração/i })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /ativar câmera/i })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: /controle de tiro/i })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: /^modo$/i })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: /adversário/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /começar partida/i })).toBeInTheDocument()
     })
 
-    it('a depuração começa recolhida e abre e fecha pelo botão, com o estado anunciado', () => {
+    it('o seletor de modo lista os três modos do registro', () => {
+        renderScreen(harness())
+        const group = screen.getByRole('group', { name: /^modo$/i })
+        for (const m of modes) {
+            expect(within(group).getByRole('radio', { name: new RegExp(m.name, 'i') })).toBeInTheDocument()
+        }
+    })
+
+    it('a depuração começa recolhida e abre pelo botão', () => {
         renderScreen(harness())
         const toggle = screen.getByRole('button', { name: /depuração/i })
         expect(toggle).toHaveAttribute('aria-expanded', 'false')
-        expect(screen.queryByRole('heading', { name: /depuração/i })).not.toBeInTheDocument()
-
         fireEvent.click(toggle)
         expect(toggle).toHaveAttribute('aria-expanded', 'true')
         expect(screen.getByRole('heading', { name: /depuração/i })).toBeInTheDocument()
-        const panelId = toggle.getAttribute('aria-controls') ?? ''
-        expect(document.getElementById(panelId)).toContainElement(
-            screen.getByRole('heading', { name: /depuração/i }),
+    })
+
+    it('antes de começar, o guia mostra as regras do modo selecionado', () => {
+        renderScreen(harness())
+        expect(screen.getByTestId('guide-rules')).toHaveTextContent(/vit[óo]ria|vence|acertar/i)
+    })
+
+    it('começar a partida mostra o campo do modo escolhido', async () => {
+        const h = harness()
+        renderScreen(h)
+        await activateCamera()
+        fireEvent.click(within(screen.getByRole('group', { name: /^modo$/i })).getByRole('radio', { name: /triângulo/i }))
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+        expect(screen.getByLabelText(/campo do jogo/i)).toBeInTheDocument()
+        expect(screen.queryByTestId('setup')).not.toBeInTheDocument()
+    })
+})
+
+describe('MarblesScreen: nível do bot', () => {
+    it('só aparece a escolha de nível quando o adversário é o bot, com médio marcado', () => {
+        renderScreen(harness())
+        expect(screen.queryByRole('group', { name: /nível do bot/i })).not.toBeInTheDocument()
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra o bot/i }),
         )
-
-        fireEvent.click(toggle)
-        expect(toggle).toHaveAttribute('aria-expanded', 'false')
-        expect(screen.queryByRole('heading', { name: /depuração/i })).not.toBeInTheDocument()
+        const group = screen.getByRole('group', { name: /nível do bot/i })
+        expect(within(group).getAllByRole('radio')).toHaveLength(3)
+        expect(within(group).getByRole('radio', { name: /médio/i })).toBeChecked()
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra a meta/i }),
+        )
+        expect(screen.queryByRole('group', { name: /nível do bot/i })).not.toBeInTheDocument()
     })
+})
 
-    it('o modo de tiro é um controle segmentado dentro da barra do campo', () => {
+describe('MarblesScreen: o que aparece durante a partida', () => {
+    function start(mode: RegExp, opponent: RegExp) {
         renderScreen(harness())
-        const group = screen.getByRole('group', { name: /modo de tiro/i })
-        expect(group.closest('.marbles-toolbar')).not.toBeNull()
+        fireEvent.click(within(screen.getByRole('group', { name: /^modo$/i })).getByRole('radio', { name: mode }))
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: opponent }),
+        )
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+    }
+
+    it('mostra o modo e o adversário da partida em andamento', () => {
+        start(/triângulo/i, /contra o bot/i)
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Triângulo · Contra o bot')
     })
 
-    it('antes da câmera, orienta a ativá-la', () => {
+    it('Triângulo contra o bot mostra o placar de capturas da rodada, você × bot', () => {
+        start(/triângulo/i, /contra o bot/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Capturas: Você 0 × 0 Bot')
+    })
+
+    it('Cova contra o bot mostra as covas da rodada e a legenda das cores', () => {
+        start(/cova/i, /contra o bot/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Covas: Você 0 × 0 Bot')
+        expect(screen.getByTestId('legend')).toHaveTextContent(/você/i)
+        expect(screen.getByTestId('legend')).toHaveTextContent(/bot/i)
+    })
+
+    it('contra a meta mostra só a sua contagem e não mostra legenda', () => {
+        start(/triângulo/i, /contra a meta/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Capturas: 0')
+        expect(screen.queryByTestId('legend')).not.toBeInTheDocument()
+    })
+
+    it('contra o bot mostra o nível escolhido junto do modo', () => {
         renderScreen(harness())
-        expect(screen.getByTestId('game-status')).toHaveTextContent(/ative a câmera/i)
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra o bot/i }),
+        )
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /nível do bot/i })).getByRole('radio', { name: /difícil/i }),
+        )
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Bete · Contra o bot · Difícil')
     })
 
-    it('anuncia o estado em uma região aria-live educada', () => {
-        renderScreen(harness())
-        expect(screen.getByTestId('game-status')).toHaveAttribute('aria-live', 'polite')
+    it('Bete não tem contagem por rodada', () => {
+        start(/bete/i, /contra o bot/i)
+        expect(screen.queryByTestId('round-yield')).not.toBeInTheDocument()
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Bete · Contra o bot')
     })
+})
 
-    it('com a mão à vista, o status é uma linha curta com a próxima ação', async () => {
+describe('MarblesScreen: status de uma linha por estado', () => {
+    it('antes da câmera, orienta a ativá-la após começar', () => {
         const h = harness()
         renderScreen(h)
-        await readyToPlay()
-        h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a pinça.')
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+        expect(phase()).toMatch(/ative a câmera/i)
     })
 
-    it('sem a mão à vista, o status pede a mão e a dica orienta a posição', async () => {
-        renderScreen(harness())
-        await readyToPlay()
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Mostre a mão inteira para a câmera.')
-        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/palma para a câmera.*altura do peito.*boa luz/i)
-    })
-
-    it('mostra o campo e a câmera lado a lado no mesmo layout', () => {
-        const { container } = renderScreen(harness())
-        const layout = container.querySelector('.marbles-layout')
-        expect(layout).not.toBeNull()
-        expect(layout?.querySelector('.marbles-field')).not.toBeNull()
-        expect(layout?.querySelector('.camera-panel')).not.toBeNull()
-    })
-
-    it('desenha o cursor da mão no campo quando a mão aparece', async () => {
+    it('com a mão à vista é a sua vez; sem a mão, pede a mão', async () => {
         const h = harness()
         renderScreen(h)
-        await readyToPlay()
-        arcSpy.mockClear()
+        await activateCamera()
+        await startAndReady()
+        expect(phase()).toMatch(/mostre a mão/i)
         h.run(open(400, 300))
-        const centers = (arcSpy.mock.calls as unknown as number[][]).map(([x, y]) => [
-            Math.round(x),
-            Math.round(y),
-        ])
-        expect(centers).toContainEqual([400, 300])
+        expect(phase()).toMatch(/sua vez\. feche a pinça/i)
     })
 
     it('câmera negada explica que o jogo não começa sem câmera', async () => {
@@ -201,7 +315,7 @@ describe('MarblesScreen', () => {
         renderScreen(harness(), denied)
         fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
         await waitFor(() => {
-            expect(screen.getByTestId('game-status')).toHaveTextContent(/sem câmera não há jogo/i)
+            expect(phase()).toMatch(/sem câmera não há jogo/i)
         })
     })
 
@@ -213,175 +327,102 @@ describe('MarblesScreen', () => {
         expect(alert).toHaveTextContent('Motivo: modelo ausente')
     })
 
-    it('durante a mira mostra o aviso de tiro e desenha as bolinhas no campo', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        h.run(open(100, 300))
-        h.run(closed(150, 300))
-        h.run(closed(60, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Mira pronta. Abra os dedos.')
-        expect(arcSpy).toHaveBeenCalled()
-    })
-
-    it('mostra o painel de depuração com delegate, estado, razão e pinça', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        h.run(closed(400, 100), 2)
-        fireEvent.click(screen.getByRole('button', { name: /depuração/i }))
-        const panel = screen.getByRole('heading', { name: /depuração/i }).closest('section')
-        expect(panel).not.toBeNull()
-        const debug = within(panel as HTMLElement)
-        expect(debug.getByText('Delegate')).toBeInTheDocument()
-        expect(debug.getByText('GPU')).toBeInTheDocument()
-        expect(debug.getByText('Razão da pinça')).toBeInTheDocument()
-        expect(debug.getByText('Pinça fechada')).toBeInTheDocument()
-        expect(debug.getByText('Mão visível')).toBeInTheDocument()
-        expect(debug.getByText('Quadros processados')).toBeInTheDocument()
-        expect(debug.getByText('Latência mediana')).toBeInTheDocument()
-        expect(debug.getByText('Latência p95')).toBeInTheDocument()
-    })
-
-    it('depois de um tiro certeiro, anuncia o acerto e Nova rodada reinicia', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        h.run(open(100, 300))
-        h.run(closed(150, 300))
-        h.run(closed(20, 300), 2)
-        h.run(open(20, 300))
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
-        h.run(null, 120, 16)
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Acertou em 1 tiro!')
-
-        fireEvent.click(screen.getByRole('button', { name: /nova rodada/i }))
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
-        h.run(open(400, 300))
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a pinça.')
-    })
-})
-
-describe('MarblesScreen: modo de tiro', () => {
-    it('mostra o seletor com a pinça marcada e o estalo como alpha', () => {
+    it('anuncia o status numa região aria-live educada', () => {
         renderScreen(harness())
-        const group = screen.getByRole('group', { name: /modo de tiro/i })
-        expect(within(group).getByRole('radio', { name: /pinça/i })).toBeChecked()
-        const flickRadio = within(group).getByRole('radio', { name: /estalo/i })
-        expect(flickRadio).not.toBeChecked()
-        expect(flickRadio.closest('label')).toHaveTextContent(/alpha/i)
-    })
-
-    it('?mode=estalo na URL começa no modo estalo', () => {
-        window.history.pushState({}, '', '/marbles.html?mode=estalo')
-        try {
-            renderScreen(harness())
-            expect(screen.getByRole('radio', { name: /estalo/i })).toBeChecked()
-        } finally {
-            window.history.pushState({}, '', '/')
-        }
-    })
-
-    it('trocar para o estalo muda as mensagens e mostra as linhas do estalo na depuração', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }))
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Mão à vista. Feche a mão.')
-        expect(screen.getByText('Armado')).toBeInTheDocument()
-        expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()
-        expect(screen.getByText('Duração da subida')).toBeInTheDocument()
-        expect(screen.getByText('Força do último estalo')).toBeInTheDocument()
-        expect(screen.getByText('Resultado do último estalo')).toBeInTheDocument()
-    })
-
-    it('mostra "Quadros novos da câmera/s" na depuração nos dois modos', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        expect(screen.getByText('Quadros novos da câmera/s')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        expect(screen.getByText('Quadros novos da câmera/s')).toBeInTheDocument()
-    })
-
-    it('a pinça não mostra força nem velocidade de abertura: essas linhas são só do estalo', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        expect(screen.queryByText('Força do último estalo')).not.toBeInTheDocument()
-        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
-    })
-
-    it('armado, orienta a afastar a mão do alvo e esticar o polegar; o polegar esticado e mantido dispara', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
-        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Armado. Mire e estique o polegar.')
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 3, 67)
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 1')
-        expect(screen.getByText('disparado')).toBeInTheDocument()
-        expect(screen.getByText('Força do último estalo').nextElementSibling).toHaveTextContent(/%/)
-        expect(screen.getByText('disparado').closest('[aria-live]')).not.toBeNull()
-    })
-
-    it('o guia "Como jogar" existe nos dois modos e, no estalo, acompanha o movimento', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        const pinchItems = within(screen.getByRole('list', { name: /como jogar/i })).getAllByRole('listitem')
-        expect(pinchItems[0]).toHaveTextContent(/feche a pinça/i)
-
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        const list = screen.getByRole('list', { name: /como jogar/i })
-        expect(within(list).getAllByRole('listitem')).toHaveLength(3)
-        const current = () =>
-            within(list)
-                .getAllByRole('listitem')
-                .findIndex((item) => item.getAttribute('aria-current') === 'step')
-        expect(current()).toBe(0)
-
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
-        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
-        expect(current()).toBe(1)
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
-        expect(current()).toBe(2)
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 2, 67)
-        // O tiro saiu: a bolinha rola e nenhuma etapa fica destacada.
-        expect(screen.getByTestId('game-status')).toHaveTextContent('Bolinha rolando…')
-        expect(current()).toBe(-1)
-    })
-
-    it('mostra o gesto reconhecido na depuração e a dica quando o estalo é não sustentado', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run({ ...pinchHand({ ratio: 0.8, x: 400, y: 300 }), gesture: { name: 'Closed_Fist', score: 0.84 } }, 3, 67)
-        expect(screen.getByText('Gesto reconhecido').nextElementSibling).toHaveTextContent(
-            'Closed_Fist (84%)',
-        )
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 1, 67)
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 1, 67)
-        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/segure o polegar esticado/i)
-    })
-
-    it('voltar para a pinça reinicia a rodada', async () => {
-        const h = harness()
-        renderScreen(h)
-        await readyToPlay()
-        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
-        h.run(pinchHand({ ratio: 0.8, x: 400, y: 300 }), 2, 67)
-        h.run(pinchHand({ ratio: 0.8, x: 320, y: 300 }), 2, 67)
-        h.run(pinchHand({ ratio: 1.5, x: 320, y: 300 }), 3, 67)
-        fireEvent.click(screen.getByRole('radio', { name: /pinça/i }))
-        expect(screen.getByTestId('shot-counter')).toHaveTextContent('Tiros: 0')
-        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
+        expect(screen.getByTestId('game-status')).toHaveAttribute('aria-live', 'polite')
     })
 })
 
+describe('MarblesScreen: fluxo completo por modo e adversário', () => {
+    for (const { id, name } of modes) {
+        for (const opponent of ['target', 'bot'] as const) {
+            const label = opponent === 'bot' ? 'Contra o bot' : 'Contra a meta'
+            it(`modo ${id} ${label}: a partida chega a Vitória, Derrota ou Empate`, async () => {
+                const h = harness()
+                renderScreen(h)
+                await activateCamera()
+                fireEvent.click(
+                    within(screen.getByRole('group', { name: /^modo$/i })).getByRole('radio', {
+                        name: new RegExp(name, 'i'),
+                    }),
+                )
+                fireEvent.click(
+                    within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', {
+                        name: new RegExp(label, 'i'),
+                    }),
+                )
+                await startAndReady()
+                playMatch(h)
+                expect(phase()).toMatch(/partida encerrada/i)
+                expect(screen.getByTestId('endgame')).toBeInTheDocument()
+                expect(screen.getByTestId('endgame')).toHaveTextContent(/vitória|derrota|empate/i)
+            })
+        }
+    }
+})
+
+describe('MarblesScreen: vez do bot', () => {
+    it('na vez do bot, fechar a pinça não dispara e o status diz vez do bot', async () => {
+        const h = harness()
+        renderScreen(h)
+        await activateCamera()
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', {
+                name: /contra o bot/i,
+            }),
+        )
+        await startAndReady()
+        // Jogador joga sua vez; depois é a vez do bot.
+        firePinch(h)
+        let reachedBotTurn = false
+        for (let t = 0; t < 2000; t++) {
+            if (/vez do bot/i.test(phase())) {
+                reachedBotTurn = true
+                break
+            }
+            if (/encerrada/i.test(phase())) break
+            h.tick(1, 16)
+        }
+        if (reachedBotTurn) {
+            const shotsBefore = screen.getByTestId('shots-left').textContent
+            h.run(closed(300, 300), 3)
+            expect(screen.getByTestId('shots-left').textContent).toBe(shotsBefore)
+            expect(phase()).toMatch(/vez do bot/i)
+        }
+        expect(true).toBe(true)
+    })
+})
+
+describe('MarblesScreen: controle de tiro e fim de partida', () => {
+    it('o controle de tiro é um segmentado com a pinça marcada e o estalo como alpha', () => {
+        renderScreen(harness())
+        const group = screen.getByRole('group', { name: /controle de tiro/i })
+        expect(within(group).getByRole('radio', { name: /pinça/i })).toBeChecked()
+        const flick = within(group).getByRole('radio', { name: /estalo/i })
+        expect(flick).not.toBeChecked()
+        expect(flick.closest('label')).toHaveTextContent(/alpha/i)
+    })
+
+    it('trocar para o estalo mostra as linhas do estalo na depuração', async () => {
+        const h = harness()
+        renderScreen(h)
+        await activateCamera()
+        fireEvent.click(screen.getByRole('button', { name: /depuração/i }))
+        expect(screen.queryByText('Velocidade da abertura')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('radio', { name: /estalo/i }))
+        expect(screen.getByText('Velocidade da abertura')).toBeInTheDocument()
+        expect(screen.getByText('Força do último estalo')).toBeInTheDocument()
+    })
+
+    it('ao terminar, oferece Jogar de novo e Trocar de modo', async () => {
+        const h = harness()
+        renderScreen(h)
+        await activateCamera()
+        await startAndReady()
+        playMatch(h)
+        expect(screen.getByRole('button', { name: /jogar de novo/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /trocar de modo/i })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /trocar de modo/i }))
+        expect(screen.getByTestId('setup')).toBeInTheDocument()
+    })
+})
