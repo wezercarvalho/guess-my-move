@@ -15,6 +15,15 @@ export const CITY_SOURCES = [
         // Eixo da avenida (NO–SE) alinhado ao eixo Z do jogo.
         rotationDeg: -46,
     },
+    {
+        id: 'santa-maria',
+        name: 'Santa Maria',
+        output: 'santa-maria.json',
+        // Centro: entorno da Rua do Acampamento e Avenida Rio Branco.
+        bbox: { minLat: -29.6923, maxLat: -29.6853, minLon: -53.8105, maxLon: -53.8035 },
+        // A malha central é aproximadamente norte–sul; mantém o norte no eixo Z.
+        rotationDeg: 0,
+    },
 ]
 
 export function citySource(id) {

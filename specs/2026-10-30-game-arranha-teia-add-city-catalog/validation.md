@@ -11,34 +11,34 @@
 
 ## Resumo do resultado
 
-Implementação concluída: seleção local antes do jogo, Midtown preservado, Avenida Paulista jogável, pipeline OSM parametrizado e passe visual procedural leve. A tentativa de material PBR/Lambert foi retirada porque a captura em 1440 excedeu 5 s no WebGL por software; o material leve aprovado foi mantido. Gates finais ainda serão executados quando a memória do host sair do estado crítico.
+Implementação concluída: seleção local antes do jogo, Midtown preservado, Avenida Paulista e Santa Maria jogáveis, pipeline OSM parametrizado e passe visual procedural leve. A tentativa de material PBR/Lambert foi retirada porque a captura em 1440 excedeu 5 s no WebGL por software; o material leve aprovado foi mantido. A emenda CQ-001 adicionou Santa Maria pelo mesmo contrato local, com altura inicial calibrada ao perfil baixo da cidade e a teia no céu preservada como reserva.
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 12 (T001 a T012)
-- **Pendentes:** 0 (Gate 3 é aprovação, não tarefa de implementação)
+- **Concluídas:** 17 (T001 a T017)
+- **Pendentes:** 0 (Gate 3 continua sendo aprovação do maintainer)
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
 
-| Requisito | Tarefas    | Evidência                                                                                                    | Resultado |
-| --------- | ---------- | ------------------------------------------------------------------------------------------------------------ | --------- |
-| FR-001    | T001, T010 | `cityCatalog.test.ts`: catálogo válido, versão, campos, ids, duplicatas e caminhos externos recusados        | PASS      |
-| FR-002    | T002, T010 | `SwingApp.test.tsx`/`CitySelect`: seleção e erro; screenshots 390/900/1440                                   | PASS      |
-| FR-003    | T002, T003 | `SwingApp.test.tsx`: mapa monta só após escolha; "Trocar mapa" desmonta e chama `dispose`                    | PASS      |
-| FR-004    | T005, T006 | `cities.json`, `midtown.json`, `paulista.json`; teste Node confere nomes/atribuições                         | PASS      |
-| FR-005    | T004, T010 | `city-from-osm.test.mjs` (config/defaults) e `city-sources.test.mjs`; `yarn build:city paulista` executado   | PASS      |
-| FR-006    | T006, T010 | `city-data.test.mjs`: catálogo, caminhos, altura inicial, forma, limites, faixas e tamanho dos dois arquivos | PASS      |
-| FR-007    | T007, T008 | `cityVisual.test.ts`; `cityRenderer.ts` usa fachadas/ruas procedurais e mantém `City`; regressões web verdes | PASS      |
-| FR-008    | T001, T002 | `SwingApp.test.tsx`: URL válida abre direto; ausente/desconhecida mostra seleção                             | PASS      |
+| Requisito | Tarefas                | Evidência                                                                                                    | Resultado |
+| --------- | ---------------------- | ------------------------------------------------------------------------------------------------------------ | --------- |
+| FR-001    | T001, T010             | `cityCatalog.test.ts`: catálogo válido, versão, campos, ids, duplicatas e caminhos externos recusados        | PASS      |
+| FR-002    | T002, T010             | `SwingApp.test.tsx`/`CitySelect`: seleção e erro; screenshots 390/900/1440                                   | PASS      |
+| FR-003    | T002, T003             | `SwingApp.test.tsx`: mapa monta só após escolha; "Trocar mapa" desmonta e chama `dispose`                    | PASS      |
+| FR-004    | T005, T006, T013–T015  | `cities.json`, `midtown.json`, `paulista.json`, `santa-maria.json`; testes conferem nomes/atribuições        | PASS      |
+| FR-005    | T004, T010, T013, T014 | `city-from-osm.test.mjs`/`city-sources.test.mjs`; builds da Paulista e de Santa Maria executados             | PASS      |
+| FR-006    | T006, T010, T015       | `city-data.test.mjs`: catálogo, caminhos, altura inicial, forma, limites, faixas e tamanho dos três arquivos | PASS      |
+| FR-007    | T007, T008             | `cityVisual.test.ts`; `cityRenderer.ts` usa fachadas/ruas procedurais e mantém `City`; regressões web verdes | PASS      |
+| FR-008    | T001, T002             | `SwingApp.test.tsx`: URL válida abre direto; ausente/desconhecida mostra seleção                             | PASS      |
 
 ## Histórias e critérios de aceitação
 
-| História/cenário                | Demonstração                                                     | Resultado |
-| ------------------------------- | ---------------------------------------------------------------- | --------- |
-| US-001 / escolher e trocar      | Chromium e RTL: seleção → mapa; botão volta e desmonta           | PASS      |
-| US-002 / Midtown e Paulista     | Ambos carregam; nomes, alturas iniciais e atribuições aparecem   | PASS      |
-| US-003 / visual procedural leve | Fachadas/ruas visíveis em screenshots; tentativa pesada retirada | PASS      |
+| História/cenário                | Demonstração                                                                             | Resultado |
+| ------------------------------- | ---------------------------------------------------------------------------------------- | --------- |
+| US-001 / escolher e trocar      | Chromium e RTL: seleção → mapa; botão volta e desmonta                                   | PASS      |
+| US-002 / três cidades           | Midtown, Paulista e Santa Maria carregam; nomes, alturas iniciais e atribuições aparecem | PASS      |
+| US-003 / visual procedural leve | Fachadas/ruas visíveis em screenshots; tentativa pesada retirada                         | PASS      |
 
 ## Comandos executados
 
@@ -106,6 +106,43 @@ Implementação concluída: seleção local antes do jogo, Midtown preservado, A
 - **Veredito:** pendente
 - **Aprovador:** wezercarvalho (maintainer)
 - **Data:** `2026-10-30`
-- **Escopo aprovado:** pendente do teste do catálogo, Midtown e Paulista
+- **Escopo aprovado:** pendente do teste do catálogo, Midtown, Paulista e Santa Maria
 - **Riscos aceitos:** pendente
-- **Observações:** aguarda os gates finais e o teste do maintainer; a spec fica `implementing`.
+- **Observações:** gates finais concluídos; aguarda o teste do maintainer e a spec permanece `validating`.
+
+## Emenda CQ-001 — Santa Maria (2026-10-30)
+
+### Test-first e dados finais
+
+- O primeiro `yarn workspace @guess-my-move/web test`, após atualizar as expectativas, falhou nos dois pontos esperados: `city-sources.test.mjs` e `city-data.test.mjs` ainda não encontravam `santa-maria`.
+- Recorte final do Centro: bbox `-29.6923,-53.8105,-29.6853,-53.8035`, rotação 0°, no entorno da Rua do Acampamento e da Avenida Rio Branco.
+- `santa-maria.json`: 81.257 bytes em disco (81.256 caracteres serializados), 845 prédios e 174 vias.
+- A resposta OSM tinha altura/andares explícitos em 201 de 851 elementos de prédio (24%). No resultado convertido, a altura mediana e o p90 são 15 m e a máxima é 49,5 m; ausências usam a estimativa documentada de 15 m.
+- O recorte inicial amplo tinha 4.039 prédios e 371.427 caracteres; foi rejeitado para não repetir a carga excessiva encontrada na Paulista. O recorte final mantém tamanho próximo da Paulista.
+- Altura inicial: 20 m. A busca de spawn encontrou ponto livre, mas nenhuma das 16 direções amostradas encontrou âncora normal a partir dele; Santa Maria depende da teia no céu no início. As alturas do OSM não foram infladas para contornar o perfil baixo.
+
+### Demonstração no navegador
+
+- Backend: sessão isolada do Browser via `playwright-cli`, Vite em `127.0.0.1:5193`, Chromium/WebGL por software.
+- Seleção com três mapas conferida em 1440×900 e 390×844, sem corte horizontal; Santa Maria apareceu com nome, região e ação própria.
+- Santa Maria abriu por seleção com altura inicial de 20 m, nome e atribuição ODbL. Console: 0 erros e 4 avisos do driver WebGL por software sobre `ReadPixels`.
+- Um toque em Espaço lançou e soltou a teia como esperado. Depois de reiniciar e segurar Espaço por 3 s, o snapshot mostrou `Teias: 1`, 67 km/h, 15 m de altura, 13 m percorridos e status "Balançando. Punho fechado puxa.". Isso prova o fluxo por teclado nessa execução, não fps nem sensação com mão real.
+
+### Gates após a emenda
+
+| Comando                                                                | Resultado | Evidência                                                                                      |
+| ---------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `yarn check:all`                                                       | PASS      | core 68, marbles 159, swing 188, web 329 Vitest + 71 node:test; typecheck, lint e build verdes |
+| `yarn test:gates`                                                      | PASS      | 231 testes                                                                                     |
+| `yarn test:sdd`                                                        | PASS      | 109 testes                                                                                     |
+| `yarn sdd:check`                                                       | PASS      | catálogo, estados, gates, cobertura, tarefas e links válidos                                   |
+| `yarn docs:format:check`                                               | PASS      | documentação formatada pelo script oficial e verificada novamente                              |
+| `yarn security:dependencies`                                           | PASS      | info=0, low=0, moderate=0, high=0, critical=0                                                  |
+| `yarn workspace @guess-my-move/web test`                               | PASS      | 329 Vitest + 71 node:test                                                                      |
+| `node --test scripts/city-sources.test.mjs scripts/city-data.test.mjs` | PASS      | 26 testes focados                                                                              |
+
+### Limitações da emenda
+
+- Santa Maria é baixa e somente 24% dos elementos consultados tinham altura ou número de andares explícito; o visual não reproduz fachadas reais.
+- A primeira teia usa a reserva no céu. A disponibilidade de fachadas úteis depois do início depende do local e não foi medida com mão real.
+- Não houve medição de fps em GPU real, câmera ou gestos. As imagens de verificação permanecem fora do repositório.

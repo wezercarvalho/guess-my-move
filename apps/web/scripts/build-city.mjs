@@ -1,5 +1,5 @@
 // Baixa um trecho pequeno da Overpass e grava City v1 em `public/swing/`.
-// Uso: `node scripts/build-city.mjs <midtown|paulista>`.
+// Uso: `node scripts/build-city.mjs <midtown|paulista|santa-maria>`.
 // Rede só neste build manual; o jogo serve o JSON local da própria origem.
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'

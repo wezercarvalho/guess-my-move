@@ -17,9 +17,9 @@ const cities = catalog.maps.map((map) => ({
 }))
 
 describe('catálogo de cidades (cities.json)', () => {
-    it('é v1, tem Midtown e Paulista, sem ids duplicados', () => {
+    it('é v1, tem Midtown, Paulista e Santa Maria, sem ids duplicados', () => {
         assert.equal(catalog.version, 1)
-        assert.deepEqual(catalog.maps.map((map) => map.id), ['midtown', 'paulista'])
+        assert.deepEqual(catalog.maps.map((map) => map.id), ['midtown', 'paulista', 'santa-maria'])
         assert.equal(new Set(catalog.maps.map((map) => map.id)).size, catalog.maps.length)
     })
 

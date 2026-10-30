@@ -1,6 +1,6 @@
 ---
 id: 2026-10-30-game-arranha-teia-add-city-catalog
-summary: Acrescenta ao Arranha-Teia um catálogo local e uma seleção de mapas antes da partida, preserva Midtown Manhattan, inclui Avenida Paulista como primeira cidade nova e melhora a apresentação procedural sem serviço externo em tempo de jogo.
+summary: Acrescenta ao Arranha-Teia um catálogo local e uma seleção de mapas antes da partida, preserva Midtown Manhattan, inclui Avenida Paulista e Santa Maria (RS) e melhora a apresentação procedural sem serviço externo em tempo de jogo.
 title: Selecionar cidades no Arranha-Teia
 slug: game-arranha-teia-add-city-catalog
 strategy: sdd
@@ -32,7 +32,7 @@ updated_at: 2026-10-30
 
 ## Resumo
 
-Antes de entrar no Arranha-Teia, o jogador escolhe uma cidade disponível num catálogo servido pela própria origem. Midtown Manhattan continua jogável; Avenida Paulista, em São Paulo, entra como a primeira cidade nova. A apresentação procedural ganha iluminação, fachadas e ruas mais legíveis sem trocar a física, sem Cesium e sem serviço de mapas em tempo de jogo.
+Antes de entrar no Arranha-Teia, o jogador escolhe uma cidade disponível num catálogo servido pela própria origem. Midtown Manhattan continua jogável; Avenida Paulista, em São Paulo, e Santa Maria, no Rio Grande do Sul, entram como cidades brasileiras locais. A apresentação procedural ganha iluminação, fachadas e ruas mais legíveis sem trocar a física, sem Cesium e sem serviço de mapas em tempo de jogo.
 
 ## Problema
 
@@ -42,7 +42,7 @@ O jogo carrega `midtown.json` diretamente e não permite escolher mapa. O cenár
 
 - Mostrar uma seleção de mapas antes da partida, com nome, local e uma frase curta.
 - Preservar Midtown sem regressão e permitir trocar de mapa sem recarregar manualmente a URL.
-- Adicionar Avenida Paulista como mapa local, usando o mesmo formato de colisão do jogo.
+- Adicionar Avenida Paulista e Santa Maria (RS) como mapas locais, usando o mesmo formato de colisão do jogo.
 - Parametrizar o conversor/build de OSM para novas cidades sem copiar scripts.
 - Melhorar o visual procedural comum mantendo a geometria de colisão e o funcionamento atual.
 
@@ -74,14 +74,14 @@ Como jogador, quero ver os mapas disponíveis antes da partida para escolher ond
 
 ### US-002 — Jogar em mais de uma cidade (P1)
 
-Como jogador, quero Midtown e Avenida Paulista como opções reais para comparar os cenários.
+Como jogador, quero Midtown, Avenida Paulista e Santa Maria como opções reais para comparar os cenários.
 
 **Teste independente:** carregar cada arquivo pelo catálogo, validar o formato e criar o índice de colisão.
 
 **Critérios de aceitação:**
 
 1. **Dado** o catálogo, **quando** seus mapas disponíveis são validados, **então** cada arquivo existe, tem prédios e vias, e o nome/atribuição correspondem.
-2. **Dado** Avenida Paulista escolhida, **quando** a partida inicia, **então** a física usa os prédios desse arquivo e o crédito ODbL aparece.
+2. **Dado** Avenida Paulista ou Santa Maria escolhida, **quando** a partida inicia, **então** a física usa os prédios desse arquivo e o crédito ODbL aparece.
 
 ### US-003 — Cenário procedural mais legível (P2)
 
@@ -99,7 +99,7 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 - **FR-001:** O app DEVE carregar `swing/cities.json` da própria origem e rejeitar catálogo inválido ou caminho absoluto/externo.
 - **FR-002:** A tela DEVE mostrar a seleção antes do jogo, com cards curtos, estado de carregamento/erro e uma ação por mapa.
 - **FR-003:** Escolher um mapa DEVE montar uma instância nova do jogo com o arquivo escolhido; "Trocar mapa" DEVE desmontá-la e voltar à seleção.
-- **FR-004:** O catálogo DEVE incluir Midtown Manhattan e Avenida Paulista como disponíveis, com arquivo, nome, região, descrição e atribuição ODbL.
+- **FR-004:** O catálogo DEVE incluir Midtown Manhattan, Avenida Paulista e Santa Maria (RS) como disponíveis, com arquivo, nome, região, descrição e atribuição ODbL.
 - **FR-005:** O pipeline OSM DEVE aceitar id, nome, bbox, rotação e saída por cidade, mantendo Midtown compatível e sem rede em tempo de jogo.
 - **FR-006:** Cada mapa disponível DEVE passar por validação automatizada de catálogo, arquivo, limites, prédios, vias, atribuição e caminho local.
 - **FR-007:** O passe visual DEVE usar somente Three.js e conteúdo procedural/local, sem mudar o contrato `City` usado pela física.
@@ -124,12 +124,13 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 ## Hipóteses e dependências
 
 - A Avenida Paulista tem perfil vertical útil para o jogo: a pesquisa anterior mediu 960 prédios, 186 vias, 96% de alturas explícitas e 23% de raios acertando paredes a 60 m, com dados daquela consulta.
+- Santa Maria tem perfil mais baixo: no recorte final foram medidos 845 prédios, 174 vias, 24% de alturas explícitas, mediana de 15 m e máximo de 49,5 m. A altura inicial é 20 m e a teia no céu preserva a partida quando nenhuma fachada serve de âncora.
 - O passe visual melhora legibilidade, não comprova realismo nem desempenho.
 - Rio de Janeiro depende de uma próxima spec de relevo e dados abertos; Cesium continua como experimento opcional futuro.
 
 ## Critérios mensuráveis de sucesso
 
-- **SC-001:** Dois mapas disponíveis aparecem e abrem por seleção e por URL, sem requisição externa em tempo de jogo.
-- **SC-002:** Os arquivos de Midtown e Paulista passam pelos testes de dados e pelo índice de colisão.
+- **SC-001:** Três mapas disponíveis aparecem e abrem por seleção e por URL, sem requisição externa em tempo de jogo.
+- **SC-002:** Os arquivos de Midtown, Paulista e Santa Maria passam pelos testes de dados e pelo índice de colisão.
 - **SC-003:** Os gates oficiais passam e nenhuma regressão ocorre nos jogos ou na física do Arranha-Teia.
 - **SC-004:** A seleção é legível em 390, 900 e 1440 px; o jogo mostra o nome e a atribuição do mapa escolhido.

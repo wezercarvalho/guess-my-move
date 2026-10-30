@@ -26,6 +26,15 @@ const catalog: CityCatalog = {
             spawnHeight: 55,
             attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
         },
+        {
+            id: 'santa-maria',
+            name: 'Santa Maria',
+            region: 'Rio Grande do Sul, Brasil',
+            description: 'Centro urbano no coração do Rio Grande do Sul.',
+            file: 'swing/santa-maria.json',
+            spawnHeight: 20,
+            attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
+        },
     ],
 }
 
@@ -69,7 +78,17 @@ describe('SwingApp: seleção antes do jogo', () => {
         expect(await screen.findByRole('heading', { name: /escolha o mapa/i })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Midtown Manhattan' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'Avenida Paulista' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Santa Maria' })).toBeInTheDocument()
         expect(game.loadCity).not.toHaveBeenCalled()
+    })
+
+    it('escolhe Santa Maria e monta a partida com o mapa gaúcho', async () => {
+        const game = deps()
+        render(<SwingApp loadCatalog={() => Promise.resolve(catalog)} deps={game.value} />)
+        fireEvent.click(await screen.findByRole('button', { name: /viajar pela santa maria/i }))
+        await waitFor(() => expect(game.loadCity).toHaveBeenCalledWith(catalog.maps[2]))
+        expect(screen.getByText(/Santa Maria · Rio Grande do Sul, Brasil/)).toBeInTheDocument()
+        expect(new URL(window.location.href).searchParams.get('city')).toBe('santa-maria')
     })
 
     it('escolhe a Paulista, monta a partida com seu arquivo e permite trocar', async () => {

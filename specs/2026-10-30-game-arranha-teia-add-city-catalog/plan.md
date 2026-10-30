@@ -57,7 +57,7 @@ apps/web/src/swing/swing.css
 - `CitySelect`: cards acessíveis, sem câmera/controlador; estado de carregamento/erro.
 - `SwingScreen`: recebe o mapa selecionado, mostra nome dinâmico e "Trocar mapa".
 - `useSwingGame`: recebe `cityFile`; o controlador continua inalterado e carrega o arquivo por dependência.
-- `city-sources.mjs`: definições de Midtown e Paulista para o build offline.
+- `city-sources.mjs`: definições de Midtown, Paulista e Santa Maria para o build offline.
 - `city-from-osm.mjs`: projeção parametrizada; defaults preservam Midtown.
 - `cityRenderer.ts`: melhoria de iluminação/material/texturas procedurais e legibilidade das ruas; zero recurso externo.
 
@@ -130,3 +130,11 @@ type CityCatalog = { version: 1; maps: CityMap[] }
 | Necessidade   | Impacto | Alternativa mais simples rejeitada | Aprovação |
 | ------------- | ------- | ---------------------------------- | --------- |
 | Nenhum desvio | —       | —                                  | —         |
+
+## Emenda CQ-001 — plano para Santa Maria
+
+A terceira cidade reutiliza os contratos existentes: uma entrada em `city-sources.mjs`, geração offline por `build-city.mjs`, arquivo local `public/swing/santa-maria.json` e entrada em `cities.json`. O recorte central deve ficar abaixo do limite de 1,5 MB e ter prédios e vias suficientes para o teste de dados. A altura inicial será escolhida a partir do perfil vertical gerado, sem alterar a física global. Testes do catálogo, da fonte e dos dados devem falhar antes da implementação e passar depois. A demonstração final abre a seleção, Santa Maria e uma teia por teclado, além de verificar console e origem das requisições.
+
+- **Alternativa rejeitada:** área municipal ampla, porque aumentaria carga sem melhorar a jogabilidade do recorte inicial.
+- **Risco:** Santa Maria tem perfil mais baixo e menos alturas explícitas que Midtown; a teia no céu continua sendo a reserva existente.
+- **Gate 2 da emenda:** aprovado por wezercarvalho em `2026-10-30`, ao pedir a implementação na mesma branch e solicitar aviso somente ao terminar.

@@ -53,3 +53,12 @@
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** mensagem no chat: "aplica da melhor forma possível mantendo o funcionamento que já possuímos ou até mesmo aperfeiçoando se possível. Esse é teu objetivo. Pode seguir no PR/branch que já existe para essa questão dos mapas."
 - **Observações:** o agente escolheu a alternativa local e incremental já recomendada na conversa; o maintainer pediu execução e aviso para teste.
+
+## Emenda CQ-001 — Santa Maria no catálogo
+
+- **Data:** `2026-10-30`
+- **Pedido:** adicionar Santa Maria, Rio Grande do Sul, como terceira opção na mesma branch.
+- **Decisão:** reutilizar o pipeline OSM e o formato `City` v1 já aprovados, com um recorte central local e sem serviço externo durante o jogo.
+- **Critério:** o recorte só entra no catálogo depois de passar pela validação de dados, carregar no índice de colisão e demonstrar uma área jogável; quantidade, tamanho e cobertura de alturas serão registrados sem prometer fidelidade.
+- **Gate 1 da emenda:** aprovado por wezercarvalho na mensagem "Agora adicionar Santa Maria, Rio Grande do Sul como seleção de cidade também. Pode fazer na mesma branch."
+- **Ambiguidades:** o maintainer não definiu um bairro; o agente escolhe um recorte central reversível e mede o resultado antes de fixá-lo.

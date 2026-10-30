@@ -64,3 +64,26 @@
 - **Artefatos aprovados:** `research.md`, `plan.md`, `tasks.md`
 - **Referência:** mensagem no chat: "aplica da melhor forma possível mantendo o funcionamento que já possuímos ou até mesmo aperfeiçoando se possível. Esse é teu objetivo. Pode seguir no PR/branch que já existe para essa questão dos mapas."
 - **Exceções:** nenhuma; o agente escolheu o caminho local recomendado e mantém o Rio/Cesium como incremento posterior.
+
+## Fase 5 — Emenda CQ-001: Santa Maria
+
+- [x] T013 [US-002] [FR-004] [FR-005] Atualizar primeiro os testes do catálogo e das fontes para exigir Santa Maria e observar a falha.
+- [x] T014 [US-002] [FR-004] [FR-005] Definir o recorte central, gerar `santa-maria.json` pela Overpass e registrar bbox, rotação, bytes, prédios, vias e cobertura de altura.
+- [x] T015 [US-001] [US-002] [FR-004] [FR-006] Incluir Santa Maria no catálogo e nos testes de tela/dados; validar arquivo, índice de colisão e altura inicial.
+- [x] T016 [US-001] [SC-001] [SC-004] Demonstrar seleção e partida em Santa Maria no navegador, incluindo lançamento por teclado, console e requisições.
+- [x] T017 [NFR-003] [SC-003] Rodar os scripts oficiais aplicáveis, atualizar a validação e devolver a spec a `validating` com o Gate 3 ainda pendente.
+
+### Análise de consistência da emenda
+
+- **Status:** aprovada
+- **Revisor:** kirocrew (agente)
+- **Data:** `2026-10-30`
+- **Cobertura:** FR-004/FR-005/FR-006 e SC-001/SC-003/SC-004 cobertos por T013–T017; nenhum contrato ou componente novo.
+
+### Gate 2 da emenda
+
+- **Status:** aprovado
+- **Aprovador:** wezercarvalho (maintainer)
+- **Data:** `2026-10-30`
+- **Referência:** mensagem no chat pedindo Santa Maria como seleção na mesma branch e aviso ao concluir.
+- **Exceções:** nenhuma; a emenda reaplica o pipeline local já aprovado.

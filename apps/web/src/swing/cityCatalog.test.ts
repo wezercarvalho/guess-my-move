@@ -24,6 +24,15 @@ const valid = {
             spawnHeight: 55,
             attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
         },
+        {
+            id: 'santa-maria',
+            name: 'Santa Maria',
+            region: 'Rio Grande do Sul, Brasil',
+            description: 'Centro urbano no coração do Rio Grande do Sul.',
+            file: 'swing/santa-maria.json',
+            spawnHeight: 20,
+            attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
+        },
     ],
 }
 
@@ -33,7 +42,7 @@ const response = (body: unknown, ok = true, status = 200) =>
 describe('parseCityCatalog', () => {
     it('aceita catálogo v1 com mapas locais e preserva os campos', () => {
         const catalog = parseCityCatalog(valid)
-        expect(catalog.maps.map((map) => map.id)).toEqual(['midtown', 'paulista'])
+        expect(catalog.maps.map((map) => map.id)).toEqual(['midtown', 'paulista', 'santa-maria'])
         expect(catalog.maps[0]?.recommended).toBe(true)
     })
 
@@ -71,7 +80,7 @@ describe('fetchCityCatalog', () => {
         const fetchImpl = response(valid)
         const catalog = await fetchCityCatalog('/swing/cities.json', fetchImpl)
         expect(fetchImpl).toHaveBeenCalledWith('/swing/cities.json')
-        expect(catalog.maps).toHaveLength(2)
+        expect(catalog.maps).toHaveLength(3)
     })
 
     it('inclui o status HTTP no erro', async () => {
