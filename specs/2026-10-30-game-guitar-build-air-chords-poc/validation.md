@@ -35,7 +35,7 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 | FR-010    | T020, T043, T044       | `ChordRecognition`: permanência, tolerância a quadro ruim e troca Em→Am                                             | PASS      |
 | FR-011    | T021, T022, T045       | `strum.test.ts`: direção, força, escala, limiar, deslocamento, jitter, refratário e reinício                        | PASS      |
 | FR-012    | T023, T024             | `synth.test.ts`: fundamental a menos de 1% (A2, E3, E4, G4), decaimento, determinismo                               | PASS      |
-| FR-013    | T025                   | `strumPlan.test.ts`: ordem, atraso, ganho, abafadas, formato errado                                                 | PASS      |
+| FR-013    | T025                   | `strumPlan.test.ts`: ordem, atraso, ganho, abafadas e entrada vazia                                                 | PASS      |
 | FR-014    | T026, T027             | `audioPlayer.test.ts`: bloqueado, desbloqueio por gesto, agendamento, falhas; ativar a câmera libera o áudio        | PASS      |
 | FR-015    | T028-T032, T046        | Controlador, tela e inspeção Chromium: câmera na largura útil e braço com 18% da altura                             | PASS      |
 | FR-016    | T033-T035, T044        | Sem seletor; nome e diagrama aparecem somente após reconhecer a posição                                             | PASS      |
