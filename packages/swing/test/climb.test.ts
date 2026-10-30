@@ -170,14 +170,14 @@ describe('sair do agarre', () => {
         expect(state.grip).toBeNull()
     })
 
-    it('solta sozinho sem movimento de escalada por tempo acima da tolerância', () => {
+    it('parado agarrado, não solta sozinho enquanto a mão segura (admirar a paisagem)', () => {
         const { index, state } = againstWall()
         stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
-        const steps = Math.ceil(DEFAULT_SWING.grip.gripIdleMs / (DT * 1000)) + 10
+        const steps = Math.ceil(60_000 / (DT * 1000))
         for (let i = 0; i < steps; i++) {
             stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: 0 }))
         }
-        expect(state.grip).toBeNull()
+        expect(state.grip).not.toBeNull()
     })
 
     it('ao chegar ao topo, sai para o telhado em pé', () => {

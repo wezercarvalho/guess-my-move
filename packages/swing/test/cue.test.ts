@@ -48,7 +48,7 @@ describe('swingCue', () => {
 
     it('já agarrado à parede, orienta a escalada', () => {
         expect(
-            swingCue(state({ grip: { normal: { x: 1, y: 0, z: 0 }, wallTop: 200, idleMs: 0, graceMs: 0, fistMs: 0 } })),
+            swingCue(state({ grip: { normal: { x: 1, y: 0, z: 0 }, wallTop: 200, graceMs: 0, fistMs: 0 } })),
         ).toBe('grip')
     })
 })

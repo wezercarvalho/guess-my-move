@@ -6,6 +6,8 @@ import {
     type SwingWorld,
     type HandMetrics,
     type HeadLook,
+    type HeadClimb,
+    type HeadClimbState,
     type HeadLookState,
     type FaceReading,
     type TriggerGesture,
@@ -14,6 +16,7 @@ import {
     DEFAULT_SWING,
     climbSignal,
     createCityIndex,
+    createHeadClimb,
     createHeadLook,
     createSwingWorld,
     createWebTrigger,
@@ -105,6 +108,9 @@ export interface HeadDebug {
     yawDeg: number
     /** Desvio de inclinação aplicado ao olhar, em graus. */
     pitchDeg: number
+    /** Escalar olhando: direção pedida e quanto da espera passou (0 a 1). */
+    climbIntent: 'up' | 'down' | null
+    climbProgress: number
 }
 
 export interface SwingSnapshot {
@@ -134,6 +140,8 @@ export interface SwingSnapshot {
     grabDebug: { touchingWall: boolean; gripped: boolean; climb: number }
     /** Leitura da cabeça, para o painel de depuração. */
     headDebug: HeadDebug
+    /** Escalar olhando: para onde o olhar pede (esperando ou escalando), a espera (0 a 1) e se já escala. */
+    headClimb: { intent: 'up' | 'down' | null; progress: number; climbing: boolean }
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
@@ -191,6 +199,9 @@ export class SwingController {
     private faceTrackerFailure: string | null = null
     private faceLoadToken = 0
     private readonly headLook: HeadLook = createHeadLook()
+    /** Escalar olhando: segurar o olhar para cima/baixo agarrado, por ~2 s, escala. */
+    private readonly headClimb: HeadClimb = createHeadClimb()
+    private headClimbState: HeadClimbState = { climb: 0, intent: null, progress: 0, climbing: false }
     private headState: HeadLookState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
     /** Último desvio da cabeça já aplicado ao olhar; o próximo passo soma só a variação. */
     private appliedHead = { yaw: 0, pitch: 0 }
@@ -287,6 +298,7 @@ export class SwingController {
         this.faceTracker = null
         this.faceTrackerStatus = 'idle'
         this.headLook.reset()
+        this.headClimb.reset()
         this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
         this.appliedHead = { yaw: 0, pitch: 0 }
         this.hand = null
@@ -317,6 +329,7 @@ export class SwingController {
         if (mode === 'auto' && this.faceTracker) this.releaseFaceTracker()
         // Em qualquer troca, zera o "já aplicado" para não somar/subtrair o desvio de uma vez.
         this.headLook.reset()
+        this.headClimb.reset()
         this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
         this.appliedHead = { yaw: 0, pitch: 0 }
         this.lastFace = null
@@ -400,6 +413,7 @@ export class SwingController {
                 this.faceTracker = tracker
                 this.faceTrackerStatus = 'ready'
                 this.headLook.reset()
+                this.headClimb.reset()
                 this.appliedHead = { yaw: 0, pitch: 0 }
                 this.sync()
             },
@@ -418,6 +432,7 @@ export class SwingController {
         this.faceTracker = null
         this.faceTrackerStatus = 'idle'
         this.headLook.reset()
+        this.headClimb.reset()
         this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
         this.appliedHead = { yaw: 0, pitch: 0 }
     }
@@ -503,10 +518,26 @@ export class SwingController {
                       center: grabKey,
                   }
                 : { center: grabKey && touchingWall }
-        // Escalada: a câmera dá o movimento alternado; agarrado, as setas sobem/descem também.
+        // Escalada: a câmera dá o movimento das mãos; agarrado, as setas sobem/descem também.
+        // No modo Rosto, agarrado, segurar o olhar para cima/baixo por ~2 s também escala.
         const keyClimb = gripped ? this.keyAxis('ArrowUp', 'ArrowDown') : 0
-        const climb = Math.abs(this.climb) > Math.abs(keyClimb) ? this.climb : keyClimb
         const head = this.updateHeadLook(dt)
+        this.headClimbState = this.headClimb.update(
+            {
+                pitch: this.headState.pitchOffset,
+                yaw: this.headState.yawOffset,
+                active:
+                    gripped &&
+                    this.lookMode === 'face' &&
+                    this.faceTracker !== null &&
+                    this.headState.faceVisible &&
+                    this.headState.calibrated,
+            },
+            dt * 1000,
+        )
+        const climb = [this.climb, keyClimb, this.headClimbState.climb].reduce((best, value) =>
+            Math.abs(value) > Math.abs(best) ? value : best,
+        )
         const input: SwingInput = {
             // Cada mão segura a própria teia; Espaço é a teia do centro (teclado).
             held: {
@@ -829,12 +860,19 @@ export class SwingController {
             handsVisible: this.hands.length,
             pulling: this.pulls.left || this.pulls.right,
             handDebug: [...this.handDebug],
+            headClimb: {
+                intent: this.headClimbState.intent,
+                progress: this.headClimbState.progress,
+                climbing: this.headClimbState.climbing,
+            },
             headDebug: {
                 lookMode: this.lookMode,
                 faceVisible: this.headState.faceVisible,
                 calibrated: this.headState.calibrated,
                 yawDeg: Math.round((this.headState.yawOffset * 180) / Math.PI),
                 pitchDeg: Math.round((this.headState.pitchOffset * 180) / Math.PI),
+                climbIntent: this.headClimbState.intent,
+                climbProgress: this.headClimbState.progress,
             },
             grabDebug: {
                 touchingWall: state?.touchingWall ?? false,

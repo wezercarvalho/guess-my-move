@@ -330,7 +330,7 @@ export function stepPlayer(
     // zera a velocidade e solta as teias presas (um regime de cada vez). Não reentra no
     // mesmo passo em que saiu (ex.: saída por teia lançada).
     if (state.grip === null && !exitedGrip && grab && state.touchingWall && contact && contact.kind !== 'roof') {
-        state.grip = { normal: { ...contact.normal }, wallTop: wallTop(index, state, config, contact.normal), idleMs: 0, graceMs: 0, fistMs: 0 }
+        state.grip = { normal: { ...contact.normal }, wallTop: wallTop(index, state, config, contact.normal), graceMs: 0, fistMs: 0 }
         state.velocity = { x: 0, y: 0, z: 0 }
         state.webs = []
     }

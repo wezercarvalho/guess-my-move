@@ -1,4 +1,4 @@
-import { type SwingCue } from '@guess-my-move/swing'
+import { DEFAULT_HEAD_CLIMB, type SwingCue } from '@guess-my-move/swing'
 
 import { type SwingTrackerStatus } from './swingController.js'
 
@@ -8,7 +8,7 @@ export const STEPS = [
     'Uma teia por mão: segure uma ou as duas.',
     'Punho fechado puxa. Palma aberta solta.',
     'Solte na subida para voar. Lance de novo.',
-    'Na parede: abra a mão para agarrar e escale.',
+    'Na parede: abra a mão para agarrar. Olhe 2 s para cima ou baixo para escalar.',
 ] as const
 
 /** Um grupo de teclas e o que ele faz, para a legenda de teclado da tela. */
@@ -126,7 +126,28 @@ export function headStatusLine({ cameraActive, faceTrackerStatus, faceVisible }:
     return ''
 }
 
-/** Linha de status quando o jogador está agarrado à parede (atalho para `statusLine('grip')`). */
-export function gripStatusLine(): string {
-    return statusLine('grip')
+/** O que o olhar de escalada está fazendo, para a linha de status (`null`: sem rosto/modo Rosto). */
+export interface GripHeadClimb {
+    intent: 'up' | 'down' | null
+    /** Quanto da espera já passou (0 a 1). */
+    progress: number
+    climbing: boolean
+}
+
+/**
+ * Linha de status quando o jogador está agarrado à parede. Com o rosto à vista (modo Rosto),
+ * ensina e mostra o olhar de escalada: esperando, quanto falta; escalando, como parar.
+ */
+export function gripStatusLine(head: GripHeadClimb | null = null): string {
+    if (!head) return statusLine('grip')
+    const seconds = Math.round(DEFAULT_HEAD_CLIMB.dwellMs / 1000)
+    if (head.climbing) {
+        return `${head.intent === 'down' ? 'Descendo' : 'Subindo'}. Olhe para o lado para parar.`
+    }
+    if (head.intent) {
+        const left = ((1 - head.progress) * DEFAULT_HEAD_CLIMB.dwellMs) / 1000
+        const direction = head.intent === 'up' ? 'cima' : 'baixo'
+        return `Olhando para ${direction}… ${left.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} s`
+    }
+    return `Agarrado. Olhe ${seconds} s para cima ou para baixo para escalar.`
 }

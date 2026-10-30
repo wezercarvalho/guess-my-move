@@ -38,6 +38,14 @@ export {
     headOrientationFromMatrix,
 } from './headLook.js'
 export {
+    DEFAULT_HEAD_CLIMB,
+    type HeadClimb,
+    type HeadClimbConfig,
+    type HeadClimbInput,
+    type HeadClimbState,
+    createHeadClimb,
+} from './headClimb.js'
+export {
     type HandMetrics,
     type HandPoint,
     handMetrics,

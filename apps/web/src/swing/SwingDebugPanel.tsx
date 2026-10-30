@@ -47,6 +47,12 @@ export function SwingDebugPanel({
                     <dd>{head.yawDeg}°</dd>
                     <dt>Cabeça (inclinação)</dt>
                     <dd>{head.pitchDeg}°</dd>
+                    <dt>Escalada pelo olhar</dt>
+                    <dd>
+                        {head.climbIntent === null
+                            ? '—'
+                            : `${head.climbIntent === 'up' ? 'cima' : 'baixo'} ${Math.round(head.climbProgress * 100)}%`}
+                    </dd>
                 </dl>
             ) : null}
             {hands.length === 0 ? (

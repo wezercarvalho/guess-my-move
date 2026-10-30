@@ -20,7 +20,7 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
-    if (game.hud.gripped) return gripStatusLine()
+    if (game.hud.gripped) return gripStatusLine(game.lookMode === 'face' && game.faceVisible ? game.headClimb : null)
     return statusLine(game.cue)
 }
 

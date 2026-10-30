@@ -16,8 +16,6 @@ export interface WallGrip {
     normal: Vec3
     /** Altura do prédio agarrado, em metros: ao passar dela, o jogador sai no telhado. */
     wallTop: number
-    /** Tempo acumulado sem movimento de escalada, em ms (solta sozinho ao passar da tolerância). */
-    idleMs: number
     /** Tempo acumulado sem pedido de agarre, em ms (tolera a perda curta da mão/palma). */
     graceMs: number
     /** Tempo acumulado com o punho fechado pedindo soltar, em ms. */
@@ -30,8 +28,6 @@ export interface GripConfig {
     climbSpeed: number
     /** Abaixo disto, o sinal de escalada conta como zero (zona morta do movimento). */
     climbDeadzone: number
-    /** Tempo, em ms, sem movimento de escalada que solta o agarre sozinho. */
-    gripIdleMs: number
     /** Tolerância, em ms, para a perda curta da mão/palma no meio da escalada. */
     grabGraceMs: number
     /** Tempo, em ms, com o punho fechado que solta o agarre de propósito. */
@@ -41,7 +37,6 @@ export interface GripConfig {
 export const DEFAULT_GRIP: GripConfig = {
     climbSpeed: 6,
     climbDeadzone: 0.06,
-    gripIdleMs: 1500,
     grabGraceMs: 300,
     fistReleaseMs: 250,
 }
@@ -90,7 +85,7 @@ export interface GripStep {
  * Decide e aplica o agarre num passo. Entra só com contato de parede (`contact.kind` != roof)
  * mais o pedido de agarrar; ao entrar, zera a velocidade e marca a parede. Agarrado, não há
  * gravidade nem deslize (quem chama pula essa parte): aqui o jogador sobe/desce por
- * `climb * climbSpeed` e sai por uma das condições (punho segurado, teia, topo, inatividade,
+ * `climb * climbSpeed` e sai por uma das condições (punho segurado, teia, topo,
  * ou perder o pedido de agarre além da tolerância). Altera `state` no lugar via os objetos
  * passados.
  */
@@ -110,7 +105,7 @@ export function stepGrip(
     if (state.grip === null) {
         if (input.grab && touchingWall && contact) {
             const wallTop = wallTopAt ? wallTopAt(state.position.x, state.position.z) : Infinity
-            state.grip = { normal: { ...contact.normal }, wallTop, idleMs: 0, graceMs: 0, fistMs: 0 }
+            state.grip = { normal: { ...contact.normal }, wallTop, graceMs: 0, fistMs: 0 }
             state.velocity = { x: 0, y: 0, z: 0 }
             return { gripped: true, toppedOut: false }
         }
@@ -150,12 +145,10 @@ export function stepGrip(
     if (contact && touchingWall) state.grip.normal = { ...contact.normal }
 
     // Mover ao longo da vertical; colado à parede (quem chama resolve a posição horizontal).
+    // Parado agarrado é permitido: segurar a mão (ou a tecla) é o pedido deliberado de ficar.
     const climb = Math.max(-1, Math.min(1, input.climb))
     state.velocity = { x: 0, y: 0, z: 0 }
-    if (Math.abs(climb) < config.climbDeadzone) {
-        state.grip.idleMs += dtMs
-    } else {
-        state.grip.idleMs = 0
+    if (Math.abs(climb) >= config.climbDeadzone) {
         state.position.y += climb * config.climbSpeed * dt
     }
 
@@ -169,12 +162,6 @@ export function stepGrip(
         state.grip = null
         state.grounded = true
         return { gripped: false, toppedOut: true }
-    }
-
-    // Saída por inatividade: sem movimento de escalada por tempo acima da tolerância.
-    if (state.grip.idleMs > config.gripIdleMs) {
-        state.grip = null
-        return { gripped: false, toppedOut: false }
     }
 
     return { gripped: true, toppedOut: false }

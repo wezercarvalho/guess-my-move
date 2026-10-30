@@ -119,6 +119,23 @@ describe('gripStatusLine', () => {
         expect(gripStatusLine()).toMatch(/agarrado/i)
         expect(gripStatusLine()).toMatch(/subir/i)
     })
+
+    it('com o rosto à vista, ensina o olhar: 2 s para cima ou para baixo', () => {
+        const line = gripStatusLine({ intent: null, progress: 0, climbing: false })
+        expect(line).toMatch(/agarrado/i)
+        expect(line).toMatch(/olhe/i)
+        expect(line).toMatch(/2 s/)
+    })
+
+    it('esperando o olhar, mostra a direção e o tempo que falta', () => {
+        expect(gripStatusLine({ intent: 'up', progress: 0.4, climbing: false })).toMatch(/cima.*1,2 s/i)
+        expect(gripStatusLine({ intent: 'down', progress: 0.75, climbing: false })).toMatch(/baixo.*0,5 s/i)
+    })
+
+    it('escalando pelo olhar, diz que sobe/desce e como parar', () => {
+        expect(gripStatusLine({ intent: 'up', progress: 1, climbing: true })).toMatch(/subindo.*lado/i)
+        expect(gripStatusLine({ intent: 'down', progress: 1, climbing: true })).toMatch(/descendo.*lado/i)
+    })
 })
 
 describe('headStatusLine', () => {
