@@ -37,4 +37,18 @@ describe('swingCue', () => {
     it('em pé no chão ou num telhado, orienta a lançar para subir', () => {
         expect(swingCue(state({ position: { x: 0, y: 2, z: 0 }, grounded: true }))).toBe('ground')
     })
+
+    it('encostado numa parede sem agarre, orienta a abrir a mão para agarrar', () => {
+        expect(swingCue(state({ touchingWall: true, velocity: { x: 0, y: -2, z: 0 } }))).toBe('wall')
+    })
+
+    it('encostado numa parede com a teia presa, também orienta a agarrar (a palma solta a teia e agarra)', () => {
+        expect(swingCue(state({ touchingWall: true, webs: [web] }))).toBe('wall')
+    })
+
+    it('já agarrado à parede, orienta a escalada', () => {
+        expect(
+            swingCue(state({ grip: { normal: { x: 1, y: 0, z: 0 }, wallTop: 200, graceMs: 0, fistMs: 0 } })),
+        ).toBe('grip')
+    })
 })

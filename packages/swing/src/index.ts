@@ -6,6 +6,15 @@ export {
 } from './city.js'
 export { type CityIndex, type Contact, type RayHit, createCityIndex } from './cityIndex.js'
 export {
+    DEFAULT_GRIP,
+    type GripConfig,
+    type GripInput,
+    type GripStep,
+    type WallGrip,
+    climbSignal,
+    stepGrip,
+} from './climb.js'
+export {
     type ActiveWeb,
     DEFAULT_SWING,
     type StepEvents,
@@ -17,6 +26,25 @@ export {
     stepPlayer,
 } from './physics.js'
 export { type SwingCue, swingCue } from './cue.js'
+export {
+    DEFAULT_HEAD_LOOK,
+    type FaceLandmark,
+    type FaceReading,
+    type HeadLook,
+    type HeadLookConfig,
+    type HeadLookState,
+    type HeadOrientation,
+    createHeadLook,
+    headOrientationFromMatrix,
+} from './headLook.js'
+export {
+    DEFAULT_HEAD_CLIMB,
+    type HeadClimb,
+    type HeadClimbConfig,
+    type HeadClimbInput,
+    type HeadClimbState,
+    createHeadClimb,
+} from './headClimb.js'
 export {
     type HandMetrics,
     type HandPoint,

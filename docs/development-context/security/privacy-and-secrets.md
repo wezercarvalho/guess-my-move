@@ -5,9 +5,9 @@ Aplica-se a qualquer mudança que toque câmera, quadros, landmarks, logs ou doc
 ## Câmera, quadros e landmarks
 
 - Solicite consentimento explícito do navegador, mostre um indicador de câmera ativa e permita parar a captura a qualquer momento.
-- O processamento é **100% local**: o detector de mão roda no navegador e nenhum quadro, vídeo ou landmark sai dele.
+- O processamento é **100% local**: os detectores de mão e de rosto rodam no navegador e nenhum quadro, vídeo ou landmark sai dele.
 - Não persista imagens nem vídeos e não registre dados de imagem (base64, bytes, miniaturas, landmarks) em logs ou telemetria.
-- A rodada guarda apenas as amostras numéricas da janela de tempo (`{ t, angleDeg }`) e as descarta ao terminar.
+- No Arranha-Teia, o detector de rosto lê a matriz de transformação facial (para o olhar) **e** os pontos do rosto, que são desenhados de forma **transitória** no overlay (esboço do rosto e eixo do olhar) e **descartados a cada quadro**: nunca são gravados, persistidos nem logados. A rodada guarda apenas as amostras numéricas da janela de tempo (`{ t, angleDeg }`) e as descarta ao terminar.
 - Em conteúdo de menores, aplique salvaguardas adequadas antes de ampliar o público.
 
 ## Sem servidor nem provedor de IA no fluxo principal

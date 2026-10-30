@@ -2,9 +2,10 @@ import { type SwingState } from './physics.js'
 
 /**
  * O que o jogador deve fazer agora: começar, continuar balançando, soltar a teia para
- * voar, lançar outra, correr para lançar antes de cair, ou subir do chão.
+ * voar, lançar outra, correr para lançar antes de cair, subir do chão, agarrar a parede
+ * encostada, ou escalar quando já agarrado.
  */
-export type SwingCue = 'start' | 'swing' | 'release' | 'throw' | 'low' | 'ground'
+export type SwingCue = 'start' | 'swing' | 'release' | 'throw' | 'low' | 'ground' | 'wall' | 'grip'
 
 /** Abaixo desta altura, sem teia, o jogador está perto de cair, em metros. */
 const LOW_ALTITUDE = 30
@@ -15,12 +16,16 @@ const FAST = 12
 
 /**
  * Lê o estado e diz qual é o próximo gesto. Soltar a teia na subida do arco, com
- * velocidade, é o que lança o jogador para longe.
+ * velocidade, é o que lança o jogador para longe. Agarrado à parede, orienta a escalada;
+ * encostado numa parede sem teia e sem agarre, orienta a agarrar.
  */
 export function swingCue(
-    state: Pick<SwingState, 'started' | 'webs' | 'velocity' | 'position' | 'grounded'>,
+    state: Pick<SwingState, 'started' | 'webs' | 'velocity' | 'position' | 'grounded' | 'grip' | 'touchingWall'>,
 ): SwingCue {
     if (!state.started) return 'start'
+    if (state.grip !== null) return 'grip'
+    // Encostado numa fachada, mesmo com teia presa: a palma aberta solta a teia e agarra.
+    if (state.touchingWall) return 'wall'
     if (state.webs.length > 0) {
         const horizontal = Math.hypot(state.velocity.x, state.velocity.z)
         return state.velocity.y > RISING && horizontal >= FAST ? 'release' : 'swing'

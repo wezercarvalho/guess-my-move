@@ -35,8 +35,25 @@ export interface SwingInput {
     held: SlotFlags
     /** Punho fechado: puxar a teia daquele lado, se estiver presa. */
     pull?: SlotFlags
+    /** Mãos abertas em contato com a parede: agarrar a fachada. */
+    grab?: SlotFlags
+    /** Sinal de escalada (-1 a 1): sobe/desce quando agarrado. */
+    climb?: number
+    /** Punho fechado: soltar da parede (ao segurar além da tolerância). */
+    releaseFist?: boolean
     yawRate: number
     pitchRate: number
+    /**
+     * Desvio do olhar pela cabeça neste passo (guinada e inclinação, em radianos), somado
+     * direto ao olhar — já é um ângulo, não uma taxa. É a variação de um quadro para o outro,
+     * calculada na camada web a partir do rastreador de rosto. Ausente = sem rosto / teclado.
+     */
+    lookDelta?: { yaw: number; pitch: number }
+    /**
+     * A cabeça está comandando o olhar agora (fora da zona morta ou voltando ao neutro). Com
+     * isso ligado, o acompanhamento automático não sobrescreve o olhar neste passo.
+     */
+    lookActive?: boolean
 }
 
 export interface SwingWorld {
@@ -166,13 +183,22 @@ export function createSwingWorld(
 
     function step(input: SwingInput, dt: number): StepEvents {
         state.yaw += input.yawRate * config.yawRate * dt
-        if (state.started && input.yawRate === 0) followHeading(dt, input.pitchRate === 0)
+        // A cabeça soma um desvio direto ao olhar (já é um ângulo, não uma taxa).
+        if (input.lookDelta) {
+            state.yaw += input.lookDelta.yaw
+            state.pitch += input.lookDelta.pitch
+        }
+        // O acompanhamento automático só entra quando nem o teclado nem a cabeça comandam o olhar.
+        if (state.started && input.yawRate === 0 && !input.lookActive) {
+            followHeading(dt, input.pitchRate === 0 && !input.lookActive)
+        }
         state.pitch = Math.max(
             -config.pitchLimit,
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
         const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
+        const anyGrab = SLOTS.some(({ slot }) => input.grab?.[slot])
         for (const { slot, side } of SLOTS) {
             const held = Boolean(input.held[slot])
             if (!held) {
@@ -191,9 +217,9 @@ export function createSwingWorld(
             previousPull[slot] = pulling
         }
 
-        // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia.
+        // O jogador fica parado no início, olhando em volta, até o primeiro gesto de teia (ou agarre).
         if (!state.started) {
-            if (!anyHeld) return { wallHit: false }
+            if (!anyHeld && !anyGrab) return { wallHit: false }
             state.started = true
             const ahead = forwardFromAngles(state.yaw, 0)
             state.velocity = {
@@ -202,7 +228,11 @@ export function createSwingWorld(
                 z: ahead.z * config.spawnSpeed,
             }
         }
-        return stepPlayer(index, state, dt, config)
+        return stepPlayer(index, state, dt, config, {
+            grab: input.grab,
+            climb: input.climb,
+            releaseFist: input.releaseFist,
+        })
     }
 
     return {

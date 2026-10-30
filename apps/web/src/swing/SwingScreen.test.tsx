@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type SwingRenderer } from './cityRenderer.js'
 import { SwingScreen } from './SwingScreen.js'
 import { type SwingDeps } from './useSwingGame.js'
+import { createFakeStream } from '../test-utils/fakeMedia.js'
 
 /** Prédio alto 40 m à frente do ponto de partida. */
 const city: City = {
@@ -184,5 +185,49 @@ describe('SwingScreen', () => {
     it('avisa que a câmera é processada no navegador', async () => {
         await openGame()
         expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
+    })
+
+    it('mostra a legenda de teclado sempre visível, com as teclas', async () => {
+        await openGame()
+        const legend = screen.getByTestId('keyboard-legend')
+        expect(legend).toHaveTextContent('Espaço')
+        expect(legend).toHaveTextContent('lança (centro)')
+        expect(legend).toHaveTextContent('Z')
+        expect(legend).toHaveTextContent('X')
+        expect(legend).toHaveTextContent('C')
+        expect(legend).toHaveTextContent('puxa')
+        expect(legend).toHaveTextContent('olham')
+    })
+
+    it('com a câmera ativa, mostra o seletor de direção do olhar e troca para Automática', async () => {
+        vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+        const { stream } = createFakeStream()
+        const h = harness({
+            createTracker: () =>
+                Promise.resolve({
+                    delegate: 'CPU',
+                    detect: () => null,
+                    detectAll: () => [],
+                    close: () => undefined,
+                }),
+            createFaceTracker: () =>
+                Promise.resolve({ delegate: 'CPU', detect: () => null, close: () => undefined }),
+        })
+        render(<SwingScreen cameraGetUserMedia={() => Promise.resolve(stream)} deps={h.deps} />)
+        await waitFor(() => {
+            expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i)
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
+            await Promise.resolve()
+        })
+        const selector = await screen.findByRole('group', { name: 'Direção do olhar' })
+        const rosto = within(selector).getByRole('radio', { name: 'Rosto' })
+        expect(rosto).toBeChecked()
+        act(() => {
+            fireEvent.click(within(selector).getByRole('radio', { name: 'Automática' }))
+        })
+        expect(within(selector).getByRole('radio', { name: 'Automática' })).toBeChecked()
+        expect(screen.getByTestId('head-status')).toHaveTextContent(/câmera automática/i)
     })
 })
