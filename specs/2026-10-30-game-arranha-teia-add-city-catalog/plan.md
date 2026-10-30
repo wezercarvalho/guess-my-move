@@ -138,3 +138,14 @@ A terceira cidade reutiliza os contratos existentes: uma entrada em `city-source
 - **Alternativa rejeitada:** área municipal ampla, porque aumentaria carga sem melhorar a jogabilidade do recorte inicial.
 - **Risco:** Santa Maria tem perfil mais baixo e menos alturas explícitas que Midtown; a teia no céu continua sendo a reserva existente.
 - **Gate 2 da emenda:** aprovado por wezercarvalho em `2026-10-30`, ao pedir a implementação na mesma branch e solicitar aviso somente ao terminar.
+
+## Emenda CQ-002 — plano das placas de rua
+
+- `packages/swing/src/city.ts`: `CityRoad.name?: string` (opcional; formato continua v1).
+- `apps/web/scripts/city-from-osm.mjs`: copia `tags.name` (sem espaços nas pontas) para a via; sem nome, a via fica como era.
+- `apps/web/src/swing/streetSigns.ts` (módulo puro, testado): `findStreetCorners(city, isClear)` acha cruzamentos entre segmentos de vias com nomes diferentes, agrupa em 15 m, escolhe as duas ruas mais largas e não paralelas e posiciona o poste num dos quatro cantos livres (ou no centro, se nenhum estiver livre); `plateArrowAngle(direction, yaw)` e `rowOrder(a, b, yaw)` dão a seta e a ordem das linhas em relação à câmera.
+- `apps/web/src/swing/cityRenderer.ts`: um grupo por esquina (poste, fundo, duas linhas com texto em canvas e seta de duas pontas), texturas de texto em cache por nome, `fog: false` no texto, grupo visível só a até 280 m da câmera, voltado para a câmera pela guinada e com seta e ordem atualizadas a cada quadro.
+- `apps/web/public/swing/santa-maria.json`: regenerado pelo `build:city` para trazer os nomes.
+- **Alternativa rejeitada:** guardar as esquinas no JSON, pois duplicaria dados que se derivam do próprio mapa e dificultaria regenerar cidades.
+- **Risco:** o OSM pode ter vias sem nome ou nomes diferentes para o mesmo trecho; a placa só aparece onde há dois nomes. O JSON regenerado pode diferir do anterior se o OSM mudou, e os números serão medidos de novo.
+- **Gate 2 da emenda:** aprovado por wezercarvalho em `2026-10-30`, ao pedir a implementação e o aviso para testar.

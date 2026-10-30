@@ -1,6 +1,6 @@
 ---
 id: 2026-10-30-game-arranha-teia-add-city-catalog
-summary: Acrescenta ao Arranha-Teia um catálogo local e uma seleção de mapas antes da partida, preserva Midtown Manhattan, inclui Avenida Paulista e Santa Maria (RS) e melhora a apresentação procedural sem serviço externo em tempo de jogo.
+summary: Acrescenta ao Arranha-Teia um catálogo local e uma seleção de mapas antes da partida, preserva Midtown Manhattan, inclui Avenida Paulista e Santa Maria (RS) com placas de rua nas esquinas e melhora a apresentação procedural sem serviço externo em tempo de jogo.
 title: Selecionar cidades no Arranha-Teia
 slug: game-arranha-teia-add-city-catalog
 strategy: sdd
@@ -15,10 +15,12 @@ aliases:
     - mapas
     - cidades
     - seleção de cidade
+    - placas de rua
 code_paths:
     - apps/web/src/swing/
     - apps/web/public/swing/
     - apps/web/scripts/
+    - packages/swing/src/city.ts
 related_specs:
     - 2026-10-28-game-arranha-teia-build-first-person-web-swing
 supersedes: []
@@ -94,6 +96,18 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 1. **Dado** qualquer cidade do catálogo, **quando** o renderizador é criado, **então** usa iluminação e materiais procedurais sem buscar textura externa.
 2. **Dado** o renderizador antigo, **quando** a física é executada após o passe visual, **então** colisão, mira e teias continuam usando o mesmo `City`.
 
+### US-004 — Saber onde estou pelas placas de rua (P2)
+
+Como jogador, quero ver placas nas esquinas com o nome das duas ruas e o sentido de cada uma para me localizar na cidade.
+
+**Teste independente:** com um mapa sintético de duas ruas que se cruzam, calcular a esquina, a seta de cada rua para uma guinada da câmera e a ordem das linhas.
+
+**Critérios de aceitação:**
+
+1. **Dado** um mapa em que duas ruas de nomes diferentes se cruzam, **quando** o jogo monta a cena, **então** há uma placa nessa esquina com os dois nomes.
+2. **Dado** a câmera olhando numa direção, **quando** cada quadro é desenhado, **então** cada nome tem uma seta de duas pontas alinhada ao sentido da rua em relação à câmera, e a rua que segue para a frente aparece na linha de cima.
+3. **Dado** uma cidade sem nomes de rua (Midtown e Paulista), **quando** o jogo monta a cena, **então** nenhuma placa é criada e nada muda.
+
 ## Requisitos funcionais
 
 - **FR-001:** O app DEVE carregar `swing/cities.json` da própria origem e rejeitar catálogo inválido ou caminho absoluto/externo.
@@ -104,6 +118,10 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 - **FR-006:** Cada mapa disponível DEVE passar por validação automatizada de catálogo, arquivo, limites, prédios, vias, atribuição e caminho local.
 - **FR-007:** O passe visual DEVE usar somente Three.js e conteúdo procedural/local, sem mudar o contrato `City` usado pela física.
 - **FR-008:** Um parâmetro `?city=<id>` PODE abrir diretamente um mapa válido; id ausente ou desconhecido DEVE mostrar a seleção.
+- **FR-009:** O formato `City` v1 DEVE aceitar o campo opcional `name` em cada via; o conversor OSM DEVE preservar o nome da rua quando existir, e mapas sem nomes DEVEM continuar válidos.
+- **FR-010:** O jogo DEVE derivar, em tempo de carga, uma esquina para cada cruzamento de vias com nomes diferentes (uma por cruzamento, no máximo duas ruas por placa, escolhendo as de maior largura) e posicionar o poste ao lado do cruzamento, fora de prédios quando houver espaço.
+- **FR-011:** Cada placa DEVE mostrar o nome das duas ruas e, para cada uma, uma seta de duas pontas que acompanha o sentido da rua em relação à direção da câmera; a rua mais alinhada com a frente da câmera DEVE ocupar a linha de cima. A placa DEVE ficar voltada para a câmera e só ser desenhada perto dela.
+- **FR-012:** Santa Maria DEVE ser regenerada com os nomes das ruas; Midtown e Paulista PODEM continuar sem nomes.
 
 ## Requisitos não funcionais
 
@@ -112,6 +130,7 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 - **NFR-003:** `check:all`, gates SDD/docs e auditoria de dependências DEVEM passar antes do push.
 - **NFR-004:** A seleção DEVE funcionar em 390, 900 e 1440 px sem rolagem horizontal; a verificação visual fica registrada como texto e screenshot fora do repositório.
 - **NFR-005:** Tamanho, prédios, vias e alturas dos mapas DEVEM ser registrados; fps só pode ser citado se medido.
+- **NFR-006:** As placas DEVEM ser procedurais (canvas e geometria do Three.js), sem imagem, fonte ou requisição externa; o desenho DEVE se limitar às placas próximas da câmera.
 
 ## Edge cases
 
@@ -134,3 +153,4 @@ Como jogador, quero ruas e prédios com mais profundidade visual para reconhecer
 - **SC-002:** Os arquivos de Midtown, Paulista e Santa Maria passam pelos testes de dados e pelo índice de colisão.
 - **SC-003:** Os gates oficiais passam e nenhuma regressão ocorre nos jogos ou na física do Arranha-Teia.
 - **SC-004:** A seleção é legível em 390, 900 e 1440 px; o jogo mostra o nome e a atribuição do mapa escolhido.
+- **SC-005:** Em Santa Maria, o mapa real gera esquinas com dois nomes diferentes, as placas aparecem no Chromium com os nomes legíveis e uma seta por rua, e o console fica sem erros.

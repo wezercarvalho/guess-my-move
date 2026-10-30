@@ -62,3 +62,13 @@
 - **Critério:** o recorte só entra no catálogo depois de passar pela validação de dados, carregar no índice de colisão e demonstrar uma área jogável; quantidade, tamanho e cobertura de alturas serão registrados sem prometer fidelidade.
 - **Gate 1 da emenda:** aprovado por wezercarvalho na mensagem "Agora adicionar Santa Maria, Rio Grande do Sul como seleção de cidade também. Pode fazer na mesma branch."
 - **Ambiguidades:** o maintainer não definiu um bairro; o agente escolhe um recorte central reversível e mede o resultado antes de fixá-lo.
+
+## Emenda CQ-002 — placas de rua em Santa Maria
+
+- **Data:** `2026-10-30`
+- **Pedido:** colocar o nome das ruas em Santa Maria, como placas nas esquinas com uma seta indicando o sentido da rua ("a rua que sobe é a X e a que cruza é a Y"), e dizer se o mapa é a cidade toda ou só um trecho.
+- **Decisão:** o nome vem da tag `name` do OSM, guardado em `CityRoad.name` (campo opcional, compatível com os mapas existentes). As esquinas são derivadas dos cruzamentos de vias com nomes diferentes. Cada placa é procedural, voltada para a câmera, com duas linhas e uma seta de duas pontas por rua, desenhada em relação à direção da câmera; a rua que segue para a frente fica na linha de cima.
+- **Razão:** ruas de mão dupla não têm sentido único; a seta de duas pontas mostra o eixo da rua e é a única leitura correta para todas. Girar a seta com a câmera responde ao exemplo do maintainer ("a que sobe", "a que cruza") em qualquer direção de voo.
+- **Alternativas rejeitadas:** nome desenhado no chão (ilegível em voo); placa fixa no mundo (some de lado); sentido único pela tag `oneway` (a maioria das ruas não é mão única); texto em cada via sem esquina.
+- **Escopo:** só Santa Maria é regenerada com nomes; Midtown e Paulista não mudam.
+- **Gate 1 da emenda:** aprovado por wezercarvalho na mensagem "Adiciona o nome das ruas para ficar mais fácil saber se localizar... uma plaquinha nas esquinas... com uma seta indicando o sentido que é a rua."

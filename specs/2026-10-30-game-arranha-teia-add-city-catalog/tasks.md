@@ -87,3 +87,27 @@
 - **Data:** `2026-10-30`
 - **Referência:** mensagem no chat pedindo Santa Maria como seleção na mesma branch e aviso ao concluir.
 - **Exceções:** nenhuma; a emenda reaplica o pipeline local já aprovado.
+
+## Fase 6 — Emenda CQ-002: placas de rua
+
+- [x] T018 [US-004] [FR-009] Escrever primeiro o teste do conversor (nome preservado, via sem nome intacta) e o tipo opcional `CityRoad.name`; implementar.
+- [x] T019 [US-004] [FR-010] [FR-011] Escrever primeiro os testes de `streetSigns.ts` (esquina entre duas ruas, mesma rua ignorada, agrupamento, ruas paralelas, poste fora de prédio, seta e ordem das linhas por guinada); implementar o módulo.
+- [x] T020 [US-004] [FR-012] Regenerar `santa-maria.json` com nomes e registrar prédios, vias, ruas nomeadas e esquinas; teste de dados exige ruas nomeadas.
+- [x] T021 [US-004] [FR-011] [NFR-006] Desenhar as placas no `cityRenderer.ts` (poste, fundo, texto, seta, alcance de 280 m) sem tocar na física.
+- [x] T022 [US-004] [SC-005] Verificar no Chromium: placas legíveis, seta girando com a câmera, linha de cima, console e mapas sem nomes intactos.
+- [x] T023 [NFR-003] Rodar os scripts oficiais, atualizar docs e validação, devolver a spec a `validating`.
+
+### Análise de consistência da emenda CQ-002
+
+- **Status:** aprovada
+- **Revisor:** kirocrew (agente)
+- **Data:** `2026-10-30`
+- **Cobertura:** FR-009 a FR-012 e NFR-006/SC-005 cobertos por T018–T023; um tipo opcional e dois módulos, sem mudar a física.
+
+### Gate 2 da emenda CQ-002
+
+- **Status:** aprovado
+- **Aprovador:** wezercarvalho (maintainer)
+- **Data:** `2026-10-30`
+- **Referência:** mensagem no chat pedindo as placas de rua em Santa Maria e o aviso para testar.
+- **Exceções:** nenhuma.

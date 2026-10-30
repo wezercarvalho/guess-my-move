@@ -15,7 +15,7 @@ Implementação concluída: seleção local antes do jogo, Midtown preservado, A
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 17 (T001 a T017)
+- **Concluídas:** 23 (T001 a T023)
 - **Pendentes:** 0 (Gate 3 continua sendo aprovação do maintainer)
 - **Evidência:** `tasks.md`
 
@@ -31,6 +31,10 @@ Implementação concluída: seleção local antes do jogo, Midtown preservado, A
 | FR-006    | T006, T010, T015       | `city-data.test.mjs`: catálogo, caminhos, altura inicial, forma, limites, faixas e tamanho dos três arquivos | PASS      |
 | FR-007    | T007, T008             | `cityVisual.test.ts`; `cityRenderer.ts` usa fachadas/ruas procedurais e mantém `City`; regressões web verdes | PASS      |
 | FR-008    | T001, T002             | `SwingApp.test.tsx`: URL válida abre direto; ausente/desconhecida mostra seleção                             | PASS      |
+| FR-009    | T018                   | `city-from-osm.test.mjs`: nome preservado; via sem nome ou com nome vazio fica como antes                    | PASS      |
+| FR-010    | T019                   | `streetSigns.test.ts`: esquinas, agrupamento, paralelas, três ruas, poste em canto livre                     | PASS      |
+| FR-011    | T019, T021, T022       | `streetSigns.test.ts` (seta e ordem por guinada); placa no Chromium, seta girando e linhas trocando          | PASS      |
+| FR-012    | T020                   | `streetSigns.test.ts`: o arquivo real tem ao menos 20 vias nomeadas e 10 esquinas (110 vias e 37 esquinas)   | PASS      |
 
 ## Histórias e critérios de aceitação
 
@@ -116,7 +120,7 @@ Implementação concluída: seleção local antes do jogo, Midtown preservado, A
 
 - O primeiro `yarn workspace @guess-my-move/web test`, após atualizar as expectativas, falhou nos dois pontos esperados: `city-sources.test.mjs` e `city-data.test.mjs` ainda não encontravam `santa-maria`.
 - Recorte final do Centro: bbox `-29.6923,-53.8105,-29.6853,-53.8035`, rotação 0°, no entorno da Rua do Acampamento e da Avenida Rio Branco.
-- `santa-maria.json`: 81.257 bytes em disco (81.256 caracteres serializados), 845 prédios e 174 vias.
+- `santa-maria.json`: 81.257 bytes em disco (81.256 caracteres serializados; 84.635 bytes depois da CQ-002, que acrescentou os nomes das ruas), 845 prédios e 174 vias.
 - A resposta OSM tinha altura/andares explícitos em 201 de 851 elementos de prédio (24%). No resultado convertido, a altura mediana e o p90 são 15 m e a máxima é 49,5 m; ausências usam a estimativa documentada de 15 m.
 - O recorte inicial amplo tinha 4.039 prédios e 371.427 caracteres; foi rejeitado para não repetir a carga excessiva encontrada na Paulista. O recorte final mantém tamanho próximo da Paulista.
 - Altura inicial: 20 m. A busca de spawn encontrou ponto livre, mas nenhuma das 16 direções amostradas encontrou âncora normal a partir dele; Santa Maria depende da teia no céu no início. As alturas do OSM não foram infladas para contornar o perfil baixo.
@@ -146,3 +150,36 @@ Implementação concluída: seleção local antes do jogo, Midtown preservado, A
 - Santa Maria é baixa e somente 24% dos elementos consultados tinham altura ou número de andares explícito; o visual não reproduz fachadas reais.
 - A primeira teia usa a reserva no céu. A disponibilidade de fachadas úteis depois do início depende do local e não foi medida com mão real.
 - Não houve medição de fps em GPU real, câmera ou gestos. As imagens de verificação permanecem fora do repositório.
+
+## Emenda CQ-002 — placas de rua (2026-10-30)
+
+### Test-first e dados
+
+- Vermelho observado antes de implementar: `city-from-osm.test.mjs` (nome da rua ausente no resultado) e `streetSigns.test.ts` (módulo inexistente; depois só o teste do arquivo real falhou, até regenerar o mapa).
+- A Overpass respondeu HTTP 502 em três tentativas seguidas e voltou na quarta; o arquivo local não foi alterado nas falhas.
+- `santa-maria.json` regenerado com nomes: 845 prédios e 174 vias (iguais à geração anterior), 84.635 bytes. 110 das 174 vias têm nome, 30 nomes distintos, 37 esquinas com placa e 27 nomes aparecendo em esquinas.
+- Tamanho do recorte: cerca de 677 m de leste a oeste por 774 m de norte a sul de área de prédios (bbox `-29.6923,-53.8105,-29.6853,-53.8035`), ou seja, um trecho do Centro e não a cidade inteira.
+
+### Demonstração no navegador
+
+- Backend: sessão isolada via `playwright-cli`, Vite em `127.0.0.1:5193`, Chromium/WebGL por software. Console: 0 erros.
+- A primeira versão tinha a placa a 11,5 m e ela ficava atrás dos telhados (mediana de 15 m); foi elevada para 25 m, com poste de 20 m, e ampliada em 50% porque o texto a 91 m ficava com cerca de 12 px.
+- Da posição inicial, a esquina mais próxima (Rua Professor Braga × Rua Tuiuti, 91 m à frente) aparece com a rua que segue para a frente na linha de cima. Virando a câmera para a direita, a ordem das linhas trocou (Rua Tuiuti subiu) e as setas giraram, como esperado. De perto (após um voo de 2,5 s com a teia) os nomes ficam legíveis.
+- Midtown e Paulista não têm nomes e não criam placa; a suíte de testes cobre o mapa sem nomes.
+
+### Gates após a emenda
+
+| Comando                      | Resultado | Evidência                                                                                      |
+| ---------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `yarn check:all`             | PASS      | core 68, marbles 159, swing 188, web 347 Vitest + 73 node:test; typecheck, lint e build verdes |
+| `yarn test:gates`            | PASS      | 231 testes                                                                                     |
+| `yarn test:sdd`              | PASS      | 109 testes                                                                                     |
+| `yarn security:dependencies` | PASS      | info=0, low=0, moderate=0, high=0, critical=0                                                  |
+
+### Limitações da emenda
+
+- A seta é de duas pontas e mostra o eixo da rua, não o sentido do tráfego (a maioria das ruas é de mão dupla e o jogo não lê `oneway`).
+- A placa é maior e mais alta que uma de verdade para dar para ler em voo; não foi medida a leitura em movimento rápido nem o fps com as placas.
+- Só 110 das 174 vias têm nome no OSM; ruas sem nome não aparecem nas placas. Nomes dependem do que está no OpenStreetMap na data da geração.
+- O poste só evita prédios pela pegada do mapa; pode ficar sobre calçada ou encostado em um prédio onde a geometria for imprecisa.
+- Sem câmera ou mão reais nesta verificação.
