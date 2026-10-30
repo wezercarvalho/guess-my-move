@@ -29,6 +29,7 @@ import {
 } from 'three'
 
 import { type MeshData, buildRoofs, buildWalls } from './cityGeometry.js'
+import { CITY_ATMOSPHERE, roadPaintLayers } from './cityVisual.js'
 import { type ScreenPoint } from './reticle.js'
 
 /** O que a tela precisa do desenho 3D: tamanho, um quadro por estado e liberação. */
@@ -69,17 +70,42 @@ function canvasOf(size: number): { canvas: HTMLCanvasElement; context: CanvasRen
     return { canvas, context }
 }
 
-/** Fachada: pedra clara com 4 x 8 janelas, algumas acesas. Colorida depois pelo prédio. */
+/** Fachada procedural: painéis, molduras e janelas com variação determinística. */
 function facadeTexture(): CanvasTexture {
     const { canvas, context } = canvasOf(256)
     const random = lcg(7)
-    context.fillStyle = '#d8d2c6'
+    const gradient = context.createLinearGradient(0, 0, 256, 0)
+    gradient.addColorStop(0, '#b8b2a8')
+    gradient.addColorStop(0.5, '#e0dad0')
+    gradient.addColorStop(1, '#aaa59d')
+    context.fillStyle = gradient
     context.fillRect(0, 0, 256, 256)
+
+    // Juntas discretas do revestimento; o tint por prédio continua vindo da geometria.
+    context.strokeStyle = 'rgb(70 73 80 / 28%)'
+    context.lineWidth = 1
+    for (let x = 0; x <= 256; x += 64) {
+        context.beginPath()
+        context.moveTo(x, 0)
+        context.lineTo(x, 256)
+        context.stroke()
+    }
     for (let row = 0; row < 8; row++) {
         for (let column = 0; column < 4; column++) {
-            const lit = random() < 0.22
-            context.fillStyle = lit ? '#ffd18a' : '#2b3550'
-            context.fillRect(column * 64 + 10, row * 32 + 7, 44, 18)
+            const x = column * 64 + 8
+            const y = row * 32 + 5
+            const lit = random() < 0.2
+            context.fillStyle = '#171d27'
+            context.fillRect(x, y, 48, 22)
+            const glass = context.createLinearGradient(x, y, x + 48, y + 22)
+            glass.addColorStop(0, lit ? '#ffce7a' : '#28384a')
+            glass.addColorStop(0.52, lit ? '#e9a74c' : '#53718a')
+            glass.addColorStop(0.56, lit ? '#b96d2f' : '#1c2838')
+            glass.addColorStop(1, lit ? '#ffd997' : '#263a50')
+            context.fillStyle = glass
+            context.fillRect(x + 2, y + 2, 44, 18)
+            context.strokeStyle = 'rgb(230 235 240 / 28%)'
+            context.strokeRect(x + 2.5, y + 2.5, 43, 17)
         }
     }
     const texture = new CanvasTexture(canvas)
@@ -106,13 +132,15 @@ function groundTexture(city: City): { texture: CanvasTexture; size: number; cx: 
         (x - (cx - size / 2)) * pixelsPerMeter,
         (z - (cz - size / 2)) * pixelsPerMeter,
     ]
-    for (const [extra, color] of [
-        [4, '#6a665d'],
-        [0, '#1d1d20'],
-    ] as const) {
-        context.strokeStyle = color
+    // Desenha primeiro todas as calçadas, depois o asfalto e por fim as faixas centrais,
+    // para os cruzamentos continuarem legíveis sem textura externa.
+    for (const role of ['sidewalk', 'asphalt', 'center-line'] as const) {
         for (const road of city.roads) {
-            context.lineWidth = (road.width + extra) * pixelsPerMeter
+            const layer = roadPaintLayers(road.width).find((candidate) => candidate.role === role)
+            if (!layer) continue
+            context.strokeStyle = layer.color
+            context.lineWidth = Math.max(1, layer.width * pixelsPerMeter)
+            context.setLineDash(layer.dashes?.map((value) => value * pixelsPerMeter) ?? [])
             context.beginPath()
             for (let i = 0; i < road.line.length; i += 2) {
                 const [px, pz] = toPixel(road.line[i] ?? 0, road.line[i + 1] ?? 0)
@@ -122,6 +150,7 @@ function groundTexture(city: City): { texture: CanvasTexture; size: number; cx: 
             context.stroke()
         }
     }
+    context.setLineDash([])
     const texture = new CanvasTexture(canvas)
     texture.colorSpace = SRGBColorSpace
     texture.anisotropy = 8
@@ -161,10 +190,10 @@ function skyDome(): Mesh {
 
 /** Desenho 3D em primeira pessoa da cidade (Three.js), sem luzes: cor por vértice e névoa. */
 export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
-    const renderer = new WebGLRenderer({ canvas, antialias: true })
+    const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     const scene = new Scene()
-    scene.fog = new Fog(HORIZON.clone(), 120, 1000)
+    scene.fog = new Fog(HORIZON.clone(), CITY_ATMOSPHERE.fogNear, CITY_ATMOSPHERE.fogFar)
     const camera = new PerspectiveCamera(FOV_STILL, 1, 0.3, 2200)
     camera.rotation.order = 'YXZ'
 
@@ -181,9 +210,15 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
 
     const facade = track(facadeTexture())
     const wallMaterial = track(
-        new MeshBasicMaterial({ map: facade, vertexColors: true, side: DoubleSide }),
+        new MeshBasicMaterial({
+            map: facade,
+            vertexColors: true,
+            side: DoubleSide,
+        }),
     )
-    const roofMaterial = track(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }))
+    const roofMaterial = track(
+        new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }),
+    )
     const walls = new Mesh(track(geometryOf(buildWalls(city))), wallMaterial)
     const roofs = new Mesh(track(geometryOf(buildRoofs(city))), roofMaterial)
     scene.add(walls, roofs)

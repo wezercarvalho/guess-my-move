@@ -6,11 +6,15 @@ import { useCamera } from '../camera/useCamera.js'
 import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
+import { DEFAULT_CITY_MAP, type CityMap } from './cityCatalog.js'
 import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
+    /** Mapa validado pelo catálogo. O default preserva usos/testes anteriores do Midtown. */
+    map?: CityMap
+    onChangeMap?: () => void
     /** `getUserMedia` injetável para teste (o navegador resolve por padrão). */
     cameraGetUserMedia?: GetUserMedia | null
     deps?: SwingDeps
@@ -44,7 +48,12 @@ function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
  * pequena com o esqueleto da mão e o guia. Todo o processamento é local; nenhuma imagem
  * sai do navegador.
  */
-export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
+export function SwingScreen({
+    map = DEFAULT_CITY_MAP,
+    onChangeMap,
+    cameraGetUserMedia,
+    deps,
+}: SwingScreenProps) {
     const camera = useCamera(
         cameraGetUserMedia === undefined ? {} : { getUserMedia: cameraGetUserMedia },
     )
@@ -55,6 +64,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
     const stageRef = useRef<HTMLDivElement | null>(null)
     const debugDrawer = useDrawer()
     const game = useSwingGame({
+        map,
         cameraActive: camera.isActive,
         videoRef,
         overlayRef,
@@ -98,7 +108,9 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
             <header className="swing-header">
                 <Eyebrow>Passeio livre</Eyebrow>
                 <h1>Arranha-Teia</h1>
-                <p className="swing-lead">Balance entre os prédios de Midtown com a mão.</p>
+                <p className="swing-lead">
+                    {map.name} · {map.region}
+                </p>
             </header>
 
             <div className="swing-layout">
@@ -108,7 +120,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             ref={sceneRef}
                             className="swing-scene"
                             role="img"
-                            aria-label="Vista em primeira pessoa de Manhattan"
+                            aria-label={`Vista em primeira pessoa de ${map.name}`}
                         />
                         <canvas ref={effectsRef} className="swing-effects" aria-hidden="true" />
                         <dl className="swing-hud" data-testid="swing-hud">
@@ -156,9 +168,16 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                                 Motivo: {game.failure}
                             </p>
                         )}
-                        <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
-                            Voltar ao início
-                        </Button>
+                        <div className="swing-round-actions">
+                            <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
+                                Voltar ao início
+                            </Button>
+                            {onChangeMap ? (
+                                <Button variant="text" onClick={onChangeMap}>
+                                    Trocar mapa
+                                </Button>
+                            ) : null}
+                        </div>
                     </Panel>
                     <CameraPanel
                         camera={camera}

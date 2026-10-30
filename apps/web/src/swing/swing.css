@@ -222,3 +222,170 @@ ul.swing-keys kbd {
         max-width: 18rem;
     }
 }
+
+/* Seleção de mapa: aparece antes de montar câmera, física ou WebGL. */
+.swing-map-select,
+.swing-map-state {
+    width: min(100%, 72rem);
+    margin-inline: auto;
+}
+
+.swing-map-select {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.swing-map-select__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.swing-map-select__header h1,
+.swing-map-card h2 {
+    margin: 0;
+    font-family: var(--font-display);
+}
+
+.swing-map-select__header p,
+.swing-map-card p,
+.swing-map-state p {
+    margin: 0;
+}
+
+.swing-map-select__header > p,
+.swing-map-card > p,
+.swing-map-region {
+    color: var(--muted);
+}
+
+.swing-map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+    gap: var(--space-5);
+}
+
+.swing-map-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.swing-map-card .ds-button {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+.swing-map-card__title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.swing-map-region {
+    margin-top: var(--space-1) !important;
+    font-size: var(--size-small);
+}
+
+.swing-map-badge {
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--gold-bright);
+    color: var(--gold-bright);
+    font-size: var(--size-caption);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-eyebrow);
+}
+
+/* Miniaturas sem imagem externa: skyline procedural diferente por cidade. */
+.swing-map-card__skyline {
+    position: relative;
+    display: flex;
+    align-items: end;
+    gap: 3%;
+    min-height: 8rem;
+    padding: var(--space-4) 8% 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #172342 0%, #b7785e 62%, #202127 63%);
+}
+
+.swing-map-card__skyline::after {
+    content: '';
+    position: absolute;
+    inset: 62% 0 auto;
+    height: 1px;
+    background: rgb(224 170 8 / 55%);
+}
+
+.swing-map-card__skyline span {
+    width: 18%;
+    height: 58%;
+    background:
+        repeating-linear-gradient(0deg, transparent 0 0.7rem, rgb(247 208 132 / 48%) 0.75rem 0.9rem),
+        repeating-linear-gradient(90deg, #252d3a 0 0.5rem, #687789 0.55rem 0.75rem);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 12%);
+}
+
+.swing-map-card__skyline span:nth-child(2) { height: 85%; }
+.swing-map-card__skyline span:nth-child(3) { height: 68%; }
+.swing-map-card__skyline span:nth-child(4) { height: 98%; }
+.swing-map-card__skyline span:nth-child(5) { height: 48%; }
+
+.swing-map-card__skyline[data-map='paulista'] {
+    background: linear-gradient(180deg, #47667a 0%, #dab98f 62%, #313438 63%);
+}
+
+.swing-map-card__skyline[data-map='paulista'] span:nth-child(1) { height: 42%; }
+.swing-map-card__skyline[data-map='paulista'] span:nth-child(2) { height: 92%; }
+.swing-map-card__skyline[data-map='paulista'] span:nth-child(3) { height: 55%; }
+.swing-map-card__skyline[data-map='paulista'] span:nth-child(4) { height: 72%; }
+.swing-map-card__skyline[data-map='paulista'] span:nth-child(5) { height: 38%; }
+
+.swing-map-back {
+    align-self: flex-start;
+    color: var(--gold-bright);
+}
+
+.swing-map-state {
+    min-height: 40vh;
+    display: grid;
+    place-items: center;
+}
+
+.swing-map-state .ds-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.swing-round-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+@media (max-width: 520px) {
+    .swing-hud {
+        right: var(--space-2);
+        left: var(--space-2);
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--space-2);
+        padding: var(--space-2);
+    }
+
+    .swing-hud dt {
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+    }
+
+    .swing-hud dd {
+        font-size: var(--size-body);
+        white-space: nowrap;
+    }
+}

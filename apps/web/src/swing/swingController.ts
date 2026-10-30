@@ -13,6 +13,7 @@ import {
     type TriggerGesture,
     type WebSide,
     type WebTrigger,
+    type SwingConfig,
     DEFAULT_SWING,
     climbSignal,
     createCityIndex,
@@ -62,6 +63,8 @@ export interface SwingHud {
 /** Dependências do controlador; em testes, a cidade, o 3D, o relógio e as teclas são simulados. */
 export interface SwingEnv {
     createTracker: CreateHandTracker
+    /** Valores de jogo ajustáveis por mapa (ex.: altura inicial); ausente usa o padrão. */
+    config?: SwingConfig
     /** Detector de rosto para girar a câmera com a cabeça; ausente desliga o recurso (fallback = hoje). */
     createFaceTracker?: CreateFaceTracker
     loadCity: () => Promise<City>
@@ -374,7 +377,7 @@ export class SwingController {
             return
         }
         this.city = city
-        this.world = createSwingWorld(createCityIndex(city))
+        this.world = createSwingWorld(createCityIndex(city), this.env.config ?? DEFAULT_SWING)
         this.phase = 'playing'
         if (this.size.width > 0) this.resize(this.size.width, this.size.height)
         this.sync()
