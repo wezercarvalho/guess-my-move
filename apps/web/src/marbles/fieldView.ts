@@ -1,4 +1,10 @@
-import { type Body, type FieldDecor, DEFAULT_PHYSICS, type Vec } from '@guess-my-move/marbles'
+import {
+    type Body,
+    type Competitor,
+    type FieldDecor,
+    DEFAULT_PHYSICS,
+    type Vec,
+} from '@guess-my-move/marbles'
 
 type Context = CanvasRenderingContext2D
 
@@ -60,6 +66,14 @@ export interface FieldDraw {
     decor: FieldDecor | null
     aim: AimDraw | null
     hand: HandCursor | null
+    /** Dono da bolinha de tiro (índice 0): define a cor. Ausente = o jogador. */
+    shooterOwner?: Competitor
+}
+
+/** Cor da bolinha de tiro de cada competidor: o bot é roxo para não se confundir com o jogador. */
+const SHOOTER_COLOR: Record<Competitor, string> = {
+    player: '#3b82f6',
+    opponent: '#8b5cf6',
 }
 
 /** Desenha o círculo do triângulo ou as covas (com a ativa destacada). */
@@ -94,7 +108,7 @@ export function drawField(canvas: HTMLCanvasElement, draw: FieldDraw): void {
     const context = canvas.getContext('2d')
     if (!context) return
     const { width, height } = DEFAULT_PHYSICS
-    const { field, decor, aim, hand } = draw
+    const { field, decor, aim, hand, shooterOwner = 'player' } = draw
 
     context.clearRect(0, 0, width, height)
     context.fillStyle = '#b98f5e'
@@ -105,9 +119,19 @@ export function drawField(canvas: HTMLCanvasElement, draw: FieldDraw): void {
 
     if (decor) drawDecor(context, decor)
 
-    // A bolinha de tiro (índice 0) é azul; as demais são vermelhas.
+    // A bolinha de tiro (índice 0) tem a cor do dono; as demais são vermelhas.
     field.forEach((body, index) => {
-        marble(context, body.pos.x, body.pos.y, body.radius, index === 0 ? '#3b82f6' : '#e5533d')
+        marble(
+            context,
+            body.pos.x,
+            body.pos.y,
+            body.radius,
+            index === 0 ? SHOOTER_COLOR[shooterOwner] : '#e5533d',
+        )
+    })
+    // Bolinhas paradas de quem não está na vez, na cor do dono (Cova contra o bot).
+    decor?.resting?.forEach((rest) => {
+        marble(context, rest.pos.x, rest.pos.y, rest.radius, SHOOTER_COLOR[rest.owner])
     })
 
     const shooter = field.length > 0 ? field[0].pos : { x: 0, y: 0 }

@@ -141,6 +141,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             decor: game.match.decor,
             aim: game.aim,
             hand: game.hand,
+            shooterOwner: game.match.turn ?? 'player',
         })
     }, [game.match, game.aim, game.hand])
 
@@ -214,10 +215,22 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                     <Panel raised aria-label="Rodada" className="marbles-round">
                         {game.match ? (
                             <>
+                                <p className="match-mode" data-testid="match-mode">
+                                    {matchMode?.name} ·{' '}
+                                    {game.match.opponent === 'bot' ? 'Contra o bot' : 'Contra a meta'}
+                                </p>
                                 <p className="round-number" data-testid="round-number">
                                     Rodada {game.match.round + 1} de {game.match.roundsPerMatch}
                                 </p>
                                 <Scoreboard match={game.match} />
+                                {game.match.scoreLabel && (
+                                    <p className="round-yield" data-testid="round-yield">
+                                        {game.match.scoreLabel}:{' '}
+                                        {game.match.opponent === 'bot'
+                                            ? `Você ${game.match.roundYield.player} × ${game.match.roundYield.opponent} Bot`
+                                            : game.match.roundYield.player}
+                                    </p>
+                                )}
                                 <p className="shot-counter" data-testid="shots-left">
                                     Tiros restantes: {game.match.playerShotsLeft}
                                 </p>
@@ -230,6 +243,13 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                               : '—'
                                         : 'Contra a meta'}
                                 </p>
+                                {game.match.opponent === 'bot' && (
+                                    <p className="marbles-legend" data-testid="legend">
+                                        <span className="swatch swatch--player" aria-hidden="true" />{' '}
+                                        Você
+                                        <span className="swatch swatch--bot" aria-hidden="true" /> Bot
+                                    </p>
+                                )}
                             </>
                         ) : (
                             <p className="round-number" data-testid="round-number">

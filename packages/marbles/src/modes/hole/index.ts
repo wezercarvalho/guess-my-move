@@ -248,6 +248,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
         name: 'Cova',
         helpText: HELP_TEXT,
         rules: RULES,
+        scoreLabel: 'Covas',
         roundsPerMatch: cfg.roundsPerMatch,
         buildRound,
         shotLimit: () => cfg.shotLimit,
@@ -255,13 +256,26 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
         isFinished: (competitor) => state[competitor].done,
         onStep: (field, competitor) => onStep(field, competitor),
         evaluate,
-        describe: (competitor) => ({
-            holes: {
-                positions: layout.map((p) => ({ ...p })),
-                radius: cfg.holeRadius,
-                active: Math.min(state[competitor].activeHole, cfg.holesPerRound - 1),
-            },
-        }),
+        describe: (competitor, opponent) => {
+            const rival: Competitor = competitor === 'player' ? 'opponent' : 'player'
+            const rivalState = state[rival]
+            // Contra o bot, a bolinha de quem não está na vez continua visível onde parou.
+            const rivalPlayed = rivalState.shots > 0 || rivalState.holesDone > 0
+            return {
+                holes: {
+                    positions: layout.map((p) => ({ ...p })),
+                    radius: cfg.holeRadius,
+                    active: Math.min(state[competitor].activeHole, cfg.holesPerRound - 1),
+                },
+                ...(opponent === 'bot' && rivalPlayed
+                    ? {
+                          resting: [
+                              { pos: { ...rivalState.pos }, radius: cfg.marbleRadius, owner: rival },
+                          ],
+                      }
+                    : {}),
+            }
+        },
         activeHole: (competitor) => state[competitor].activeHole,
         botAimPoint: (competitor) => ({ ...activeHoleCenter(competitor) }),
         resolveBotRound,

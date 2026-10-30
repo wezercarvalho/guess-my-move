@@ -223,6 +223,46 @@ describe('MarblesScreen: tela inicial', () => {
     })
 })
 
+describe('MarblesScreen: o que aparece durante a partida', () => {
+    function start(mode: RegExp, opponent: RegExp) {
+        renderScreen(harness())
+        fireEvent.click(within(screen.getByRole('group', { name: /^modo$/i })).getByRole('radio', { name: mode }))
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: opponent }),
+        )
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+    }
+
+    it('mostra o modo e o adversário da partida em andamento', () => {
+        start(/triângulo/i, /contra o bot/i)
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Triângulo · Contra o bot')
+    })
+
+    it('Triângulo contra o bot mostra o placar de capturas da rodada, você × bot', () => {
+        start(/triângulo/i, /contra o bot/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Capturas: Você 0 × 0 Bot')
+    })
+
+    it('Cova contra o bot mostra as covas da rodada e a legenda das cores', () => {
+        start(/cova/i, /contra o bot/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Covas: Você 0 × 0 Bot')
+        expect(screen.getByTestId('legend')).toHaveTextContent(/você/i)
+        expect(screen.getByTestId('legend')).toHaveTextContent(/bot/i)
+    })
+
+    it('contra a meta mostra só a sua contagem e não mostra legenda', () => {
+        start(/triângulo/i, /contra a meta/i)
+        expect(screen.getByTestId('round-yield')).toHaveTextContent('Capturas: 0')
+        expect(screen.queryByTestId('legend')).not.toBeInTheDocument()
+    })
+
+    it('Bete não tem contagem por rodada', () => {
+        start(/bete/i, /contra o bot/i)
+        expect(screen.queryByTestId('round-yield')).not.toBeInTheDocument()
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Bete · Contra o bot')
+    })
+})
+
 describe('MarblesScreen: status de uma linha por estado', () => {
     it('antes da câmera, orienta a ativá-la após começar', () => {
         const h = harness()

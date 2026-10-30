@@ -149,4 +149,40 @@ describe('drawField', () => {
         expect(arcs).toContainEqual([520, 180, 22])
         expect(arcs).toContainEqual([680, 420, 22])
     })
+
+    describe('cor por dono', () => {
+        /** Cores usadas nos degradês das bolinhas, na ordem de desenho (a do meio de cada degradê). */
+        function colors(draw: FieldDraw): string[] {
+            const { canvas, context } = stubCanvas()
+            drawField(canvas, draw)
+            const gradient = context.createRadialGradient.mock.results[0]?.value as {
+                addColorStop: ReturnType<typeof vi.fn>
+            }
+            return (gradient.addColorStop.mock.calls as unknown as [number, string][])
+                .filter(([offset]) => offset === 0.35)
+                .map(([, color]) => color)
+        }
+
+        it('a bolinha de tiro do jogador é azul e a do bot tem outra cor', () => {
+            const player = colors({ ...base, shooterOwner: 'player' })
+            const bot = colors({ ...base, shooterOwner: 'opponent' })
+            expect(player[0]).toBe('#3b82f6')
+            expect(bot[0]).not.toBe(player[0])
+        })
+
+        it('sem dono informado, a bolinha de tiro é a do jogador', () => {
+            expect(colors(base)[0]).toBe('#3b82f6')
+        })
+
+        it('desenha a bolinha parada do outro competidor na cor do dono', () => {
+            const { canvas, context } = stubCanvas()
+            const decor: FieldDecor = {
+                resting: [{ pos: { x: 222, y: 333 }, radius: 14, owner: 'opponent' }],
+            }
+            drawField(canvas, { ...base, field: [body(90, 300)], decor, shooterOwner: 'player' })
+            const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [x, y, r])
+            expect(arcs).toContainEqual([222, 333, 14])
+            expect(arcs).toContainEqual([90, 300, 14])
+        })
+    })
 })

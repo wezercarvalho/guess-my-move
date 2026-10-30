@@ -31,6 +31,11 @@ export interface FieldDecor {
     circle?: { x: number; y: number; radius: number }
     /** Covas numeradas do modo Cova, na ordem; `active` é o índice da cova da vez. */
     holes?: { positions: readonly Vec[]; radius: number; active: number }
+    /**
+     * Bolinhas paradas de quem NÃO está na vez (a do outro competidor na Cova),
+     * só para desenhar com a cor do dono. Não entram na física.
+     */
+    resting?: { pos: Vec; radius: number; owner: Competitor }[]
 }
 
 /** Contexto que o motor entrega ao modo para avaliar o campo em repouso. */
@@ -78,6 +83,11 @@ export interface Mode {
      * `helpText`.
      */
     rules?: { target: string; bot: string }
+    /**
+     * Nome do que o tiro rende neste modo ("Capturas", "Covas"), para o placar
+     * da rodada. Ausente = o modo não tem contagem a mostrar (Bete).
+     */
+    scoreLabel?: string
     /** Quantas rodadas tem a partida (padrão de produto: 3). */
     roundsPerMatch: number
     /** Campo inicial da rodada `n` (0..roundsPerMatch-1) para o adversário dado. */

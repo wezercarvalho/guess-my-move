@@ -203,6 +203,47 @@
     color: var(--paper);
 }
 
+/* Modo e adversário da partida em andamento. */
+.match-mode {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: var(--weight-semibold);
+    color: var(--gold-bright);
+}
+
+/* Capturas/covas da rodada: você × bot. */
+.round-yield {
+    margin: 0;
+    font-weight: var(--weight-semibold);
+    color: var(--paper);
+}
+
+/* Legenda das cores das bolinhas contra o bot. */
+.marbles-legend {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin: 0;
+    font-size: var(--size-small);
+    color: var(--muted);
+}
+
+.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 50%;
+}
+
+.swatch--player {
+    background: #3b82f6;
+}
+
+.swatch--bot {
+    margin-left: var(--space-2);
+    background: #8b5cf6;
+}
+
 /* Fim da partida: resultado e ações. */
 .marbles-endgame {
     display: flex;

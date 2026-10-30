@@ -55,6 +55,10 @@ export interface MatchSnapshot {
     turn: Competitor | null
     /** Tiros restantes do jogador na rodada. */
     playerShotsLeft: number
+    /** O que cada competidor rendeu NA RODADA corrente (capturas, covas). */
+    roundYield: Record<Competitor, number>
+    /** Nome do que o tiro rende no modo; `null` quando o modo não tem contagem. */
+    scoreLabel: string | null
     /** Corpos do campo em repouso/animação, para o desenho. */
     field: Body[]
     /** Geometria extra do modo (círculo, covas com a ativa); `null` quando o modo não tem. */
@@ -120,6 +124,7 @@ export function createMatchSession(
     const shotsSpent: Record<Competitor, number> = { player: 0, opponent: 0 }
     const outcomes: Outcome[] = []
     const yielded: Record<Competitor, number> = { player: 0, opponent: 0 }
+    const roundYielded: Record<Competitor, number> = { player: 0, opponent: 0 }
     let shotsSpentPrevious = 0
     let lastRoundOutcome: Outcome | null = null
     let phase: MatchPhase = turnPhase()
@@ -196,6 +201,8 @@ export function createMatchSession(
         field = mode.buildRound(round, opponent)
         shotsSpent.player = 0
         shotsSpent.opponent = 0
+        roundYielded.player = 0
+        roundYielded.opponent = 0
         turn = startsRound(round)
         prepared = false
         lastRoundOutcome = null
@@ -226,6 +233,7 @@ export function createMatchSession(
         })
         if (evaluation.field) field = evaluation.field
         yielded[competitor] += evaluation.yield
+        roundYielded[competitor] += evaluation.yield
         rollingBy = null
 
         if (evaluation.finished && evaluation.outcome) {
@@ -273,6 +281,8 @@ export function createMatchSession(
                     0,
                     mode.shotLimit('player', opponent) - shotsSpent.player,
                 ),
+                roundYield: { ...roundYielded },
+                scoreLabel: mode.scoreLabel ?? null,
                 field: field.map((b) => ({
                     pos: { ...b.pos },
                     vel: { ...b.vel },

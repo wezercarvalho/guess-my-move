@@ -1,4 +1,4 @@
-import { createBotPlanner, modes } from '@guess-my-move/marbles'
+import { type BotPlanner, createBotPlanner, modes } from '@guess-my-move/marbles'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
@@ -6,7 +6,14 @@ import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
 import { MarblesController, shotControlFromSearch } from './marblesController.js'
 
 /** Relógio, quadros de vídeo e detector controlados pelo teste. */
-function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
+function harness(
+    options: {
+        createTracker?: () => Promise<HandTracker>
+        /** Sem semente fixa: o bot sorteia uma por partida (comportamento real). */
+        randomSeed?: boolean
+        createBot?: () => BotPlanner
+    } = {},
+) {
     let nowMs = 1000
     let queued: (() => void) | null = null
     const media = { currentTime: 0 }
@@ -38,8 +45,8 @@ function harness(options: { createTracker?: () => Promise<HandTracker> } = {}) {
         },
         cancelFrame,
         // Bot determinístico padrão; a semente é fixada por `seed`.
-        createBot: () => createBotPlanner(),
-        seed: 12345,
+        createBot: options.createBot ?? (() => createBotPlanner()),
+        ...(options.randomSeed ? {} : { seed: 12345 }),
     })
     controller.attach({ getVideo: () => video, getOverlay: () => null })
 
@@ -181,6 +188,46 @@ describe('MarblesController: fluxo completo por modo e adversário', () => {
             })
         }
     }
+})
+
+describe('MarblesController: semente do bot', () => {
+    /** Joga uma partida contra o bot e devolve a primeira semente que o planejador recebeu. */
+    async function firstSeed(h: ReturnType<typeof harness>, seeds: number[]): Promise<number> {
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('bot')
+        const before = seeds.length
+        h.controller.startMatch()
+        playMatch(h)
+        expect(seeds.length).toBeGreaterThan(before)
+        return seeds[before]
+    }
+
+    function recordingBot(seeds: number[]): () => BotPlanner {
+        const inner = createBotPlanner()
+        return () => ({
+            planShot: (origin, point, seed, physics, radius) => {
+                seeds.push(seed)
+                return inner.planShot(origin, point, seed, physics, radius)
+            },
+        })
+    }
+
+    it('com semente fixada, toda partida repete a mesma sequência de erros do bot', async () => {
+        const seeds: number[] = []
+        const h = harness({ createBot: recordingBot(seeds) })
+        const first = await firstSeed(h, seeds)
+        const second = await firstSeed(h, seeds)
+        expect(second).toBe(first)
+    })
+
+    it('sem semente fixada, cada partida sorteia a sua (o padrão não se repete)', async () => {
+        const seeds: number[] = []
+        const h = harness({ randomSeed: true, createBot: recordingBot(seeds) })
+        const first = await firstSeed(h, seeds)
+        const second = await firstSeed(h, seeds)
+        expect(second).not.toBe(first)
+    })
 })
 
 describe('MarblesController: vez do bot', () => {

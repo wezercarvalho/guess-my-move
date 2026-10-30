@@ -121,6 +121,8 @@ export interface MatchView {
     matchOutcome: Outcome | null
     turn: Competitor | null
     playerShotsLeft: number
+    roundYield: Record<Competitor, number>
+    scoreLabel: string | null
     field: Body[]
     decor: FieldDecor | null
 }
@@ -324,11 +326,15 @@ export class MarblesController {
         this.sync()
     }
 
-    /** Fonte do tiro do bot: mira o ponto do modo e planeja com a semente da partida. */
+    /**
+     * Fonte do tiro do bot: mira o ponto do modo e planeja com a semente da
+     * partida. Sem semente injetada (produção), cada partida sorteia a sua, para
+     * a sequência de acertos e erros do bot não se repetir de uma partida à outra.
+     */
     private makeBotSource(entry: ModeEntry, mode: Mode): ShotSource {
         const aimPoint = entry.botAimPoint(mode)
         const planner = this.botPlanner
-        const seedBase = this.env.seed ?? 0x9e3779b9
+        const seedBase = this.env.seed ?? Math.floor(Math.random() * 0x1_0000_0000)
         let shot = 0
         return {
             nextShot(field?: readonly Body[]): Vec | null {
@@ -623,6 +629,8 @@ export class MarblesController {
             matchOutcome: snap.matchOutcome,
             turn: snap.turn,
             playerShotsLeft: snap.playerShotsLeft,
+            roundYield: snap.roundYield,
+            scoreLabel: snap.scoreLabel,
             field: snap.field,
             decor: snap.decor,
         }

@@ -192,6 +192,7 @@ export function createTriangleMode(overrides: Partial<TriangleConfig> = {}): Tri
         name: 'Triângulo',
         helpText: HELP_TEXT,
         rules: RULES,
+        scoreLabel: 'Capturas',
         roundsPerMatch: cfg.roundsPerMatch,
         buildRound,
         shotLimit: (_competitor, opponent) => (opponent === 'target' ? cfg.shotLimitTarget : cfg.shotLimitBot),
