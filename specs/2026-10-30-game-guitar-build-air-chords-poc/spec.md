@@ -6,7 +6,7 @@ strategy: sdd
 domain: game
 capability: guitar
 objective: build-air-chords-poc
-summary: Entrega o Violão no Ar, uma PoC em alpha em que o jogador forma um dos cinco acordes abertos básicos (Em, Am, D, C, G) com uma mão sobre um braço de violão imaginário projetado no vídeo espelhado e bate com a outra mão para ouvir o acorde, sintetizado no navegador. A lógica fica num pacote puro de TypeScript (afinação, acordes, geometria do braço, papéis das mãos, dedos em corda e casa por posição 2D e permanência sem profundidade, conferência do acorde com uma correção por vez, detector de batida e síntese de corda por Karplus-Strong), com testes primeiro. O navegador acrescenta a tela com câmera, braço projetado, status de uma linha, escolha do acorde com diagrama e guia, gaveta de depuração, ajuste do braço e teclado como alternativa, além de um card Alpha no menu e uma entrada própria no Vite. A PoC valida a forma da mão, não o som da execução, e nenhuma precisão ou latência é afirmada sem medição. Gates 1 e 2 aprovados antecipadamente pelo pedido do maintainer em 2026-10-30; o Gate 3 depende do teste ao vivo do maintainer.
+summary: Entrega o Violão no Ar, uma PoC em alpha em que o jogador monta livremente um dos cinco acordes abertos básicos (Em, Am, D, C, G) com uma mão sobre um braço imaginário projetado e atravessa as cordas com a outra. A lógica reconhece automaticamente a combinação estável de corda e casa, sem seleção prévia nem dependência do número do dedo, tolera falhas curtas e detecta a batida por velocidade e deslocamento acumulado. O navegador usa câmera em largura total, braço fino com casas reais, diagrama somente após o reconhecimento, gaveta de depuração e som Karplus-Strong. A PoC valida a forma da mão, não o som da execução, e nenhuma precisão ou latência é afirmada sem medição. Gates 1 e 2 aprovados antecipadamente; o primeiro teste ao vivo reprovou a ergonomia original e o Gate 3 depende de novo teste do maintainer.
 status: validating
 owners:
     - wezercarvalho
@@ -43,7 +43,7 @@ updated_at: 2026-10-30
 
 ## Resumo
 
-O jogo **Violão no Ar** ensina os primeiros acordes sem violão: uma mão forma o acorde sobre um braço imaginário projetado no vídeo espelhado, a outra bate. O app diz se o acorde está certo, indica **uma** correção por vez e toca o acorde com som de corda sintetizado no navegador. É uma PoC em **alpha**: valida a forma da mão, não o som da execução.
+O jogo **Violão no Ar** ensina os primeiros acordes sem violão: uma mão monta uma forma sobre um braço imaginário projetado no vídeo espelhado, e a outra atravessa as cordas. O app reconhece automaticamente Em, Am, D, C ou G pela combinação de corda e casa, mostra o diagrama somente depois da identificação e toca o acorde com som de corda sintetizado no navegador. É uma PoC em **alpha**: valida a forma da mão, não o som da execução.
 
 Issues: #95 (iniciativa) e #96 a #104 (entregas), numa PR consolidada.
 
@@ -54,10 +54,10 @@ O repositório já roda visão computacional no navegador em três jogos, mas ne
 ## Objetivos
 
 - Item **Alpha** no menu e página própria do jogo.
-- Cinco acordes abertos (Em, Am, D, C, G) com dedilhado padrão, na ordem de ensino Em, Am, D, C, G.
-- Reconhecer a corda e a casa das pontas dos dedos da mão do braço, sem usar profundidade.
-- Dizer se o acorde está certo e indicar uma correção por vez.
-- Detectar a batida da outra mão, com direção e força, e tocar o acorde com som de corda sintetizado.
+- Cinco acordes abertos reconhecíveis (Em, Am, D, C, G), sem seleção prévia.
+- Reconhecer automaticamente o acorde pela corda e casa das pontas dos dedos, sem usar profundidade nem exigir um dedilhado específico.
+- Manter o resultado durante falhas curtas de rastreamento e trocar somente após a nova forma permanecer.
+- Detectar a batida da outra mão por uma trajetória vertical mínima, com direção e força, e tocar o acorde reconhecido.
 - Expor parâmetros e números de depuração para o maintainer calibrar no teste ao vivo.
 
 ## Fora de escopo
@@ -86,17 +86,17 @@ Como jogador, quero ver o Violão no Ar no menu com o selo Alpha para saber que 
 1. **Dado** o menu, **quando** abre, **então** há quatro cards e o do Violão no Ar mostra o selo "Alpha" e leva a `guitar.html`.
 2. **Dado** `guitar.html`, **quando** abre, **então** carrega o módulo da tela e tem o link "← Menu" para `./`.
 
-### US-002 — Formar o acorde e saber se está certo (P1)
+### US-002 — Montar e reconhecer o acorde (P1)
 
-Como jogador, quero formar o acorde com a mão do braço e ver se está certo, com uma correção por vez, para aprender sem instrutor.
+Como jogador, quero montar qualquer acorde disponível e vê-lo reconhecido pela posição, sem escolhê-lo antes.
 
-**Teste independente:** com mãos simuladas nas células do Em, a tela diz que está certo; com um dedo faltando, mostra a correção.
+**Teste independente:** mãos simuladas nas células de cada forma identificam Em, Am, D, C e G; formatos parciais ou com posição extra não recebem nome.
 
 **Critérios de aceitação:**
 
-1. **Dado** o Em como alvo e os dedos 2 e 3 nas cordas 5 e 4, casa 2, **quando** sustentados pelo tempo mínimo, **então** o acorde fica certo e não há correção.
-2. **Dado** o Em como alvo e só o dedo 2 na corda 5, **quando** sustentado, **então** a correção é colocar o dedo 3 na corda 4, casa 2.
-3. **Dado** o D como alvo (cordas 6 e 5 abafadas) e um dedo sobre a corda 6, **quando** sustentado, **então** a corda 6 não conta como erro.
+1. **Dado** qualquer um dos cinco formatos, **quando** suas posições corda+casa permanecem pelo tempo mínimo, **então** o acorde correspondente aparece automaticamente.
+2. **Dado** o mesmo formato com dedos diferentes, **quando** sustentado, **então** o resultado não muda.
+3. **Dado** um formato parcial, uma posição extra ou um quadro ruim isolado, **então** o sistema não inventa outro acorde nem faz o resultado piscar.
 
 ### US-003 — Bater e ouvir o acorde (P1)
 
@@ -106,21 +106,21 @@ Como jogador, quero bater com a outra mão e ouvir o acorde que estou formando.
 
 **Critérios de aceitação:**
 
-1. **Dado** o Em formado, **quando** a mão da batida desce acima do limiar na zona de batida, **então** soam as 6 cordas do 6ª à 1ª, com atraso crescente.
-2. **Dado** uma batida para cima, **então** a ordem é a inversa.
-3. **Dado** um formato errado, **então** a nota da corda errada muda de acordo.
+1. **Dado** um acorde reconhecido, **quando** a outra mão percorre a distância mínima para baixo dentro da zona, **então** as cordas soam da 6ª à 1ª, com atraso crescente.
+2. **Dado** uma trajetória para cima, **então** a ordem é a inversa.
+3. **Dado** movimento rápido curto causado por jitter ou um formato não reconhecido, **então** nenhum som é disparado.
 4. **Dado** o áudio bloqueado pelo navegador, **então** a tela avisa e o primeiro gesto o libera.
 
-### US-004 — Aprender os cinco acordes em ordem (P2)
+### US-004 — Ver o acorde que a mão montou (P2)
 
-Como jogador, quero escolher o acorde, ver o diagrama e seguir etapas curtas para aprender os cinco acordes.
+Como jogador, quero ver o nome e o diagrama do acorde reconhecido para relacionar minha posição à forma musical.
 
-**Teste independente:** escolher cada acorde e conferir diagrama, alvos no braço e dica.
+**Teste independente:** antes da mão não existe acorde selecionado; após sustentar cada forma, o nome e o diagrama correspondentes aparecem.
 
 **Critérios de aceitação:**
 
-1. **Dado** cada acorde escolhido, **então** o diagrama e os alvos no braço mostram as casas e os dedos certos, com cordas abafadas marcadas.
-2. **Dado** o acorde formado e uma batida, **então** a etapa avança, o acorde fica concluído e a tela sugere o próximo da ordem.
+1. **Dado** nenhum formato reconhecido, **então** a tela não marca nem desenha um acorde alvo sobre o braço.
+2. **Dado** um acorde reconhecido e tocado, **então** a tela o marca como tocado e pede que o jogador monte qualquer outro.
 
 ### US-005 — Calibrar e tocar sem câmera (P2)
 
@@ -131,7 +131,7 @@ Como maintainer, quero ajustar o braço, ver os números do reconhecimento e toc
 **Critérios de aceitação:**
 
 1. **Dado** a gaveta aberta, **então** mostra mãos, delegate, fps, célula de cada dedo, estado por corda, velocidade da mão da batida e latência de áudio.
-2. **Dado** a câmera negada, **quando** o jogador usa Espaço, seta para cima ou clique, **então** o acorde alvo soa.
+2. **Dado** a câmera negada, **quando** o jogador usa Espaço, seta para cima ou clique, **então** o som de teste usa o último acorde reconhecido ou Em no estado inicial.
 
 ## Requisitos funcionais
 
@@ -142,16 +142,16 @@ Como maintainer, quero ajustar o braço, ver os números do reconhecimento e toc
 - **FR-005:** O pacote DEVE calcular a posição das casas 0 a 5 pela regra dos 12 semitons (distância da pestana = L·(1 − 2^(−n/12))), as 6 cordas e as zonas de corda e casa em coordenadas do braço de 0 a 1, e a nota MIDI de cada corda tocada.
 - **FR-006:** A mão do braço DEVE ser escolhida pelo lado da tela e pela opção destro ou canhoto, nunca pelo rótulo Left/Right do MediaPipe; o resultado NÃO DEVE mudar com o rótulo certo, trocado ou ausente.
 - **FR-007:** O sistema DEVE traduzir as pontas do indicador, médio, anelar e mindinho em corda e casa, com suavização, histerese de célula e tempo mínimo de permanência, sem usar profundidade (z); o polegar e pontas fora do braço NÃO DEVEM contar, e os dedos estáveis DEVEM se manter por uma tolerância curta quando a mão some.
-- **FR-008:** A conferência DEVE usar, em cada corda, a casa mais alta com dedo estável, classificar cada corda como abafada, certa, errada ou faltando e declarar o acorde completo quando todas as cordas tocadas estão certas; dedos sobre cordas que o acorde pede soltas DEVEM contar como erro, com a opção de ignorá-los por parâmetro.
-- **FR-009:** A conferência DEVE devolver no máximo uma correção estruturada (colocar, mover ou tirar, com dedo, corda e casa), em ordem determinística: primeiro as cordas erradas, depois as faltando, da 6ª à 1ª.
-- **FR-010:** O estado "certo" DEVE exigir o acorde completo sustentado por um tempo mínimo e só voltar a "errado" depois de uma tolerância, para não piscar.
-- **FR-011:** O detector de batida DEVE usar a velocidade vertical do centro da palma normalizada pelo tamanho da mão, com histerese e período refratário, disparar no pico dentro da zona de batida, devolver direção (para baixo ou para cima) e força de 0 a 1, e reiniciar ao perder a mão.
+- **FR-008:** O reconhecimento DEVE reduzir cada corda à casa mais alta com dedo estável e comparar a combinação corda+casa com Em, Am, D, C e G, sem depender do número do dedo usado.
+- **FR-009:** Formatos parciais, vazios ou com posição extra NÃO DEVEM receber nome nem tocar pela mão; a tela DEVE pedir apenas o ajuste dos dedos, sem sugerir um acorde alvo.
+- **FR-010:** Um acorde DEVE exigir a mesma forma sustentada pelo tempo mínimo; o resultado DEVE resistir a quadros ruins curtos e a troca para outro acorde DEVE exigir nova permanência.
+- **FR-011:** O detector de batida DEVE usar a trajetória vertical do centro da palma normalizada pelo tamanho da mão, exigir velocidade e deslocamento mínimos, respeitar período refratário, disparar ao completar a travessia dentro da zona, devolver direção e força e reiniciar ao perder a mão.
 - **FR-012:** A síntese DEVE gerar uma nota de corda dedilhada pelo algoritmo Karplus-Strong, de forma determinística por semente, sem arquivo de áudio de terceiros.
-- **FR-013:** O plano da batida DEVE ordenar as cordas (da grave à aguda para baixo, o inverso para cima), com atraso entre cordas e ganho pela força, e DEVE tocar o que a mão está formando, deixando de fora as cordas abafadas do acorde.
+- **FR-013:** O plano da batida DEVE ordenar as cordas (da grave à aguda para baixo, o inverso para cima), com atraso entre cordas e ganho pela força, e só DEVE tocar um acorde confirmado pela posição.
 - **FR-014:** O tocador DEVE usar um único `AudioContext` criado ou retomado dentro de um gesto do usuário e DEVE mostrar o estado "som bloqueado" com o aviso para ativar.
-- **FR-015:** A tela DEVE ligar câmera espelhada, rastreador de até duas mãos, braço projetado, reconhecimento, batida e som, mostrar status de uma linha com a próxima ação, permitir escolher a mão do braço e explicar em português a câmera negada.
-- **FR-016:** A tela DEVE oferecer a escolha do acorde, o diagrama com dedos numerados, o guia "Como jogar" com a etapa atual em `aria-current`, dicas curtas da correção e o progresso por acorde concluído, sem pontuação.
-- **FR-017:** A tela DEVE oferecer ajuste de posição e tamanho do braço, a gaveta de depuração (fechada por padrão) e o teclado e o clique como alternativas de batida, tocando o acorde alvo quando não há mão.
+- **FR-015:** A tela DEVE ligar câmera espelhada, rastreador de até duas mãos, braço projetado, reconhecimento, batida e som; a câmera DEVE ocupar toda a largura útil, e o braço padrão DEVE usar 18% da altura do vídeo, mantendo ampla zona de batida.
+- **FR-016:** A tela NÃO DEVE exigir escolha de acorde; DEVE mostrar o nome e o diagrama somente depois do reconhecimento, o guia "Como jogar" com a etapa atual em `aria-current`, dicas curtas e o progresso por acorde tocado.
+- **FR-017:** A tela DEVE oferecer ajuste de posição, comprimento e espaçamento das cordas, a gaveta de depuração fechada por padrão e teclado e clique como teste de som usando o último acorde reconhecido ou Em no estado inicial.
 
 ## Requisitos não funcionais
 

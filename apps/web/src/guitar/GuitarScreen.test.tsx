@@ -152,7 +152,7 @@ describe('GuitarScreen', () => {
 
     it('sem câmera, o status de uma linha manda ativar a câmera ou usar o Espaço', () => {
         render(<GuitarScreen cameraGetUserMedia={null} deps={harness().deps} />)
-        expect(status()).toHaveTextContent('Ative a câmera ou use Espaço para tocar.')
+        expect(status()).toHaveTextContent('Ative a câmera ou use Espaço para testar o som.')
         expect(screen.getByTestId('guide-hint')).toHaveTextContent(/espaço/i)
     })
 
@@ -162,26 +162,22 @@ describe('GuitarScreen', () => {
         expect(notes.some((note) => /nada é enviado nem gravado/i.test(note.textContent ?? ''))).toBe(true)
     })
 
-    it('começa com o Em, o diagrama com descrição em texto e os cinco acordes para escolher', () => {
+    it('começa sem acorde escolhido e lista apenas os formatos que podem ser reconhecidos', () => {
         render(<GuitarScreen cameraGetUserMedia={null} deps={harness().deps} />)
-        expect(screen.getByRole('radio', { name: 'Em' })).toBeChecked()
+        expect(screen.queryByRole('radio', { name: 'Em' })).not.toBeInTheDocument()
+        expect(screen.getByTestId('detected-chord')).toHaveTextContent('Em, Am, D, C ou G')
         expect(screen.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent)).toEqual([
-            'Em',
-            'Am',
-            'D',
-            'C',
-            'G',
             'Esquerda',
             'Direita',
         ])
-        expect(screen.getByRole('img', { name: /diagrama do em \(mi menor\)/i })).toBeInTheDocument()
     })
 
-    it('escolher outro acorde troca o diagrama', () => {
-        render(<GuitarScreen cameraGetUserMedia={null} deps={harness().deps} />)
-        fireEvent.click(screen.getByRole('radio', { name: 'G' }))
-        expect(screen.getByRole('img', { name: /diagrama do g \(sol maior\)/i })).toBeInTheDocument()
-        expect(screen.getByRole('radio', { name: 'G' })).toBeChecked()
+    it('mostra o diagrama somente depois de reconhecer a posição dos dedos', async () => {
+        const h = await openWithCamera()
+        h.setHands([fretHand(EM), strumHand(0.45)])
+        h.run(14)
+        expect(screen.getByRole('img', { name: /diagrama do em \(mi menor\)/i })).toBeInTheDocument()
+        expect(screen.queryByTestId('detected-chord')).not.toBeInTheDocument()
     })
 
     it('o guia tem três etapas em lista ordenada, sem etapa atual antes da câmera', () => {
@@ -194,7 +190,7 @@ describe('GuitarScreen', () => {
 
     it('com a câmera e sem a mão do braço, o status diz qual mão mostrar e a etapa 1 fica atual', async () => {
         await openWithCamera()
-        expect(status()).toHaveTextContent(/mostre a mão esquerda no braço/i)
+        expect(status()).toHaveTextContent(/mostre a mão esquerda sobre o braço/i)
         const items = within(screen.getByRole('list', { name: /como jogar/i })).getAllByRole('listitem')
         expect(items[0]).toHaveAttribute('aria-current', 'step')
     })
@@ -202,7 +198,7 @@ describe('GuitarScreen', () => {
     it('no modo canhoto, o status pede a mão direita', async () => {
         await openWithCamera()
         fireEvent.click(screen.getByRole('radio', { name: 'Direita' }))
-        expect(status()).toHaveTextContent(/mostre a mão direita no braço/i)
+        expect(status()).toHaveTextContent(/mostre a mão direita sobre o braço/i)
     })
 
     it('teste de fumaça: câmera, acorde certo, batida e som, e o acorde fica concluído', async () => {
@@ -210,8 +206,8 @@ describe('GuitarScreen', () => {
         const fret = fretHand(EM)
         h.setHands([fret, strumHand(0.35)])
         h.run(14)
-        expect(status()).toHaveTextContent('Bata com a outra mão.')
-        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/desça a mão/i)
+        expect(status()).toHaveTextContent('Em reconhecido. Atravesse as cordas.')
+        expect(screen.getByTestId('guide-hint')).toHaveTextContent(/cima para baixo/i)
 
         for (let i = 1; i <= 6; i++) {
             h.setHands([fret, strumHand(0.35 + 0.25 * smooth(i / 6))])
@@ -222,19 +218,19 @@ describe('GuitarScreen', () => {
 
         expect(h.audio.plays).toHaveLength(1)
         expect(h.audio.plays[0]?.map((note) => note.string)).toEqual([6, 5, 4, 3, 2, 1])
-        expect(status()).toHaveTextContent('Em concluído. Próximo: Am.')
-        expect(screen.getByRole('radio', { name: 'Em ✓' })).toBeInTheDocument()
+        expect(status()).toHaveTextContent('Em tocado. Monte outro acorde.')
+        expect(screen.getByRole('img', { name: /diagrama do em/i })).toBeInTheDocument()
     })
 
-    it('com um dedo faltando, o status mostra uma única correção em português', async () => {
+    it('com um formato incompleto, pede ajuste sem sugerir um acorde alvo', async () => {
         const h = await openWithCamera()
         h.setHands([fretHand([{ string: 5, fret: 2 }]), strumHand(0.45)])
         h.run(14)
-        expect(status()).toHaveTextContent('Coloque o dedo 3 na corda 4, casa 2.')
-        expect(status().textContent).not.toMatch(/\n/)
+        expect(status()).toHaveTextContent('Ajuste os dedos até o acorde aparecer.')
+        expect(status().textContent).not.toMatch(/Em|Am|D|C|G/)
     })
 
-    it('câmera negada: explica em português e o teclado continua tocando o acorde alvo', async () => {
+    it('câmera negada: explica em português e o teclado ainda testa o som', async () => {
         const h = harness()
         render(
             <GuitarScreen
@@ -244,7 +240,9 @@ describe('GuitarScreen', () => {
         )
         fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
         expect(await screen.findByRole('alert')).toHaveTextContent(/permiss/i)
-        h.press(' ')
+        act(() => {
+            h.press(' ')
+        })
         expect(h.audio.plays).toHaveLength(1)
         expect(h.audio.plays[0]?.map((note) => note.string)).toEqual([6, 5, 4, 3, 2, 1])
     })
@@ -283,7 +281,7 @@ describe('GuitarScreen', () => {
         expect(panel).toHaveTextContent(/velocidade da batida/i)
         expect(panel).toHaveTextContent(/latência de saída do áudio/i)
         expect(panel).toHaveTextContent(/dedo 1.*corda 5, casa 2 \(apertando\)/i)
-        expect(panel).toHaveTextContent(/corda 5.*ok, casa 2/i)
+        expect(panel).toHaveTextContent(/corda 5.*casa 2/i)
     })
 
     it('a latência desconhecida (o navegador informa 0) aparece como traço, não como 0 ms', () => {
@@ -313,17 +311,6 @@ describe('GuitarScreen', () => {
         expect(screen.getByLabelText('Posição vertical do braço')).toHaveValue(
             String(DEFAULT_PLACEMENT.y),
         )
-    })
-
-    it('ignorar dedos extras é uma caixa de seleção na gaveta', async () => {
-        const h = await openWithCamera()
-        h.setHands([fretHand([...EM, { string: 3, fret: 2 }]), strumHand(0.45)])
-        h.run(14)
-        expect(status()).toHaveTextContent(/tire o dedo 3 da corda 3/i)
-        fireEvent.click(screen.getByRole('button', { name: 'Depuração' }))
-        fireEvent.click(screen.getByLabelText(/ignorar dedos extras/i))
-        h.run(2)
-        expect(status()).not.toHaveTextContent(/tire o dedo/i)
     })
 
     it('mostra o motivo quando o detector de mão não inicia', async () => {

@@ -1,11 +1,4 @@
-import {
-    CHORD_IDS,
-    type Chord,
-    type ChordEvaluation,
-    type ChordId,
-    type Correction,
-    STRING_NUMBERS,
-} from '@guess-my-move/guitar'
+import { type Chord, type ChordId, STRING_NUMBERS } from '@guess-my-move/guitar'
 
 import { type AudioStatus } from './audioPlayer.js'
 import { type GuitarTrackerStatus } from './guitarController.js'
@@ -18,9 +11,7 @@ export interface GuideInput {
     fretVisible: boolean
     strumVisible: boolean
     leftHanded: boolean
-    chord: ChordId
-    evaluation: ChordEvaluation
-    stable: boolean
+    detectedChord: ChordId | null
     completed: readonly ChordId[]
     audioStatus: AudioStatus
 }
@@ -28,69 +19,42 @@ export interface GuideInput {
 /** As três etapas do guia "Como jogar". */
 export const STEPS: readonly string[] = [
     'Posicione as mãos',
-    'Forme o acorde',
-    'Bata para tocar',
+    'Monte qualquer acorde',
+    'Atravesse as cordas',
 ]
-
-/** Uma frase curta para a única correção: dedo, corda e casa. */
-export function correctionText(correction: Correction): string {
-    switch (correction.action) {
-        case 'place':
-            return `Coloque o dedo ${correction.finger} na corda ${correction.string}, casa ${correction.fret}.`
-        case 'move':
-            return `Mova o dedo ${correction.finger} para a casa ${correction.fret} da corda ${correction.string}.`
-        case 'remove':
-            return `Tire o dedo ${correction.finger} da corda ${correction.string}.`
-    }
-}
-
-/** O próximo acorde da ordem de ensino que ainda não foi concluído, ou `null` se todos foram. */
-export function nextChord(current: ChordId, completed: readonly ChordId[]): ChordId | null {
-    const start = CHORD_IDS.indexOf(current)
-    for (let step = 1; step <= CHORD_IDS.length; step++) {
-        const candidate = CHORD_IDS[(start + step) % CHORD_IDS.length]
-        if (candidate !== undefined && !completed.includes(candidate)) return candidate
-    }
-    return null
-}
 
 /** Uma linha com a próxima ação. Os detalhes ficam no guia e nas dicas. */
 export function statusLine(input: GuideInput): string {
-    if (!input.cameraActive) return 'Ative a câmera ou use Espaço para tocar.'
+    if (!input.cameraActive) return 'Ative a câmera ou use Espaço para testar o som.'
     if (input.trackerStatus === 'loading') return 'Carregando o detector de mão…'
     if (input.trackerStatus === 'error') return 'Não foi possível iniciar o detector de mão.'
     if (!input.fretVisible) {
-        return `Mostre a mão ${input.leftHanded ? 'direita' : 'esquerda'} no braço.`
+        return `Mostre a mão ${input.leftHanded ? 'direita' : 'esquerda'} sobre o braço.`
     }
-    const { evaluation } = input
-    if (evaluation.correction) return correctionText(evaluation.correction)
-    if (!evaluation.complete) return 'Forme o acorde.'
-    if (!input.stable) return 'Segure o formato.'
-    if (input.completed.includes(input.chord)) {
-        const next = nextChord(input.chord, input.completed)
-        return next ? `${input.chord} concluído. Próximo: ${next}.` : 'Os cinco acordes concluídos.'
+    if (!input.detectedChord) return 'Ajuste os dedos até o acorde aparecer.'
+    if (input.completed.includes(input.detectedChord)) {
+        return `${input.detectedChord} tocado. Monte outro acorde.`
     }
-    return input.strumVisible ? 'Bata com a outra mão.' : 'Mostre a outra mão para bater.'
+    return input.strumVisible
+        ? `${input.detectedChord} reconhecido. Atravesse as cordas.`
+        : `${input.detectedChord} reconhecido. Mostre a outra mão.`
 }
 
 /** Uma dica curta, de no máximo uma frase. */
 export function guideHint(input: GuideInput): string {
     if (!input.cameraActive) return 'Sem câmera: Espaço bate para baixo, seta para cima bate para cima.'
-    if (!input.fretVisible) return 'Mão aberta, palma para a câmera, dedos sobre as cordas.'
-    if (input.evaluation.complete && input.stable) {
-        return input.audioStatus === 'running'
-            ? 'Desça a mão rápido sobre as cordas para tocar.'
-            : 'Clique na tela ou aperte uma tecla para ligar o som.'
-    }
-    return 'Segure o dedo no círculo até ele ficar verde.'
+    if (!input.fretVisible) return 'Deixe a palma para a câmera e alinhe as pontas às cordas.'
+    if (!input.detectedChord) return 'As pontas verdes indicam corda e casa já confirmadas.'
+    return input.audioStatus === 'running'
+        ? 'Passe a outra mão de cima para baixo ou de baixo para cima.'
+        : 'Clique na tela ou aperte uma tecla para ligar o som.'
 }
 
 /** Etapa atual (1 a 3), ou `null` sem câmera. */
 export function currentStep(input: GuideInput): number | null {
     if (!input.cameraActive) return null
     if (!input.fretVisible) return 1
-    if (input.stable && input.evaluation.complete) return 3
-    return 2
+    return input.detectedChord ? 3 : 2
 }
 
 /** Alternativa em texto do diagrama do acorde, corda por corda, da 6 à 1. */

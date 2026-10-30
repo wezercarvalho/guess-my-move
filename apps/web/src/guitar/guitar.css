@@ -33,17 +33,25 @@
 }
 
 @media (min-width: 960px) {
-    .guitar-layout {
-        grid-template-columns: minmax(0, 1fr) 19rem;
+    .guitar-side {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
-.guitar-main,
-.guitar-side {
+.guitar-main {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
     min-width: 0;
+}
+
+.guitar-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    min-width: 0;
+    align-items: start;
 }
 
 /* A câmera é o palco: o painel compartilhado com os outros jogos ganha mais altura só aqui. */
@@ -52,11 +60,11 @@
 }
 
 .guitar-stage .camera-preview {
-    max-height: min(70dvh, 540px);
+    max-height: min(78dvh, 760px);
 }
 
 .guitar-stage .camera-preview-wrapper {
-    min-height: 16rem;
+    min-height: clamp(22rem, 62dvh, 760px);
 }
 
 .guitar-play {
@@ -90,13 +98,19 @@
     align-self: flex-start;
 }
 
-.guitar-side .guide-hint {
+.guitar-side .guide-hint,
+.guitar-supported,
+.guitar-detected > [data-testid='detected-chord'] {
     margin: 0;
     color: var(--muted);
     font-size: var(--size-small);
 }
 
-/* Os cinco acordes dividem a largura do painel lateral em vez de estourar a borda. */
+.guitar-detected {
+    min-height: 13rem;
+}
+
+/* Os controles dividem a largura do painel sem estourar a borda. */
 .guitar-side .ds-segmented,
 .guitar-side .ds-segmented-options {
     display: flex;
@@ -194,19 +208,11 @@
     font-size: var(--size-small);
 }
 
-.guitar-adjust-check {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--size-small);
-}
-
 .guitar-adjust .ds-button {
     align-self: flex-start;
 }
 
 /* Controles nativos na paleta do design system (o padrão do navegador é azul). */
-.guitar-adjust input[type='range'],
-.guitar-adjust input[type='checkbox'] {
+.guitar-adjust input[type='range'] {
     accent-color: var(--gold-bright);
 }

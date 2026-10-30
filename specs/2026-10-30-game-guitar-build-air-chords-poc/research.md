@@ -78,3 +78,21 @@ O G tem uma forma alternativa de quatro dedos e o C admite variante com o mindin
 - Nenhuma medição com a câmera, a mão e o notebook do maintainer: separação das pontas, falsos positivos de dedo, latência da batida e fps. Tudo isso fica para o teste ao vivo (Gate 3).
 - Os números de acerto da literatura vêm de relatos não reabertos e de violão real; não valem para esta PoC.
 - Os valores iniciais de suavização, permanência, histerese, limiar e refratário são hipóteses declaradas em `plan.md`.
+
+## 6. Revisão após o primeiro teste ao vivo (2026-10-30)
+
+O maintainer informou que o braço estava grosso demais, a área de execução pequena, a batida pouco rítmica e o fluxo de escolher um acorde antes de montá-lo invertia a proposta.
+
+### Proporção e espaço de execução
+
+- A Yamaha publica escala de **650 mm** e largura de **52 mm** na pestana para o violão clássico GC41: [especificações Yamaha GC41](https://ca.yamaha.com/fr/products/musical_instruments/guitars_basses/cl_guitars/gc41s/specs.html). Verificado.
+- Pela fórmula já usada no pacote, as cinco primeiras casas ocupam cerca de 163 mm numa escala de 650 mm. A referência física confirma um braço longo e estreito, não uma grade quase quadrada. Calculado.
+- O precedente aberto mais próximo usa caixa de **40% da largura por 18% da altura** do vídeo e identifica o acorde percorrendo as posições observadas, sem seleção prévia: [implementação do Guitar-Chord-Analyzer](https://raw.githubusercontent.com/tjross28/Guitar-Chord-Analyzer/main/hand_tracking_test.py). Verificado.
+- Decisão: reduzir a altura padrão de 40% para **18%**, manter casas progressivamente menores, usar linhas e pontos menores e deixar a câmera ocupar toda a largura útil. A largura foi mantida em 58% para ampliar as casas sem aumentar a separação entre cordas.
+
+### Reconhecimento e ritmo
+
+- O MediaPipe infere os 21 pontos a partir de cada imagem e documenta oclusão, auto-oclusão e tremor das mãos como dificuldades do problema: [Google Research, On-Device Real-Time Hand Tracking](https://research.google/blog/on-device-real-time-hand-tracking-with-mediapipe/). Verificado.
+- Decisão de acorde: comparar a assinatura das posições `corda:casa` com os cinco formatos, sem depender do número do dedo. A forma precisa permanecer; o último resultado resiste a falhas curtas e uma nova forma também precisa permanecer antes da troca.
+- Decisão de batida: velocidade instantânea sozinha gerava falso evento com jitter. O detector agora exige **velocidade e deslocamento acumulado** na mesma direção e dispara ao completar a trajetória, o que aproxima o evento do momento musical da travessia.
+- Limite: nenhum ajuste substitui o segundo teste ao vivo. Os 18%, 100 ms de confirmação, 250 ms de tolerância e 0,55 tamanho de mão de deslocamento continuam parâmetros alpha.

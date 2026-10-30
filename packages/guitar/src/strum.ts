@@ -25,6 +25,8 @@ export interface StrumConfig {
     readonly onSpeed: number
     /** Velocidade abaixo da qual o golpe termina. */
     readonly offSpeed: number
+    /** Deslocamento mínimo do golpe, em tamanhos de mão. */
+    readonly minTravel: number
     /** Velocidade que dá a força máxima. */
     readonly fullSpeed: number
     /** Força mínima de um golpe que passou do limiar. */
@@ -42,6 +44,7 @@ export interface StrumConfig {
 export const DEFAULT_STRUM_CONFIG: StrumConfig = {
     onSpeed: 3,
     offSpeed: 1.5,
+    minTravel: 0.55,
     fullSpeed: 12,
     minForce: 0.15,
     refractoryMs: 150,
@@ -54,9 +57,9 @@ type Phase = 'idle' | 'tracking' | 'spent'
 
 /**
  * Detecta a batida pela velocidade vertical do centro da palma, em tamanhos de mão por
- * segundo (não depende da distância à câmera). Dispara no **pico**: no primeiro quadro em
- * que a velocidade deixa de crescer acima do limiar, para ter direção e força. Só conta
- * dentro da zona de batida e respeita o período refratário. O tempo é injetado.
+ * segundo (não depende da distância à câmera). Depois de armar pelo limiar de velocidade,
+ * exige deslocamento suficiente na mesma direção e dispara ao completar essa trajetória. Só
+ * conta dentro da zona de batida e respeita o período refratário. O tempo é injetado.
  */
 export class StrumDetector {
     private readonly filter: OneEuroFilter
@@ -65,6 +68,7 @@ export class StrumDetector {
     private velocitySamples = 0
     private phase: Phase = 'idle'
     private direction: 1 | -1 = 1
+    private startPy = 0
     private peak = 0
     private lastEventAt: number | null = null
     private speed = 0
@@ -87,42 +91,42 @@ export class StrumDetector {
         const velocity = (py - previous.py) / dt
         this.speed = velocity
         if (this.velocitySamples++ < this.config.warmupSamples) return null
-        return this.advance(velocity, sample, zone)
+        return this.advance(velocity, py, sample, zone)
     }
 
-    private advance(velocity: number, sample: StrumSample, zone: Rect): StrumEvent | null {
+    private advance(velocity: number, py: number, sample: StrumSample, zone: Rect): StrumEvent | null {
         const magnitude = Math.abs(velocity)
         const sign: 1 | -1 = velocity >= 0 ? 1 : -1
         const { onSpeed, offSpeed } = this.config
 
         if (this.phase === 'tracking') {
             if (sign !== this.direction) {
-                // inverteu antes de a velocidade cair: fecha o golpe anterior
-                const event = this.fire(sample, zone)
-                this.phase = 'spent'
-                if (magnitude >= onSpeed) this.begin(sign, magnitude)
-                return event
-            }
-            if (magnitude >= this.peak) {
-                this.peak = magnitude
+                this.phase = 'idle'
+                if (magnitude >= onSpeed) this.begin(sign, magnitude, py)
                 return null
             }
-            const event = this.fire(sample, zone)
-            this.phase = 'spent'
-            return event
+            this.peak = Math.max(this.peak, magnitude)
+            if (Math.abs(py - this.startPy) >= this.config.minTravel) {
+                const event = this.fire(sample, zone)
+                this.phase = 'spent'
+                return event
+            }
+            if (magnitude < offSpeed) this.phase = 'idle'
+            return null
         }
         if (this.phase === 'spent') {
             if (magnitude < offSpeed) this.phase = 'idle'
-            else if (sign !== this.direction && magnitude >= onSpeed) this.begin(sign, magnitude)
+            else if (sign !== this.direction && magnitude >= onSpeed) this.begin(sign, magnitude, py)
             return null
         }
-        if (magnitude >= onSpeed) this.begin(sign, magnitude)
+        if (magnitude >= onSpeed) this.begin(sign, magnitude, py)
         return null
     }
 
-    private begin(sign: 1 | -1, magnitude: number): void {
+    private begin(sign: 1 | -1, magnitude: number, py: number): void {
         this.phase = 'tracking'
         this.direction = sign
+        this.startPy = py
         this.peak = magnitude
     }
 
@@ -152,6 +156,7 @@ export class StrumDetector {
         this.previous = null
         this.velocitySamples = 0
         this.phase = 'idle'
+        this.startPy = 0
         this.peak = 0
         this.speed = 0
     }

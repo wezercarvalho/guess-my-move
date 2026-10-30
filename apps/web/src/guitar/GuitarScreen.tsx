@@ -1,4 +1,4 @@
-import { CHORDS, type ChordId, chordById } from '@guess-my-move/guitar'
+import { chordById } from '@guess-my-move/guitar'
 import { useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -37,9 +37,9 @@ function audioNotice(status: string): string | null {
 }
 
 /**
- * Tela do Violão no Ar: a câmera com o braço projetado, o status de uma linha, a escolha do
- * acorde com o diagrama, o guia e a depuração. Todo o processamento é local; nenhuma imagem
- * sai do navegador.
+ * Tela do Violão no Ar: câmera ampla com braço projetado, reconhecimento automático do acorde,
+ * status de uma linha, diagrama do resultado, guia e depuração. Todo o processamento é local;
+ * nenhuma imagem sai do navegador.
  */
 export function GuitarScreen({ cameraGetUserMedia, deps }: GuitarScreenProps) {
     const camera = useCamera(
@@ -63,17 +63,11 @@ export function GuitarScreen({ cameraGetUserMedia, deps }: GuitarScreenProps) {
         fretVisible: game.fretVisible,
         strumVisible: game.strumVisible,
         leftHanded: game.leftHanded,
-        chord: game.chord,
-        evaluation: game.evaluation,
-        stable: game.stable,
+        detectedChord: game.detectedChord,
         completed: game.completed,
         audioStatus: game.audioStatus,
     }
     const notice = audioNotice(game.audioStatus)
-    const chordOptions = CHORDS.map((chord) => ({
-        value: chord.id,
-        label: game.completed.includes(chord.id) ? `${chord.name} ✓` : chord.name,
-    }))
 
     return (
         <div className="guitar-screen">
@@ -134,17 +128,23 @@ export function GuitarScreen({ cameraGetUserMedia, deps }: GuitarScreenProps) {
                 </div>
 
                 <div className="guitar-side">
-                    <Panel raised aria-label="Acorde">
-                        <SegmentedControl<ChordId>
-                            legend="Acorde"
-                            name="guitar-chord"
-                            value={game.chord}
-                            options={chordOptions}
-                            onChange={(id) => {
-                                controller.setChord(id)
-                            }}
-                        />
-                        <ChordDiagram chord={chordById(game.chord)} />
+                    <Panel raised aria-label="Acorde reconhecido" className="guitar-detected">
+                        <Eyebrow>Acorde reconhecido</Eyebrow>
+                        {game.detectedChord ? (
+                            <ChordDiagram chord={chordById(game.detectedChord)} />
+                        ) : (
+                            <p data-testid="detected-chord">Monte Em, Am, D, C ou G no braço.</p>
+                        )}
+                        <p className="guitar-supported">Reconhecimento pela posição dos dedos.</p>
+                    </Panel>
+                    <Panel raised aria-label="Como jogar">
+                        <Eyebrow>Como jogar</Eyebrow>
+                        <Steps label="Como jogar" items={STEPS} current={currentStep(guide)} />
+                        <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
+                            {guideHint(guide)}
+                        </p>
+                    </Panel>
+                    <Panel raised aria-label="Configuração">
                         <SegmentedControl<Side>
                             legend="Mão do braço"
                             name="guitar-side"
@@ -157,13 +157,6 @@ export function GuitarScreen({ cameraGetUserMedia, deps }: GuitarScreenProps) {
                                 controller.setLeftHanded(side === 'right')
                             }}
                         />
-                    </Panel>
-                    <Panel raised aria-label="Como jogar">
-                        <Eyebrow>Como jogar</Eyebrow>
-                        <Steps label="Como jogar" items={STEPS} current={currentStep(guide)} />
-                        <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
-                            {guideHint(guide)}
-                        </p>
                     </Panel>
                     <PrivacyNotice />
                 </div>

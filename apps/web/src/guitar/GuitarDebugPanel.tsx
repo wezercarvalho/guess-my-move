@@ -5,8 +5,6 @@ import { type GuitarController, type GuitarSnapshot } from './guitarController.j
 
 const DASH = '—'
 
-const STATE_LABEL = { ok: 'ok', wrong: 'errada', missing: 'falta', muted: 'abafada' } as const
-
 const decimal = (value: number, digits = 2) =>
     value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits })
 /** Tempo em ms; o navegador informa 0 quando não sabe medir, e isso não é latência zero. */
@@ -22,9 +20,9 @@ interface SliderSpec {
 
 const SLIDERS: readonly SliderSpec[] = [
     { key: 'x', label: 'Posição horizontal do braço', min: 0, max: 0.4 },
-    { key: 'y', label: 'Posição vertical do braço', min: 0.05, max: 0.6 },
-    { key: 'width', label: 'Largura do braço', min: 0.3, max: 0.6 },
-    { key: 'height', label: 'Altura do braço', min: 0.2, max: 0.6 },
+    { key: 'y', label: 'Posição vertical do braço', min: 0.1, max: 0.7 },
+    { key: 'width', label: 'Comprimento do braço', min: 0.4, max: 0.75 },
+    { key: 'height', label: 'Espaçamento entre as cordas', min: 0.1, max: 0.32 },
 ]
 
 /**
@@ -62,13 +60,12 @@ export function GuitarDebugPanel({
                     <FingerRow key={finger.finger} finger={finger} />
                 ))}
                 {STRING_NUMBERS.map((string) => {
-                    const entry = snapshot.evaluation.strings.find((item) => item.string === string)
+                    const press = snapshot.presses.find((item) => item.string === string)
                     return (
                         <StringRow
                             key={string}
                             string={string}
-                            state={entry ? STATE_LABEL[entry.state] : DASH}
-                            detected={entry?.detectedFret ?? 0}
+                            detected={press?.fret ?? 0}
                         />
                     )
                 })}
@@ -96,16 +93,6 @@ export function GuitarDebugPanel({
                         </div>
                     )
                 })}
-                <label className="guitar-adjust-check">
-                    <input
-                        type="checkbox"
-                        checked={snapshot.ignoreExtraFingers}
-                        onChange={(event) => {
-                            controller.setIgnoreExtraFingers(event.target.checked)
-                        }}
-                    />
-                    Ignorar dedos extras sobre cordas soltas
-                </label>
                 <Button
                     variant="secondary"
                     onClick={() => {
@@ -132,13 +119,11 @@ function FingerRow({ finger }: { finger: GuitarSnapshot['debug']['fingers'][numb
     )
 }
 
-function StringRow({ string, state, detected }: { string: number; state: string; detected: number }) {
+function StringRow({ string, detected }: { string: number; detected: number }) {
     return (
         <>
             <dt>Corda {string}</dt>
-            <dd>
-                {state}, casa {detected}
-            </dd>
+            <dd>{detected === 0 ? 'solta' : `casa ${detected}`}</dd>
         </>
     )
 }

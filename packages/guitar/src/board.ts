@@ -26,8 +26,8 @@ export interface BoardPlacement {
     readonly leftHanded?: boolean
 }
 
-/** Colocação inicial (hipótese): a calibrar ao vivo pelo ajuste do braço. */
-export const DEFAULT_PLACEMENT: BoardPlacement = { x: 0.06, y: 0.3, width: 0.56, height: 0.4 }
+/** Colocação inicial: braço longo e estreito, próximo da proporção visual de um violão real. */
+export const DEFAULT_PLACEMENT: BoardPlacement = { x: 0.05, y: 0.4, width: 0.58, height: 0.18 }
 
 /** Coordenadas do braço: `u` ao longo do braço (0 pestana a 1 casa 5), `v` entre as cordas (0 = corda 6, 1 = corda 1). */
 export interface BoardPoint {

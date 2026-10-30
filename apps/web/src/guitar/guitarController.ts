@@ -1,18 +1,16 @@
 import {
     type BoardPlacement,
-    type ChordEvaluation,
     type ChordId,
     type FingerDebug,
     type FingerPress,
     type HandInput,
     type ScreenPoint,
-    ChordStability,
+    ChordRecognition,
     DEFAULT_PLACEMENT,
     FingerTracker,
     HandRoleAssigner,
     StrumDetector,
     chordById,
-    evaluateChord,
     planStrum,
     soundingStrings,
     strumZone,
@@ -64,10 +62,10 @@ export interface GuitarDebug {
 }
 
 export interface GuitarSnapshot {
-    chord: ChordId
+    /** Último acorde confirmado pela posição; `null` enquanto nenhuma forma permanece. */
+    detectedChord: ChordId | null
     placement: BoardPlacement
     leftHanded: boolean
-    ignoreExtraFingers: boolean
     cameraActive: boolean
     trackerStatus: GuitarTrackerStatus
     trackerFailure: string | null
@@ -75,9 +73,6 @@ export interface GuitarSnapshot {
     fretVisible: boolean
     strumVisible: boolean
     presses: readonly FingerPress[]
-    evaluation: ChordEvaluation
-    /** O acorde está certo e sustentado. */
-    stable: boolean
     /** Acordes já tocados certos, na ordem em que foram concluídos. */
     completed: readonly ChordId[]
     lastStrum: StrumRecord | null
@@ -101,8 +96,8 @@ const mirror = (point: { x: number; y: number }): ScreenPoint => ({ x: 1 - point
 /**
  * Orquestra câmera, rastreador de duas mãos, reconhecimento do acorde, batida e som, sem
  * depender do React. A cada quadro novo da câmera: separa as mãos pelo lado da tela, traduz
- * os dedos em corda e casa, confere o acorde alvo e, se a outra mão bate, toca o que a mão
- * forma. O teclado toca sem câmera. Nada da câmera é gravado nem enviado.
+ * os dedos em corda e casa, reconhece automaticamente a forma e, se a outra mão bate,
+ * toca o acorde confirmado. O teclado testa o som sem câmera. Nada da câmera é gravado nem enviado.
  */
 export class GuitarController {
     private readonly env: GuitarEnv
@@ -110,15 +105,15 @@ export class GuitarController {
     private readonly listeners = new Set<() => void>()
     private readonly roles = new HandRoleAssigner()
     private readonly fingers = new FingerTracker()
-    private readonly stability = new ChordStability()
+    private readonly recognition = new ChordRecognition()
     private readonly strumDetector = new StrumDetector()
     private surfaces: GuitarSurfaces = { getVideo: () => null, getOverlay: () => null }
     private attached = false
     private cameraActive = false
     private chord: ChordId = 'Em'
+    private detectedChord: ChordId | null = null
     private leftHanded = false
     private placement: BoardPlacement = DEFAULT_PLACEMENT
-    private ignoreExtraFingers = false
     private tracker: HandTracker | null = null
     private trackerStatus: GuitarTrackerStatus = 'idle'
     private trackerFailure: string | null = null
@@ -128,8 +123,6 @@ export class GuitarController {
     private fretHand: HandInput | null = null
     private strumHand: HandInput | null = null
     private presses: readonly FingerPress[] = []
-    private evaluation: ChordEvaluation
-    private stable = false
     private completed: ChordId[] = []
     private lastStrum: StrumRecord | null = null
     private frameTimes: number[] = []
@@ -144,7 +137,6 @@ export class GuitarController {
     constructor(env: GuitarEnv) {
         this.env = env
         this.audio = env.createAudio()
-        this.evaluation = evaluateChord(chordById(this.chord), [])
         this.snapshot = this.buildSnapshot()
     }
 
@@ -198,15 +190,6 @@ export class GuitarController {
         void this.audio.unlock()
     }
 
-    setChord(id: ChordId): void {
-        if (id === this.chord) return
-        this.chord = id
-        this.stability.reset()
-        this.stable = false
-        this.reevaluate()
-        this.emit()
-    }
-
     setLeftHanded(value: boolean): void {
         this.leftHanded = value
         this.placement = this.withHandedness(this.placement)
@@ -218,16 +201,9 @@ export class GuitarController {
     setPlacement(placement: BoardPlacement): void {
         this.placement = this.withHandedness(placement)
         this.fingers.reset()
-        this.stability.reset()
-        this.stable = false
+        this.recognition.reset()
+        this.detectedChord = null
         this.presses = []
-        this.reevaluate()
-        this.emit()
-    }
-
-    setIgnoreExtraFingers(value: boolean): void {
-        this.ignoreExtraFingers = value
-        this.reevaluate()
         this.emit()
     }
 
@@ -245,18 +221,11 @@ export class GuitarController {
         this.roles.reset()
         this.fingers.reset()
         this.strumDetector.reset()
-        this.stability.reset()
-        this.stable = false
+        this.recognition.reset()
+        this.detectedChord = null
         this.fretHand = null
         this.strumHand = null
         this.presses = []
-        this.reevaluate()
-    }
-
-    private reevaluate(): void {
-        this.evaluation = evaluateChord(chordById(this.chord), this.presses, {
-            ignoreExtraFingers: this.ignoreExtraFingers,
-        })
     }
 
     private sync(): void {
@@ -386,8 +355,9 @@ export class GuitarController {
 
     private applyFretHand(now: number): void {
         this.presses = this.fingers.update(now, this.fretHand?.landmarks ?? null, this.placement)
-        this.reevaluate()
-        this.stable = this.stability.update(this.evaluation.complete, now)
+        const detected = this.recognition.update(this.presses, now)
+        if (detected !== null && detected !== this.chord) this.chord = detected
+        this.detectedChord = detected
     }
 
     private strumSample(hand: HandInput, now: number, aspect: number) {
@@ -415,18 +385,22 @@ export class GuitarController {
         return ((this.frameTimes.length - 1) * 1000) / (last - first)
     }
 
-    /** Toca a batida. Sem mão do braço visível, a tecla toca o acorde alvo como está escrito. */
+    /** Toca a batida. Sem mão do braço visível, a tecla testa o último acorde reconhecido. */
     private trigger(direction: 'down' | 'up', force: number, source: 'hand' | 'key'): void {
         const play = (): void => {
             if (!this.attached) return
             const fromHand = this.fretHand !== null || source === 'hand'
             const sounding = fromHand
-                ? this.evaluation.sounding
+                ? this.detectedChord === null
+                    ? []
+                    : soundingStrings(chordById(this.detectedChord))
                 : soundingStrings(chordById(this.chord))
-            const heard = this.audio.play(planStrum(sounding, direction, force))
+            const heard = sounding.length > 0 && this.audio.play(planStrum(sounding, direction, force))
             this.lastStrum = { direction, force, source, tMs: this.env.now(), heard }
-            if (source === 'hand' && this.stable && this.evaluation.complete && heard) {
-                if (!this.completed.includes(this.chord)) this.completed = [...this.completed, this.chord]
+            if (source === 'hand' && this.detectedChord !== null && heard) {
+                if (!this.completed.includes(this.detectedChord)) {
+                    this.completed = [...this.completed, this.detectedChord]
+                }
             }
             this.emit()
         }
@@ -452,8 +426,6 @@ export class GuitarController {
         if (!this.cameraActive) return
         drawBoardOverlay(overlay, video, {
             placement: this.placement,
-            target: chordById(this.chord),
-            evaluation: this.evaluation,
             fingers: this.fingers.debug(),
         })
     }
@@ -515,10 +487,9 @@ export class GuitarController {
 
     private buildSnapshot(): GuitarSnapshot {
         return {
-            chord: this.chord,
+            detectedChord: this.detectedChord,
             placement: this.placement,
             leftHanded: this.leftHanded,
-            ignoreExtraFingers: this.ignoreExtraFingers,
             cameraActive: this.cameraActive,
             trackerStatus: this.trackerStatus,
             trackerFailure: this.trackerFailure,
@@ -526,8 +497,6 @@ export class GuitarController {
             fretVisible: this.fretHand !== null,
             strumVisible: this.strumHand !== null,
             presses: this.presses,
-            evaluation: this.evaluation,
-            stable: this.stable,
             completed: this.completed,
             lastStrum: this.lastStrum,
             audioStatus: this.audio.status,

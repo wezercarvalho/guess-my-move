@@ -40,7 +40,7 @@
 
 - [x] T018 [US-002] [FR-008] [FR-009] Escrever testes falhando dos cenários de US-002 (certo, falta dedo, dedo errado, abafada, casa mais alta) em `packages/guitar/test/evaluate.test.ts`
 - [x] T019 [US-002] [FR-008] [FR-009] Implementar `evaluate.ts` (estado por corda, correção única e cordas soando)
-- [x] T020 [US-002] [FR-010] Escrever testes falhando da estabilidade no tempo e implementar `ChordStability`
+- [x] T020 [US-002] [FR-010] Escrever testes iniciais de estabilidade no tempo; comportamento substituído por `ChordRecognition` em T043
 
 ## Fase 6 — Batida (#100)
 
@@ -67,7 +67,7 @@
 
 - [x] T033 [US-004] [FR-016] Escrever testes falhando do guia, das dicas e do progresso em `apps/web/src/guitar/guide.test.ts`
 - [x] T034 [US-004] [FR-016] Implementar `guide.ts`
-- [x] T035 [US-004] [FR-016] [NFR-005] Escrever testes falhando do diagrama e implementar `ChordDiagram.tsx` e a escolha do acorde na tela
+- [x] T035 [US-004] [FR-016] [NFR-005] Escrever testes falhando do diagrama e implementar `ChordDiagram.tsx`; seleção removida em T044
 
 ## Fase 10 — Ajuste, depuração e teclado (#104)
 
@@ -127,3 +127,12 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Artefatos aprovados:** `research.md`, `plan.md`, `tasks.md`
 - **Referência:** pedido do maintainer na sessão do dashboard em 2026-10-30 (06:16 UTC): "Após isso pode desenvolver elas e me entrega um PR em draft consolidado no final para que eu teste."; issues 95 a 104 do repositório.
 - **Exceções:** nenhuma. Aprovação antecipada **inferida** do pedido de desenvolver depois das issues prontas, não de uma frase de aprovação dos gates. O Gate 3 segue para o maintainer, após o teste ao vivo; o agente não o concede.
+
+## Fase 11 — Revisão após o primeiro teste ao vivo (#95)
+
+- [x] T042 [US-002] [FR-008] Pesquisar proporção real do braço e reconhecimento por posição sem seleção prévia
+- [x] T043 [US-002] [FR-008, FR-010] Escrever testes falhando dos cinco formatos, independência do dedo, forma extra e troca estável
+- [x] T044 [US-002] [FR-008, FR-010, FR-016] Implementar `recognizeChord`, `ChordRecognition` e remover a seleção de acorde da tela e do overlay
+- [x] T045 [US-003] [FR-011] Escrever a regressão de jitter e exigir deslocamento acumulado para reconhecer a batida
+- [x] T046 [US-004] [FR-015, FR-017] Reduzir o braço para 18% da altura, ampliar a câmera e mover os painéis para baixo
+- [x] T047 [SC-002] Atualizar documentação, rodar testes direcionados e inspecionar a tela com câmera sintética no Chromium

@@ -47,15 +47,10 @@ export {
     type FingerTrackerConfig,
 } from './fingers.js'
 export {
-    type ChordEvaluation,
-    ChordStability,
-    type ChordStabilityConfig,
-    type Correction,
-    DEFAULT_STABILITY_CONFIG,
-    type EvaluateOptions,
-    type StringEvaluation,
-    type StringState,
-    evaluateChord,
+    ChordRecognition,
+    type ChordRecognitionConfig,
+    DEFAULT_RECOGNITION_CONFIG,
+    recognizeChord,
 } from './evaluate.js'
 export {
     DEFAULT_STRUM_CONFIG,

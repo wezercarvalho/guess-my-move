@@ -81,3 +81,16 @@
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** pedido do maintainer na sessão do dashboard em 2026-10-30 (06:16 UTC): "Faz uma revisão do estado da arte, e aí cria as issues. Após criar as issues, revisa e vai movendo para ready. Após isso pode desenvolver elas e me entrega um PR em draft consolidado no final para que eu teste."; issues 95 a 104 do repositório.
 - **Observações:** aprovação antecipada **inferida** do pedido de desenvolver depois das issues estarem prontas; o maintainer não escreveu "considere os gates aprovados". Ele pode rejeitá-la na revisão da PR, e a spec volta ao primeiro estado afetado. CQ-001 a CQ-006 ficam resolvidas pelas decisões acima. O Gate 3 não é concedido pelo agente: depende do teste ao vivo do maintainer.
+
+## Revisão do Gate 3
+
+### CQ-007 — Fluxo livre, proporção do braço e leitura temporal
+
+- **Data:** `2026-10-30`
+- **Impacto:** crítico
+- **Origem:** primeiro teste ao vivo do maintainer na PR #105.
+- **Decisão:** o jogador não escolhe um acorde. O sistema reconhece Em, Am, D, C ou G pela combinação estável de corda e casa, independentemente do dedo usado; só então mostra o nome e o diagrama. O braço padrão passa de 40% para 18% da altura do vídeo, a câmera ocupa toda a largura útil e a zona restante fica para a batida. A batida exige velocidade e deslocamento acumulado na mesma direção, em vez de disparar por um pico isolado.
+- **Razão:** o braço original era grosso demais para posicionar a mão, a área de execução era pequena e a seleção prévia invertia a proposta de reconhecimento. O pico isolado também convertia jitter rápido em batida.
+- **Substitui:** as partes de CQ-002, CQ-003, CQ-004 e CQ-005 que exigiam acorde alvo, correção contra o alvo, disparo no pico e som de formato inválido.
+- **Evidência:** seção 6 de `research.md`; testes de reconhecimento dos cinco acordes, independência do dedo, troca com permanência, jitter sem evento e câmera em largura total.
+- **Gate 3:** continua pendente. O primeiro teste ao vivo rejeitou a ergonomia e o fluxo da versão anterior; a revisão precisa de novo teste do maintainer.

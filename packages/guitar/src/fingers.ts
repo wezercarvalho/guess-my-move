@@ -42,7 +42,7 @@ export const DEFAULT_FINGER_CONFIG: FingerTrackerConfig = {
     dwellMs: 100,
     exitMargin: 0.25,
     graceMs: 150,
-    filter: { minCutoff: 1, beta: 0.1, dCutoff: 1 },
+    filter: { minCutoff: 1.5, beta: 0.8, dCutoff: 1 },
 }
 
 /** Pontas do indicador, médio, anelar e mindinho no modelo de 21 pontos da mão. */

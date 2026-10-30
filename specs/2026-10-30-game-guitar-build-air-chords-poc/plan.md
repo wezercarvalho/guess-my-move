@@ -65,40 +65,41 @@ README.md                            (lista de jogos)
 
 ### Componentes e responsabilidades
 
-| Componente               | Entrada                                                  | Saída                                                             | Falhas e limites                                                  |
-| ------------------------ | -------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `theory`/`chords`        | nada (dados)                                             | afinação MIDI, `Chord[]` na ordem de ensino, notas por corda      | Dados validados por teste de tríade.                              |
-| `board`                  | posição de tela normalizada, `BoardPlacement`, canhoto   | `{ string, fret } \| null`; posição das casas                     | Fora do braço devolve `null`; casa 0 e além da casa 5 não contam. |
-| `hands`                  | mãos do quadro (landmarks, sem rótulo), `BoardPlacement` | `{ fretting, strumming }` por lado da tela                        | Uma mão: compara com a divisa e mantém o papel dentro da margem.  |
-| `fingers`                | `fretting` do quadro, tempo                              | `FingerPress[]` estáveis                                          | Mão some: mantém por `graceMs`, depois zera.                      |
-| `evaluate`               | `Chord` alvo, `FingerPress[]`                            | estado por corda, `complete`, `correction \| null`, cordas soando | Determinístico.                                                   |
-| `ChordStability`         | `complete`, tempo                                        | `stable` booleano                                                 | Histerese de tempo.                                               |
-| `strum`                  | amostra `{tMs, x, y, handSize}`, zona                    | `StrumEvent \| null`                                              | Reinicia em lacuna ou perda; ignora os primeiros quadros.         |
-| `synth`/`strumPlan`      | MIDI, taxa de amostragem, semente; cordas soando, batida | `Float32Array`; lista de notas com atraso e ganho                 | Determinístico por semente.                                       |
-| `audioPlayer` (web)      | plano da batida                                          | som agendado no `AudioContext`; estado `locked/running`           | Um único contexto, criado no gesto; falha de áudio vira aviso.    |
-| `guitarController` (web) | vídeo, rastreador, teclado, tempo                        | `GuitarSnapshot` assinado pela tela                               | Rastreador que falha vira estado `error` com motivo.              |
+| Componente                          | Entrada                                                  | Saída                                                        | Falhas e limites                                                  |
+| ----------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `theory`/`chords`                   | nada (dados)                                             | afinação MIDI, `Chord[]` na ordem de ensino, notas por corda | Dados validados por teste de tríade.                              |
+| `board`                             | posição de tela normalizada, `BoardPlacement`, canhoto   | `{ string, fret } \| null`; posição das casas                | Fora do braço devolve `null`; casa 0 e além da casa 5 não contam. |
+| `hands`                             | mãos do quadro (landmarks, sem rótulo), `BoardPlacement` | `{ fretting, strumming }` por lado da tela                   | Uma mão: compara com a divisa e mantém o papel dentro da margem.  |
+| `fingers`                           | `fretting` do quadro, tempo                              | `FingerPress[]` estáveis                                     | Mão some: mantém por `graceMs`, depois zera.                      |
+| `recognizeChord`/`ChordRecognition` | `FingerPress[]`, tempo                                   | `ChordId \| null` confirmado                                 | Forma parcial ou extra não recebe nome; tolera falhas curtas.     |
+| `evaluate`                          | acorde reconhecido, `FingerPress[]`                      | cordas soando para o plano de áudio                          | Usado somente depois do reconhecimento.                           |
+| `strum`                             | amostra `{tMs, x, y, handSize}`, zona                    | `StrumEvent \| null`                                         | Reinicia em lacuna ou perda; ignora os primeiros quadros.         |
+| `synth`/`strumPlan`                 | MIDI, taxa de amostragem, semente; cordas soando, batida | `Float32Array`; lista de notas com atraso e ganho            | Determinístico por semente.                                       |
+| `audioPlayer` (web)                 | plano da batida                                          | som agendado no `AudioContext`; estado `locked/running`      | Um único contexto, criado no gesto; falha de áudio vira aviso.    |
+| `guitarController` (web)            | vídeo, rastreador, teclado, tempo                        | `GuitarSnapshot` assinado pela tela                          | Rastreador que falha vira estado `error` com motivo.              |
 
 ### Contratos e dados
 
 - Cordas numeradas como no violão: **6 é a mais grave** e 1 a mais aguda. Vetores internos ficam na ordem 6 a 1 (`STRING_NUMBERS`).
 - `StringSpec`: `{ kind: 'muted' } | { kind: 'open' } | { kind: 'fret', fret: 1..5, finger: 1..4 }`.
 - `FingerPress`: `{ finger: 1..4, string: StringNumber, fret: 1..5 }`.
-- `Correction`: `{ action: 'place' | 'move' | 'remove', finger, string, fret }` (em `remove`, `fret` é a casa atual).
+- `ChordRecognition`: recebe `FingerPress[]` e devolve `ChordId | null` após permanência e tolerância temporal.
 - Coordenadas de tela normalizadas de 0 a 1 **no espaço espelhado** (o que o jogador vê); o controlador converte o x do landmark por `1 - x`. A razão de aspecto do vídeo só entra no cálculo do tamanho da mão.
 - `BoardPlacement`: `{ x, y, width, height }` (tela normalizada) e opção `leftHanded`.
 - Parâmetros em constantes nomeadas e exportadas (`DEFAULT_*`), todos hipóteses a calibrar:
 
 | Parâmetro                     | Valor inicial                       | Justificativa                                                                        | Como medir depois                  |
 | ----------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------- |
-| One Euro dos dedos            | 1,0 Hz, beta 0,1, dcutoff 1,0       | padrão do autor do filtro                                                            | gaveta: tremor da ponta parada     |
+| One Euro dos dedos            | 1,5 Hz, beta 0,8, dcutoff 1,0       | acompanha trocas de posição mais rápido sem abandonar a suavização em repouso        | gaveta: tremor e atraso da ponta   |
 | One Euro da palma             | 2,0 Hz, beta 0,5, dcutoff 2,0       | menos atraso em movimento rápido; a velocidade já vem em tamanhos de mão por segundo | gaveta: velocidade da batida       |
 | Permanência do dedo           | 100 ms                              | faixa de 80 a 120 ms da pesquisa                                                     | tempo até o dedo "pegar" ao vivo   |
 | Margem de saída da célula     | 25% da célula                       | evita alternar na fronteira                                                          | falsos "soltou" ao vivo            |
 | Tolerância de mão perdida     | 150 ms                              | cerca de 4 quadros a 30 fps                                                          | piscadas do status                 |
 | Margem da divisa das mãos     | 0,03                                | evita trocar o papel de uma mão parada na divisa                                     | troca de papel ao vivo             |
-| Acorde certo sustentado       | 250 ms                              | impede acerto por passagem                                                           | tempo até "certo"                  |
-| Tolerância para "errado"      | 200 ms                              | impede piscar por um quadro ruim                                                     | piscadas do status                 |
+| Forma reconhecida sustentada  | 100 ms                              | soma-se à permanência de 100 ms da célula e evita reconhecer passagem                | tempo até o nome aparecer          |
+| Tolerância sem forma válida   | 250 ms                              | mantém o nome durante poucos quadros ruins                                           | piscadas do resultado              |
 | Batida: limiar liga / desliga | 3 / 1,5 tamanhos de mão por segundo | mão parada deriva abaixo de 1; batida suave passa de 3                               | velocidade registrada na gaveta    |
+| Batida: deslocamento mínimo   | 0,55 tamanho de mão                 | rejeita pico curto de jitter e preserva uma travessia intencional                    | batidas perdidas ou fantasmas      |
 | Batida: força máxima          | 12 tamanhos de mão por segundo      | batida vigorosa                                                                      | idem                               |
 | Refratário da batida          | 150 ms                              | comporta 4 golpes por segundo (pesquisa)                                             | batidas perdidas ou duplas ao vivo |
 | Atraso entre cordas           | 18 ms                               | faixa de 15 a 25 ms                                                                  | ouvido do maintainer               |
@@ -107,25 +108,25 @@ README.md                            (lista de jogos)
 ### Fluxo
 
 1. A cada quadro o controlador pede ao rastreador as mãos, converte o x para o espaço espelhado e chama `hands` para separar mão do braço e mão da batida.
-2. `fingers` transforma as pontas da mão do braço em `FingerPress[]` estáveis; `evaluate` compara com o acorde alvo; `ChordStability` decide "certo".
-3. `strum` recebe o centro da palma da outra mão; um evento aciona `strumPlan` com as cordas soando e o `audioPlayer` agenda as notas.
-4. O teclado e o clique geram o mesmo evento de batida; sem dedos detectados, soa o acorde alvo.
-5. Caminhos de erro: rastreador indisponível mostra o motivo; câmera negada mostra a mensagem e mantém o teclado; áudio bloqueado mostra o aviso até o primeiro gesto.
+2. `fingers` transforma as pontas da mão do braço em `FingerPress[]` estáveis; `recognizeChord` compara a assinatura corda+casa com os cinco formatos e `ChordRecognition` aplica permanência e tolerância.
+3. `strum` acumula uma trajetória vertical da palma da outra mão; ao atingir velocidade e deslocamento mínimos, aciona `strumPlan` com o acorde confirmado e o `audioPlayer` agenda as notas.
+4. O teclado e o clique testam o último acorde reconhecido; antes do primeiro reconhecimento, usam Em.
+5. Caminhos de erro: rastreador indisponível mostra o motivo; câmera negada mostra a mensagem e mantém o teste de som; áudio bloqueado mostra o aviso até o primeiro gesto.
 
 ## Mapeamento de requisitos
 
-| Requisito        | Abordagem                                                   | Evidência planejada                                              |
-| ---------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
-| FR-001 a FR-003  | Card com `Badge`, `guitar.html`, entrada do Vite            | `HomePage.test.tsx`, `Badge` teste, `pages.test.mjs`             |
-| FR-004, FR-005   | `theory`, `chords`, `board`                                 | Testes de tríade, de casas e de células                          |
-| FR-006, FR-007   | `hands`, `oneEuro`, `fingers`                               | Testes com landmarks sintéticos, rótulo certo, trocado e ausente |
-| FR-008 a FR-010  | `evaluate` e `ChordStability`                               | Testes dos cenários de US-002                                    |
-| FR-011           | `strum`                                                     | Testes de trajetória (escala, limiar, refratário, salto)         |
-| FR-012, FR-013   | `synth` e `strumPlan`                                       | Fundamental a 1%, decaimento, determinismo, ordem e ganho        |
-| FR-014           | `audioPlayer`                                               | `AudioContext` simulado: bloqueado, desbloqueio, agendamento     |
-| FR-015, FR-016   | `GuitarScreen`, `guitarController`, `ChordDiagram`, `guide` | Teste de fumaça com rastreador falso e testes de componente      |
-| FR-017           | Ajuste, `GuitarDebugPanel`, teclado e clique                | Testes de componente e do controlador                            |
-| NFR-001, NFR-002 | Sem `fetch`/rede no módulo; sem arquivo de áudio            | Teste de varredura de imports e de recursos                      |
+| Requisito        | Abordagem                                                   | Evidência planejada                                                 |
+| ---------------- | ----------------------------------------------------------- | ------------------------------------------------------------------- |
+| FR-001 a FR-003  | Card com `Badge`, `guitar.html`, entrada do Vite            | `HomePage.test.tsx`, `Badge` teste, `pages.test.mjs`                |
+| FR-004, FR-005   | `theory`, `chords`, `board`                                 | Testes de tríade, de casas e de células                             |
+| FR-006, FR-007   | `hands`, `oneEuro`, `fingers`                               | Testes com landmarks sintéticos, rótulo certo, trocado e ausente    |
+| FR-008 a FR-010  | `recognizeChord` e `ChordRecognition`                       | Cinco formas, dedo independente, formato extra, permanência e troca |
+| FR-011           | `strum`                                                     | Testes de trajetória (escala, limiar, refratário, salto)            |
+| FR-012, FR-013   | `synth` e `strumPlan`                                       | Fundamental a 1%, decaimento, determinismo, ordem e ganho           |
+| FR-014           | `audioPlayer`                                               | `AudioContext` simulado: bloqueado, desbloqueio, agendamento        |
+| FR-015, FR-016   | `GuitarScreen`, `guitarController`, `ChordDiagram`, `guide` | Teste de fumaça com rastreador falso e testes de componente         |
+| FR-017           | Ajuste, `GuitarDebugPanel`, teclado e clique                | Testes de componente e do controlador                               |
+| NFR-001, NFR-002 | Sem `fetch`/rede no módulo; sem arquivo de áudio            | Teste de varredura de imports e de recursos                         |
 
 ## Estratégia test-first
 
@@ -138,13 +139,13 @@ README.md                            (lista de jogos)
 
 ## Riscos, rollout e rollback
 
-| Risco                                       | Mitigação                                                                | Rollback/contingência                          |
-| ------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- |
-| Falsos positivos de dedo sem z              | Permanência, histerese, gaveta de depuração e `ignoreExtraFingers`       | Calibrar os parâmetros no teste ao vivo        |
-| Braço fora do alcance da mão de cada pessoa | Ajuste de posição e tamanho                                              | Parâmetros de colocação em constantes          |
-| Batida perdida ou duplicada                 | Histerese, refratário, depuração da velocidade, teclado como alternativa | Ajustar limiares                               |
-| Latência perceptível                        | Mostrada na depuração (`baseLatency`/`outputLatency`)                    | Documentar como limite alpha                   |
-| Jogo novo quebra os existentes              | Mudanças só aditivas; testes dos três jogos continuam                    | Reverter a PR (jogo isolado em pacote e pasta) |
+| Risco                                       | Mitigação                                                                      | Rollback/contingência                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| Falsos positivos de dedo sem z              | Permanência por célula, confirmação da forma, tolerância e gaveta de depuração | Calibrar os parâmetros no teste ao vivo        |
+| Braço fora do alcance da mão de cada pessoa | Ajuste de posição e tamanho                                                    | Parâmetros de colocação em constantes          |
+| Batida perdida ou duplicada                 | Histerese, refratário, depuração da velocidade, teclado como alternativa       | Ajustar limiares                               |
+| Latência perceptível                        | Mostrada na depuração (`baseLatency`/`outputLatency`)                          | Documentar como limite alpha                   |
+| Jogo novo quebra os existentes              | Mudanças só aditivas; testes dos três jogos continuam                          | Reverter a PR (jogo isolado em pacote e pasta) |
 
 ## Constitution Check — pós-design
 

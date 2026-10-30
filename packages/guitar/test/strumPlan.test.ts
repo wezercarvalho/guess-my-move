@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { type FingerPress, chordById, evaluateChord, planStrum } from '../src/index.js'
+import { chordById, planStrum, soundingStrings } from '../src/index.js'
 
-const EM_PRESSES: FingerPress[] = [
-    { finger: 2, string: 5, fret: 2 },
-    { finger: 3, string: 4, fret: 2 },
-]
-
-const emSounding = evaluateChord(chordById('Em'), EM_PRESSES).sounding
+const emSounding = soundingStrings(chordById('Em'))
 
 describe('planStrum', () => {
     it('para baixo, toca da corda 6 à 1 com atraso crescente', () => {
@@ -35,28 +30,8 @@ describe('planStrum', () => {
     })
 
     it('o D tem as cordas 6 e 5 abafadas: só quatro notas', () => {
-        const d = evaluateChord(chordById('D'), [
-            { finger: 1, string: 3, fret: 2 },
-            { finger: 3, string: 2, fret: 3 },
-            { finger: 2, string: 1, fret: 2 },
-        ])
-        expect(planStrum(d.sounding, 'down', 0.5)).toHaveLength(4)
-    })
-
-    it('um formato errado muda a nota daquela corda', () => {
-        const right = planStrum(emSounding, 'down', 0.5)
-        const wrong = planStrum(
-            evaluateChord(chordById('Em'), [
-                { finger: 2, string: 5, fret: 3 },
-                { finger: 3, string: 4, fret: 2 },
-            ]).sounding,
-            'down',
-            0.5,
-        )
-        const note = (plan: typeof right, string: number) => plan.find((n) => n.string === string)!.midi
-        expect(note(right, 5)).toBe(47)
-        expect(note(wrong, 5)).toBe(48)
-        expect(note(wrong, 4)).toBe(note(right, 4))
+        const sounding = soundingStrings(chordById('D'))
+        expect(planStrum(sounding, 'down', 0.5)).toHaveLength(4)
     })
 
     it('sem cordas não há notas', () => {

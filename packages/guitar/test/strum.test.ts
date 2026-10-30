@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { type Rect, type StrumEvent, StrumDetector, type StrumSample } from '../src/index.js'
+import {
+    DEFAULT_STRUM_CONFIG,
+    type Rect,
+    type StrumEvent,
+    StrumDetector,
+    type StrumSample,
+} from '../src/index.js'
 
 const ZONE: Rect = { x0: 0.65, x1: 1, y0: 0.1, y1: 0.9 }
 const DT = 33
@@ -107,7 +113,8 @@ describe('StrumDetector', () => {
     it('duas batidas separadas por menos que o refratário: só a primeira dispara', () => {
         const down = stroke(0, { from: 0.35, to: 0.6, frames: 3, before: 4, after: 0 })
         const up = stroke(down[down.length - 1].tMs, { from: 0.6, to: 0.35, frames: 3, before: 0, after: 4 })
-        const events = run([...down, ...up])
+        const detector = new StrumDetector({ ...DEFAULT_STRUM_CONFIG, refractoryMs: 400 })
+        const events = run([...down, ...up], detector)
         expect(events).toHaveLength(1)
         expect(events[0].direction).toBe('down')
     })
@@ -132,6 +139,16 @@ describe('StrumDetector', () => {
         detector.lost()
         const after = stroke(2000, { from: 0.75, to: 0.75, frames: 1, before: 8, after: 0 })
         expect(run(after, detector)).toEqual([])
+    })
+
+    it('jitter rápido sem trajetória suficiente não vira batida', () => {
+        const samples: StrumSample[] = []
+        let t = 0
+        for (let i = 0; i < 4; i++) samples.push({ tMs: (t += DT), x: 0.8, y: 0.45, handSize: 0.15 })
+        for (const y of [0.49, 0.43, 0.5, 0.44, 0.48, 0.45]) {
+            samples.push({ tMs: (t += DT), x: 0.8, y, handSize: 0.15 })
+        }
+        expect(run(samples)).toEqual([])
     })
 
     it('a mesma entrada dá a mesma saída', () => {

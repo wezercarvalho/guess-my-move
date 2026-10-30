@@ -15,7 +15,7 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 41 de 41 (T001 a T041).
+- **Concluídas:** 47 de 47 (T001 a T047).
 - **Pendentes:** 0.
 - **Evidência:** `tasks.md`.
 
@@ -30,26 +30,26 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 | FR-005    | T011, T012             | `board.test.ts`: casas 1 a 5 e casa 12, células, canhoto, zona de batida                                            | PASS      |
 | FR-006    | T014, T015             | `hands.test.ts`: lado da tela, rótulo certo, trocado e ausente, canhoto, uma mão, margem da divisa                  | PASS      |
 | FR-007    | T013, T016, T017       | `oneEuro.test.ts`, `fingers.test.ts`: permanência, histerese (com e sem margem), polegar, fora do braço, tolerância | PASS      |
-| FR-008    | T018, T019             | `evaluate.test.ts`: certo, falta, errado, abafada, casa mais alta, extras e `ignoreExtraFingers`                    | PASS      |
-| FR-009    | T018, T019             | `evaluate.test.ts`: correção única e ordem determinística                                                           | PASS      |
-| FR-010    | T020                   | `evaluate.test.ts`: `ChordStability` não pisca com um quadro ruim e não aceita acerto de passagem                   | PASS      |
-| FR-011    | T021, T022             | `strum.test.ts`: direção, força, escala 2x, limiar, zona, refratário, salto de posição, reinício                    | PASS      |
+| FR-008    | T018, T019, T042-T044  | `evaluate.test.ts`: cinco formatos por corda+casa, independência do dedo, parcial e extra                           | PASS      |
+| FR-009    | T018, T019, T042-T044  | `evaluate.test.ts` e `GuitarScreen.test.tsx`: formato inválido fica sem nome e sem som                              | PASS      |
+| FR-010    | T020, T043, T044       | `ChordRecognition`: permanência, tolerância a quadro ruim e troca Em→Am                                             | PASS      |
+| FR-011    | T021, T022, T045       | `strum.test.ts`: direção, força, escala, limiar, deslocamento, jitter, refratário e reinício                        | PASS      |
 | FR-012    | T023, T024             | `synth.test.ts`: fundamental a menos de 1% (A2, E3, E4, G4), decaimento, determinismo                               | PASS      |
 | FR-013    | T025                   | `strumPlan.test.ts`: ordem, atraso, ganho, abafadas, formato errado                                                 | PASS      |
 | FR-014    | T026, T027             | `audioPlayer.test.ts`: bloqueado, desbloqueio por gesto, agendamento, falhas; ativar a câmera libera o áudio        | PASS      |
-| FR-015    | T028, T029, T030, T031 | `guitarController.test.ts`, `GuitarScreen.test.tsx` (teste de fumaça); tela no Chromium com MediaPipe real          | PASS      |
-| FR-016    | T033, T034, T035       | `guide.test.ts`, `ChordDiagram.test.tsx`, `GuitarScreen.test.tsx`: escolha, diagrama, etapas, dicas, progresso      | PASS      |
-| FR-017    | T036, T037             | `GuitarScreen.test.tsx`: gaveta, ajuste do braço, teclado, botões, ignorar extras; gaveta aberta no Chromium        | PASS      |
+| FR-015    | T028-T032, T046        | Controlador, tela e inspeção Chromium: câmera na largura útil e braço com 18% da altura                             | PASS      |
+| FR-016    | T033-T035, T044        | Sem seletor; nome e diagrama aparecem somente após reconhecer a posição                                             | PASS      |
+| FR-017    | T036, T037, T046       | Ajuste do braço, gaveta, teclado e clique como teste de som                                                         | PASS      |
 
 ## Histórias e critérios de aceitação
 
-| História/cenário        | Demonstração                                                                                                                 | Resultado |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------- |
-| US-001 / cenários 1 e 2 | Menu com quatro cards e selo Alpha; `guitar.html` abre com o link "← Menu" (teste e captura no Chromium)                     | PASS      |
-| US-002 / cenários 1 a 3 | Testes de `evaluate` e da tela: Em certo, falta o dedo 3, D com a corda 6 abafada ignorada                                   | PASS      |
-| US-003 / cenários 1 a 4 | Teste de fumaça: batida para baixo toca as seis cordas, para cima inverte, formato errado muda a nota, áudio bloqueado avisa | PASS      |
-| US-004 / cenários 1 e 2 | Diagramas dos cinco acordes; batida com o formato certo conclui o acorde e sugere o próximo                                  | PASS      |
-| US-005 / cenários 1 e 2 | Gaveta com todos os números; Espaço, seta para cima e botões tocam o alvo com a câmera negada                                | PASS      |
+| História/cenário        | Demonstração                                                                                                     | Resultado |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- | --------- |
+| US-001 / cenários 1 e 2 | Menu com quatro cards e selo Alpha; `guitar.html` abre com o link "← Menu" (teste e captura no Chromium)         | PASS      |
+| US-002 / cenários 1 a 3 | Cinco acordes reconhecidos por posição, dedilhado alternativo aceito e formato parcial/extra sem nome            | PASS      |
+| US-003 / cenários 1 a 4 | Trajetória para baixo/cima toca o acorde reconhecido; jitter e formato inválido não tocam; áudio bloqueado avisa | PASS      |
+| US-004 / cenários 1 e 2 | Nenhum acorde começa selecionado; nome e diagrama aparecem após reconhecimento; batida pede outro acorde         | PASS      |
+| US-005 / cenários 1 e 2 | Gaveta mostra posições reais; Espaço, seta para cima e botões testam o último acorde ou Em inicial               | PASS      |
 
 ## Comandos executados
 
@@ -116,3 +116,27 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 - **Escopo aprovado:** pendente
 - **Riscos aceitos:** pendente
 - **Observações:** o agente não concede o Gate 3. O teste ao vivo com a câmera, a mão e o notebook do maintainer, usando a gaveta de depuração, decide o veredito (`aprovado`, `aprovado com risco aceito` ou `rejeitado`).
+
+## Revisão após o primeiro teste ao vivo — 2026-10-30
+
+### Resultado do teste do maintainer
+
+- **REPROVADO para Gate 3:** braço com 40% da altura era grosso e impraticável; câmera dividida com a coluna lateral deixava pouco espaço; seleção prévia de acorde contrariava o fluxo desejado; batida por pico isolado precisava de leitura temporal melhor.
+- **Ação:** revisão implementada na mesma PR #105. Gate 3 continua pendente de novo teste ao vivo.
+
+### Evidência automatizada da revisão
+
+| Verificação                    | Resultado                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Pacote `@guess-my-move/guitar` | 82 testes passando, incluindo cinco formatos, dedilhado independente, permanência, troca e jitter de batida |
+| Integração web direcionada     | 69 testes passando em tela, controlador, overlay, guia, diagrama e áudio                                    |
+| Typecheck dos dois workspaces  | PASS                                                                                                        |
+| `yarn lint`                    | PASS, 0 avisos e 0 erros em 193 arquivos                                                                    |
+
+### Evidência visual da revisão
+
+- Capturada no Browser panel via `playwright-cli`, em 1440 × 900, com fluxo de câmera sintético local e MediaPipe real.
+- A câmera ocupa a largura útil; o braço usa 58% da largura e 18% da altura do vídeo; a zona de batida ocupa o restante à direita.
+- Não há círculos nem números de um acorde alvo sobre o braço. As linhas, os painéis e os controles não estão cortados.
+- Console: 0 erros; 1 aviso esperado do runtime do MediaPipe sobre verificação OpenGL desativada.
+- Limite: o fluxo sintético prova layout e inicialização, não precisão com dedos reais nem qualidade rítmica. Essas duas validações seguem no Gate 3.

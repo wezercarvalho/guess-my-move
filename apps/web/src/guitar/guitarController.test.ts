@@ -130,13 +130,11 @@ function strokeDown(h: ReturnType<typeof harness>, fret: TrackedHand) {
 }
 
 describe('GuitarController', () => {
-    it('começa no Em, sem mãos, com o áudio ocioso e o acorde incompleto', () => {
+    it('começa sem acorde reconhecido, sem mãos e com o áudio ocioso', () => {
         const h = harness({ audioStatus: 'idle' })
         const snap = h.snapshot()
-        expect(snap.chord).toBe('Em')
+        expect(snap.detectedChord).toBeNull()
         expect(snap.handsVisible).toBe(0)
-        expect(snap.evaluation.complete).toBe(false)
-        expect(snap.stable).toBe(false)
         expect(snap.audioStatus).toBe('idle')
         expect(snap.leftHanded).toBe(false)
     })
@@ -146,10 +144,9 @@ describe('GuitarController', () => {
         await h.enableCamera()
         h.setHands([fretHand(EM), strumHand(0.45)])
         h.step(5)
-        expect(h.snapshot().evaluation.complete).toBe(true)
-        expect(h.snapshot().stable).toBe(false)
+        expect(h.snapshot().detectedChord).toBeNull()
         h.step(9)
-        expect(h.snapshot().stable).toBe(true)
+        expect(h.snapshot().detectedChord).toBe('Em')
         expect(h.snapshot().presses).toEqual([
             { finger: 1, string: 5, fret: 2 },
             { finger: 2, string: 4, fret: 2 },
@@ -163,7 +160,7 @@ describe('GuitarController', () => {
         const fret = fretHand(EM)
         h.setHands([fret, strumHand(0.35)])
         h.step(14)
-        expect(h.snapshot().stable).toBe(true)
+        expect(h.snapshot().detectedChord).toBe('Em')
         strokeDown(h, fret)
         expect(h.audio.plays).toHaveLength(1)
         expect(h.audio.plays[0].map((note) => note.string)).toEqual([6, 5, 4, 3, 2, 1])
@@ -177,7 +174,7 @@ describe('GuitarController', () => {
         await h.enableCamera()
         h.setHands([fretHand(EM), strumHand(0.45)])
         h.step(40)
-        expect(h.snapshot().stable).toBe(true)
+        expect(h.snapshot().detectedChord).toBe('Em')
         expect(h.audio.plays).toHaveLength(0)
         expect(h.snapshot().lastStrum).toBeNull()
         expect(h.snapshot().completed).toEqual([])
@@ -206,27 +203,19 @@ describe('GuitarController', () => {
         expect(h.snapshot().completed).toEqual([])
     })
 
-    it('com o formato errado a batida toca o que a mão forma e não conclui o acorde', async () => {
+    it('com o formato incompleto a batida não toca nem inventa um acorde', async () => {
         const h = harness()
         await h.enableCamera()
-        // só o dedo 1 na corda 5: falta a corda 4
         const fret = fretHand([{ string: 5, fret: 2 }])
         h.setHands([fret, strumHand(0.35)])
         h.step(12)
         strokeDown(h, fret)
-        const notes = h.audio.plays[0]
-        expect(notes.find((note) => note.string === 5)?.midi).toBe(47)
-        expect(notes.find((note) => note.string === 4)?.midi).toBe(50)
+        expect(h.audio.plays).toHaveLength(0)
+        expect(h.snapshot().detectedChord).toBeNull()
         expect(h.snapshot().completed).toEqual([])
-        expect(h.snapshot().evaluation.correction).toEqual({
-            action: 'place',
-            finger: 3,
-            string: 4,
-            fret: 2,
-        })
     })
 
-    it('o teclado toca sem câmera: Espaço para baixo e seta para cima, ambos com o acorde alvo', () => {
+    it('o teclado testa o som sem câmera: Espaço para baixo e seta para cima', () => {
         const h = harness()
         h.step(1)
         h.press(' ')
@@ -259,17 +248,26 @@ describe('GuitarController', () => {
         expect(h.audio.plays).toHaveLength(1)
     })
 
-    it('mudar o acorde alvo reavalia e zera a estabilidade', async () => {
+    it('troca automaticamente de Em para Am depois que a nova forma permanece', async () => {
         const h = harness()
         await h.enableCamera()
         h.setHands([fretHand(EM), strumHand(0.45)])
         h.step(14)
-        expect(h.snapshot().stable).toBe(true)
-        h.controller.setChord('Am')
-        expect(h.snapshot().chord).toBe('Am')
-        expect(h.snapshot().stable).toBe(false)
-        expect(h.snapshot().evaluation.chord).toBe('Am')
-        expect(h.snapshot().evaluation.complete).toBe(false)
+        expect(h.snapshot().detectedChord).toBe('Em')
+
+        const am = [
+            { string: 4 as const, fret: 2 as const },
+            { string: 3 as const, fret: 2 as const },
+            { string: 2 as const, fret: 1 as const },
+        ]
+        h.setHands([fretHand(am), strumHand(0.45)])
+        h.step(18)
+        expect(h.snapshot().presses).toEqual([
+            { finger: 1, string: 4, fret: 2 },
+            { finger: 2, string: 3, fret: 2 },
+            { finger: 3, string: 2, fret: 1 },
+        ])
+        expect(h.snapshot().detectedChord).toBe('Am')
     })
 
     it('canhoto: o braço se espelha e a mão do lado direito forma o acorde', async () => {
@@ -280,8 +278,7 @@ describe('GuitarController', () => {
         expect(placement.leftHanded).toBe(true)
         h.setHands([strumHand(0.45, 0.15), fretHand(EM, placement)])
         h.step(14)
-        expect(h.snapshot().evaluation.complete).toBe(true)
-        expect(h.snapshot().stable).toBe(true)
+        expect(h.snapshot().detectedChord).toBe('Em')
     })
 
     it('ajustar a posição do braço muda o mapeamento dos dedos', async () => {
@@ -291,7 +288,7 @@ describe('GuitarController', () => {
         h.controller.setPlacement(moved)
         h.setHands([fretHand(EM, moved), strumHand(0.45)])
         h.step(14)
-        expect(h.snapshot().evaluation.complete).toBe(true)
+        expect(h.snapshot().detectedChord).toBe('Em')
         expect(h.snapshot().placement.y).toBe(moved.y)
     })
 
@@ -305,7 +302,7 @@ describe('GuitarController', () => {
         h.step(25)
         expect(h.snapshot().presses).toEqual([])
         expect(h.snapshot().handsVisible).toBe(0)
-        expect(h.snapshot().stable).toBe(false)
+        expect(h.snapshot().detectedChord).toBeNull()
     })
 
     it('desligar a câmera solta o rastreador e limpa as mãos', async () => {
@@ -340,16 +337,6 @@ describe('GuitarController', () => {
         expect(debug.latency).toEqual({ base: 0.01, output: 0.03 })
         expect(debug.delegate).toBe('CPU')
         expect(typeof debug.strumSpeed).toBe('number')
-    })
-
-    it('ignorar dedos extras é uma opção de calibração', async () => {
-        const h = harness()
-        await h.enableCamera()
-        h.controller.setIgnoreExtraFingers(true)
-        const extra = fretHand([...EM, { string: 3, fret: 2 }])
-        h.setHands([extra, strumHand(0.45)])
-        h.step(14)
-        expect(h.snapshot().evaluation.complete).toBe(true)
     })
 
     it('detach solta o rastreador e o teclado', async () => {
