@@ -1,12 +1,12 @@
 # Mapas e projetos abertos para levar cidades reais ao Arranha-Teia
 
-> **Escopo.** Investigação técnica (sem implementação) para a issue [#82](https://github.com/wezercarvalho/guess-my-move/issues/82). Levanta as opções de **dados de prédios** e de **renderização** para evoluir o cenário do Arranha-Teia de um único trecho de Midtown para cidades reais adicionadas aos poucos. Nenhuma mudança em `packages/` ou `apps/`: o relatório é a entrega. A spec vigente do jogo é `specs/2026-10-28-game-arranha-teia-build-first-person-web-swing/`; este documento é o contexto de evolução, não a reescreve.
+> **Escopo atualizado em 2026-10-30.** A issue [#82](https://github.com/wezercarvalho/guess-my-move/issues/82) começou como investigação técnica e passou a incluir a primeira implementação aprovada pelo maintainer: catálogo e seleção local de mapas, Midtown preservado, Avenida Paulista jogável e passe visual procedural. A spec vigente desta implementação é `specs/2026-10-30-game-arranha-teia-add-city-catalog/`. Rio de Janeiro, relevo e Cesium/tiles fotorrealistas continuam como incrementos posteriores.
 
 > **Aviso de evidência.** O documento separa o que está **[DOCUMENTADO]** (página oficial, com URL e data de consulta), o que é **[MEDIDO]** (número obtido nesta máquina, com as condições do teste), o que é **[ESTIMADO]** (cálculo nosso a partir de dado documentado, com premissa explícita) e o que está **[NÃO VERIFICADO]** (não li a fonte neste ciclo ou depende de teste futuro). **Nenhuma afirmação de realismo, desempenho ou fps aparece sem medição registrada como texto.** As imagens são renders do nosso próprio motor (ver seção 6); não há captura de demo de terceiros (ver seção 5.4 para o motivo).
 
 > **Regra não negociável do projeto.** Todas as requisições do app em tempo de jogo vão para a **própria origem**; nada de CDN nem serviço de terceiros durante a partida, e nenhuma chave de API no navegador (ver [privacidade e segredos](../development-context/security/privacy-and-secrets.md)). Este é o filtro que separa "dá para usar" de "não dá" na tabela da seção 2. A colisão e a mira da teia dependem de um **índice espacial de prédios** (`packages/swing/src/cityIndex.ts`): o realismo visual só serve se a geometria também colidir.
 
-**Tipo:** investigação · **Consultado em:** 2026-10-29 · **Estado:** proposta para o maintainer decidir com base nas imagens.
+**Tipo:** investigação + primeira implementação · **Consultado em:** 2026-10-29 e 2026-10-30 · **Estado:** catálogo local e Paulista implementados; Rio/Cesium aguardam incrementos próprios.
 
 ## 1. Como o cenário funciona hoje (ponto de partida)
 
@@ -162,3 +162,18 @@ Torres altas entre blocos baixos; perfil vertical parecido com o do Midtown.
 - 3d-tiles-renderer (three.js, Apache-2.0): [github.com/NASA-AMMOS/3DTilesRendererJS](https://github.com/NASA-AMMOS/3DTilesRendererJS)
 - PLATEAU (MLIT, Japão) — site policy/licença PDL 1.0 compatível com CC BY 4.0: [mlit.go.jp/plateau/site-policy](https://www.mlit.go.jp/plateau/site-policy/)
 - Código do repositório lido: `packages/swing/src/city.ts`, `cityIndex.ts`; `apps/web/scripts/city-from-osm.mjs`, `build-city.mjs`; `apps/web/src/swing/cityRenderer.ts`, `loadCity.ts`.
+
+## 10. Implementação local concluída em 2026-10-30
+
+A primeira etapa recomendada foi implementada na mesma branch/PR da issue #82:
+
+- `apps/web/public/swing/cities.json`: catálogo v1, validado antes de qualquer id virar caminho.
+- `SwingApp`/`CitySelect`: seleção antes de montar câmera, WebGL ou física; Midtown e Paulista; "Trocar mapa" desmonta a instância; `?city=midtown|paulista` abre direto.
+- `city-sources.mjs` + conversor/build parametrizados por nome, bbox e rotação.
+- `paulista.json`: recorte central final de 81.503 bytes, 510 prédios, 102 vias; 529/540 elementos com `height` ou `building:levels` (98% na resposta OSM); altura mediana 12,823 m e máxima 100,37 m. Altura inicial 55 m. Em uma amostra de 20×20 pontos × 8 direções, 14% dos raios horizontais a 60 m acertaram parede em até 160 m. Esses números são desta extração em 2026-10-30, não uma taxa geral da cidade.
+- Midtown continua com 556 prédios, 177 vias, mediana 17,6 m, máxima 366 m e altura inicial 90 m; na mesma amostra, 27% dos raios acertaram parede.
+- Passe visual local: fachadas com painéis/molduras/vidros procedurais e vias em camadas (calçada, asfalto e faixa central nas vias largas). Uma tentativa com material PBR e depois Lambert foi retirada: a captura larga excedeu 5 s no WebGL por software; o `MeshBasicMaterial` aprovado foi mantido, com sombreamento por vértice, para preservar o funcionamento.
+
+**Verificação visual:** em Chromium headless/WebGL por software, a seleção foi conferida em 390, 900 e 1440 px; ambos os mapas abriram, mostraram nome/atribuição e não geraram erro no console. Na Paulista, segurar Espaço lançou uma teia (`Teias: 1`, 50 km/h, status "Balançando"). Todas as requisições registradas pelo servidor local foram para `127.0.0.1`, incluindo `cities.json` e os JSONs das cidades. Isso não mede fps nem sensação com câmera/mão reais.
+
+**Decisão vigente:** continuar local e colidível. Rio entra depois que a física/renderização aceitarem relevo. Cesium/Google continuam possíveis como camada visual experimental, mas não fazem parte da entrega e exigem decisão explícita sobre terceiros, token, custo e alinhamento da colisão.
