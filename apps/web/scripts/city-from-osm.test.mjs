@@ -289,3 +289,34 @@ describe('cityFromOsm: bounds', () => {
         assert.equal(city.bounds.maxZ, maxZ)
     })
 })
+
+
+describe('cityFromOsm: configuração por cidade', () => {
+    it('aceita nome, bbox e rotação sem alterar os defaults de Midtown', () => {
+        const bbox = { minLat: -23.57, maxLat: -23.56, minLon: -46.66, maxLon: -46.65 }
+        const lat0 = (bbox.minLat + bbox.maxLat) / 2
+        const lon0 = (bbox.minLon + bbox.maxLon) / 2
+        const city = cityFromOsm(
+            { elements: [buildingWay(1, bigSquare(lat0, lon0), { height: '70' })] },
+            { name: 'Avenida Paulista', bbox, rotationDeg: -46 },
+        )
+        assert.equal(city.name, 'Avenida Paulista')
+        assert.equal(city.buildings.length, 1)
+        // O primeiro ponto é o centro da projeção definida pela cidade, qualquer que seja a latitude.
+        assert.equal(city.buildings[0].ring[0], 0)
+        assert.equal(city.buildings[0].ring[1], 0)
+
+        const midtown = cityFromOsm({ elements: [buildingWay(2, bigSquare(LAT0, LON0), { height: '30' })] })
+        assert.equal(midtown.name, 'Midtown Manhattan')
+        assert.equal(midtown.buildings[0].ring[0], 0)
+        assert.equal(midtown.buildings[0].ring[1], 0)
+    })
+
+    it('rejeita bbox e rotação inválidos', () => {
+        assert.throws(
+            () => cityFromOsm({ elements: [] }, { bbox: { minLat: 1, maxLat: 0, minLon: 0, maxLon: 1 } }),
+            /bbox/i,
+        )
+        assert.throws(() => cityFromOsm({ elements: [] }, { rotationDeg: Number.NaN }), /rotação/i)
+    })
+})
