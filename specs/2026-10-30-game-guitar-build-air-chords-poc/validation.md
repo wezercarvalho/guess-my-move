@@ -53,13 +53,14 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 
 ## Comandos executados
 
-| Comando exato            | Data       | Resultado | Evidência/observação                                                                                                                  |
-| ------------------------ | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `yarn check:all`         | 2026-10-30 | PASS      | Saída 0 em 1m20s: lint 0 avisos e 0 erros; testes core 68, guitar 92, marbles 111, swing 127, web 328 e `node:test` 57; build do Vite |
-| `yarn sdd:check`         | 2026-10-30 | PASS      | Catálogo, estados, gates, cobertura e links válidos                                                                                   |
-| `yarn test:sdd`          | 2026-10-30 | PASS      | 109 testes                                                                                                                            |
-| `yarn docs:format:check` | 2026-10-30 | PASS      | Todos os arquivos no estilo do Prettier                                                                                               |
-| `yarn test:gates`        | 2026-10-30 | PASS      | 231 testes                                                                                                                            |
+| Comando exato                | Data       | Resultado | Evidência/observação                                                                                                                                                          |
+| ---------------------------- | ---------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yarn check:all`             | 2026-10-30 | PASS      | Saída 0 em 1m53s sobre a `main` atual (depois do rebase): lint 0 avisos e 0 erros; testes core 68, guitar 92, marbles 111, swing 188, web 390 e `node:test` 57; build do Vite |
+| `yarn sdd:check`             | 2026-10-30 | PASS      | Catálogo, estados, gates, cobertura e links válidos                                                                                                                           |
+| `yarn test:sdd`              | 2026-10-30 | PASS      | 109 testes                                                                                                                                                                    |
+| `yarn docs:format:check`     | 2026-10-30 | PASS      | Todos os arquivos no estilo do Prettier                                                                                                                                       |
+| `yarn test:gates`            | 2026-10-30 | PASS      | 231 testes                                                                                                                                                                    |
+| `yarn security:dependencies` | 2026-10-30 | PASS      | Auditoria sem vulnerabilidades (info, baixa, moderada, alta e crítica em zero)                                                                                                |
 
 ## Medições e benchmark (quando aplicável)
 
@@ -94,7 +95,7 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 
 - **Divergências encontradas:** a issue #95 dizia "extras ignorados por padrão", em conflito com o critério da #99; a decisão CQ-003 da spec mantém o dedo extra como erro e deixa `ignoreExtraFingers` como parâmetro. Os parâmetros da palma ficaram 2 Hz, beta 0,5 e dcutoff 2 (o plano dizia 1 Hz e 0,4): o plano foi atualizado.
 - **Artefatos reabertos:** nenhum.
-- **Reexecuções:** `yarn check:all` rodou duas vezes (a segunda depois do ajuste de CSS e do painel de depuração); a segunda é a registrada.
+- **Reexecuções:** `yarn check:all` rodou três vezes (depois do ajuste de CSS e do painel de depuração, e depois do rebase sobre a `main`, que trouxe a câmera pela cabeça e a escalada do Arranha-Teia); a última é a registrada. O rebase teve conflitos só de tabela em `README.md` e `specs/README.md`, resolvidos mantendo a versão da `main` e reaplicando as adições do violão (9 inserções, 0 remoções).
 
 ## Limitações e riscos residuais
 
