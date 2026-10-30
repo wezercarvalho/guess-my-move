@@ -320,3 +320,23 @@ describe('cityFromOsm: configuração por cidade', () => {
         assert.throws(() => cityFromOsm({ elements: [] }, { rotationDeg: Number.NaN }), /rotação/i)
     })
 })
+
+
+describe('cityFromOsm: nome da rua', () => {
+    const line = [
+        [LAT0, LON0],
+        [LAT0 + D_LAT, LON0 + D_LON],
+    ]
+
+    it('preserva o nome da rua, sem espaços nas pontas', () => {
+        const city = cityFromOsm({ elements: [highwayWay(1, line, 'primary', { name: '  Avenida Rio Branco ' })] })
+        assert.equal(city.roads[0].name, 'Avenida Rio Branco')
+    })
+
+    it('mantém a via como estava quando não há nome ou o nome está vazio', () => {
+        const unnamed = cityFromOsm({ elements: [highwayWay(1, line, 'primary')] })
+        assert.equal('name' in unnamed.roads[0], false)
+        const blank = cityFromOsm({ elements: [highwayWay(2, line, 'primary', { name: '   ' })] })
+        assert.equal('name' in blank.roads[0], false)
+    })
+})

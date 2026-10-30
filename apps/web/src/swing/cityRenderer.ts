@@ -3,6 +3,7 @@ import {
     DEFAULT_SWING,
     type SwingState,
     type Vec3,
+    createCityIndex,
     forwardFromAngles,
 } from '@guess-my-move/swing'
 import {
@@ -31,6 +32,7 @@ import {
 import { type MeshData, buildRoofs, buildWalls } from './cityGeometry.js'
 import { CITY_ATMOSPHERE, roadPaintLayers } from './cityVisual.js'
 import { type ScreenPoint } from './reticle.js'
+import { createStreetSigns } from './streetSignsView.js'
 
 /** O que a tela precisa do desenho 3D: tamanho, um quadro por estado e liberação. */
 export interface SwingRenderer {
@@ -239,6 +241,11 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     base.position.y = -0.1
     scene.add(base, streets)
 
+    // Placas nas esquinas (só em mapas com nomes de rua); o poste evita ficar dentro de prédios.
+    const index = createCityIndex(city)
+    const signs = createStreetSigns(city, scene, (x, z) => index.clearance(x, z, 2) >= 2)
+    disposables.push(signs)
+
     // Uma corda por lado (esquerda, centro, direita), que dividem a geometria e o material.
     const ropeGeometry = track(new CylinderGeometry(0.025, 0.025, 1, 6))
     const ropeMaterial = track(new MeshBasicMaterial({ color: 0xf2f2ff, fog: false }))
@@ -277,6 +284,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
             camera.position.set(position.x, position.y, position.z)
             camera.rotation.set(pitch, -yaw, roll, 'YXZ')
             sky.position.copy(camera.position)
+            signs.update(position, yaw)
 
             const ahead = forwardFromAngles(yaw, pitch)
             ropes.forEach((rope, slot) => {

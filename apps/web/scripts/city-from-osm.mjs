@@ -180,7 +180,8 @@ export function cityFromOsm(overpassJson, options = {}) {
             if (points.length < 2) continue
             const line = []
             for (const point of points) line.push(round1(point.x), round1(point.z))
-            roads.push({ width, line })
+            const name = typeof tags.name === 'string' ? tags.name.trim() : ''
+            roads.push(name ? { width, name, line } : { width, line })
             continue
         }
 
