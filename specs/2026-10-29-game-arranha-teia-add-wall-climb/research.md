@@ -14,7 +14,7 @@ Esta pesquisa registra as decisões de projeto do agarre à parede, a máquina d
 
 O agarre é um estado novo do jogador na física pura (`packages/swing`), não uma lógica da tela. A tela só traduz os gestos/teclas em três entradas novas e lê o estado; toda a regra de colar, subir, descer e sair fica testável sem navegador. Isso segue a separação já usada no jogo (lógica pura vs apresentação) e torna a prova de "nunca prender" um teste puro.
 
-- **Estado:** `SwingState.grip: WallGrip | null`, com `WallGrip = { normal: Vec3, wallTop: number, idleMs: number, graceMs: number, fistMs: number }` — a normal da parede agarrada, o topo do prédio, e os relógios de inatividade, de tolerância à perda curta da mão (`graceMs`) e de punho segurado (`fistMs`). `null` fora do agarre. _(CQ-010: `graceMs`/`fistMs` acrescentados.)_
+- **Estado:** `SwingState.grip: WallGrip | null`, com `WallGrip = { normal: Vec3, wallTop: number, graceMs: number, fistMs: number }` — a normal da parede agarrada, o topo do prédio, e os relógios de tolerância à perda curta da mão (`graceMs`) e de punho segurado (`fistMs`). `null` fora do agarre. _(CQ-010: `graceMs`/`fistMs` acrescentados.)_
 - **Entrada:** `SwingInput` ganha `grab?: SlotFlags` (pedido de agarrar por mão), `climb?: number` (sinal de escalada -1..1) e `releaseFist?: boolean` (punho fechado de alguma mão pedindo soltar). _(CQ-010: era `release?: boolean` do "puxar para trás".)_ Campos opcionais: os testes e o controlador existentes que não os passam seguem sem agarre.
 
 ## Máquina de estados do agarre e a prova de saída em tempo finito
@@ -27,12 +27,12 @@ Três situações: **solto** (regime normal), **entrando** e **agarrado**.
     1. `grab` vazio (nenhuma mão pede o agarre) por mais que `grabGraceMs`, OU `releaseFist` (punho fechado) segurado por `fistReleaseMs`; _(CQ-010)_
     2. há teia presa no passo (o jogador lançou uma teia);
     3. a altura do agarre passa da altura do prédio em contato (topo) → sai para o telhado, `grounded = true`;
-    4. `idleMs > gripIdleMs` (sem movimento de escalada por tempo acima da tolerância).
+       _(CQ-011: a saída por inatividade foi removida; segurar o pedido de agarre é um pedido deliberado de ficar, para poder admirar a paisagem e esperar o olhar de escalada.)_
 
 **Prova de saída em tempo finito (informal, provada por teste de propriedade):** seja qual for a sequência de entradas a partir do estado agarrado, em cada passo uma de três coisas vale:
 
 - se em algum passo `grab` ficar vazio por mais que `grabGraceMs`, ou o punho for fechado e segurado por `fistReleaseMs`, sai (regra 1) — fim;
-- se `grab` continuar pedido e `|climb|` ficar na zona morta, `idleMs` cresce monotonicamente por `dt` a cada passo e, em no máximo `ceil(gripIdleMs / (dt*1000))` passos, ultrapassa `gripIdleMs` e sai (regra 4) — fim;
+- se `grab` continuar pedido e `|climb|` ficar na zona morta, o jogador segue agarrado de propósito (CQ-011); a saída permanece a um pedido de distância (soltar o pedido, punho ou teia);
 - se `grab` continuar pedido e `|climb|` sair da zona morta, a altura muda por pelo menos `climbDeadzone*climbSpeed*dt` por passo no sentido do sinal; subindo, a altura é limitada pela altura do prédio em contato (finita) e, ao passar dela, sai para o telhado (regra 3) — fim; descendo, chega ao chão (y = eyeHeight), onde não há mais contato de parede acima do chão e a saída por topo/colisão e a inatividade (ao parar) encerram.
 
 Como cada ramo leva a uma saída em um número finito de passos, **nenhuma sequência de entradas prende o jogador para sempre**. O teste de propriedade (`SC-002`) roda muitas sequências aleatórias de `grab`/`climb`/`release` e exige que `grip` volte a `null` (ou o jogador fique `grounded`) dentro de um limite de passos.
@@ -58,7 +58,6 @@ Assim a palma aberta não precisa de um gesto novo e o significado é desambigua
 | --------------- | ------------- | ------------------------------------------------------------------ |
 | `climbSpeed`    | 6 m/s         | velocidade máxima de subida/descida na parede                      |
 | `climbDeadzone` | 0,06          | abaixo disto o `climb` conta como zero (zona morta do movimento)   |
-| `gripIdleMs`    | 1500 ms       | tempo sem movimento de escalada que solta o agarre sozinho         |
 | `grabGraceMs`   | 300 ms        | tolerância à perda curta da mão/palma no meio da escalada (CQ-010) |
 | `fistReleaseMs` | 250 ms        | tempo com o punho fechado que solta o agarre de propósito (CQ-010) |
 
@@ -75,5 +74,5 @@ Os valores são palpites de jogo, declarados como tais; serão ajustados pelo te
 
 - O sinal de soltar é o punho fechado segurado por tempo; a tentativa original pela profundidade `z` foi removida (CQ-010) por o `z` ser estruturalmente ~0 no MediaPipe. O agarre nunca depende de uma única saída.
 - A escalada (`up − down`) e os valores de jogo foram validados só com dados sintéticos; nada com a mão real.
-- A sensação da escalada, a velocidade (`climbSpeed`), a zona morta e a tolerância de inatividade são valores de jogo, não medidos.
+- A sensação da escalada, a velocidade (`climbSpeed`), a zona morta, as tolerâncias e os tempos do olhar (2 s, 12°/7°/20°, velocidade 0,8) são valores de jogo, não medidos.
 - Nenhum teste ao vivo com a mão real nem medição de fps numa GPU real antes do Gate 3.

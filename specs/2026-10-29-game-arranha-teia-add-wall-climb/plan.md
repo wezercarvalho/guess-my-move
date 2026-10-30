@@ -58,8 +58,8 @@ specs/2026-10-29-game-arranha-teia-add-wall-climb/            esta spec (spec, c
 ### Componentes e responsabilidades
 
 - **climb.ts (novo)** — concentra a lógica nova e pura:
-    - `WallGrip = { normal: Vec3, idleMs: number }` e `SwingState.grip: WallGrip | null`.
-    - `GripConfig` com `climbSpeed`, `climbDeadzone`, `gripIdleMs`.
+    - `WallGrip = { normal: Vec3, wallTop: number, graceMs: number, fistMs: number }` e `SwingState.grip: WallGrip | null`.
+    - `GripConfig` com `climbSpeed`, `climbDeadzone`, `grabGraceMs`, `fistReleaseMs`.
     - `stepGrip(index, state, input, dt, contact, config)`: decide entrar (contato de parede + `grab`), colar e mover (subir/descer por `climb`), e sair (as quatro saídas de FR-003). Chamada de dentro de `stepPlayer`.
     - `climbSignal(dyLeft, dyRight, config)`: o movimento alternado reduzido a -1..1 com zona morta e saturação.
     - `pullBackSignal(dzLeft, dzRight, config)`: verdadeiro quando uma mão se afasta da câmera além do limite.
@@ -88,7 +88,7 @@ specs/2026-10-29-game-arranha-teia-add-wall-climb/            esta spec (spec, c
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | FR-001    | `SwingState.grip`, entrar só com contato de parede + `grab`; zera a velocidade e solta as teias; sem contato não agarra               | `climb`/`physics` tests (Vitest)                   |
 | FR-002    | `SwingInput` ganha `grab`/`climb`/`release`; agarrado sobe/desce por `climb * climbSpeed`, limitado, colado à parede                  | `climb`/`world` tests (Vitest)                     |
-| FR-003    | Quatro saídas (`grab` vazio/`release`, teia, topo→telhado, inatividade) e o teste de propriedade de saída em tempo finito             | `climb` tests + teste de propriedade (Vitest)      |
+| FR-003    | Saídas (`grab` vazio/punho, teia, topo→telhado; sem inatividade, CQ-011) e o teste de propriedade de saída em tempo finito            | `climb` tests + teste de propriedade (Vitest)      |
 | FR-004    | `climb.ts`: `climbSignal` (movimento alternado, zona morta, saturação) e `pullBackSignal` (profundidade `z`), puros, dados sintéticos | `climbSignal` tests (Vitest)                       |
 | FR-005    | Precedência no `SwingController`: `touchingWall` + palma aberta → `grab`; senão palma solta a teia                                    | `swingController` test (Vitest)                    |
 | FR-006    | `SwingController` integra agarre; teclas `V` e setas; mudanças pequenas e localizadas nos arquivos compartilhados                     | `swingController`/`guide` tests (Vitest)           |

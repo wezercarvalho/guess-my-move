@@ -99,6 +99,18 @@ Esta clarificação registra as decisões de projeto do agarre à parede (issue 
 - **Seções atualizadas em `spec.md`:** FR-002, FR-003, FR-004, FR-007; H-01 revista; US-003 (soltar por punho).
 - **Ajuste na junção com o PR #84:** a dica `wall` também vale com a teia presa (a palma aberta solta a teia e agarra no mesmo gesto), porque é o caso mais comum de bater na fachada; antes o status seguia em "Balançando". A legenda "Teclado" (vinda do #80) ganhou as linhas `V` (agarra, segure encostado) e `↑` `↓` (sobem/descem agarrado), e o painel de depuração junta as leituras da cabeça e do agarre.
 
+### CQ-011 — Emenda a pedido do dono: escalar olhando para cima ou para baixo
+
+- **Data:** `2026-10-30`
+- **Impacto:** médio
+- **O que o dono pediu:** no modo Rosto, agarrado com a(s) mão(s) aberta(s), olhar para cima por ~2 s e ficar olhando começa a subir; olhar para baixo por ~2 s começa a descer; olhar para o lado para de subir/descer, permitindo admirar a paisagem, e para voltar a escalar repete-se o processo.
+- **Decisão:** **RESOLVIDA** — novo módulo puro `headClimb.ts` (espera `dwellMs` = 2 s, histerese `pitchStart` 12° / `pitchHold` 7° do desvio aplicado ao olhar, parada lateral além de `yawLimit` 20°, velocidade 0,8 da escalada) e integração no controlador (ativo só agarrado, em modo Rosto, com rosto à vista e neutro calibrado). Combina com as mãos e as setas pelo maior módulo. Status: "Agarrado. Olhe 2 s para cima ou para baixo para escalar.", "Olhando para cima… 1,2 s", "Subindo. Olhe para o lado para parar."
+- **Consequência no agarre:** a saída por inatividade (`gripIdleMs`, 1,5 s) soltaria o jogador antes dos 2 s de espera e impediria admirar a paisagem. Foi **removida**: segurar o pedido de agarre (mão aberta ou tecla) é um pedido deliberado de ficar, e as saídas por soltar o pedido, punho, teia e topo seguem garantindo que o jogador nunca fica preso. O teste de propriedade continua valendo.
+- **Razão:** o olhar libera as mãos e é um gesto que o rosto já mede (CQ do #80); a espera de 2 s evita escalar por um olhar de passagem.
+- **Alternativas rejeitadas:** manter a inatividade com um prazo longo (arbitrário e ainda solta quem admira a paisagem); escalar assim que o olhar passa do limite (escalaria ao olhar de relance).
+- **Sem medição:** 2 s, 12°/7°, 20° e 0,8 são valores de jogo, não medidos com rosto real.
+- **Seções atualizadas em `spec.md`:** FR-003, FR-009 (novo), US-004, edge cases.
+
 ## Hipóteses remanescentes
 
 - **H-01 (revista na CQ-010):** a hipótese original — o `z` dos landmarks do MediaPipe (profundidade relativa ao pulso) detecta "puxar a mão para trás" — foi **descartada**: o `z` tem origem no pulso e fica ~0, então o sinal era código morto. Soltar passou a ser o **punho fechado** segurado por tempo (`isFist`, `fistReleaseMs`), que é robusto. O agarre continua com várias saídas (perder o pedido além da tolerância, inatividade, teia, topo), então nenhuma depende de medição não feita ao vivo.

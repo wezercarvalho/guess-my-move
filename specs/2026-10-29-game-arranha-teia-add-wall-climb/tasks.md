@@ -48,18 +48,23 @@
 
 - [x] T011 [US-002] [US-003] [US-005] [FR-002] [FR-003] [FR-004] [FR-007] Refazer a escalada e a soltura (CQ-010), test-first: reescrever `climbSignal` para `up = max(0,dyEsq)+max(0,dyDir)`, `down = min(max(0,-dyEsq),max(0,-dyDir))`, `climb = clamp(up-down)` (alternar as mãos dá subida líquida — teste explícito); trocar a soltura para o **punho fechado** (`isFist`) segurado por `fistReleaseMs` e REMOVER `pullBackSignal`/`pullBackThreshold`/`dz`/o `z` do pulso e o "puxar para trás" da depuração; acrescentar a tolerância `grabGraceMs` para a perda curta da mão; acrescentar o cue `wall` (dica "Parede: abra a mão para agarrar.", mantida ~600 ms no controlador) e `grip` ("Agarrado. Desça uma mão por vez para subir. Punho solta."), a 5ª etapa do guia e a dica quando a palma some; depuração por mão (palma/punho) e global (contato/agarrado/sinal). Critério: testes novos verdes vistos vermelhos antes; suíte sem regressão
 
+## Fase 10 — Emenda CQ-011 (escalar olhando para cima ou para baixo)
+
+- [x] T012 [US-002] [US-004] [FR-003] [FR-009] Escalar olhando (CQ-011), test-first: escrever `packages/swing/test/headClimb.test.ts` e implementar `headClimb.ts` (espera `dwellMs` de 2 s, histerese `pitchStart`/`pitchHold`, parada lateral por `yawLimit`, `speed`); remover a saída por inatividade (`gripIdleMs`/`idleMs`) e trocar o teste por "parado agarrado não solta"; integrar no `swingController.ts` (ativo só agarrado, no modo Rosto, com rosto à vista e neutro calibrado; maior módulo entre mãos, setas e olhar) com `swingHeadClimb.test.ts`; linha de status e depuração do olhar; documentação. Concluída quando os testes e os gates passam.
+
 ## Cobertura
 
-| Requisito | Tarefas          | Evidência esperada                                                                    |
-| --------- | ---------------- | ------------------------------------------------------------------------------------- |
-| FR-001    | T002             | `climb`/`physics` tests: entra só com contato; zera velocidade; solta teias           |
-| FR-002    | T002, T004, T011 | `climb`/`world` tests: sobe/desce por `climb` (up−down, CQ-010), limitado, colado     |
-| FR-003    | T003, T011       | `climb` tests + propriedade: saídas (grace, punho, teia, topo, inatividade) finitas   |
-| FR-004    | T001, T011       | `climbSignal` tests: up−down, zona morta, saturação; soltura por punho (CQ-010)       |
-| FR-005    | T005             | `swingController` test: precedência da palma (contato agarra, sem contato solta teia) |
-| FR-006    | T005             | `swingController`/`guide` tests: teclas `V` e setas, integração do agarre             |
-| FR-007    | T006, T011       | `SwingScreen`/`guide`/debug tests: "Agarrado", dica de parede, palma/punho por mão    |
-| FR-008    | T007             | suíte completa verde: `twoWebs`, `moves`, `sides`, `swingHands` sem regressão         |
+| Requisito | Tarefas          | Evidência esperada                                                                                |
+| --------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| FR-001    | T002             | `climb`/`physics` tests: entra só com contato; zera velocidade; solta teias                       |
+| FR-002    | T002, T004, T011 | `climb`/`world` tests: sobe/desce por `climb` (up−down, CQ-010), limitado, colado                 |
+| FR-003    | T003, T011, T012 | `climb` tests + propriedade: saídas (grace, punho, teia, topo; parado agarrado não solta) finitas |
+| FR-004    | T001, T011       | `climbSignal` tests: up−down, zona morta, saturação; soltura por punho (CQ-010)                   |
+| FR-005    | T005             | `swingController` test: precedência da palma (contato agarra, sem contato solta teia)             |
+| FR-006    | T005             | `swingController`/`guide` tests: teclas `V` e setas, integração do agarre                         |
+| FR-007    | T006, T011       | `SwingScreen`/`guide`/debug tests: "Agarrado", dica de parede, palma/punho por mão                |
+| FR-009    | T012             | `headClimb` tests: espera, histerese, parada lateral; `swingHeadClimb` (controlador)              |
+| FR-008    | T007             | suíte completa verde: `twoWebs`, `moves`, `sides`, `swingHands` sem regressão                     |
 
 Somente referências presentes nas linhas formais de tarefa contam como cobertura.
 
@@ -74,7 +79,7 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - **Status:** aprovada
 - **Revisor:** kirocrew (agente), com aprovação antecipada do maintainer wezercarvalho
 - **Data:** `2026-10-29`
-- **Lacunas:** nenhuma. Todos os oito FR têm tarefa formal (FR-001 em T002, FR-002 em T002/T004/T011, FR-003 em T003/T011, FR-004 em T001/T011, FR-005 em T005, FR-006 em T005, FR-007 em T006/T011, FR-008 em T007). A emenda **CQ-010** (T011) refez a escalada (fórmula up−down), a soltura (punho no lugar do `z`), a tolerância de perda curta e as dicas de parede, mantida a cobertura test-first. Os critérios de sucesso têm cobertura: SC-001 pelos testes do estado de agarre (T002/T003/T011), SC-002 pelo teste de propriedade (T003/T011), SC-003 pelos testes de `climbSignal` (T001/T011), SC-004 pelo teste do controlador (T005), SC-005 pelos pilotos automáticos e pela inspeção headless (T009), SC-006 pelos gates (T009). Os NFR: NFR-001 pela estratégia test-first de cada parte (T001 a T006, T011), NFR-002 pelos gates (T007/T009), NFR-003 pela ausência de afirmação de precisão/fps (T008/T009/T010), NFR-004 pela verificação de rede e privacidade (T008/T009), NFR-005 pelos pilotos automáticos registrados como texto (T009). O Gate 3 fica pendente do teste ao vivo (T010), e a spec permanece em `implementing`.
+- **Lacunas:** nenhuma. Todos os nove FR têm tarefa formal (FR-001 em T002, FR-002 em T002/T004/T011, FR-003 em T003/T011, FR-004 em T001/T011, FR-005 em T005, FR-006 em T005, FR-007 em T006/T011, FR-008 em T007, FR-009 em T012). A emenda **CQ-010** (T011) refez a escalada (fórmula up−down), a soltura (punho no lugar do `z`), a tolerância de perda curta e as dicas de parede, mantida a cobertura test-first. Os critérios de sucesso têm cobertura: SC-001 pelos testes do estado de agarre (T002/T003/T011), SC-002 pelo teste de propriedade (T003/T011), SC-003 pelos testes de `climbSignal` (T001/T011), SC-004 pelo teste do controlador (T005), SC-005 pelos pilotos automáticos e pela inspeção headless (T009), SC-006 pelos gates (T009). Os NFR: NFR-001 pela estratégia test-first de cada parte (T001 a T006, T011), NFR-002 pelos gates (T007/T009), NFR-003 pela ausência de afirmação de precisão/fps (T008/T009/T010), NFR-004 pela verificação de rede e privacidade (T008/T009), NFR-005 pelos pilotos automáticos registrados como texto (T009). O Gate 3 fica pendente do teste ao vivo (T010), e a spec permanece em `implementing`.
 
 ## Gate 2 — Plano e tarefas aprovados
 
