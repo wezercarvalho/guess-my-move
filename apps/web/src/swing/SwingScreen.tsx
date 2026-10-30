@@ -3,10 +3,10 @@ import { useEffect, useRef } from 'react'
 import { CameraPanel } from '../camera/CameraPanel.js'
 import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
-import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, Steps, useDrawer } from '../design/index.js'
+import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
+import { KEYS, STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
@@ -24,6 +24,12 @@ function statusText(game: SwingGameView): string {
 }
 
 const SIDE_NAMES = { '-1': 'esquerda', '0': 'centro', '1': 'direita' } as const
+
+/** Opções do seletor "Direção do olhar": padrão Rosto. */
+const LOOK_MODE_OPTIONS = [
+    { value: 'face', label: 'Rosto' },
+    { value: 'auto', label: 'Automática' },
+] as const
 
 /** Mãos com teia presa, para o medidor da tela. */
 function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
@@ -155,19 +161,34 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                         videoRef={videoRef}
                         overlay={<HandOverlay canvasRef={overlayRef} />}
                     />
-                    {camera.isActive && game.faceTrackerStatus !== 'idle' && (
-                        <Panel raised aria-label="Câmera pela cabeça" className="swing-head">
-                            <Eyebrow>Câmera pela cabeça</Eyebrow>
-                            <p aria-live="polite" className="round-status" data-testid="head-status">
-                                {headStatus || 'Vire a cabeça para olhar em volta.'}
-                            </p>
-                            <Button
-                                variant="secondary"
-                                onClick={game.recenterHead}
-                                disabled={game.faceTrackerStatus !== 'ready'}
-                            >
-                                Centralizar
-                            </Button>
+                    {camera.isActive && (
+                        <Panel raised aria-label="Direção do olhar" className="swing-head">
+                            <Eyebrow>Direção do olhar</Eyebrow>
+                            <SegmentedControl
+                                legend="Direção do olhar"
+                                name="swing-look-mode"
+                                value={game.lookMode}
+                                options={LOOK_MODE_OPTIONS}
+                                onChange={game.setLookMode}
+                            />
+                            {game.lookMode === 'face' ? (
+                                <>
+                                    <p aria-live="polite" className="round-status" data-testid="head-status">
+                                        {headStatus || 'Vire a cabeça para olhar em volta.'}
+                                    </p>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={game.recenterHead}
+                                        disabled={game.faceTrackerStatus !== 'ready'}
+                                    >
+                                        Centralizar
+                                    </Button>
+                                </>
+                            ) : (
+                                <p className="round-status" data-testid="head-status">
+                                    Câmera automática. As setas ajustam o olhar.
+                                </p>
+                            )}
                         </Panel>
                     )}
                     <Panel raised aria-label="Como jogar">
@@ -180,6 +201,22 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                         <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
                             {hint}
                         </p>
+                    </Panel>
+                    <Panel raised aria-label="Teclado" className="swing-keys-panel">
+                        <Eyebrow>Teclado</Eyebrow>
+                        <ul className="swing-keys" data-testid="keyboard-legend">
+                            {KEYS.map((group) => (
+                                <li key={group.action}>
+                                    {group.keys.map((key, index) => (
+                                        <span key={key}>
+                                            {index > 0 ? ' ' : ''}
+                                            <kbd>{key}</kbd>
+                                        </span>
+                                    ))}{' '}
+                                    {group.action}
+                                </li>
+                            ))}
+                        </ul>
                     </Panel>
                     <PrivacyNotice />
                 </div>

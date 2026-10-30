@@ -14,6 +14,8 @@ export function SwingDebugPanel({ hands, head }: { hands: readonly HandDebug[]; 
             <h2 id="swing-debug-heading">Depuração</h2>
             {head ? (
                 <dl className="debug-grid" data-testid="head-debug">
+                    <dt>Direção do olhar</dt>
+                    <dd>{head.lookMode === 'face' ? 'rosto' : 'automática'}</dd>
                     <dt>Rosto</dt>
                     <dd>{head.faceVisible ? 'à vista' : 'ausente'}</dd>
                     <dt>Calibrado</dt>

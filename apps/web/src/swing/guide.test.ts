@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
+import { KEYS, STEPS, currentStep, guideHint, headStatusLine, statusLine } from './guide.js'
 
 const ok = {
     cameraActive: true,
@@ -101,5 +101,22 @@ describe('headStatusLine', () => {
     it('diz que a cabeça não está disponível quando o detector de rosto falha', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'error', faceVisible: false })
         expect(line).toMatch(/cabeça/i)
+    })
+})
+
+describe('KEYS', () => {
+    it('lista as teclas por grupo, uma linha cada, com as teclas e o que fazem', () => {
+        expect(KEYS.length).toBeGreaterThanOrEqual(4)
+        for (const group of KEYS) {
+            expect(group.keys.length).toBeGreaterThan(0)
+            expect(group.action.length).toBeGreaterThan(0)
+        }
+        const all = KEYS.flatMap((group) => group.keys)
+        expect(all).toContain('Espaço')
+        expect(all).toContain('Z')
+        expect(all).toContain('X')
+        expect(all).toContain('C')
+        // As quatro setas aparecem.
+        expect(all).toEqual(expect.arrayContaining(['←', '→', '↑', '↓']))
     })
 })

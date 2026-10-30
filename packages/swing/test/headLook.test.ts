@@ -8,14 +8,14 @@ import {
 } from '../src/headLook.js'
 
 /**
- * Matriz 4x4 em ordem de coluna (como o MediaPipe devolve) de uma rotação só em guinada
- * (giro em torno do eixo vertical Y) por `yaw` radianos. A inclinação (`pitch`) gira em
- * torno do eixo X. Serve para alimentar `headOrientationFromMatrix` nos testes.
+ * Matriz 4x4 em ordem de coluna (como o MediaPipe devolve) de uma rotação pura em torno do
+ * eixo vertical Y por `theta` radianos, no espaço da câmera (modelo olha para +Z, X para a
+ * direita da imagem, Y para cima). Ry(theta) leva +Z a (sin theta, 0, cos theta). As colunas
+ * são as imagens de X, Y, Z e a translação.
  */
-function yawMatrix(yaw: number): number[] {
-    const c = Math.cos(yaw)
-    const s = Math.sin(yaw)
-    // Colunas: X', Y', Z', translação. Rotação em torno de Y.
+function rotationYMatrix(theta: number): number[] {
+    const c = Math.cos(theta)
+    const s = Math.sin(theta)
     // prettier-ignore
     return [
         c, 0, -s, 0,
@@ -25,9 +25,10 @@ function yawMatrix(yaw: number): number[] {
     ]
 }
 
-function pitchMatrix(pitch: number): number[] {
-    const c = Math.cos(pitch)
-    const s = Math.sin(pitch)
+/** Rotação pura em torno do eixo horizontal X por `phi`; Rx(phi) leva +Z a (0, -sin phi, cos phi). */
+function rotationXMatrix(phi: number): number[] {
+    const c = Math.cos(phi)
+    const s = Math.sin(phi)
     // prettier-ignore
     return [
         1, 0, 0, 0,
@@ -39,6 +40,14 @@ function pitchMatrix(pitch: number): number[] {
 
 const ANGLE = Math.PI / 9 // 20 graus
 
+/**
+ * Convenção fixada pelos testes (derivada da matriz + relato do dono, não medida com
+ * instrumento — ver research.md): a imagem da câmera NÃO é espelhada pelo MediaPipe, então,
+ * quando o jogador vira a cabeça para a SUA direita, o rosto aponta para a esquerda da
+ * imagem e a rotação geométrica em torno de Y é NEGATIVA. `headOrientationFromMatrix` deve
+ * devolver `yaw > 0` nesse caso (jogador olha para a direita), e `pitch > 0` ao olhar para
+ * cima. O olhar do jogo (`state.yaw`) cresce para a direita, então o sinal casa direto.
+ */
 describe('headOrientationFromMatrix', () => {
     it('lê a guinada e a inclinação zero numa matriz identidade', () => {
         const orientation = headOrientationFromMatrix([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
@@ -47,15 +56,29 @@ describe('headOrientationFromMatrix', () => {
         expect(orientation?.pitch).toBeCloseTo(0, 5)
     })
 
-    it('lê a guinada de uma rotação em torno de Y', () => {
-        const orientation = headOrientationFromMatrix(yawMatrix(ANGLE))
+    it('jogador que vira para a SUA direita (Ry negativa) dá guinada positiva', () => {
+        // Virar para a direita do jogador = rotação geométrica negativa em torno de Y.
+        const orientation = headOrientationFromMatrix(rotationYMatrix(-ANGLE))
         expect(orientation?.yaw).toBeCloseTo(ANGLE, 4)
         expect(orientation?.pitch).toBeCloseTo(0, 4)
     })
 
-    it('lê a inclinação de uma rotação em torno de X', () => {
-        const orientation = headOrientationFromMatrix(pitchMatrix(ANGLE))
+    it('jogador que vira para a SUA esquerda (Ry positiva) dá guinada negativa', () => {
+        const orientation = headOrientationFromMatrix(rotationYMatrix(ANGLE))
+        expect(orientation?.yaw).toBeCloseTo(-ANGLE, 4)
+        expect(orientation?.pitch).toBeCloseTo(0, 4)
+    })
+
+    it('jogador que olha para CIMA (Rx negativa) dá inclinação positiva', () => {
+        // Olhar para cima = rotação geométrica negativa em torno de X.
+        const orientation = headOrientationFromMatrix(rotationXMatrix(-ANGLE))
         expect(orientation?.pitch).toBeCloseTo(ANGLE, 4)
+        expect(orientation?.yaw).toBeCloseTo(0, 4)
+    })
+
+    it('jogador que olha para BAIXO (Rx positiva) dá inclinação negativa', () => {
+        const orientation = headOrientationFromMatrix(rotationXMatrix(ANGLE))
+        expect(orientation?.pitch).toBeCloseTo(-ANGLE, 4)
         expect(orientation?.yaw).toBeCloseTo(0, 4)
     })
 

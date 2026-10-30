@@ -1,4 +1,4 @@
-import { type City, type HeadOrientation, type SwingState } from '@guess-my-move/swing'
+import { type City, type FaceReading, type SwingState } from '@guess-my-move/swing'
 import { describe, expect, it, vi } from 'vitest'
 
 import { type FaceTracker } from '../tracker/faceTracker.js'
@@ -17,10 +17,13 @@ const city: City = {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-/** Rosto virado `yaw`/`pitch` graus; a câmera (espelhada) dá yaw positivo ao virar para a direita. */
-const face = (yaw: number, pitch = 0): HeadOrientation => ({
-    yaw: (yaw * Math.PI) / 180,
-    pitch: (pitch * Math.PI) / 180,
+/**
+ * Leitura de rosto simulada virado `yaw`/`pitch` graus; a câmera (espelhada) dá yaw positivo
+ * ao virar para a direita. Inclui um ponto de rosto para o desenho.
+ */
+const face = (yaw: number, pitch = 0): FaceReading => ({
+    orientation: { yaw: (yaw * Math.PI) / 180, pitch: (pitch * Math.PI) / 180 },
+    landmarks: [{ x: 0.5, y: 0.5 }],
 })
 
 async function playingWithFace() {
@@ -81,7 +84,7 @@ async function playingWithFace() {
     await flush()
     controller.setCamera(true)
     await flush()
-    return { controller, detectFace, faceTracker, tick, lastState }
+    return { controller, env, detectFace, faceTracker, tick, lastState }
 }
 
 /** Dá quadros para a calibração automática e a suavização estabilizarem. */
@@ -183,5 +186,72 @@ describe('SwingController com o rastreador de rosto', () => {
         const { controller } = await playingWithFace()
         expect(controller.getSnapshot().faceTrackerStatus).toBe('ready')
         expect(controller.getSnapshot().faceTrackerFailure).toBeNull()
+    })
+})
+
+describe('SwingController — direção do olhar (Automática vs Rosto)', () => {
+    it('começa no modo Rosto e carrega o detector de rosto', async () => {
+        const { controller } = await playingWithFace()
+        expect(controller.getSnapshot().lookMode).toBe('face')
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('ready')
+    })
+
+    it('no modo Automática o detector de rosto fica desligado e não recarrega', async () => {
+        const { controller, env } = await playingWithFace()
+        const createFace = env.createFaceTracker as ReturnType<typeof vi.fn>
+        const callsWhileFace = createFace.mock.calls.length
+        controller.setLookMode('auto')
+        await flush()
+        expect(controller.getSnapshot().lookMode).toBe('auto')
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('idle')
+        // Em Automática, novos ciclos de sync não recarregam o detector.
+        controller.setCamera(false)
+        controller.setCamera(true)
+        await flush()
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('idle')
+        expect(createFace.mock.calls.length).toBe(callsWhileFace)
+    })
+
+    it('trocar para Automática durante o jogo libera o detector sem vazar', async () => {
+        const { controller, faceTracker, detectFace, tick } = await playingWithFace()
+        detectFace.mockReturnValue(face(0))
+        settle(tick, 20)
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('ready')
+        controller.setLookMode('auto')
+        await flush()
+        expect((faceTracker.close as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0)
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('idle')
+        expect(controller.getSnapshot().faceVisible).toBe(false)
+    })
+
+    it('ao voltar para Automática, o desvio da cabeça é descartado sem salto', async () => {
+        const { controller, detectFace, tick, lastState } = await playingWithFace()
+        detectFace.mockReturnValue(face(0))
+        settle(tick, 20)
+        detectFace.mockReturnValue(face(25))
+        settle(tick, 120)
+        const turned = lastState().yaw
+        controller.setLookMode('auto')
+        // O primeiro quadro em Automática não dá salto na câmera (sem somar/subtrair de uma vez).
+        tick()
+        expect(Math.abs(lastState().yaw - turned)).toBeLessThan(0.05)
+    })
+
+    it('voltar para Rosto recarrega o detector', async () => {
+        const { controller, env } = await playingWithFace()
+        controller.setLookMode('auto')
+        await flush()
+        controller.setLookMode('face')
+        await flush()
+        expect(controller.getSnapshot().faceTrackerStatus).toBe('ready')
+        expect((env.createFaceTracker as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('expõe o modo ativo no snapshot de depuração', async () => {
+        const { controller } = await playingWithFace()
+        expect(controller.getSnapshot().lookMode).toBe('face')
+        controller.setLookMode('auto')
+        await flush()
+        expect(controller.getSnapshot().lookMode).toBe('auto')
     })
 })

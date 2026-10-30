@@ -1,13 +1,14 @@
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
-import { type HeadOrientation, headOrientationFromMatrix } from '@guess-my-move/swing'
+import { type FaceReading, headOrientationFromMatrix } from '@guess-my-move/swing'
 
 import { type TrackerDelegate } from './handTracker.js'
 import { type DelegatePreference } from './mediapipeTracker.js'
 
 /**
- * Parte do `FaceLandmarker` usada aqui: a matriz de transformação facial por quadro.
- * Permite simular o MediaPipe nos testes. A guinada e a inclinação da cabeça saem dessa
- * matriz; nenhum landmark nem blendshape é lido ou guardado.
+ * Parte do `FaceLandmarker` usada aqui: a matriz de transformação facial e os pontos do
+ * rosto por quadro. A matriz dá a orientação da cabeça (para o olhar); os pontos são
+ * desenhados de forma transitória no overlay e descartados. Permite simular o MediaPipe nos
+ * testes. Nenhum landmark nem blendshape é gravado, persistido ou logado.
  */
 export interface FaceLandmarkerLike {
     detectForVideo(
@@ -15,6 +16,7 @@ export interface FaceLandmarkerLike {
         timestampMs: number,
     ): {
         facialTransformationMatrixes?: readonly { data: readonly number[] }[]
+        faceLandmarks?: readonly (readonly { x: number; y: number; z?: number }[])[]
     }
     close(): void
 }
@@ -31,8 +33,8 @@ export interface FaceLoader {
  */
 export interface FaceTracker {
     readonly delegate: TrackerDelegate
-    /** Orientação da cabeça no quadro, ou `null` sem rosto. `timestampMs` deve crescer. */
-    detect(video: HTMLVideoElement, timestampMs: number): HeadOrientation | null
+    /** Leitura do rosto no quadro: orientação da cabeça e pontos. `null` quando não há rosto. `timestampMs` deve crescer. */
+    detect(video: HTMLVideoElement, timestampMs: number): FaceReading | null
     close(): void
 }
 
@@ -105,11 +107,18 @@ export async function createMediaPipeFaceTracker(
     const active = landmarker
     return {
         delegate,
-        detect(video, timestampMs): HeadOrientation | null {
+        detect(video, timestampMs): FaceReading | null {
             const result = active.detectForVideo(video, timestampMs)
             const matrix = result.facialTransformationMatrixes?.[0]?.data
-            if (!matrix) return null
-            return headOrientationFromMatrix([...matrix])
+            const points = result.faceLandmarks?.[0]
+            // Sem matriz E sem pontos, não há rosto neste quadro.
+            if (!matrix && !points) return null
+            const orientation = matrix ? headOrientationFromMatrix([...matrix]) : null
+            // Os pontos são copiados para desenho transitório; nada é guardado.
+            const landmarks = points
+                ? points.map((p) => (p.z === undefined ? { x: p.x, y: p.y } : { x: p.x, y: p.y, z: p.z }))
+                : []
+            return { orientation, landmarks }
         },
         close() {
             active.close()

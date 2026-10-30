@@ -10,6 +10,25 @@ export const STEPS = [
     'Solte na subida para voar. Lance de novo.',
 ] as const
 
+/** Um grupo de teclas e o que ele faz, para a legenda de teclado da tela. */
+export interface KeyGroup {
+    /** Teclas do grupo (renderizadas como `<kbd>`). */
+    keys: readonly string[]
+    /** O que o grupo faz, em texto curto. */
+    action: string
+}
+
+/**
+ * Legenda de teclado do Arranha-Teia, como DADOS (uma linha por grupo), para a tela montar a
+ * lista e outro PR acrescentar linhas sem conflito de layout. Texto curto e objetivo.
+ */
+export const KEYS: readonly KeyGroup[] = [
+    { keys: ['Espaço'], action: 'lança (centro)' },
+    { keys: ['Z', 'X'], action: 'lançam esquerda / direita' },
+    { keys: ['C'], action: 'puxa' },
+    { keys: ['←', '→', '↑', '↓'], action: 'olham' },
+]
+
 /** Etapa em andamento (1 a 4), a partir da próxima ação do jogador. */
 export function currentStep(cue: SwingCue): number {
     switch (cue) {

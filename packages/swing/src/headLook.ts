@@ -16,6 +16,26 @@ export interface HeadOrientation {
     pitch: number
 }
 
+/**
+ * Um ponto do rosto, normalizado (0..1) na imagem da câmera, como o MediaPipe devolve.
+ * `z` é opcional (profundidade relativa) e não é usado no desenho 2D.
+ */
+export interface FaceLandmark {
+    x: number
+    y: number
+    z?: number
+}
+
+/**
+ * Leitura do rosto num quadro: a orientação da cabeça (para o olhar) e os pontos do rosto
+ * (para o desenho transitório no overlay). Os pontos NUNCA são gravados, persistidos nem
+ * logados — são desenhados e descartados. `orientation` é `null` quando não há matriz válida.
+ */
+export interface FaceReading {
+    orientation: HeadOrientation | null
+    landmarks: readonly FaceLandmark[]
+}
+
 export interface HeadLookConfig {
     /** Quadros estáveis para a calibração automática do neutro no começo. */
     calibrationFrames: number
@@ -74,10 +94,16 @@ export function headOrientationFromMatrix(matrix: readonly number[]): HeadOrient
     if (matrix.length !== 16) return null
     // Ordem de coluna: índice = coluna*4 + linha. r[linha][coluna].
     const r = (row: number, col: number) => matrix[col * 4 + row] ?? 0
-    // Guinada (em torno de Y) e inclinação (em torno de X) extraídas da parte de rotação.
-    // Convenção do MediaPipe (matriz coluna-maior): numa rotação em X, R[1][2] = -sin.
-    const yaw = Math.atan2(-r(2, 0), r(2, 2))
-    const pitch = Math.atan2(-r(1, 2), r(1, 1))
+    // A matriz do MediaPipe leva o modelo canônico (olha para +Z, X à direita da imagem, Y
+    // para cima) ao espaço da câmera, SEM espelhar. Em Ry(theta), +Z vai a (sin theta, 0,
+    // cos theta): r(0,2)=sin, r(2,2)=cos, r(2,0)=-sin. Como a imagem não é espelhada, virar
+    // a cabeça para a direita do jogador é theta NEGATIVO; invertemos o sinal para que
+    // `yaw > 0` signifique "olha para a sua direita". O mesmo para a inclinação: em Rx(phi),
+    // +Z vai a (0, -sin phi, cos phi), e olhar para cima é phi negativo, então `pitch > 0`
+    // ao olhar para cima. Assim o olhar do jogo (yaw cresce à direita, pitch positivo para
+    // cima) casa com o desvio sem inversão extra.
+    const yaw = Math.atan2(r(2, 0), r(2, 2))
+    const pitch = Math.atan2(r(1, 2), r(1, 1))
     return { yaw, pitch }
 }
 

@@ -8,18 +8,19 @@ import {
 
 const video = {} as HTMLVideoElement
 
-/** Matriz 4x4 (coluna-maior) de uma guinada pura, como o MediaPipe devolve. */
-function yawMatrix(yaw: number): number[] {
-    const c = Math.cos(yaw)
-    const s = Math.sin(yaw)
+/** Matriz 4x4 (coluna-maior) de uma rotação pura em torno de Y por `theta`, como o MediaPipe devolve. */
+function rotationYMatrix(theta: number): number[] {
+    const c = Math.cos(theta)
+    const s = Math.sin(theta)
     // prettier-ignore
     return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]
 }
 
 /** Detector de rosto simulado. */
-function faceLandmarker(matrixes: number[][] = []) {
+function faceLandmarker(matrixes: number[][] = [], landmarks: { x: number; y: number }[][] = []) {
     const detectForVideo = vi.fn(() => ({
         facialTransformationMatrixes: matrixes.map((data) => ({ data })),
+        faceLandmarks: landmarks,
     }))
     const close = vi.fn()
     const instance: FaceLandmarkerLike = { detectForVideo, close }
@@ -73,30 +74,49 @@ describe('createMediaPipeFaceTracker', () => {
 
     it('converte a matriz do primeiro rosto na orientação da cabeça', async () => {
         const angle = Math.PI / 9
-        const fl = faceLandmarker([yawMatrix(angle)])
+        // Virar para a direita do jogador = Ry negativa; a orientação devolvida deve ter yaw > 0.
+        const fl = faceLandmarker([rotationYMatrix(-angle)])
         const tracker = await createMediaPipeFaceTracker(
             loaderWith(() => Promise.resolve(fl.instance)).loader,
         )
-        const orientation = tracker.detect(video, 33)
-        expect(orientation).not.toBeNull()
-        expect(orientation?.yaw).toBeCloseTo(angle, 4)
+        const reading = tracker.detect(video, 33)
+        expect(reading).not.toBeNull()
+        expect(reading?.orientation?.yaw).toBeCloseTo(angle, 4)
         expect(fl.detectForVideo).toHaveBeenCalledWith(video, 33)
     })
 
-    it('devolve null quando não há rosto', async () => {
-        const fl = faceLandmarker([])
+    it('devolve os pontos do rosto junto com a orientação, para o desenho', async () => {
+        const angle = Math.PI / 9
+        const points = [
+            { x: 0.5, y: 0.5 },
+            { x: 0.4, y: 0.3 },
+        ]
+        const fl = faceLandmarker([rotationYMatrix(-angle)], [points])
+        const tracker = await createMediaPipeFaceTracker(
+            loaderWith(() => Promise.resolve(fl.instance)).loader,
+        )
+        const reading = tracker.detect(video, 33)
+        expect(reading?.landmarks).toHaveLength(2)
+        expect(reading?.landmarks[0]).toMatchObject({ x: 0.5, y: 0.5 })
+    })
+
+    it('devolve null quando não há rosto (sem matriz nem pontos)', async () => {
+        const fl = faceLandmarker([], [])
         const tracker = await createMediaPipeFaceTracker(
             loaderWith(() => Promise.resolve(fl.instance)).loader,
         )
         expect(tracker.detect(video, 10)).toBeNull()
     })
 
-    it('devolve null quando a matriz tem tamanho inválido', async () => {
-        const fl = faceLandmarker([[1, 2, 3]])
+    it('com matriz inválida mas rosto presente, devolve orientação null e os pontos', async () => {
+        const fl = faceLandmarker([[1, 2, 3]], [[{ x: 0.1, y: 0.2 }]])
         const tracker = await createMediaPipeFaceTracker(
             loaderWith(() => Promise.resolve(fl.instance)).loader,
         )
-        expect(tracker.detect(video, 10)).toBeNull()
+        const reading = tracker.detect(video, 10)
+        expect(reading).not.toBeNull()
+        expect(reading?.orientation).toBeNull()
+        expect(reading?.landmarks).toHaveLength(1)
     })
 
     it('close libera o detector', async () => {
