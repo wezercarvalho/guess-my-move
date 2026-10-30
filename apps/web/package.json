@@ -10,10 +10,11 @@
         "build": "yarn prepare:assets && tsc --build && vite build",
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
-        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs scripts/city-from-osm.test.mjs scripts/city-data.test.mjs"
+        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs scripts/city-from-osm.test.mjs scripts/city-data.test.mjs scripts/guitar-privacy.test.mjs"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",
+        "@guess-my-move/guitar": "0.0.0",
         "@guess-my-move/marbles": "0.0.0",
         "@guess-my-move/swing": "0.0.0",
         "@mediapipe/tasks-vision": "1.1.1",

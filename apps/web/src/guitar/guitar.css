@@ -1,0 +1,212 @@
+/* Estilos exclusivos do Violão no Ar; tokens e componentes vêm de ../design e o restante de ../styles.css. */
+.guitar-screen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.guitar-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.guitar-header h1 {
+    margin: 0;
+    font-size: var(--size-title);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
+}
+
+.guitar-lead {
+    margin: 0;
+    color: var(--muted);
+}
+
+/* Câmera grande à esquerda; coluna estreita à direita com o acorde, o guia e a privacidade. */
+.guitar-layout {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+@media (min-width: 960px) {
+    .guitar-layout {
+        grid-template-columns: minmax(0, 1fr) 19rem;
+    }
+}
+
+.guitar-main,
+.guitar-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+}
+
+/* A câmera é o palco: o painel compartilhado com os outros jogos ganha mais altura só aqui. */
+.guitar-stage .camera-panel {
+    border: 1px solid var(--line);
+}
+
+.guitar-stage .camera-preview {
+    max-height: min(70dvh, 540px);
+}
+
+.guitar-stage .camera-preview-wrapper {
+    min-height: 16rem;
+}
+
+.guitar-play {
+    gap: var(--space-3);
+}
+
+.guitar-play .round-status {
+    margin: 0;
+    color: var(--paper);
+    font-family: var(--font-display);
+    font-size: var(--size-heading);
+    font-weight: var(--weight-semibold);
+}
+
+.guitar-audio {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-left: 4px solid var(--danger);
+    background: var(--surface-raised);
+    color: var(--paper);
+    font-size: var(--size-small);
+}
+
+.guitar-strum-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+}
+
+.guitar-play > .ds-button {
+    align-self: flex-start;
+}
+
+.guitar-side .guide-hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--size-small);
+}
+
+/* Os cinco acordes dividem a largura do painel lateral em vez de estourar a borda. */
+.guitar-side .ds-segmented,
+.guitar-side .ds-segmented-options {
+    display: flex;
+    width: 100%;
+}
+
+.guitar-side .ds-segment {
+    flex: 1;
+    justify-content: center;
+    padding: 0 var(--space-2);
+}
+
+/* Diagrama do acorde */
+.chord-diagram {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.chord-diagram figcaption {
+    font-family: var(--font-display);
+    font-size: var(--size-heading);
+    font-weight: var(--weight-semibold);
+}
+
+.chord-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.chord-diagram-string {
+    stroke: var(--muted);
+    stroke-width: 1.5;
+}
+
+.chord-diagram-fret {
+    stroke: var(--control-border);
+    stroke-width: 1.5;
+}
+
+.chord-diagram-nut {
+    stroke: var(--paper);
+    stroke-width: 4;
+}
+
+.chord-diagram-dot {
+    fill: var(--gold-bright);
+}
+
+.chord-diagram-finger {
+    fill: var(--ink);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: var(--weight-bold);
+}
+
+.chord-diagram-muted {
+    stroke: var(--paper);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.chord-diagram-open {
+    stroke: var(--paper);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+/* Ajuste do braço (dentro da gaveta de depuração) */
+.guitar-adjust {
+    margin: var(--space-4) 0 0;
+    padding: var(--space-3) 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.guitar-adjust legend {
+    padding: 0;
+    color: var(--muted);
+    font-size: var(--size-caption);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+}
+
+.guitar-adjust-row {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) 3rem;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--size-small);
+}
+
+.guitar-adjust-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--size-small);
+}
+
+.guitar-adjust .ds-button {
+    align-self: flex-start;
+}
+
+/* Controles nativos na paleta do design system (o padrão do navegador é azul). */
+.guitar-adjust input[type='range'],
+.guitar-adjust input[type='checkbox'] {
+    accent-color: var(--gold-bright);
+}

@@ -10,6 +10,7 @@
     "workspaces": [
         "apps/web",
         "packages/core",
+        "packages/guitar",
         "packages/marbles",
         "packages/swing"
     ],

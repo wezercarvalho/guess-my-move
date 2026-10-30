@@ -1,5 +1,6 @@
 import { useId } from 'react'
 
+import { Badge } from '../design/index.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 
 interface GameCardProps {
@@ -7,13 +8,18 @@ interface GameCardProps {
     description: string
     href: string
     action: string
+    /** Selo ao lado do título (por exemplo, "Alpha"). */
+    badge?: string
 }
 
-function GameCard({ title, description, href, action }: GameCardProps) {
+function GameCard({ title, description, href, action, badge }: GameCardProps) {
     const headingId = useId()
     return (
         <article aria-labelledby={headingId} className="game-card">
-            <h2 id={headingId}>{title}</h2>
+            <div className="game-card-head">
+                <h2 id={headingId}>{title}</h2>
+                {badge && <Badge>{badge}</Badge>}
+            </div>
             <p>{description}</p>
             <a className="game-card-link" href={href}>
                 {action}
@@ -51,6 +57,13 @@ export function HomePage() {
                     description="Balance entre os prédios de Midtown e lance a teia com o gesto “eu te amo”."
                     href="swing.html"
                     action="Jogar Arranha-Teia"
+                />
+                <GameCard
+                    title="Violão no Ar"
+                    description="Forme o acorde com uma mão e bata com a outra."
+                    href="guitar.html"
+                    action="Jogar Violão no Ar"
+                    badge="Alpha"
                 />
             </div>
         </main>
