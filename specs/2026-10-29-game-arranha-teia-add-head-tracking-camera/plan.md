@@ -58,3 +58,14 @@ Separar a conversão determinística (orientação da cabeça → desvio do olha
 - **Custo de dois modelos/quadro (R-01):** medir e registrar em `validation.md` sem generalizar; se pesar, a issue pode no futuro tornar o rosto opcional (fora do escopo agora).
 - **Precisão da pose (R-02):** declarada como não medida; ganho + calibração mitigam o uso prático.
 - **Licença do `.task` (R-04):** declarada como não confirmada na fonte (NFR-004).
+
+## Emenda CQ-010 (correção da inversão e ajustes após o primeiro teste do dono)
+
+Design das mudanças de FR-011..FR-014, mantendo a separação puro/apresentação:
+
+1. **Sinal (FR-011, `headLook.ts`):** `headOrientationFromMatrix` passa a `yaw = atan2(R[2][0], R[2][2])` e `pitch = atan2(R[1][2], R[1][1])` (sem a negação anterior). Convenção fixada por testes com matrizes `Ry`/`Rx` conhecidas: jogador vira à direita (⇒ `Ry` negativa, pois a imagem não é espelhada) ⇒ `yaw > 0` ⇒ `state.yaw` cresce ⇒ olhar do jogador gira à direita; idem cima/baixo. A derivação (não medida com instrumento) fica em `research.md`.
+2. **Overlay do rosto (FR-012):** `FaceReading { orientation, landmarks }` no pacote (`headLook.ts`); `faceTracker.ts` devolve a orientação e os pontos; `apps/web/src/round/faceOverlay.ts` (`drawFace`) desenha um subconjunto esparso de pontos do FaceMesh (índices fixos, sem depender das tabelas de conexão grandes do MediaPipe) e um eixo curto do nariz na direção do olhar, SOBRE o overlay das mãos (não limpa o canvas; o desenho das mãos limpa primeiro). Cor discreta (verde-água do design para os pontos, dourado translúcido para o eixo). Testável com contexto 2D simulado; nada é guardado (NFR-001).
+3. **Seletor (FR-013, `swingController.ts`):** `LookMode = 'auto' | 'face'`, padrão `face`, `setLookMode` e `lookMode` no snapshot; em `auto` o `sync()` não carrega (e libera) o detector de rosto, e o desvio é zerado sem salto (reset do `headLook` e do `appliedHead`). `useSwingGame` expõe `setLookMode`; `SwingScreen` usa o `SegmentedControl` no painel "Direção do olhar", visível com a câmera ativa, com "Centralizar" só em `face`. Depuração mostra o modo.
+4. **Legenda de teclado (FR-014, `guide.ts`):** `KEYS: readonly KeyGroup[]` exportado; `SwingScreen` renderiza o painel "Teclado" sempre visível, com `<kbd>`, estilizado em `swing.css` com os tokens.
+
+Mudanças nos arquivos compartilhados com a issue #81 (`swingController.ts`, `SwingScreen.tsx`, `guide.ts`) seguem pequenas e aditivas (NFR-005); `world.ts` não mudou nesta emenda.

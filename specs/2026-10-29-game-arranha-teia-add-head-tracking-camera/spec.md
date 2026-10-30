@@ -29,6 +29,12 @@ aliases:
     - packages/swing
     - headLook.ts
     - faceTracker.ts
+    - faceOverlay.ts
+    - overlay do rosto
+    - direção do olhar
+    - seletor de olhar
+    - legenda de teclado
+    - inversão da câmera
 code_paths:
     - packages/swing/
     - apps/web/
@@ -38,7 +44,7 @@ supersedes: []
 branch: feat/80-camera-com-a-cabeca
 constitution_version: 1.0.0
 created_at: 2026-10-29
-updated_at: 2026-10-29
+updated_at: 2026-10-30
 ---
 
 # Arranha-Teia, girar a câmera com a cabeça pelo MediaPipe Face Landmarker
@@ -89,7 +95,7 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 ## Requisitos funcionais
 
 - **FR-001**: A orientação da cabeça (guinada e inclinação) DEVE ser extraída da matriz de transformação facial do MediaPipe por função pura, devolvendo `null` para matriz de tamanho inválido.
-- **FR-002**: A conversão orientação → olhar DEVE corrigir o espelhamento: virar a cabeça para a direita do jogador gira a câmera do jogo para a direita; para a esquerda, o oposto; a inclinação segue o mesmo princípio para cima e para baixo.
+- **FR-002**: A conversão orientação → olhar DEVE corrigir o espelhamento com o sinal certo: virar a cabeça para a direita do jogador gira a câmera do jogo para a direita; para a esquerda, o oposto; a inclinação segue o mesmo princípio para cima e para baixo (ver FR-011 e CQ-010 para a convenção e a correção da inversão).
 - **FR-003**: O neutro DEVE ser calibrado automaticamente nos primeiros quadros estáveis e DEVE poder ser recalibrado sob demanda ("Centralizar"); antes de calibrar, o olhar não reage.
 - **FR-004**: A conversão DEVE ignorar uma zona morta em volta do neutro, aplicar ganho e limitar o desvio de guinada e de inclinação a um máximo configurável.
 - **FR-005**: O desvio DEVE ser suavizado de forma exponencial, sem saltar de uma vez para o alvo.
@@ -98,10 +104,14 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **FR-008**: O detector de rosto DEVE usar o modelo servido pelo app, baixado e conferido por SHA-256 no `prepare:assets`, com recuo de delegate GPU → CPU como o detector de mão.
 - **FR-009**: A camada web DEVE alimentar mãos e rosto com o MESMO quadro novo da câmera; a falha do detector de rosto o desliga sem derrubar o jogo nem o detector de mão.
 - **FR-010**: A tela DEVE mostrar um status de uma linha e uma dica curta do estado do rosto (ex.: "Rosto fora do quadro. Centralize a cabeça."), o painel de depuração com a leitura da cabeça (ângulos, calibrado, rosto visível) e um botão "Centralizar".
+- **FR-011 (CQ-010)**: A convenção de sinal DEVE ser `yaw > 0` quando o jogador olha para a SUA direita e `pitch > 0` quando olha para cima, de modo que o olhar do jogo (`state.yaw` cresce para a direita, `state.pitch` positivo olha para cima) siga a cabeça sem inversão. A derivação (matriz `Ry`/`Rx` + relato do dono, não medida com instrumento) DEVE ser registrada e fixada por testes com matrizes conhecidas.
+- **FR-012 (CQ-010)**: O detector de rosto DEVE devolver também os pontos do rosto (`FaceReading { orientation, landmarks }`); a tela DEVE desenhá-los de forma TRANSITÓRIA no mesmo overlay espelhado das mãos (esboço esparso do rosto e um eixo do olhar a partir do nariz, em cor discreta), sem gravar, persistir nem logar landmark algum.
+- **FR-013 (CQ-010)**: A tela DEVE oferecer um seletor "Direção do olhar" com **Automática** (câmera segue o movimento; setas ajustam) e **Rosto** (a cabeça soma o desvio), padrão **Rosto**, só em memória de sessão, sempre que a câmera estiver ativa. Em Automática o detector de rosto NÃO DEVE ser carregado (liberado se já estava), nada de rosto é lido nem desenhado, o botão "Centralizar" fica oculto, e o desvio da cabeça é descartado sem salto. Trocar durante o jogo DEVE ser seguro (sem vazar tracker nem acumular desvio). O estado vive no `SwingController` (`setLookMode`, snapshot `lookMode`) e o painel de depuração mostra o modo ativo.
+- **FR-014 (CQ-010)**: A tela DEVE mostrar uma legenda de teclado sempre visível (painel "Teclado", uma linha por grupo, com `<kbd>`), definida como DADOS exportados (`KEYS`) para evolução sem conflito de layout.
 
 ## Requisitos não funcionais
 
-- **NFR-001 (privacidade)**: Nenhum frame, vídeo ou landmark do rosto DEVE ser gravado, enviado ou logado. O rastreador lê apenas a matriz de transformação facial por quadro, descartada após o uso.
+- **NFR-001 (privacidade)**: Nenhum frame, vídeo ou landmark do rosto DEVE ser gravado, enviado ou logado. O rastreador lê a matriz de transformação facial e os pontos do rosto por quadro; os pontos são desenhados de forma TRANSITÓRIA no overlay e descartados a cada quadro (CQ-010), nunca persistidos.
 - **NFR-002 (sem terceiros)**: O modelo de rosto DEVE ser servido pelo próprio app (sem CDN); em tempo de jogo não há requisição a terceiros.
 - **NFR-003 (evidência honesta)**: Afirmações de fps, latência ou precisão da pose DEVEM citar medição registrada como texto em `validation.md`, com tamanho de amostra e limitações; capacidade anunciada pelo provedor NÃO DEVE ser tratada como desempenho comprovado.
 - **NFR-004 (licença do modelo)**: A licença do arquivo `face_landmarker.task` DEVE ser lida na fonte e registrada; se não for confirmada, DEVE ser declarado que não foi, como já ocorre com os modelos de mão e de gesto.
@@ -134,7 +144,7 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **Combinação com o acompanhamento automático**: a cabeça soma um desvio ao olhar enquanto está fora da zona morta (prioridade da cabeça); sem rosto, o desvio volta suave a zero e o acompanhamento automático retoma. Razão: é o comportamento pedido na issue e o menos surpreendente, e evita disputa entre dois controles no mesmo quadro.
 - **Mira da teia segue o olhar**: sim. A mira já sai de `state.yaw`/`state.pitch`; aplicar o desvio ao olhar faz a mira segui-lo sem código extra. Razão: coerência (a teia vai para onde se olha) e escopo menor.
 - **Calibração**: automática nos primeiros quadros estáveis, mais um botão "Centralizar" para recalibrar. Razão: é a opção mais simples e testável; não exige um fluxo de calibração dedicado.
-- **Só a matriz de transformação**: o rastreador lê apenas a matriz (sem blendshapes nem landmarks guardados). Razão: privacidade e simplicidade; a guinada/inclinação bastam.
+- **Matriz e pontos transitórios**: o rastreador lê a matriz (orientação) e, desde a CQ-010, também os pontos do rosto, desenhados de forma transitória no overlay e descartados a cada quadro (sem blendshapes, sem persistência). Razão: o overlay do rosto, pedido pelo dono, precisa dos pontos para desenhar; a privacidade é mantida porque nada é gravado, enviado ou logado.
 
 ## Adoção constitucional
 

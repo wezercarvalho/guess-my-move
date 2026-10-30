@@ -48,3 +48,33 @@ Spec em `implementing`; o Gate 3 (convergência validada) fica **pendente do tes
 
 - **Processo:** todos os gates locais aplicáveis passaram (ver tabela); a lógica nova é test-first e coberta.
 - **Convergência (Gate 3):** **pendente** do teste ao vivo do maintainer (câmera e rosto reais, sensação do giro, fps). Não se declara `validated`.
+
+## CQ-010 — Correção da inversão e ajustes (worktree `wt-80`, 2026-10-30)
+
+Comandos rodados um a um (memória limitada; nunca em paralelo). Resultados REAIS:
+
+| Comando                              | Resultado                                                                                                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yarn check:static`                  | PASS — typecheck de todos os workspaces + oxlint 0 avisos, 0 erros (136 regras, 147 arquivos).                                                                                                        |
+| `yarn test` (`@guess-my-move/swing`) | PASS — 13 arquivos, 148 testes (inclui `headLook.test.ts` com 17: a convenção direita⇒`yaw>0`, cima⇒`pitch>0` com matrizes `Ry`/`Rx`).                                                                |
+| `yarn test` (`@guess-my-move/web`)   | PASS — Vitest 31 arquivos, 280 testes (inclui `faceTracker.test.ts` 9, `faceOverlay.test.ts` 6, `swingHeadLook.test.ts` 15, `guide.test.ts` 16, `SwingScreen.test.tsx` 14) + `node --test` 50 testes. |
+| `yarn build`                         | PASS — `prepare:assets` conferiu o SHA-256 dos três modelos, `tsc --build` + `vite build` ok (aviso pré-existente de tamanho de chunk do `swing`).                                                    |
+| `yarn test:gates`                    | PASS — 231 testes (hook/gate + auditoria de dependências).                                                                                                                                            |
+| `yarn test:sdd`                      | PASS — 109 testes.                                                                                                                                                                                    |
+| `yarn sdd:check`                     | PASS — catálogo, estados, gates, cobertura e links válidos; esta spec em `implementing`.                                                                                                              |
+| `yarn docs:format:check`             | PASS (ver nota abaixo; `yarn docs:format:fix` aplicado onde necessário).                                                                                                                              |
+| `yarn security:dependencies`         | PASS — `info=0 low=0 moderate=0 high=0 critical=0`.                                                                                                                                                   |
+
+### Verificação visual headless (Chromium, SEM câmera)
+
+- `dist` servido em `127.0.0.1:5190` (`python3 -m http.server 5190 --bind 127.0.0.1`); `playwright-cli open http://127.0.0.1:5190/swing.html`.
+- A página carrega (título "Arranha-Teia"), **0 erros de console** (1 aviso, de desempenho do WebGL por software).
+- O painel **"Teclado"** aparece sempre visível, com `Espaço` lança (centro), `Z` / `X` lançam esquerda / direita, `C` puxa, setas olham.
+- O **seletor "Direção do olhar"** é gated pela câmera ativa; sem câmera (headless aqui) ele não aparece, como esperado. A troca Automática/Rosto e o não-carregamento do rosto em Automática estão cobertos por teste do controlador e da tela (`swingHeadLook.test.ts`, `SwingScreen.test.tsx`).
+- Nenhuma imagem de rosto foi guardada; o screenshot ficou fora do repositório (apenas tela do jogo).
+
+### O que NÃO foi verificado (honesto)
+
+- **Com rosto real:** o headless desta máquina não tem câmera simulada, então **o desenho dos pontos do rosto e o sentido do giro com a cabeça NÃO foram validados ao vivo**. A correção do sinal é **derivada** (matriz + relato do dono, ver `research.md`) e fixada por testes com matrizes conhecidas, não medida com instrumento. O desenho (`drawFace`) é coberto por teste com contexto 2D simulado, mas sem rosto real não há como confirmar o traçado na tela.
+- **fps com mãos + rosto, precisão da pose e a sensação do giro** seguem **pendentes do teste ao vivo do dono** (Gate 3). Nenhum número de desempenho é afirmado.
+- **Licença do `face_landmarker.task`** segue não confirmada na fonte (NFR-004, R-04).

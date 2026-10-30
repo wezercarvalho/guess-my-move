@@ -25,6 +25,13 @@ Sequência executável test-first. Cada tarefa liga-se a requisitos por ID entre
 - [x] T19 — Medição de fps (mãos + rosto) e verificação visual headless registradas em `validation.md`; privacidade e origem/licença do modelo declaradas. [NFR-001, NFR-002, NFR-003, NFR-004]
 - [x] T20 — Atualizar `README.md` (seção do Arranha-Teia) e o guia de arquitetura, citando o rastreador de rosto. [FR-010]
 
+## Tarefas CQ-010 (correção da inversão e ajustes após o primeiro teste do dono)
+
+- [x] T21 — Corrigir o sinal de `headOrientationFromMatrix` (yaw/pitch) e o comentário; reescrever os testes puros com matrizes `Ry`/`Rx` conhecidas fixando a convenção (direita ⇒ `yaw > 0`, cima ⇒ `pitch > 0`) e corrigir o teste da matriz em `faceTracker.test.ts` (vermelho primeiro). [FR-011]
+- [x] T22 — `FaceReading { orientation, landmarks }`: o `faceTracker` devolve os pontos do rosto; `faceOverlay.ts` (`drawFace`) desenha o esboço esparso e o eixo do olhar no mesmo overlay espelhado, sem clear e sem guardar nada; testes com contexto 2D simulado (vermelho primeiro). [FR-012]
+- [x] T23 — Seletor "Direção do olhar" no `SwingController` (`setLookMode`, snapshot `lookMode`), exposto por `useSwingGame` e pelo `SegmentedControl` na tela; em Automática não carrega o rosto, descarta o desvio sem salto e oculta "Centralizar"; painel de depuração mostra o modo; testes do controlador e da tela (vermelho primeiro). [FR-013]
+- [x] T24 — Legenda de teclado como dados (`KEYS` em `guide.ts`) e painel "Teclado" sempre visível, estilizado com os tokens; testes do `KEYS` e da tela. [FR-014]
+
 ## Análise de consistência
 
 - **Status:** aprovada

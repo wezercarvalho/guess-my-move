@@ -55,3 +55,13 @@ A matriz de transformação facial dá guinada e inclinação diretamente e é e
 - **Dependência nova de rastreamento de cabeça:** rejeitada — o `@mediapipe/tasks-vision` já no app cobre o caso (CQ de dependência única mantido).
 - **Usar blendshapes para a pose:** rejeitado — desnecessário para guinada/inclinação e aumenta a superfície de dados do rosto.
 - **Fluxo de calibração dedicado (assistente):** rejeitado — calibração automática nos primeiros quadros + botão "Centralizar" é mais simples e testável.
+
+## CQ-010 — Derivação do sinal (não medida com instrumento)
+
+Depois do primeiro teste do dono (câmera invertida nos dois eixos), a convenção foi **derivada**, não medida com instrumento:
+
+- A matriz de transformação facial do MediaPipe leva o modelo canônico (olha para **+Z**, em direção à câmera; **X** para a direita da imagem; **Y** para cima) ao espaço da câmera, **sem espelhar**.
+- Rotação `Ry(θ)` leva +Z a `(sin θ, 0, cos θ)`. Quando o jogador vira a cabeça para a **sua direita**, o rosto aponta para a **esquerda** da imagem não espelhada, então `θ < 0`.
+- Rotação `Rx(φ)` leva +Z a `(0, -sin φ, cos φ)`. Olhar para **cima** dá `φ < 0`.
+- O código antigo (`yaw = atan2(-R[2][0], R[2][2])`, `pitch = atan2(-R[1][2], R[1][1])`) devolvia, portanto, **yaw negativo ao olhar para a direita** e **pitch negativo ao olhar para cima** — a inversão relatada. Removendo a negação (`yaw = atan2(R[2][0], R[2][2])`, `pitch = atan2(R[1][2], R[1][1])`), obtém-se `yaw = -θ` e `pitch = -φ`, logo **`yaw > 0` ao olhar para a direita** e **`pitch > 0` ao olhar para cima**, que casa com o olhar do jogo (`state.yaw` cresce para a direita, `state.pitch` positivo olha para cima — confirmado em `forwardFromAngles` de `packages/swing/src/vec.ts`).
+- Os testes fixam a convenção com matrizes `Ry`/`Rx` construídas por ângulos conhecidos (ordem de coluna). **A orientação absoluta da pose e a sensação ao vivo não foram medidas com instrumento**; a correção vem da derivação acima mais o relato do dono (H-02).
