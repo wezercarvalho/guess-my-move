@@ -3,11 +3,14 @@ import { type Vec3 } from './vec.js'
 
 /**
  * Agarre à parede do Arranha-Teia. Em contato com a fachada de um prédio, abrir as mãos
- * gruda o jogador na parede; mover as mãos alternadamente sobe ou desce; puxar a mão para
- * trás (ou largar o gesto) solta. Toda a regra aqui é pura e testável sem navegador.
+ * gruda o jogador na parede; descer uma mão por vez (ou as duas) sobe, as duas mãos subindo
+ * juntas desce; o punho fechado solta. Toda a regra aqui é pura e testável sem navegador.
  */
 
-/** Estado do agarre: a normal da parede agarrada e o tempo sem movimento de escalada. */
+/**
+ * Estado do agarre: a normal da parede agarrada, o topo do prédio, e os relógios que
+ * garantem a saída (sem movimento, sem mão por tempo demais, punho segurado).
+ */
 export interface WallGrip {
     /** Normal da parede (horizontal), para a tela e para manter o jogador encostado. */
     normal: Vec3
@@ -15,6 +18,10 @@ export interface WallGrip {
     wallTop: number
     /** Tempo acumulado sem movimento de escalada, em ms (solta sozinho ao passar da tolerância). */
     idleMs: number
+    /** Tempo acumulado sem pedido de agarre, em ms (tolera a perda curta da mão/palma). */
+    graceMs: number
+    /** Tempo acumulado com o punho fechado pedindo soltar, em ms. */
+    fistMs: number
 }
 
 /** Valores de jogo do agarre (não realistas; ajustáveis sem mudar a arquitetura). */
@@ -25,53 +32,48 @@ export interface GripConfig {
     climbDeadzone: number
     /** Tempo, em ms, sem movimento de escalada que solta o agarre sozinho. */
     gripIdleMs: number
-    /** Aumento de profundidade do pulso (z) que conta como "puxar a mão para trás". */
-    pullBackThreshold: number
+    /** Tolerância, em ms, para a perda curta da mão/palma no meio da escalada. */
+    grabGraceMs: number
+    /** Tempo, em ms, com o punho fechado que solta o agarre de propósito. */
+    fistReleaseMs: number
 }
 
 export const DEFAULT_GRIP: GripConfig = {
     climbSpeed: 6,
     climbDeadzone: 0.06,
     gripIdleMs: 1500,
-    pullBackThreshold: 0.08,
+    grabGraceMs: 300,
+    fistReleaseMs: 250,
 }
 
 /**
  * Sinal de escalada a partir do deslocamento vertical do pulso de cada mão entre dois
- * quadros (coordenadas normalizadas de imagem; y cresce para baixo). O movimento ALTERNADO
- * — uma mão desce enquanto a outra sobe — puxa o corpo para cima; o sentido segue a mão que
- * desce. Devolve de -1 a 1, com zona morta e saturação. Dados sintéticos nos testes: nada
- * aqui afirma precisão do rastreio.
+ * quadros (coordenadas normalizadas de imagem; y cresce para baixo). Cada mão que DESCE na
+ * imagem (dy > 0) puxa o corpo para cima — `up = max(0,dyEsq) + max(0,dyDir)`, então uma
+ * mão só, ou alternar as mãos, já sobe. As DUAS mãos subindo ao mesmo tempo (dy < 0) descem
+ * — `down = min(max(0,-dyEsq), max(0,-dyDir))`, zero se uma mão não sobe. Uma mão ausente
+ * conta dy = 0. Devolve `clamp(up - down)` de -1 a 1, com zona morta e saturação. Dados
+ * sintéticos nos testes: nada aqui afirma precisão do rastreio.
  */
 export function climbSignal(dyLeft: number, dyRight: number, config: GripConfig = DEFAULT_GRIP): number {
-    // Componente de "puxar para cima" de cada mão: descer na imagem (dy > 0) puxa o corpo
-    // para cima. O alternado é a média dos dois, mas só quando os sinais são opostos: duas
-    // mãos no mesmo sentido (movimento conjunto) quase se cancelam.
-    const alternation = (dyLeft - dyRight) / 2
-    const magnitude = Math.abs(alternation)
+    const up = Math.max(0, dyLeft) + Math.max(0, dyRight)
+    const down = Math.min(Math.max(0, -dyLeft), Math.max(0, -dyRight))
+    const raw = up - down
+    const magnitude = Math.abs(raw)
     if (magnitude < config.climbDeadzone) return 0
     // Escala a amplitude acima da zona morta e satura em 1; o sinal dá o sentido.
     const scaled = (magnitude - config.climbDeadzone) / (config.climbDeadzone * 4)
-    return Math.sign(alternation) * Math.min(1, scaled)
-}
-
-/**
- * "Puxar a mão para trás": verdadeiro quando ALGUMA mão se afasta da câmera além do limite
- * (a profundidade z do MediaPipe cresce para longe). Aproximado — o z do MediaPipe não foi
- * medido ao vivo; por isso este sinal nunca é a única saída do agarre.
- */
-export function pullBackSignal(dzLeft: number, dzRight: number, config: GripConfig = DEFAULT_GRIP): boolean {
-    return dzLeft > config.pullBackThreshold || dzRight > config.pullBackThreshold
+    return Math.sign(raw) * Math.min(1, scaled)
 }
 
 /** O que o passo precisa saber do pedido do jogador para o agarre. */
 export interface GripInput {
-    /** Alguma mão pede o agarre neste passo. */
+    /** Alguma mão pede o agarre neste passo (palma aberta em contato, ou a tecla). */
     grab: boolean
     /** Sinal de escalada (-1 a 1); positivo sobe, negativo desce. */
     climb: number
-    /** Puxar a mão para trás: soltar da parede. */
-    release: boolean
+    /** Punho fechado pedindo soltar neste quadro (solta ao segurar além de `fistReleaseMs`). */
+    releaseFist: boolean
     /** Há teia presa neste passo (lançar uma teia encerra o agarre). */
     hasWeb: boolean
 }
@@ -88,8 +90,9 @@ export interface GripStep {
  * Decide e aplica o agarre num passo. Entra só com contato de parede (`contact.kind` != roof)
  * mais o pedido de agarrar; ao entrar, zera a velocidade e marca a parede. Agarrado, não há
  * gravidade nem deslize (quem chama pula essa parte): aqui o jogador sobe/desce por
- * `climb * climbSpeed` e sai por uma das quatro condições (largar/puxar, teia, topo,
- * inatividade). Altera `state` no lugar via os objetos passados.
+ * `climb * climbSpeed` e sai por uma das condições (punho segurado, teia, topo, inatividade,
+ * ou perder o pedido de agarre além da tolerância). Altera `state` no lugar via os objetos
+ * passados.
  */
 export function stepGrip(
     state: { position: Vec3; velocity: Vec3; grip: WallGrip | null; grounded: boolean },
@@ -101,22 +104,46 @@ export function stepGrip(
     radius = 1.7,
 ): GripStep {
     const touchingWall = contact !== null && contact.kind !== 'roof'
+    const dtMs = dt * 1000
 
     // Entrar: contato de parede mais o pedido de agarrar.
     if (state.grip === null) {
         if (input.grab && touchingWall && contact) {
             const wallTop = wallTopAt ? wallTopAt(state.position.x, state.position.z) : Infinity
-            state.grip = { normal: { ...contact.normal }, wallTop, idleMs: 0 }
+            state.grip = { normal: { ...contact.normal }, wallTop, idleMs: 0, graceMs: 0, fistMs: 0 }
             state.velocity = { x: 0, y: 0, z: 0 }
             return { gripped: true, toppedOut: false }
         }
         return { gripped: false, toppedOut: false }
     }
 
-    // Saídas que não dependem do movimento (robustas): largar/puxar, teia, perder o contato.
-    if (!input.grab || input.release || input.hasWeb) {
+    // Lançar uma teia encerra o agarre na hora (um regime por vez).
+    if (input.hasWeb) {
         state.grip = null
         return { gripped: false, toppedOut: false }
+    }
+
+    // Soltar de propósito: punho fechado segurado além do tempo.
+    if (input.releaseFist) {
+        state.grip.fistMs += dtMs
+        if (state.grip.fistMs >= config.fistReleaseMs) {
+            state.grip = null
+            return { gripped: false, toppedOut: false }
+        }
+    } else {
+        state.grip.fistMs = 0
+    }
+
+    // Perder o pedido de agarre: tolera um lapso curto (quadro ruim, palma não lida); além
+    // da tolerância, solta. O pedido de volta reinicia a tolerância.
+    if (!input.grab) {
+        state.grip.graceMs += dtMs
+        if (state.grip.graceMs > config.grabGraceMs) {
+            state.grip = null
+            return { gripped: false, toppedOut: false }
+        }
+    } else {
+        state.grip.graceMs = 0
     }
 
     // Atualiza a normal com o contato mais recente, para acompanhar cantos.
@@ -126,7 +153,7 @@ export function stepGrip(
     const climb = Math.max(-1, Math.min(1, input.climb))
     state.velocity = { x: 0, y: 0, z: 0 }
     if (Math.abs(climb) < config.climbDeadzone) {
-        state.grip.idleMs += dt * 1000
+        state.grip.idleMs += dtMs
     } else {
         state.grip.idleMs = 0
         state.position.y += climb * config.climbSpeed * dt

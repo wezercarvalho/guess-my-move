@@ -20,7 +20,9 @@ describe('currentStep', () => {
         expect(currentStep('ground')).toBe(1)
         expect(currentStep('swing')).toBe(3)
         expect(currentStep('release')).toBe(4)
-        expect(STEPS).toHaveLength(4)
+        expect(currentStep('wall')).toBe(5)
+        expect(currentStep('grip')).toBe(5)
+        expect(STEPS).toHaveLength(5)
     })
 })
 
@@ -33,6 +35,19 @@ describe('statusLine', () => {
         expect(statusLine('swing')).toMatch(/punho/i)
         expect(statusLine('low')).toMatch(/chão/i)
         expect(statusLine('ground')).toMatch(/subir/i)
+    })
+
+    it('encostado na parede, manda abrir a mão para agarrar', () => {
+        expect(statusLine('wall')).toMatch(/parede/i)
+        expect(statusLine('wall')).toMatch(/abra a mão/i)
+        expect(statusLine('wall')).toMatch(/agarrar/i)
+    })
+
+    it('agarrado, ensina a descer uma mão por vez e que o punho solta', () => {
+        expect(statusLine('grip')).toMatch(/agarrado/i)
+        expect(statusLine('grip')).toMatch(/desça uma mão/i)
+        expect(statusLine('grip')).toMatch(/punho/i)
+        expect(statusLine('grip')).toMatch(/solta/i)
     })
 })
 
@@ -65,6 +80,11 @@ describe('guideHint', () => {
         expect(guideHint({ ...ok, handVisible: false })).toMatch(/mão inteira/)
     })
 
+    it('agarrado, se a mão some pede para mostrar a palma de novo', () => {
+        const hint = guideHint({ ...ok, gripped: true, cue: 'grip', handVisible: false })
+        expect(hint).toMatch(/palma/i)
+    })
+
     it('com a mão à vista e sem a pose, descreve a pose', () => {
         const hint = guideHint({ ...ok, gestureHeld: false, cue: 'throw' })
         expect(hint).toMatch(/polegar/i)
@@ -76,10 +96,16 @@ describe('guideHint', () => {
         expect(guideHint({ ...ok, cue: 'release' })).toMatch(/palma aberta/i)
     })
 
+    it('encostado na parede, ensina a abrir a mão para agarrar', () => {
+        const hint = guideHint({ ...ok, cue: 'wall', gestureHeld: false })
+        expect(hint).toMatch(/parede/i)
+        expect(hint).toMatch(/abra a mão/i)
+    })
+
     it('agarrado, explica como subir e soltar', () => {
-        const hint = guideHint({ ...ok, gripped: true })
-        expect(hint).toMatch(/alterne/i)
-        expect(hint).toMatch(/puxe a mão/i)
+        const hint = guideHint({ ...ok, gripped: true, cue: 'grip' })
+        expect(hint).toMatch(/desça uma mão/i)
+        expect(hint).toMatch(/punho/i)
     })
 
     it('o teclado sem câmera menciona V para agarrar', () => {

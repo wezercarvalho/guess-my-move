@@ -19,20 +19,37 @@ const city: City = {
     roads: [],
 }
 
-/** Palma aberta com a geometria completa (dedos esticados), no x pedido e com z opcional. */
-const palm = (x = 0.5, z = 0): TrackedHand => {
-    const points = Array.from({ length: 21 }, () => ({ x, y: 0.8, z }))
+/** Palma aberta com a geometria completa (dedos esticados), no x pedido. */
+const palm = (x = 0.5): TrackedHand => {
+    const points = Array.from({ length: 21 }, () => ({ x, y: 0.8 }))
     const finger = (first: number, fx: number) => {
-        points[first] = { x: fx, y: 0.6, z }
-        points[first + 1] = { x: fx, y: 0.53, z }
-        points[first + 2] = { x: fx, y: 0.47, z }
-        points[first + 3] = { x: fx, y: 0.4, z }
+        points[first] = { x: fx, y: 0.6 }
+        points[first + 1] = { x: fx, y: 0.53 }
+        points[first + 2] = { x: fx, y: 0.47 }
+        points[first + 3] = { x: fx, y: 0.4 }
     }
     finger(5, x - 0.06)
     finger(9, x)
     finger(13, x + 0.06)
     finger(17, x + 0.12)
-    points[4] = { x: x - 0.24, y: 0.6, z }
+    points[4] = { x: x - 0.24, y: 0.6 }
+    return { landmarks: points }
+}
+
+/** Punho fechado (os quatro dedos dobrados, pontas perto do pulso) no x pedido. */
+const fist = (x = 0.5): TrackedHand => {
+    const points = Array.from({ length: 21 }, () => ({ x, y: 0.8 }))
+    const finger = (first: number, fx: number) => {
+        points[first] = { x: fx, y: 0.6 }
+        points[first + 1] = { x: fx, y: 0.62 }
+        points[first + 2] = { x: fx, y: 0.64 }
+        points[first + 3] = { x: fx, y: 0.66 }
+    }
+    finger(5, x - 0.06)
+    finger(9, x)
+    finger(13, x + 0.06)
+    finger(17, x + 0.12)
+    points[4] = { x: x - 0.02, y: 0.66 }
     return { landmarks: points }
 }
 
@@ -149,7 +166,7 @@ describe('SwingController — agarre à parede', () => {
         for (let i = 0; i < 10; i++) tick()
         expect(controller.getSnapshot().hud.gripped).toBe(true)
         release('v')
-        for (let i = 0; i < 10; i++) tick()
+        for (let i = 0; i < 40; i++) tick()
         expect(controller.getSnapshot().hud.gripped).toBe(false)
     })
 
@@ -163,14 +180,31 @@ describe('SwingController — agarre à parede', () => {
         expect(controller.getSnapshot().hud.gripped).toBe(true)
     })
 
-    it('expõe a palma aberta e o puxar-para-trás na depuração', async () => {
+    it('agarrado pela palma, o punho fechado segurado solta', async () => {
+        const { controller, detectAll, press, tick, lastState } = await playing()
+        tick()
+        expect(reachWall(controller, tick, press, lastState)).toBe(true)
+        detectAll.mockReturnValue([palm(0.8)])
+        for (let i = 0; i < 10; i++) tick()
+        expect(controller.getSnapshot().hud.gripped).toBe(true)
+        // Fecha o punho e segura: solta o agarre depois do tempo.
+        detectAll.mockReturnValue([fist(0.8)])
+        for (let i = 0; i < 40; i++) tick()
+        expect(controller.getSnapshot().hud.gripped).toBe(false)
+    })
+
+    it('expõe a palma aberta, o punho e o sinal de escalada na depuração', async () => {
         const { controller, detectAll, tick } = await playing()
-        detectAll.mockReturnValue([palm(0.8, 0)])
+        detectAll.mockReturnValue([palm(0.8)])
         tick(150)
-        detectAll.mockReturnValue([palm(0.8, 0.3)])
         tick(150)
         const [reading] = controller.getSnapshot().handDebug
         expect(reading?.openPalm).toBe(true)
-        expect(reading?.pullBack).toBe(true)
+        expect(reading?.fist).toBe(false)
+        detectAll.mockReturnValue([fist(0.8)])
+        tick(150)
+        const [closed] = controller.getSnapshot().handDebug
+        expect(closed?.openPalm).toBe(false)
+        expect(closed?.fist).toBe(true)
     })
 })

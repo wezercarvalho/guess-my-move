@@ -168,7 +168,7 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>
-                <SwingDebugPanel hands={game.handDebug} />
+                <SwingDebugPanel hands={game.handDebug} grab={game.grabDebug} />
             </DrawerPanel>
         </div>
     )

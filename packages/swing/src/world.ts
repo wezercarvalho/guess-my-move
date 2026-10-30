@@ -39,8 +39,8 @@ export interface SwingInput {
     grab?: SlotFlags
     /** Sinal de escalada (-1 a 1): sobe/desce quando agarrado. */
     climb?: number
-    /** Puxar a mão para trás: soltar da parede. */
-    release?: boolean
+    /** Punho fechado: soltar da parede (ao segurar além da tolerância). */
+    releaseFist?: boolean
     yawRate: number
     pitchRate: number
 }
@@ -212,7 +212,7 @@ export function createSwingWorld(
         return stepPlayer(index, state, dt, config, {
             grab: input.grab,
             climb: input.climb,
-            release: input.release,
+            releaseFist: input.releaseFist,
         })
     }
 

@@ -205,7 +205,7 @@ export function stepPlayer(
     if (state.grip !== null) {
         const stepResult = stepGrip(
             state,
-            { grab, climb: input.climb ?? 0, release: Boolean(input.release), hasWeb: state.webs.length > 0 },
+            { grab, climb: input.climb ?? 0, releaseFist: Boolean(input.releaseFist), hasWeb: state.webs.length > 0 },
             dt,
             latestContact(index, state, config),
             config.grip,
@@ -330,7 +330,7 @@ export function stepPlayer(
     // zera a velocidade e solta as teias presas (um regime de cada vez). Não reentra no
     // mesmo passo em que saiu (ex.: saída por teia lançada).
     if (state.grip === null && !exitedGrip && grab && state.touchingWall && contact && contact.kind !== 'roof') {
-        state.grip = { normal: { ...contact.normal }, wallTop: wallTop(index, state, config, contact.normal), idleMs: 0 }
+        state.grip = { normal: { ...contact.normal }, wallTop: wallTop(index, state, config, contact.normal), idleMs: 0, graceMs: 0, fistMs: 0 }
         state.velocity = { x: 0, y: 0, z: 0 }
         state.webs = []
     }
@@ -355,7 +355,8 @@ export function stepPlayer(
 export interface PlayerStep {
     grab?: Partial<Record<'left' | 'center' | 'right', boolean>> | undefined
     climb?: number | undefined
-    release?: boolean | undefined
+    /** Punho fechado pedindo soltar da parede (solta ao segurar além de `fistReleaseMs`). */
+    releaseFist?: boolean | undefined
 }
 
 const SLOT_KEYS = ['left', 'center', 'right'] as const

@@ -12,7 +12,6 @@ export {
     type GripStep,
     type WallGrip,
     climbSignal,
-    pullBackSignal,
     stepGrip,
 } from './climb.js'
 export {

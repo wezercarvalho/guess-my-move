@@ -92,22 +92,74 @@ describe('agarrar a parede', () => {
         }
         expect(Math.abs(state.position.y - y)).toBeLessThan(0.5)
     })
+
+    it('alternar as mãos (uma desce por vez) dá subida líquida positiva', () => {
+        // Simula a escalada real: o controlador reduz o movimento das mãos a um climb -1..1.
+        // Uma braçada = climb positivo (uma mão desce na imagem) por alguns quadros, depois
+        // uma pausa; repetir alternando as mãos tem de deixar o jogador MAIS ALTO.
+        const { index, state } = againstWall()
+        stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+        const y0 = state.position.y
+        for (let stroke = 0; stroke < 6; stroke++) {
+            // Puxada da braçada (mão desce → sobe o corpo).
+            for (let i = 0; i < 20; i++) {
+                stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: 0.8 }))
+            }
+            // Recolocar a mão (sinal volta à zona morta, não desce).
+            for (let i = 0; i < 20; i++) {
+                stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: 0 }))
+            }
+        }
+        expect(state.position.y).toBeGreaterThan(y0 + 1)
+    })
 })
 
 describe('sair do agarre', () => {
-    it('solta quando o pedido de agarre some', () => {
+    it('solta quando o pedido de agarre some por mais que a tolerância', () => {
         const { index, state } = againstWall()
         stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
         expect(state.grip).not.toBeNull()
-        stepPlayer(index, state, DT, DEFAULT_SWING, input({}))
+        const steps = Math.ceil(DEFAULT_SWING.grip.grabGraceMs / (DT * 1000)) + 5
+        for (let i = 0; i < steps; i++) {
+            stepPlayer(index, state, DT, DEFAULT_SWING, input({}))
+        }
         expect(state.grip).toBeNull()
     })
 
-    it('solta com o sinal de soltar (puxar a mão para trás)', () => {
+    it('tolera a perda curta da mão no meio da escalada (não solta por um quadro ruim)', () => {
         const { index, state } = againstWall()
         stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
-        stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, release: true }))
+        expect(state.grip).not.toBeNull()
+        // Alguns quadros sem mão, abaixo da tolerância: continua agarrado.
+        const shortGap = Math.floor(DEFAULT_SWING.grip.grabGraceMs / (DT * 1000) / 2)
+        for (let i = 0; i < shortGap; i++) {
+            stepPlayer(index, state, DT, DEFAULT_SWING, input({}))
+        }
+        expect(state.grip).not.toBeNull()
+        // A mão volta: segue agarrado e a tolerância reinicia.
+        stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+        expect(state.grip).not.toBeNull()
+    })
+
+    it('solta com o punho fechado segurado além do tempo', () => {
+        const { index, state } = againstWall()
+        stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+        expect(state.grip).not.toBeNull()
+        const steps = Math.ceil(DEFAULT_SWING.grip.fistReleaseMs / (DT * 1000)) + 5
+        for (let i = 0; i < steps; i++) {
+            stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, releaseFist: true }))
+        }
         expect(state.grip).toBeNull()
+    })
+
+    it('o punho fechado por um instante só (abaixo do tempo) não solta', () => {
+        const { index, state } = againstWall()
+        stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+        const steps = Math.floor(DEFAULT_SWING.grip.fistReleaseMs / (DT * 1000) / 2)
+        for (let i = 0; i < steps; i++) {
+            stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, releaseFist: true }))
+        }
+        expect(state.grip).not.toBeNull()
     })
 
     it('lançar uma teia encerra o agarre', () => {
@@ -164,7 +216,8 @@ describe('propriedade: nunca fica preso no agarre', () => {
             seed = (seed * 1103515245 + 12345) & 0x7fffffff
             return seed / 0x7fffffff
         }
-        const maxSteps = Math.ceil(DEFAULT_SWING.grip.gripIdleMs / (DT * 1000)) + 2000
+        const graceSteps = Math.ceil(DEFAULT_SWING.grip.grabGraceMs / (DT * 1000)) + 2
+        const fistSteps = Math.ceil(DEFAULT_SWING.grip.fistReleaseMs / (DT * 1000)) + 2
         for (let trial = 0; trial < 300; trial++) {
             const index = createCityIndex(cityOf(box(-5, -40, 60, 40, 60 + rnd() * 200)))
             const state = createSwingState({ x: -5 - DEFAULT_SWING.radius + 0.2, y: 20 + rnd() * 60, z: 0 })
@@ -173,19 +226,32 @@ describe('propriedade: nunca fica preso no agarre', () => {
             // Entra no agarre.
             stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
             let released = state.grip === null
-            let stepsTaken = 0
-            for (let i = 0; i < maxSteps && !released; i++) {
+            // Fase 1: entradas aleatórias por uma janela (pode continuar agarrado escalando).
+            for (let i = 0; i < 600 && !released; i++) {
                 const grabbing = rnd() > 0.15
                 const over: Partial<SwingInput> = {
                     grab: grabbing ? { left: rnd() > 0.5, right: rnd() > 0.5 } : {},
                     climb: rnd() * 2 - 1,
-                    release: rnd() > 0.9,
+                    releaseFist: rnd() > 0.9,
                 }
                 stepPlayer(index, state, DT, DEFAULT_SWING, input(over))
+                if (state.grip === null) released = true
+            }
+            // Fase 2: o jogador SEMPRE tem uma saída — soltar o agarre (grace) OU segurar o
+            // punho. Verifica que uma delas encerra o agarre em tempo finito.
+            const useFist = rnd() > 0.5
+            const over = useFist ? input({ grab: { left: true }, releaseFist: true }) : input({})
+            const budget = (useFist ? fistSteps : graceSteps) + 2
+            let stepsTaken = 0
+            for (let i = 0; i < budget && !released; i++) {
+                stepPlayer(index, state, DT, DEFAULT_SWING, over)
                 stepsTaken = i + 1
                 if (state.grip === null) released = true
             }
-            expect(released, `preso após ${stepsTaken} passos no ensaio ${trial}`).toBe(true)
+            expect(
+                released,
+                `preso após a saída (${useFist ? 'punho' : 'soltar'}) em ${stepsTaken} passos no ensaio ${trial}`,
+            ).toBe(true)
         }
     })
 })

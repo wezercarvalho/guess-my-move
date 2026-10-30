@@ -2,21 +2,21 @@ import {
     type City,
     type SwingCue,
     type SwingInput,
+    type SwingState,
     type SwingWorld,
     type HandMetrics,
     type TriggerGesture,
     type WebSide,
     type WebTrigger,
     DEFAULT_SWING,
-    DEFAULT_GRIP,
     climbSignal,
     createCityIndex,
     createSwingWorld,
     createWebTrigger,
     handMetrics,
     handSide,
+    isFist,
     isOpenPalm,
-    pullBackSignal,
     swingCue,
     webSignal,
 } from '@guess-my-move/swing'
@@ -78,8 +78,8 @@ export interface HandDebug {
     metrics: HandMetrics | null
     /** Palma aberta (candidata a agarrar a parede). */
     openPalm: boolean
-    /** A mão foi puxada para trás neste quadro (sinal de soltar da parede). */
-    pullBack: boolean
+    /** Punho fechado (pedido de soltar a parede quando agarrado). */
+    fist: boolean
 }
 
 export interface SwingSnapshot {
@@ -98,6 +98,8 @@ export interface SwingSnapshot {
     pulling: boolean
     /** Leitura de cada mão, para o painel de depuração. */
     handDebug: readonly HandDebug[]
+    /** Agarre, para a depuração: em contato com a parede, agarrado e o sinal de escalada (-1..1). */
+    grabDebug: { touchingWall: boolean; gripped: boolean; climb: number }
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
@@ -109,6 +111,8 @@ export interface SwingSnapshot {
 const PUBLISH_INTERVAL_MS = 100
 /** Sem quadro novo da câmera por este tempo, a mão conta como perdida. */
 const STALE_HAND_MS = 500
+/** A dica "Parede: abra a mão" fica por este tempo após o último contato, para não piscar. */
+const WALL_HINT_MS = 600
 
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha desconhecida.'
@@ -156,15 +160,17 @@ export class SwingController {
     private held = { left: false, right: false }
     /** Mãos abertas em contato com a parede: agarrar daquele lado. */
     private grabs = { left: false, right: false }
-    /** Sinal de escalada da câmera (-1 a 1), do movimento alternado das mãos. */
+    /** Sinal de escalada da câmera (-1 a 1), do movimento vertical das mãos. */
     private climb = 0
-    /** Puxar a mão para trás (afastar da câmera): soltar da parede. */
-    private releaseGrip = false
-    /** Posição anterior do pulso de cada mão (y para a escalada, z para soltar). */
-    private prevWrist: { left: { y: number; z: number } | null; right: { y: number; z: number } | null } = {
+    /** Punho fechado de alguma mão: pedido de soltar da parede. */
+    private releaseFist = false
+    /** Posição vertical anterior do pulso de cada mão (y), para o sinal de escalada. */
+    private prevWrist: { left: number | null; right: number | null } = {
         left: null,
         right: null,
     }
+    /** Último instante, em ms, em que o jogador encostou numa parede (para a dica não piscar). */
+    private wallContactAt = -Infinity
     private readonly sideKeys = { left: 'z', right: 'x' }
     private readonly pullKey = 'c'
     private readonly grabKey = 'v'
@@ -260,8 +266,9 @@ export class SwingController {
         this.pulls = { left: false, right: false }
         this.grabs = { left: false, right: false }
         this.climb = 0
-        this.releaseGrip = false
+        this.releaseFist = false
         this.prevWrist = { left: null, right: null }
+        this.wallContactAt = -Infinity
         this.lastThrow = null
         this.counted = { webs: 0, misses: 0 }
         this.emit()
@@ -334,7 +341,7 @@ export class SwingController {
         this.handDebug = []
         this.grabs = { left: false, right: false }
         this.climb = 0
-        this.releaseGrip = false
+        this.releaseFist = false
         this.prevWrist = { left: null, right: null }
         const now = this.env.now()
         this.applyTriggers({ left: null, right: null }, now)
@@ -394,12 +401,13 @@ export class SwingController {
             // Mãos abertas em contato com a parede agarram; V agarra pelo teclado.
             grab,
             climb,
-            release: this.releaseGrip,
+            releaseFist: this.releaseFist,
             // A câmera é automática (segue o movimento); as setas só ajustam o olhar (fora do agarre).
             yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
             pitchRate: gripped ? 0 : this.keyAxis('ArrowUp', 'ArrowDown'),
         }
         world.advance(input, dt)
+        if (world.state.touchingWall) this.wallContactAt = now
         this.noteThrow(world)
         renderer.render(world.state)
 
@@ -500,8 +508,8 @@ export class SwingController {
     /**
      * O gesto de teia de cada lado da tela, e os sinais do agarre. Com duas mãos, a mais à
      * esquerda da tela espelhada é a esquerda; com uma, vale o lado em que ela aparece. Além
-     * do gesto de teia, lê a palma aberta (candidata a agarrar), o deslocamento vertical do
-     * pulso de cada mão (escalada, movimento alternado) e o afastamento da câmera (soltar).
+     * do gesto de teia, lê a palma aberta (candidata a agarrar), o punho fechado (soltar da
+     * parede) e o deslocamento vertical do pulso de cada mão (escalada).
      */
     private signalsBySide(hands: TrackedHand[]): {
         left: TriggerGesture | null
@@ -513,7 +521,8 @@ export class SwingController {
         }
         this.handDebug = []
         const openPalm = { left: false, right: false }
-        const wrist: { left: { y: number; z: number } | null; right: { y: number; z: number } | null } = {
+        const closedFist = { left: false, right: false }
+        const wrist: { left: number | null; right: number | null } = {
             left: null,
             right: null,
         }
@@ -526,29 +535,28 @@ export class SwingController {
             const signal = webSignal(tracked.landmarks, tracked.gesture)
             signals[side] = signal
             const palmOpen = isOpenPalm(tracked.landmarks)
+            const fistClosed = isFist(tracked.landmarks)
             openPalm[side] = palmOpen
-            const w = tracked.landmarks[0] as { x: number; y: number; z?: number } | undefined
-            if (w) wrist[side] = { y: w.y, z: w.z ?? 0 }
-            // Afastamento da câmera desta mão (profundidade z), para o sinal de soltar.
-            const prev = this.prevWrist[side]
-            const dz = prev && w ? (w.z ?? 0) - prev.z : 0
+            closedFist[side] = fistClosed
+            const w = tracked.landmarks[0] as { x: number; y: number } | undefined
+            if (w) wrist[side] = w.y
             this.handDebug.push({
                 side: side === 'left' ? 'esq.' : 'dir.',
                 label: tracked.gesture?.name ?? null,
                 signal: signal?.name ?? null,
                 metrics: handMetrics(tracked.landmarks),
                 openPalm: palmOpen,
-                pullBack: dz > DEFAULT_GRIP.pullBackThreshold,
+                fist: fistClosed,
             })
         })
 
-        // Escalada: movimento alternado das duas mãos (deslocamento vertical do pulso).
-        const dyLeft = this.prevWrist.left && wrist.left ? wrist.left.y - this.prevWrist.left.y : 0
-        const dyRight = this.prevWrist.right && wrist.right ? wrist.right.y - this.prevWrist.right.y : 0
-        const dzLeft = this.prevWrist.left && wrist.left ? wrist.left.z - this.prevWrist.left.z : 0
-        const dzRight = this.prevWrist.right && wrist.right ? wrist.right.z - this.prevWrist.right.z : 0
+        // Escalada: deslocamento vertical do pulso de cada mão. Descer na imagem puxa o corpo
+        // para cima; as duas subindo ao mesmo tempo descem (regra em `climbSignal`).
+        const dyLeft = this.prevWrist.left !== null && wrist.left !== null ? wrist.left - this.prevWrist.left : 0
+        const dyRight = this.prevWrist.right !== null && wrist.right !== null ? wrist.right - this.prevWrist.right : 0
         this.climb = climbSignal(dyLeft, dyRight)
-        this.releaseGrip = pullBackSignal(dzLeft, dzRight)
+        // Soltar da parede: punho fechado de qualquer mão (o passo exige segurá-lo por tempo).
+        this.releaseFist = closedFist.left || closedFist.right
         this.grabs = openPalm
         this.prevWrist = wrist
         return signals
@@ -638,11 +646,29 @@ export class SwingController {
             handsVisible: this.hands.length,
             pulling: this.pulls.left || this.pulls.right,
             handDebug: [...this.handDebug],
-            cue: state ? swingCue(state) : 'start',
+            grabDebug: {
+                touchingWall: state?.touchingWall ?? false,
+                gripped: state?.grip != null,
+                climb: this.climb,
+            },
+            cue: this.currentCue(state),
             lastThrow: this.lastThrow,
             hud,
             attribution: this.city?.attribution ?? '',
         }
+    }
+
+    /**
+     * O gesto a sugerir. Parte de `swingCue`, mas mantém a dica de parede ("abra a mão para
+     * agarrar") por um instante após o último contato, para o status não piscar quando o
+     * jogador roça a fachada.
+     */
+    private currentCue(state: SwingState | undefined): SwingCue {
+        if (!state) return 'start'
+        const base = swingCue(state)
+        if (base === 'wall' || state.grip !== null || state.webs.length > 0 || !state.started) return base
+        const recentWall = this.env.now() - this.wallContactAt <= WALL_HINT_MS
+        return recentWall ? 'wall' : base
     }
 }
 
