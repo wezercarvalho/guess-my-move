@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { STEPS, currentStep, gripStatusLine, guideHint, statusLine } from './guide.js'
+import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
 
 const ok = {
     cameraActive: true,
@@ -118,5 +118,55 @@ describe('gripStatusLine', () => {
     it('diz que está agarrado e como subir/soltar', () => {
         expect(gripStatusLine()).toMatch(/agarrado/i)
         expect(gripStatusLine()).toMatch(/subir/i)
+    })
+})
+
+describe('headStatusLine', () => {
+    it('é vazia sem câmera ou com o detector de rosto inativo', () => {
+        expect(headStatusLine({ cameraActive: false, faceTrackerStatus: 'idle', faceVisible: false })).toBe('')
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'idle', faceVisible: false })).toBe('')
+    })
+
+    it('avisa quando o detector de rosto está carregando', () => {
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'loading', faceVisible: false })).toMatch(
+            /rosto/i,
+        )
+    })
+
+    it('pede para centralizar quando o rosto some', () => {
+        const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: false })
+        expect(line).toMatch(/rosto fora do quadro/i)
+        expect(line).toMatch(/centralize/i)
+    })
+
+    it('fica vazia quando o rosto está à vista', () => {
+        expect(headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: true })).toBe('')
+    })
+
+    it('diz que a cabeça não está disponível quando o detector de rosto falha', () => {
+        const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'error', faceVisible: false })
+        expect(line).toMatch(/cabeça/i)
+    })
+})
+
+describe('KEYS', () => {
+    it('lista as teclas por grupo, uma linha cada, com as teclas e o que fazem', () => {
+        expect(KEYS.length).toBeGreaterThanOrEqual(4)
+        for (const group of KEYS) {
+            expect(group.keys.length).toBeGreaterThan(0)
+            expect(group.action.length).toBeGreaterThan(0)
+        }
+        const all = KEYS.flatMap((group) => group.keys)
+        expect(all).toContain('Espaço')
+        expect(all).toContain('Z')
+        expect(all).toContain('X')
+        expect(all).toContain('C')
+        // As quatro setas aparecem.
+        expect(all).toEqual(expect.arrayContaining(['←', '→', '↑', '↓']))
+        // O agarre à parede tem a sua tecla e as setas sobem/descem.
+        expect(all).toContain('V')
+        const climb = KEYS.find((group) => group.keys.includes('V'))
+        expect(climb?.action).toMatch(/agarra/i)
+        expect(KEYS.some((group) => /sobem|sobe/i.test(group.action))).toBe(true)
     })
 })

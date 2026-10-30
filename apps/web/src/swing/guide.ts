@@ -11,6 +11,27 @@ export const STEPS = [
     'Na parede: abra a mão para agarrar e escale.',
 ] as const
 
+/** Um grupo de teclas e o que ele faz, para a legenda de teclado da tela. */
+export interface KeyGroup {
+    /** Teclas do grupo (renderizadas como `<kbd>`). */
+    keys: readonly string[]
+    /** O que o grupo faz, em texto curto. */
+    action: string
+}
+
+/**
+ * Legenda de teclado do Arranha-Teia, como DADOS (uma linha por grupo), para a tela montar a
+ * lista e outro PR acrescentar linhas sem conflito de layout. Texto curto e objetivo.
+ */
+export const KEYS: readonly KeyGroup[] = [
+    { keys: ['Espaço'], action: 'lança (centro)' },
+    { keys: ['Z', 'X'], action: 'lançam esquerda / direita' },
+    { keys: ['C'], action: 'puxa' },
+    { keys: ['←', '→', '↑', '↓'], action: 'olham' },
+    { keys: ['V'], action: 'agarra a parede (segure, encostado)' },
+    { keys: ['↑', '↓'], action: 'sobem / descem agarrado' },
+]
+
 /** Etapa em andamento (1 a 5), a partir da próxima ação do jogador. */
 export function currentStep(cue: SwingCue): number {
     switch (cue) {
@@ -59,7 +80,6 @@ export interface HintInput {
     lastThrow: 'hit' | 'miss' | null
     cue: SwingCue
 }
-
 /** Dica curta do que corrigir agora; vazia quando está tudo certo. */
 export function guideHint({
     cameraActive,
@@ -84,6 +104,25 @@ export function guideHint({
     if (!gestureHeld && cue !== 'swing') {
         return 'Polegar, indicador e mindinho abertos; médio e anelar dobrados. Vale em qualquer ângulo.'
     }
+    return ''
+}
+
+export interface HeadStatusInput {
+    cameraActive: boolean
+    faceTrackerStatus: SwingTrackerStatus
+    /** Há rosto à vista agora. */
+    faceVisible: boolean
+}
+
+/**
+ * Status de uma linha da câmera pela cabeça; vazia quando está tudo certo (rosto à vista)
+ * ou quando o recurso não está ativo (sem câmera / detector de rosto parado).
+ */
+export function headStatusLine({ cameraActive, faceTrackerStatus, faceVisible }: HeadStatusInput): string {
+    if (!cameraActive || faceTrackerStatus === 'idle') return ''
+    if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
+    if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
+    if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
     return ''
 }
 

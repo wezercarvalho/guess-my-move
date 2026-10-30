@@ -24,11 +24,12 @@ export function swingCue(
 ): SwingCue {
     if (!state.started) return 'start'
     if (state.grip !== null) return 'grip'
+    // Encostado numa fachada, mesmo com teia presa: a palma aberta solta a teia e agarra.
+    if (state.touchingWall) return 'wall'
     if (state.webs.length > 0) {
         const horizontal = Math.hypot(state.velocity.x, state.velocity.z)
         return state.velocity.y > RISING && horizontal >= FAST ? 'release' : 'swing'
     }
-    if (state.touchingWall) return 'wall'
     if (state.grounded) return 'ground'
     return state.position.y < LOW_ALTITUDE ? 'low' : 'throw'
 }

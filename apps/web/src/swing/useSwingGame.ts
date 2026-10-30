@@ -5,6 +5,7 @@ import {
     delegatePreferenceFromSearch,
     realTwoHandGestureLoader,
 } from '../tracker/mediapipeTracker.js'
+import { createMediaPipeFaceTracker } from '../tracker/faceTracker.js'
 import { createThreeRenderer } from './cityRenderer.js'
 import { fetchCity } from './loadCity.js'
 import { SwingController, type SwingEnv, type SwingSnapshot } from './swingController.js'
@@ -24,6 +25,8 @@ export interface UseSwingGameOptions {
 
 export interface SwingGameView extends SwingSnapshot {
     restart: () => void
+    recenterHead: () => void
+    setLookMode: (mode: 'auto' | 'face') => void
     resize: (width: number, height: number) => void
 }
 
@@ -36,6 +39,9 @@ function resolveEnv(deps: SwingDeps | undefined): SwingEnv {
                     realTwoHandGestureLoader,
                     delegatePreferenceFromSearch(window.location.search),
                 )),
+        createFaceTracker:
+            deps?.createFaceTracker ??
+            (() => createMediaPipeFaceTracker(undefined, delegatePreferenceFromSearch(window.location.search))),
         loadCity:
             deps?.loadCity ?? (() => fetchCity(`${import.meta.env.BASE_URL}swing/midtown.json`)),
         createRenderer: deps?.createRenderer ?? createThreeRenderer,
@@ -69,5 +75,11 @@ export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
         controller.setCamera(cameraActive)
     }, [controller, cameraActive])
 
-    return { ...snapshot, restart: controller.restart, resize: controller.resize.bind(controller) }
+    return {
+        ...snapshot,
+        restart: controller.restart,
+        recenterHead: controller.recenterHead,
+        setLookMode: controller.setLookMode,
+        resize: controller.resize.bind(controller),
+    }
 }

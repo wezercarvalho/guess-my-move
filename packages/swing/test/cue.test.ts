@@ -42,6 +42,10 @@ describe('swingCue', () => {
         expect(swingCue(state({ touchingWall: true, velocity: { x: 0, y: -2, z: 0 } }))).toBe('wall')
     })
 
+    it('encostado numa parede com a teia presa, também orienta a agarrar (a palma solta a teia e agarra)', () => {
+        expect(swingCue(state({ touchingWall: true, webs: [web] }))).toBe('wall')
+    })
+
     it('já agarrado à parede, orienta a escalada', () => {
         expect(
             swingCue(state({ grip: { normal: { x: 1, y: 0, z: 0 }, wallTop: 200, idleMs: 0, graceMs: 0, fistMs: 0 } })),

@@ -27,6 +27,17 @@ export {
 } from './physics.js'
 export { type SwingCue, swingCue } from './cue.js'
 export {
+    DEFAULT_HEAD_LOOK,
+    type FaceLandmark,
+    type FaceReading,
+    type HeadLook,
+    type HeadLookConfig,
+    type HeadLookState,
+    type HeadOrientation,
+    createHeadLook,
+    headOrientationFromMatrix,
+} from './headLook.js'
+export {
     type HandMetrics,
     type HandPoint,
     handMetrics,

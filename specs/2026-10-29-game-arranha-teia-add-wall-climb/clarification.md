@@ -97,6 +97,7 @@ Esta clarificação registra as decisões de projeto do agarre à parede (issue 
 - **Razão:** a fórmula antiga cancelava o movimento alternado (o gesto natural de escalar), e o `z` do pulso é estruturalmente ~0 no MediaPipe (documentação do Hand Landmarker: origem do `z` no pulso), então "puxar para trás" nunca funcionaria. O punho fechado é um gesto robusto e livre (a palma agarra, a pose lança, o punho com teia puxa — sem teia, no agarre, o punho solta). A dica ao encostar resolve o que o dono não entendeu.
 - **Alternativas rejeitadas:** manter o `z` como sinal de soltar (não medido, estruturalmente ~0 — frágil e, na prática, inoperante); manter a fórmula alternada por produto (dava líquido ~0 ao alternar de verdade); baixar a mão rápido para soltar (confunde com descer).
 - **Seções atualizadas em `spec.md`:** FR-002, FR-003, FR-004, FR-007; H-01 revista; US-003 (soltar por punho).
+- **Ajuste na junção com o PR #84:** a dica `wall` também vale com a teia presa (a palma aberta solta a teia e agarra no mesmo gesto), porque é o caso mais comum de bater na fachada; antes o status seguia em "Balançando". A legenda "Teclado" (vinda do #80) ganhou as linhas `V` (agarra, segure encostado) e `↑` `↓` (sobem/descem agarrado), e o painel de depuração junta as leituras da cabeça e do agarre.
 
 ## Hipóteses remanescentes
 
