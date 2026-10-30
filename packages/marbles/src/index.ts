@@ -22,9 +22,12 @@ export {
     flickPower,
 } from './flick.js'
 export {
+    BOT_LEVELS,
     type BotConfig,
+    type BotLevel,
     type BotPlanner,
     DEFAULT_BOT,
+    DEFAULT_BOT_LEVEL,
     type Vec2,
     createBotPlanner,
     directionTo,

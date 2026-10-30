@@ -25,7 +25,7 @@
 
 - [x] T009 [US-003] [FR-007] Escrever o teste falhando de `packages/marbles/test/bot.test.ts` (erro zero: a bolinha para a <= 1 unidade do ponto na física real `stepBodies` para pontos entre 50 e 700 unidades numa trajetória livre) e confirmar a falha esperada
 - [x] T010 [US-003] [FR-007] Implementar `packages/marbles/src/bot/` (direção até um ponto; velocidade para parar no ponto por **busca com `stepBodies`**, não pela fórmula contínua) e confirmar o teste de parada verde
-- [x] T011 [US-003] [FR-007] [SC-003] Escrever e passar os testes de erro controlado por semente (mesma semente e campo → tiro idêntico; sementes diferentes → tiros diferentes), do nível `DEFAULT_BOT` (1000 tiros com sementes distintas contra um alvo a 400 unidades, raio 14, taxa de acerto entre 55% e 80%) e do teto de velocidade (nenhum tiro excede `gain · maxPull`), com o planejador atendendo à interface de fonte do tiro
+- [x] T011 [US-003] [FR-007] [SC-003] Escrever e passar os testes de erro controlado por semente (mesma semente e campo → tiro idêntico; sementes diferentes → tiros diferentes), do nível `DEFAULT_BOT` (1000 tiros com sementes distintas contra um alvo a 400 unidades, raio 14, taxa de acerto por nível (fácil 30%–55%, médio 55%–80%, difícil 78%–95%)) e do teto de velocidade (nenhum tiro excede `gain · maxPull`), com o planejador atendendo à interface de fonte do tiro
 - [x] T012 [US-003] [NFR-002] [NFR-004] Fixar `DEFAULT_BOT` em configuração e declarar no código e no teste que os valores são palpites a calibrar e que a faixa de acerto é proteção de regressão, não equilíbrio medido
 
 ## Fase 4 — Bete como modo (issue #89)

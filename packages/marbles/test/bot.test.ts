@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_BOT, createBotPlanner, directionTo, speedToStop } from '../src/bot/index.js'
+import {
+    BOT_LEVELS,
+    type BotConfig,
+    type BotLevel,
+    DEFAULT_BOT,
+    DEFAULT_BOT_LEVEL,
+    createBotPlanner,
+    directionTo,
+    speedToStop,
+} from '../src/bot/index.js'
 import { type Body, DEFAULT_PHYSICS, isAtRest, stepBodies } from '../src/physics.js'
 import { DEFAULT_SHOT } from '../src/shot.js'
 
@@ -56,39 +65,66 @@ describe('bot: erro por semente', () => {
 })
 
 /*
- * Os parâmetros de DEFAULT_BOT (desvio angular e de força) são PALPITES
- * INICIAIS a calibrar com uso real. A faixa de 55% a 80% abaixo é PROTEÇÃO DE
- * REGRESSÃO, não equilíbrio medido nem prova de diversão: trava a mira do bot
- * contra mudanças acidentais, não afirma que o jogo está balanceado.
+ * Os desvios de cada nível do bot (BOT_LEVELS) são PALPITES INICIAIS a calibrar
+ * com uso real. As faixas de acerto abaixo são PROTEÇÃO DE REGRESSÃO, não
+ * equilíbrio medido nem prova de diversão: travam a mira do bot contra mudanças
+ * acidentais, não afirmam que o jogo está balanceado.
  */
-describe('bot: DEFAULT_BOT (faixa de acerto e teto)', () => {
-    it('acerta entre 55% e 80% em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull', () => {
-        const origem = { x: 100, y: 300 }
-        const alvoCentro = { x: 500, y: 300 }
-        const planejador = createBotPlanner(DEFAULT_BOT)
-        let acertos = 0
-        let maiorVel = 0
-        for (let s = 0; s < 1000; s++) {
-            const tiro = planejador.planShot(origem, alvoCentro, s * 2654435761 + 1, DEFAULT_PHYSICS, 14)
-            maiorVel = Math.max(maiorVel, Math.hypot(tiro.x, tiro.y))
-            // Simula o tiro com o alvo parado presente; acerto = contato.
-            let campo: Body[] = [
-                { pos: { ...origem }, vel: { x: tiro.x, y: tiro.y }, radius: 14 },
-                { pos: { ...alvoCentro }, vel: { x: 0, y: 0 }, radius: 14 },
-            ]
-            let bateu = false
-            let passos = 0
-            while (!isAtRest(campo, DEFAULT_PHYSICS) && passos < 10_000) {
-                const r = stepBodies(campo, DEFAULT_PHYSICS)
-                campo = r.bodies
-                if (r.contacts.some(([a, b]) => a === 0 && b === 1)) bateu = true
-                passos++
-            }
-            if (bateu) acertos++
+
+/** Taxa de acerto (0..1) de um nível em 1000 tiros a 400 unidades, raio 14, e o maior tiro visto. */
+function taxaDoNivel(config: BotConfig): { taxa: number; maiorVel: number } {
+    const origem = { x: 100, y: 300 }
+    const alvoCentro = { x: 500, y: 300 }
+    const planejador = createBotPlanner(config)
+    let acertos = 0
+    let maiorVel = 0
+    for (let s = 0; s < 1000; s++) {
+        const tiro = planejador.planShot(origem, alvoCentro, s * 2654435761 + 1, DEFAULT_PHYSICS, 14)
+        maiorVel = Math.max(maiorVel, Math.hypot(tiro.x, tiro.y))
+        // Simula o tiro com o alvo parado presente; acerto = contato.
+        let campo: Body[] = [
+            { pos: { ...origem }, vel: { x: tiro.x, y: tiro.y }, radius: 14 },
+            { pos: { ...alvoCentro }, vel: { x: 0, y: 0 }, radius: 14 },
+        ]
+        let bateu = false
+        let passos = 0
+        while (!isAtRest(campo, DEFAULT_PHYSICS) && passos < 10_000) {
+            const r = stepBodies(campo, DEFAULT_PHYSICS)
+            campo = r.bodies
+            if (r.contacts.some(([a, b]) => a === 0 && b === 1)) bateu = true
+            passos++
         }
-        const taxa = acertos / 1000
-        expect(taxa).toBeGreaterThanOrEqual(0.55)
-        expect(taxa).toBeLessThanOrEqual(0.8)
-        expect(maiorVel).toBeLessThanOrEqual(TETO + 1e-9)
+        if (bateu) acertos++
+    }
+    return { taxa: acertos / 1000, maiorVel }
+}
+
+describe('bot: níveis (faixa de acerto e teto)', () => {
+    const faixas: Record<BotLevel, [number, number]> = {
+        easy: [0.3, 0.55],
+        medium: [0.55, 0.8],
+        hard: [0.78, 0.95],
+    }
+
+    for (const nivel of ['easy', 'medium', 'hard'] as const) {
+        it(`nível ${nivel}: acerta dentro da faixa em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull`, () => {
+            const { taxa, maiorVel } = taxaDoNivel(BOT_LEVELS[nivel])
+            expect(taxa).toBeGreaterThanOrEqual(faixas[nivel][0])
+            expect(taxa).toBeLessThanOrEqual(faixas[nivel][1])
+            expect(maiorVel).toBeLessThanOrEqual(TETO + 1e-9)
+        })
+    }
+
+    it('quanto mais difícil o nível, maior a taxa de acerto', () => {
+        const facil = taxaDoNivel(BOT_LEVELS.easy).taxa
+        const medio = taxaDoNivel(BOT_LEVELS.medium).taxa
+        const dificil = taxaDoNivel(BOT_LEVELS.hard).taxa
+        expect(facil).toBeLessThan(medio)
+        expect(medio).toBeLessThan(dificil)
+    })
+
+    it('o nível padrão é o médio e DEFAULT_BOT é a sua configuração', () => {
+        expect(DEFAULT_BOT_LEVEL).toBe('medium')
+        expect(DEFAULT_BOT).toBe(BOT_LEVELS.medium)
     })
 })

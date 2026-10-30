@@ -1,4 +1,4 @@
-import { type Opponent } from '@guess-my-move/marbles'
+import { type BotLevel, type Opponent } from '@guess-my-move/marbles'
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
 import {
@@ -31,6 +31,7 @@ export interface MarblesGameView extends MarblesSnapshot {
     /** Escolha, só na tela inicial. */
     setMode: (modeId: string) => void
     setOpponent: (opponent: Opponent) => void
+    setBotLevel: (level: BotLevel) => void
     setShotControl: (control: ShotControl) => void
     startMatch: () => void
     /** Fim de partida. */
@@ -86,6 +87,7 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
         ...snapshot,
         setMode: controller.setMode,
         setOpponent: controller.setOpponent,
+        setBotLevel: controller.setBotLevel,
         setShotControl: controller.setShotControl,
         startMatch: controller.startMatch,
         playAgain: controller.playAgain,

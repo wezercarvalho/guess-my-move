@@ -223,6 +223,23 @@ describe('MarblesScreen: tela inicial', () => {
     })
 })
 
+describe('MarblesScreen: nível do bot', () => {
+    it('só aparece a escolha de nível quando o adversário é o bot, com médio marcado', () => {
+        renderScreen(harness())
+        expect(screen.queryByRole('group', { name: /nível do bot/i })).not.toBeInTheDocument()
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra o bot/i }),
+        )
+        const group = screen.getByRole('group', { name: /nível do bot/i })
+        expect(within(group).getAllByRole('radio')).toHaveLength(3)
+        expect(within(group).getByRole('radio', { name: /médio/i })).toBeChecked()
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra a meta/i }),
+        )
+        expect(screen.queryByRole('group', { name: /nível do bot/i })).not.toBeInTheDocument()
+    })
+})
+
 describe('MarblesScreen: o que aparece durante a partida', () => {
     function start(mode: RegExp, opponent: RegExp) {
         renderScreen(harness())
@@ -254,6 +271,18 @@ describe('MarblesScreen: o que aparece durante a partida', () => {
         start(/triângulo/i, /contra a meta/i)
         expect(screen.getByTestId('round-yield')).toHaveTextContent('Capturas: 0')
         expect(screen.queryByTestId('legend')).not.toBeInTheDocument()
+    })
+
+    it('contra o bot mostra o nível escolhido junto do modo', () => {
+        renderScreen(harness())
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /adversário/i })).getByRole('radio', { name: /contra o bot/i }),
+        )
+        fireEvent.click(
+            within(screen.getByRole('group', { name: /nível do bot/i })).getByRole('radio', { name: /difícil/i }),
+        )
+        fireEvent.click(screen.getByRole('button', { name: /começar partida/i }))
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Bete · Contra o bot · Difícil')
     })
 
     it('Bete não tem contagem por rodada', () => {

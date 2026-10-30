@@ -15,9 +15,9 @@ export interface Vec2 {
 }
 
 /**
- * Nível do bot. Os valores padrão são PALPITES INICIAIS a calibrar com uso
- * real; a faixa de acerto do teste é proteção de regressão, não equilíbrio
- * medido. Sem seletor de dificuldade nesta entrega.
+ * Configuração de um nível do bot. Os valores são PALPITES INICIAIS a calibrar
+ * com uso real; a faixa de acerto do teste é proteção de regressão, não
+ * equilíbrio medido.
  */
 export interface BotConfig {
     /** Desvio angular (desvio-padrão, radianos) somado à direção do tiro. */
@@ -28,18 +28,27 @@ export interface BotConfig {
     shot: ShotConfig
 }
 
+/** Nível de dificuldade do bot, escolhido pelo jogador antes da partida. */
+export type BotLevel = 'easy' | 'medium' | 'hard'
+
 /**
- * Nível único. angularDeviation ~2,0° e powerDeviation ~6% calibrados por busca
- * para cair na faixa de 55% a 80% de acerto a 400 unidades (raio 14), ficando
- * perto de ~65%: o primeiro nível (~50%) pareceu fácil demais no teste com a
- * mão real. Palpites a calibrar com uso real; a faixa é proteção de regressão,
- * não equilíbrio medido.
+ * Os três níveis. Desvios calibrados por busca para a taxa de acerto a 400
+ * unidades (raio 14, alvo parado): fácil ~42% (angular ~4,0°, força 11%), médio
+ * ~67% (angular ~2,0°, força 6%) e difícil ~87% (angular ~1,1°, força 3%). São
+ * palpites a calibrar com uso real; as faixas do teste são proteção de
+ * regressão, não equilíbrio medido.
  */
-export const DEFAULT_BOT: BotConfig = {
-    angularDeviation: 0.035,
-    powerDeviation: 0.06,
-    shot: DEFAULT_SHOT,
+export const BOT_LEVELS: Record<BotLevel, BotConfig> = {
+    easy: { angularDeviation: 0.07, powerDeviation: 0.11, shot: DEFAULT_SHOT },
+    medium: { angularDeviation: 0.035, powerDeviation: 0.06, shot: DEFAULT_SHOT },
+    hard: { angularDeviation: 0.02, powerDeviation: 0.03, shot: DEFAULT_SHOT },
 }
+
+/** Nível usado quando o jogador não escolhe. */
+export const DEFAULT_BOT_LEVEL: BotLevel = 'medium'
+
+/** Configuração do nível padrão. */
+export const DEFAULT_BOT: BotConfig = BOT_LEVELS[DEFAULT_BOT_LEVEL]
 
 /** Direção unitária da origem para o ponto. */
 export function directionTo(origin: Vec2, point: Vec2): Vec2 {

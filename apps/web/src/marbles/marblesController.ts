@@ -1,7 +1,10 @@
 import {
     type AimController,
     type Body,
+    BOT_LEVELS,
+    type BotLevel,
     type BotPlanner,
+    DEFAULT_BOT_LEVEL,
     type Competitor,
     type FlickDetector,
     type FlickPhase,
@@ -70,7 +73,7 @@ export interface MarblesEnv {
     /** Relógio monotônico em ms. */
     now: () => number
     /** Planejador do bot (injetável para teste); por padrão, `DEFAULT_BOT`. */
-    createBot?: () => BotPlanner
+    createBot?: (level: BotLevel) => BotPlanner
     /** Semente base da partida contra o bot (injetável para teste). */
     seed?: number
 }
@@ -133,6 +136,8 @@ export interface MarblesSnapshot {
     choosing: boolean
     modeId: string
     opponent: Opponent
+    /** Nível do bot escolhido (vale só contra o bot). */
+    botLevel: BotLevel
     shotControl: ShotControl
     trackerStatus: MarblesTrackerStatus
     /** Câmera negada, indisponível ou falhou. */
@@ -174,7 +179,6 @@ export class MarblesController {
     private readonly listeners = new Set<() => void>()
     private readonly pinch: PinchDetector = createPinchDetector()
     private readonly flick: FlickDetector = createFlickDetector()
-    private readonly botPlanner: BotPlanner
     private readonly aim: AimController = createAimController({
         width: DEFAULT_PHYSICS.width,
         height: DEFAULT_PHYSICS.height,
@@ -183,6 +187,7 @@ export class MarblesController {
     // Escolha da tela inicial.
     private modeId: string
     private opponent: Opponent = 'target'
+    private botLevel: BotLevel = DEFAULT_BOT_LEVEL
     private shotControl: ShotControl
 
     // Partida em andamento.
@@ -228,7 +233,6 @@ export class MarblesController {
         this.env = env
         this.shotControl = shotControl
         this.modeId = modes[0].id
-        this.botPlanner = (env.createBot ?? createBotPlanner)()
         this.snapshot = this.buildSnapshot()
     }
 
@@ -275,6 +279,13 @@ export class MarblesController {
     readonly setOpponent = (opponent: Opponent): void => {
         if (this.session) return
         this.opponent = opponent
+        this.sync()
+    }
+
+    /** Escolhe o nível do bot na tela inicial (sem efeito durante a partida). */
+    readonly setBotLevel = (level: BotLevel): void => {
+        if (this.session) return
+        this.botLevel = level
         this.sync()
     }
 
@@ -333,7 +344,9 @@ export class MarblesController {
      */
     private makeBotSource(entry: ModeEntry, mode: Mode): ShotSource {
         const aimPoint = entry.botAimPoint(mode)
-        const planner = this.botPlanner
+        const planner = (this.env.createBot ?? ((level) => createBotPlanner(BOT_LEVELS[level])))(
+            this.botLevel,
+        )
         const seedBase = this.env.seed ?? Math.floor(Math.random() * 0x1_0000_0000)
         let shot = 0
         return {
@@ -651,6 +664,7 @@ export class MarblesController {
             choosing: this.session === null,
             modeId: this.modeId,
             opponent: this.opponent,
+            botLevel: this.botLevel,
             shotControl: this.shotControl,
             trackerStatus: this.trackerStatus,
             cameraFailed: this.cameraFailed,

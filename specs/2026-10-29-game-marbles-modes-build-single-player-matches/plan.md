@@ -39,7 +39,7 @@ packages/marbles/
   src/physics.ts, shot.ts, pinch.ts, flick.ts    reaproveitados (física, tiro, leituras) — inalterados no comportamento
   src/aim/                                        controlador de mira puro (pinça e estalo), extraído de round.ts (#86)
   src/match/                                      motor de partida, contrato de modo, fonte do tiro, resultado (#87)
-  src/bot/                                        planejador: direção, velocidade por busca com stepBodies, erro por semente, DEFAULT_BOT (#88)
+  src/bot/                                        planejador: direção, velocidade por busca com stepBodies, erro por semente, três níveis BOT_LEVELS com DEFAULT_BOT = médio (#88)
   src/modes/bete/                                 Bete como modo (campo, 3 posições, limites, avaliação, ajuda) (#89)
   src/modes/triangulo/                            Triângulo (círculo, 6 bolinhas, captura, vez mantida, ajuda) (#90)
   src/modes/cova/                                 Cova (3 covas, entrada por velocidade, bolinha que fica, ajuda) (#91)
@@ -88,22 +88,22 @@ specs/2026-10-29-game-marbles-modes-build-single-player-matches/   esta spec (sp
 
 ## Mapeamento de requisitos
 
-| Requisito | Abordagem                                                                                                                                | Evidência planejada                                      |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| FR-001    | `aim/` controlador de mira puro extraído de `round.ts`; não importa `physics.ts` nem `round.ts`                                          | testes de `aim` (Vitest); teste de importação            |
-| FR-002    | `round.ts` passa a usar o controlador; `round.test.ts` e `flick-replay.test.ts` inalterados                                              | `round.test.ts` e `flick-replay.test.ts` verdes sem diff |
-| FR-003    | `match/` motor puro: 3 rodadas, competidor do tiro, atribuição em cadeia, resultado de rodada e de partida; sem DOM/MediaPipe/relógio    | testes de `match` (Vitest)                               |
-| FR-004    | contrato de modo em `match/`: montar campo, limite de tiros, avaliação em repouso, próxima vez (padrão alterna, modo pode manter)        | testes de `match` com modos de teste                     |
-| FR-005    | `match/` com adversários meta e bot: sem vez na meta, alternância por rodada no bot, tiro fora da vez sem efeito, resultado da partida   | testes de `match` (meta e bot)                           |
-| FR-006    | interface `ShotSource` em `match/`; mão e bot como implementações; segundo jogador não implementado                                      | testes de `match` com fontes de tiro simuladas           |
-| FR-007    | `bot/` planejador: direção, velocidade por busca com `stepBodies`, erro por semente, `DEFAULT_BOT`, teto `gain · maxPull`                | testes de `bot` (parada a 1 unidade, semente, faixa)     |
-| FR-008    | `modes/bete/`: 3 posições de alvo, 5 tiros, avaliação meta/bot, bot mira o alvo, retorno após erro; remoção do bete solo antigo          | testes de `bete`; `round.test.ts`/`flick-replay` verdes  |
-| FR-009    | `modes/triangulo/`: círculo, 6 bolinhas com folga, captura por sair, vez mantida, 8/5 tiros, bot mira a mais próxima da borda            | testes de `triangulo` (captura, cadeia, estabilidade)    |
-| FR-010    | `modes/cova/`: 3 covas, entrada < 120 por passo e na parada, bolinha que fica, 9 tiros, bot mira o centro da cova ativa                  | testes de `cova` (entrada, permanência, meta/bot)        |
-| FR-011    | cada modo declara `helpText` não vazio que cita vitória, derrota e empate                                                                | testes de cada modo (ajuda não vazia)                    |
-| FR-012    | `marblesController`/`useMarblesGame` conduzem a partida; `MarblesScreen` escolhe modo/adversário e mostra placar, vez, tiros e resultado | testes de controlador e de tela (câmera/rastreador sim.) |
-| FR-013    | vez do bot ignora o gesto, status de uma linha por estado, tiro do bot animado; pinça/estalo continuam                                   | teste de tela: gesto ignorado na vez do bot; status      |
-| FR-014    | `ShotGuide`/`guideSteps` alimentados pelo texto do modo; `aria-current` na etapa; dicas curtas; muda com modo e adversário               | testes de componente do painel (3 modos × 2 adversários) |
+| Requisito | Abordagem                                                                                                                                                    | Evidência planejada                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| FR-001    | `aim/` controlador de mira puro extraído de `round.ts`; não importa `physics.ts` nem `round.ts`                                                              | testes de `aim` (Vitest); teste de importação            |
+| FR-002    | `round.ts` passa a usar o controlador; `round.test.ts` e `flick-replay.test.ts` inalterados                                                                  | `round.test.ts` e `flick-replay.test.ts` verdes sem diff |
+| FR-003    | `match/` motor puro: 3 rodadas, competidor do tiro, atribuição em cadeia, resultado de rodada e de partida; sem DOM/MediaPipe/relógio                        | testes de `match` (Vitest)                               |
+| FR-004    | contrato de modo em `match/`: montar campo, limite de tiros, avaliação em repouso, próxima vez (padrão alterna, modo pode manter)                            | testes de `match` com modos de teste                     |
+| FR-005    | `match/` com adversários meta e bot: sem vez na meta, alternância por rodada no bot, tiro fora da vez sem efeito, resultado da partida                       | testes de `match` (meta e bot)                           |
+| FR-006    | interface `ShotSource` em `match/`; mão e bot como implementações; segundo jogador não implementado                                                          | testes de `match` com fontes de tiro simuladas           |
+| FR-007    | `bot/` planejador: direção, velocidade por busca com `stepBodies`, erro por semente, três níveis `BOT_LEVELS` (`DEFAULT_BOT` = médio), teto `gain · maxPull` | testes de `bot` (parada a 1 unidade, semente, faixa)     |
+| FR-008    | `modes/bete/`: 3 posições de alvo, 5 tiros, avaliação meta/bot, bot mira o alvo, retorno após erro; remoção do bete solo antigo                              | testes de `bete`; `round.test.ts`/`flick-replay` verdes  |
+| FR-009    | `modes/triangulo/`: círculo, 6 bolinhas com folga, captura por sair, vez mantida, 8/5 tiros, bot mira a mais próxima da borda                                | testes de `triangulo` (captura, cadeia, estabilidade)    |
+| FR-010    | `modes/cova/`: 3 covas, entrada < 120 por passo e na parada, bolinha que fica, 9 tiros, bot mira o centro da cova ativa                                      | testes de `cova` (entrada, permanência, meta/bot)        |
+| FR-011    | cada modo declara `helpText` não vazio que cita vitória, derrota e empate                                                                                    | testes de cada modo (ajuda não vazia)                    |
+| FR-012    | `marblesController`/`useMarblesGame` conduzem a partida; `MarblesScreen` escolhe modo/adversário e mostra placar, vez, tiros e resultado                     | testes de controlador e de tela (câmera/rastreador sim.) |
+| FR-013    | vez do bot ignora o gesto, status de uma linha por estado, tiro do bot animado; pinça/estalo continuam                                                       | teste de tela: gesto ignorado na vez do bot; status      |
+| FR-014    | `ShotGuide`/`guideSteps` alimentados pelo texto do modo; `aria-current` na etapa; dicas curtas; muda com modo e adversário                                   | testes de componente do painel (3 modos × 2 adversários) |
 
 ## Estratégia test-first
 

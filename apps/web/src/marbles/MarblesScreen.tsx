@@ -1,4 +1,4 @@
-import { DEFAULT_PHYSICS, modes, type Opponent, type Outcome } from '@guess-my-move/marbles'
+import { type BotLevel, DEFAULT_PHYSICS, modes, type Opponent, type Outcome } from '@guess-my-move/marbles'
 import { useEffect, useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -36,6 +36,18 @@ const OPPONENTS = [
     { value: 'target', label: 'Contra a meta' },
     { value: 'bot', label: 'Contra o bot' },
 ] as const satisfies readonly { value: Opponent; label: string }[]
+
+const BOT_LEVEL_OPTIONS = [
+    { value: 'easy', label: 'Fácil' },
+    { value: 'medium', label: 'Médio' },
+    { value: 'hard', label: 'Difícil' },
+] as const satisfies readonly { value: BotLevel; label: string }[]
+
+const BOT_LEVEL_LABEL: Record<BotLevel, string> = {
+    easy: 'Fácil',
+    medium: 'Médio',
+    hard: 'Difícil',
+}
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
     win: 'Vitória',
@@ -197,6 +209,15 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                 options={OPPONENTS}
                                 onChange={game.setOpponent}
                             />
+                            {game.opponent === 'bot' && (
+                                <SegmentedControl
+                                    legend="Nível do bot"
+                                    name="bot-level"
+                                    value={game.botLevel}
+                                    options={BOT_LEVEL_OPTIONS}
+                                    onChange={game.setBotLevel}
+                                />
+                            )}
                             <Button onClick={game.startMatch}>Começar partida</Button>
                         </div>
                     ) : (
@@ -217,7 +238,9 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                             <>
                                 <p className="match-mode" data-testid="match-mode">
                                     {matchMode?.name} ·{' '}
-                                    {game.match.opponent === 'bot' ? 'Contra o bot' : 'Contra a meta'}
+                                    {game.match.opponent === 'bot'
+                                        ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
+                                        : 'Contra a meta'}
                                 </p>
                                 <p className="round-number" data-testid="round-number">
                                     Rodada {game.match.round + 1} de {game.match.roundsPerMatch}
@@ -253,7 +276,10 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                             </>
                         ) : (
                             <p className="round-number" data-testid="round-number">
-                                {selectedMode.name} · {game.opponent === 'bot' ? 'Contra o bot' : 'Contra a meta'}
+                                {selectedMode.name} ·{' '}
+                                {game.opponent === 'bot'
+                                    ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
+                                    : 'Contra a meta'}
                             </p>
                         )}
                         <p aria-live="polite" className="round-status" data-testid="game-status">

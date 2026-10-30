@@ -1,4 +1,4 @@
-import { type BotPlanner, createBotPlanner, modes } from '@guess-my-move/marbles'
+import { type BotLevel, type BotPlanner, createBotPlanner, modes } from '@guess-my-move/marbles'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
@@ -11,7 +11,7 @@ function harness(
         createTracker?: () => Promise<HandTracker>
         /** Sem semente fixa: o bot sorteia uma por partida (comportamento real). */
         randomSeed?: boolean
-        createBot?: () => BotPlanner
+        createBot?: (level: BotLevel) => BotPlanner
     } = {},
 ) {
     let nowMs = 1000
@@ -227,6 +227,41 @@ describe('MarblesController: semente do bot', () => {
         const first = await firstSeed(h, seeds)
         const second = await firstSeed(h, seeds)
         expect(second).not.toBe(first)
+    })
+})
+
+describe('MarblesController: nível do bot', () => {
+    it('começa no médio e o nível escolhido aparece no retrato', () => {
+        const h = harness()
+        expect(h.controller.getSnapshot().botLevel).toBe('medium')
+        h.controller.setBotLevel('hard')
+        expect(h.controller.getSnapshot().botLevel).toBe('hard')
+    })
+
+    it('o planejador é criado com o nível escolhido ao começar cada partida', () => {
+        const levels: BotLevel[] = []
+        const h = harness({
+            createBot: (level) => {
+                levels.push(level)
+                return createBotPlanner()
+            },
+        })
+        h.controller.setOpponent('bot')
+        h.controller.setBotLevel('easy')
+        h.controller.startMatch()
+        h.controller.changeMode()
+        h.controller.setBotLevel('hard')
+        h.controller.startMatch()
+        expect(levels).toEqual(['easy', 'hard'])
+    })
+
+    it('trocar o nível durante a partida não tem efeito', () => {
+        const h = harness()
+        h.controller.setOpponent('bot')
+        h.controller.setBotLevel('easy')
+        h.controller.startMatch()
+        h.controller.setBotLevel('hard')
+        expect(h.controller.getSnapshot().botLevel).toBe('easy')
     })
 })
 
