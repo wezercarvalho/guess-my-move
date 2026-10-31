@@ -94,7 +94,7 @@ export function SwingApp({
     }
     if (!selected) return <CitySelect catalog={catalog} onSelect={select} />
     return (
-        <main className="app app-wide">
+        <main className="app app-wide app-fill">
             <SwingScreen
                 key={selected.id}
                 map={selected}
