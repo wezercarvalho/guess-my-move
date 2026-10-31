@@ -17,7 +17,9 @@ import {
     headStatusLine,
     statusLine,
 } from './guide.js'
+import { type FeedbackInput } from './feedback.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
+import { SwingFeedback } from './SwingFeedback.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
@@ -83,6 +85,14 @@ export function SwingScreen({
     })
     const { resize } = game
 
+    // Marca o body enquanto a tela do jogo está montada: o link "← Menu" passa a flutuar no cabeçalho.
+    useEffect(() => {
+        document.body.classList.add('swing-playing')
+        return () => {
+            document.body.classList.remove('swing-playing')
+        }
+    }, [])
+
     useEffect(() => {
         const stage = stageRef.current
         if (!stage || typeof ResizeObserver === 'undefined') return
@@ -113,19 +123,54 @@ export function SwingScreen({
         lockMode: game.headLock.mode,
     })
 
+    const feedbackInput: FeedbackInput = {
+        phase: game.phase,
+        cameraActive: camera.isActive,
+        lookMode: game.lookMode,
+        faceTrackerStatus: game.faceTrackerStatus,
+        faceVisible: game.faceVisible,
+        lockMode: game.headLock.mode,
+        gripped: game.hud.gripped,
+        headClimb: game.headClimb,
+        cue: game.cue,
+        webSides: game.hud.webSides,
+    }
+
     return (
         <div className="swing-screen">
             <header className="swing-header">
-                <Eyebrow>Passeio livre</Eyebrow>
-                <h1>Arranha-Teia</h1>
-                <p className="swing-lead">
-                    {map.name} · {map.region}
-                </p>
+                <div className="swing-header__title">
+                    <h1>Arranha-Teia</h1>
+                    <p className="swing-lead">
+                        {map.name} · {map.region}
+                    </p>
+                </div>
+                <div className="swing-header__actions">
+                    <p className="swing-header__stats">
+                        <span className="swing-counter" data-testid="web-counter">
+                            Teias: {game.hud.webs}
+                        </span>
+                        <span className="swing-distance" data-testid="distance">
+                            Distância: {game.hud.distance} m
+                        </span>
+                    </p>
+                    <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
+                        Voltar ao início
+                    </Button>
+                    {onChangeMap ? (
+                        <Button variant="text" onClick={onChangeMap}>
+                            Trocar mapa
+                        </Button>
+                    ) : null}
+                    <DrawerToggle open={debugDrawer.open} panelId={debugDrawer.panelId} onToggle={debugDrawer.toggle}>
+                        Depuração
+                    </DrawerToggle>
+                </div>
             </header>
 
             <div className="swing-layout">
                 <Panel aria-label="Cidade" className="swing-stage-panel">
-                    <div ref={stageRef} className="swing-stage" data-cue={game.cue}>
+                    <div ref={stageRef} className="swing-stage" data-cue={game.cue} data-testid="swing-stage">
                         <canvas
                             ref={sceneRef}
                             className="swing-scene"
@@ -149,27 +194,54 @@ export function SwingScreen({
                                 </dd>
                             </div>
                         </dl>
+                        <SwingFeedback input={feedbackInput} />
                     </div>
-                    <p className="swing-credit" data-testid="map-credit">
-                        {game.attribution}
-                    </p>
-                    <DrawerToggle
-                        open={debugDrawer.open}
-                        panelId={debugDrawer.panelId}
-                        onToggle={debugDrawer.toggle}
-                    >
-                        Depuração
-                    </DrawerToggle>
+                    <div className="swing-stage-footer">
+                        <p className="swing-credit" data-testid="map-credit">
+                            {game.attribution}
+                        </p>
+                        <PrivacyNotice />
+                    </div>
                 </Panel>
 
                 <div className="swing-side">
-                    <Panel raised aria-label="Passeio" className="swing-round">
-                        <p className="swing-counter" data-testid="web-counter">
-                            Teias: {game.hud.webs}
-                        </p>
-                        <p className="swing-distance" data-testid="distance">
-                            Distância: {game.hud.distance} m
-                        </p>
+                    <CameraPanel
+                        camera={camera}
+                        videoRef={videoRef}
+                        overlay={<HandOverlay canvasRef={overlayRef} />}
+                    />
+                    {camera.isActive && (
+                        <Panel raised aria-label="Direção do olhar" className="swing-head">
+                            <div className="swing-head__controls">
+                                <SegmentedControl
+                                    legend="Direção do olhar"
+                                    name="swing-look-mode"
+                                    value={game.lookMode}
+                                    options={LOOK_MODE_OPTIONS}
+                                    onChange={game.setLookMode}
+                                />
+                                {game.lookMode === 'face' ? (
+                                    <Button
+                                        variant="secondary"
+                                        onClick={game.recenterHead}
+                                        disabled={game.faceTrackerStatus !== 'ready'}
+                                    >
+                                        Centralizar
+                                    </Button>
+                                ) : null}
+                            </div>
+                            {game.lookMode === 'face' ? (
+                                <p aria-live="polite" className="round-status" data-testid="head-status">
+                                    {headStatus || HEAD_IDLE_HINT}
+                                </p>
+                            ) : (
+                                <p className="round-status" data-testid="head-status">
+                                    Câmera automática. As setas ajustam o olhar.
+                                </p>
+                            )}
+                        </Panel>
+                    )}
+                    <Panel raised aria-label="Passeio" className="swing-guide">
                         <p aria-live="polite" className="round-status" data-testid="game-status">
                             {statusText(game)}
                         </p>
@@ -178,62 +250,17 @@ export function SwingScreen({
                                 Motivo: {game.failure}
                             </p>
                         )}
-                        <div className="swing-round-actions">
-                            <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
-                                Voltar ao início
-                            </Button>
-                            {onChangeMap ? (
-                                <Button variant="text" onClick={onChangeMap}>
-                                    Trocar mapa
-                                </Button>
-                            ) : null}
-                        </div>
-                    </Panel>
-                    <CameraPanel
-                        camera={camera}
-                        videoRef={videoRef}
-                        overlay={<HandOverlay canvasRef={overlayRef} />}
-                    />
-                    {camera.isActive && (
-                        <Panel raised aria-label="Direção do olhar" className="swing-head">
-                            <Eyebrow>Direção do olhar</Eyebrow>
-                            <SegmentedControl
-                                legend="Direção do olhar"
-                                name="swing-look-mode"
-                                value={game.lookMode}
-                                options={LOOK_MODE_OPTIONS}
-                                onChange={game.setLookMode}
-                            />
-                            {game.lookMode === 'face' ? (
-                                <>
-                                    <p aria-live="polite" className="round-status" data-testid="head-status">
-                                        {headStatus || HEAD_IDLE_HINT}
-                                    </p>
-                                    <Button
-                                        variant="secondary"
-                                        onClick={game.recenterHead}
-                                        disabled={game.faceTrackerStatus !== 'ready'}
-                                    >
-                                        Centralizar
-                                    </Button>
-                                </>
-                            ) : (
-                                <p className="round-status" data-testid="head-status">
-                                    Câmera automática. As setas ajustam o olhar.
-                                </p>
-                            )}
-                        </Panel>
-                    )}
-                    <Panel raised aria-label="Como jogar">
-                        <Eyebrow>Como jogar</Eyebrow>
-                        <Steps
-                            label="Como jogar"
-                            items={STEPS}
-                            current={currentStep(game.cue)}
-                        />
                         <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
                             {hint}
                         </p>
+                        <details>
+                            <summary>Como jogar</summary>
+                            <Steps
+                                label="Como jogar"
+                                items={STEPS}
+                                current={currentStep(game.cue)}
+                            />
+                        </details>
                     </Panel>
                     <Panel raised aria-label="Teclado" className="swing-keys-panel">
                         <Eyebrow>Teclado</Eyebrow>
@@ -251,7 +278,6 @@ export function SwingScreen({
                             ))}
                         </ul>
                     </Panel>
-                    <PrivacyNotice />
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>

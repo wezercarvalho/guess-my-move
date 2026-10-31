@@ -199,6 +199,45 @@ describe('SwingScreen', () => {
         expect(legend).toHaveTextContent('olham')
     })
 
+    it('as mensagens ficam dentro do palco, não na coluna lateral', async () => {
+        await openGame()
+        const feedback = screen.getByTestId('swing-feedback')
+        expect(feedback.closest('.swing-stage')).not.toBeNull()
+        expect(feedback.closest('.swing-side')).toBeNull()
+    })
+
+    it('uma teia presa avisa a mão sobre o jogo', async () => {
+        const h = await openGame()
+        h.run(2)
+        h.press(' ')
+        h.run(3)
+        h.run(1, 150)
+        await waitFor(() => {
+            expect(within(screen.getByTestId('swing-feedback')).getByText('Teia presa: centro')).toBeInTheDocument()
+        })
+    })
+
+    it('o botão de depuração fica no cabeçalho e a gaveta não ocupa a página fechada', async () => {
+        await openGame()
+        const header = screen.getByRole('heading', { level: 1, name: 'Arranha-Teia' }).closest('header')
+        expect(header).not.toBeNull()
+        expect(within(header as HTMLElement).getByRole('button', { name: 'Depuração' })).toBeInTheDocument()
+        expect(screen.queryByRole('region', { name: 'Depuração' })).not.toBeInTheDocument()
+    })
+
+    it('marca o body enquanto a tela está montada e limpa ao sair', () => {
+        const { unmount } = render(<SwingScreen cameraGetUserMedia={null} deps={harness().deps} />)
+        expect(document.body).toHaveClass('swing-playing')
+        unmount()
+        expect(document.body).not.toHaveClass('swing-playing')
+    })
+
+    it('a tela do jogo usa o contêiner que preenche a janela', async () => {
+        await openGame()
+        expect(document.querySelector('.swing-screen')).not.toBeNull()
+        expect(screen.getByTestId('swing-stage')).toBeInTheDocument()
+    })
+
     it('com a câmera ativa, mostra o seletor de direção do olhar e troca para Automática', async () => {
         vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
         const { stream } = createFakeStream()
@@ -222,6 +261,9 @@ describe('SwingScreen', () => {
             await Promise.resolve()
         })
         const selector = await screen.findByRole('group', { name: 'Direção do olhar' })
+        // O título do painel não se repete: só o rótulo do grupo.
+        const panel = screen.getByRole('region', { name: 'Direção do olhar' })
+        expect(within(panel).getAllByText('Direção do olhar')).toHaveLength(1)
         const rosto = within(selector).getByRole('radio', { name: 'Rosto' })
         expect(rosto).toBeChecked()
         act(() => {

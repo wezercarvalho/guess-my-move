@@ -2,18 +2,29 @@
 .swing-screen {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-3);
+    min-width: 0;
 }
 
+/* Cabeçalho compacto: título e mapa na mesma linha, com a depuração à direita. */
 .swing-header {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.swing-header__title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
 }
 
 .swing-header h1 {
     margin: 0;
-    font-size: var(--size-title);
+    font-size: var(--size-heading);
     font-weight: var(--weight-medium);
     letter-spacing: var(--tracking-display);
     line-height: var(--leading-display);
@@ -24,34 +35,99 @@
     color: var(--muted);
 }
 
-/* Cidade grande à esquerda; coluna estreita à direita com a câmera pequena e o guia. */
+/* Janela estreita ou baixa: palco 16:9 em cima e coluna embaixo; a página rola. */
 .swing-layout {
     display: grid;
-    gap: var(--space-5);
+    gap: var(--space-4);
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
 }
 
 @media (min-width: 960px) {
     .swing-layout {
-        grid-template-columns: minmax(0, 1fr) 17.5rem;
+        grid-template-columns: minmax(0, 1fr) 19rem;
     }
 }
 
 .swing-stage-panel {
-    gap: var(--space-3);
+    gap: var(--space-2);
+    padding: var(--space-3);
+    min-width: 0;
 }
 
 .swing-stage {
     position: relative;
-    /* Cabe na janela: a largura é limitada pela altura disponível, mantendo 16:9. */
-    width: min(100%, calc((100dvh - 14rem) * 16 / 9));
-    min-width: min(100%, 20rem);
-    align-self: center;
+    width: 100%;
     aspect-ratio: 16 / 9;
     border: 1px solid var(--line);
     background: #14110f;
     overflow: hidden;
+}
+
+/*
+ * Janela de computador (a partir de 960 x 560 px): a tela do jogo é a altura da janela, sem
+ * rolagem da página. O palco ocupa o espaço que sobra, sem proporção fixa, e só a coluna
+ * lateral rola sozinha se o conteúdo não couber. O "← Menu" passa a flutuar no cabeçalho.
+ */
+@media (min-width: 960px) and (min-height: 560px) {
+    body.swing-page {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    body.swing-page #root {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .app.app-fill {
+        height: 100%;
+    }
+
+    .swing-screen {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .swing-layout {
+        flex: 1;
+        min-height: 0;
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+    }
+
+    .swing-stage-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .swing-stage {
+        flex: 1;
+        min-height: 0;
+        aspect-ratio: auto;
+    }
+
+    .swing-side {
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: var(--space-1);
+    }
+
+    body.swing-playing .back-link {
+        position: absolute;
+        top: var(--space-2);
+        left: var(--space-4);
+        margin: 0;
+        z-index: 5;
+    }
+
+    body.swing-playing .swing-header__title {
+        padding-left: 6.5rem;
+    }
 }
 
 /* Na hora de soltar, o palco ganha um contorno dourado (sem animação). */
@@ -109,8 +185,130 @@
     font-size: var(--size-small);
 }
 
-.swing-round {
-    gap: var(--space-3);
+/* Rodapé do palco: crédito do mapa e aviso de privacidade (a mesma redação de todas as telas). */
+.swing-stage-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.swing-stage-footer .ds-notice {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--size-caption);
+}
+
+/* Mensagens sobre o jogo: na base do palco, centradas na horizontal, nunca no centro da visão. */
+.swing-feedback {
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-4);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    width: max-content;
+    max-width: calc(100% - 2 * var(--space-4));
+    pointer-events: none;
+    z-index: 2;
+}
+
+.swing-feedback ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.swing-toast {
+    padding: var(--space-1) var(--space-4);
+    background: rgb(224 170 8 / 92%);
+    color: #14110f;
+    font-size: var(--size-small);
+    font-weight: var(--weight-semibold);
+}
+
+.swing-chip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+    border-left: 4px solid var(--gold-bright);
+    background: rgb(9 9 9 / 72%);
+    color: var(--paper);
+    font-size: var(--size-small);
+    text-align: center;
+}
+
+.swing-chip[data-tone='info'] {
+    border-left-color: var(--muted);
+}
+
+.swing-chip[data-tone='warn'] {
+    border-left-color: var(--danger);
+}
+
+.swing-chip__bar {
+    display: block;
+    height: 4px;
+    background: rgb(255 255 255 / 22%);
+}
+
+.swing-chip__bar > span {
+    display: block;
+    height: 100%;
+    background: var(--gold-bright);
+}
+
+/* Depuração: gaveta que flutua sobre o jogo e não aumenta a página. */
+.swing-screen .ds-drawer {
+    position: fixed;
+    top: 3.25rem;
+    right: var(--space-4);
+    z-index: 30;
+    width: min(30rem, calc(100vw - 2 * var(--space-4)));
+    max-height: calc(100dvh - 4.5rem);
+    overflow-y: auto;
+    padding: var(--space-3);
+    border: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.swing-header__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2) var(--space-4);
+}
+
+.swing-header__stats {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin: 0;
+}
+
+.swing-guide summary {
+    cursor: pointer;
+    color: var(--gold-bright);
+    font-size: var(--size-small);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    font-weight: var(--weight-semibold);
+}
+
+.swing-guide details[open] > summary {
+    margin-bottom: var(--space-3);
+}
+
+.swing-guide .guide-hint {
+    margin: 0 0 var(--space-2);
 }
 
 .swing-counter {
@@ -128,14 +326,11 @@
     font-size: var(--size-small);
 }
 
-.swing-round .round-status {
+.swing-guide .round-status {
     margin: 0;
     color: var(--paper);
     font-size: var(--size-small);
-}
-
-.swing-round .ds-button {
-    align-self: flex-start;
+    font-weight: var(--weight-semibold);
 }
 
 .swing-head {
@@ -154,6 +349,15 @@
     align-self: flex-start;
 }
 
+/* Seletor e "Centralizar" na mesma linha. */
+.swing-head__controls {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
 /* Painel "Teclado": uma linha por grupo, com as teclas em <kbd>. */
 .swing-keys-panel {
     display: flex;
@@ -165,9 +369,9 @@ ul.swing-keys {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1) var(--space-3);
     color: var(--paper);
     font-size: var(--size-small);
 }
@@ -187,7 +391,7 @@ ul.swing-keys kbd {
 .swing-side {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-3);
     min-width: 0;
 }
 
@@ -208,7 +412,15 @@ ul.swing-keys kbd {
 
 .swing-side .camera-preview-wrapper {
     min-height: 0;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 16 / 9;
+    max-height: 7.5rem;
+    margin-inline: auto;
+}
+
+/* Painéis da coluna lateral mais compactos, para caberem na altura da janela. */
+.swing-side .ds-panel {
+    padding: var(--space-3);
+    gap: var(--space-2);
 }
 
 .swing-side .camera-preview {
@@ -219,7 +431,7 @@ ul.swing-keys kbd {
 
 @media (max-width: 959px) {
     .swing-side {
-        max-width: 18rem;
+        max-width: 24rem;
     }
 }
 
@@ -360,13 +572,6 @@ ul.swing-keys kbd {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-4);
-}
-
-.swing-round-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
 }
 
 @media (max-width: 520px) {
