@@ -11,7 +11,7 @@
         "build": "yarn prepare:assets && tsc --build && vite build",
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
-        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs scripts/city-from-osm.test.mjs scripts/city-sources.test.mjs scripts/city-data.test.mjs"
+        "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs scripts/city-from-osm.test.mjs scripts/city-sources.test.mjs scripts/city-data.test.mjs scripts/swing-layout.test.mjs"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",
