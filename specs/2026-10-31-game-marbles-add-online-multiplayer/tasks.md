@@ -27,9 +27,9 @@
 
 ## Fase 3 — Sala autoritativa
 
-- [ ] T010 [US-002] [US-003] [US-004] [FR-008] [FR-009] [FR-010] [FR-011] [FR-012] [NFR-001] [NFR-002] Escrever testes falhando do `RoomService`: código, lotação, prontidão, autoridade, sequência, tick, pausa, retomada e expiração.
-- [ ] T011 [US-002] [US-003] [US-004] [FR-008] [FR-009] [FR-010] [FR-011] [FR-012] Implementar o serviço em memória com relógio e aleatoriedade injetados; confirmar testes verdes.
-- [ ] T012 [US-003] [FR-009] [FR-010] [SC-003] Demonstrar uma partida de cada modo por duas fontes remotas no teste do serviço, sem bot nem regra duplicada.
+- [x] T010 [US-002] [US-003] [US-004] [FR-008] [FR-009] [FR-010] [FR-011] [FR-012] [NFR-001] [NFR-002] Escrever testes falhando do `RoomService`: código, lotação, prontidão, autoridade, sequência, tick, pausa, retomada e expiração.
+- [x] T011 [US-002] [US-003] [US-004] [FR-008] [FR-009] [FR-010] [FR-011] [FR-012] Implementar o serviço em memória com relógio e aleatoriedade injetados; confirmar testes verdes.
+- [x] T012 [US-003] [FR-009] [FR-010] [SC-003] Demonstrar uma partida de cada modo por duas fontes remotas no teste do serviço, sem bot nem regra duplicada.
 
 ## Fase 4 — NestJS e gateway WebSocket
 

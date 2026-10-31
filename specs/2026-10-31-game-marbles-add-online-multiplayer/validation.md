@@ -41,10 +41,19 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 - **Dependência:** Zod 4.6.7 já usado no monorepo foi declarado também em `@guess-my-move/marbles`; `yarn install` alterou apenas a entrada do workspace no lockfile.
 - **Limitação:** a autoridade, idempotência por sala e integração Socket.IO ainda não existem; serão provadas nas Fases 3 e 4.
 
+### Fase 3 — Sala autoritativa
+
+- **Resultado:** PASS.
+- **Vermelho observado:** `room.service.test.ts` não carregou porque o serviço ainda não existia.
+- **Implementação:** sala de duas vagas, código/token injetáveis, modo fixo, prontidão idempotente, uma `MatchSession(remote)`, sequência por papel, prévia de 450 ms, tick, pausa, retomada e expiração de 60 s.
+- **Correção durante o verde:** 6/7 testes passaram; o sétimo mostrou que o teto de 250 ms da física estava encurtando o relógio da prévia. O serviço passou a limitar só o passo físico e usar o tempo integral nas pausas.
+- **Verde:** 10/10 testes; Bete, Triângulo e Cova concluem três rodadas com duas fontes remotas; typecheck do servidor.
+- **Limitação:** estado somente em memória e uma instância, como especificado; a integração de transporte pertence à Fase 4.
+
 ## Conclusão das tarefas
 
-- **Concluídas:** 9 (T001–T009)
-- **Pendentes:** 18
+- **Concluídas:** 12 (T001–T012)
+- **Pendentes:** 15
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -58,11 +67,11 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | FR-005    | T007, T021             | 162 testes do pacote + 68 web PASS; fallback de rede pendente      | BLOCKED   |
 | FR-006    | T008, T009             | 5 testes de schemas/eventos compartilhados                         | PASS      |
 | FR-007    | T013–T015              | pendente                                                           | BLOCKED   |
-| FR-008    | T010, T011             | pendente                                                           | BLOCKED   |
-| FR-009    | T010–T012              | pendente                                                           | BLOCKED   |
-| FR-010    | T008–T012, T015        | vetor/seq estritos PASS; autoridade e integração pendentes         | BLOCKED   |
-| FR-011    | T008–T015              | schema de estado/versionamento PASS; servidor pendente             | BLOCKED   |
-| FR-012    | T010, T011, T015       | pendente                                                           | BLOCKED   |
+| FR-008    | T010, T011             | criação, lotação, modo e limite em `room.service.test.ts`          | PASS      |
+| FR-009    | T010–T012              | prontidão + sessão única; três modos remotos concluídos            | PASS      |
+| FR-010    | T008–T012, T015        | vetor/seq/vez/idempotência no serviço PASS; e2e pendente           | BLOCKED   |
+| FR-011    | T008–T015              | estado versionado no serviço PASS; gateway pendente                | BLOCKED   |
+| FR-012    | T010, T011, T015       | pausa/retomada/expiração unitárias PASS; e2e pendente              | BLOCKED   |
 | FR-013    | T017–T020              | pendente                                                           | BLOCKED   |
 | FR-014    | T008, T009, T016, T024 | schema recusa mídia/campos extras; revisão de logs/bundle pendente | BLOCKED   |
 | FR-015    | T017, T018, T021       | pendente                                                           | BLOCKED   |
@@ -91,6 +100,8 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | `yarn workspace` typecheck de marbles e web                              | 2026-10-31 | PASS      | contratos neutros e consumidores compilam.                              |
 | `yarn exec vitest run test/multiplayer-protocol.test.ts`                 | 2026-10-31 | FAIL/PASS | módulo ausente antes; 5/5 testes verdes após os schemas.                |
 | `yarn typecheck` em `packages/marbles`                                   | 2026-10-31 | PASS      | Zod Mini e exports públicos compilam no TypeScript 7.                   |
+| `yarn exec vitest run test/room.service.test.ts` em `apps/server`        | 2026-10-31 | FAIL/PASS | módulo ausente antes; 10/10 verdes, incluindo três modos completos.     |
+| `yarn typecheck` em `apps/server`                                        | 2026-10-31 | PASS      | serviço e snapshot de rede compilam com Node 26/TS7.                    |
 
 ## Medições e benchmark
 
