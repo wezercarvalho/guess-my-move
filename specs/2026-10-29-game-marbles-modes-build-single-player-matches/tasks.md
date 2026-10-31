@@ -5,7 +5,7 @@
 - `[P]`: paralelizável sem conflito de arquivo, recurso ou dependência.
 - `[US-nnn]`, `[FR-nnn]`, `[NFR-nnn]`, `[SC-nnn]`: rastreabilidade.
 - Uma tarefa só é marcada `[x]` após atender seu critério de conclusão (teste direcionado verde e gates aplicáveis).
-- Ordem de implementação das issues: **#86 → #87 → #88 → #89 → #92 (com o Bete) → #90 → #91 → #93**, mais a documentação ao fim. A spec está em `implementing`; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29 e o Gate 3 fica para o fim (risco aceito: sem teste ao vivo com a mão real; valores a calibrar; faixa de acerto do bot como proteção de regressão).
+- Ordem de implementação das issues: **#86 → #87 → #88 → #89 → #92 (com o Bete) → #90 → #91 → #93**, mais a documentação ao fim. A spec está em `validated`; os Gates 1 e 2 foram aprovados antecipadamente pelo maintainer em 2026-10-29 e o Gate 3 foi aprovado em 2026-10-31 com risco aceito (sem teste ao vivo com a mão real; valores a calibrar; faixa de acerto do bot como proteção de regressão).
 
 ## Fase 1 — Controlador de mira (issue #86)
 
@@ -63,7 +63,7 @@
 
 - [x] T029 [FR-008] [FR-009] [FR-010] [NFR-005] Atualizar a documentação: `docs/product/PROJECT_SPEC.md`, `docs/development-context/architecture/architecture-guide.md` e `specs/README.md` (nova linha no catálogo) para descrever os modos de jogo das bolinhas (controlador de mira, motor, contrato de modo, fonte do tiro, bot por simulação e os três modos), declarando as limitações sem medição (valores a calibrar, faixa de acerto como proteção de regressão, sem teste com mão real)
 - [x] T030 [SC-001] [SC-004] [SC-005] [SC-006] Executar `yarn check:static`, `yarn test`, `yarn build`, `yarn sdd:check` e `yarn docs:format:check`, corrigir até verde e registrar `validation.md` (comandos, resultados, evidência por requisito e limitações); reconciliar spec, plano, tarefas, implementação e evidências
-- [ ] T031 [SC-006] [NFR-004] Fechar o Gate 3 em `validation.md` com veredito e risco aceito (sem teste ao vivo com a mão real; valores a calibrar; faixa de acerto do bot como proteção de regressão) e atualizar o estado da spec para `validated` ao fim, sem afirmar equilíbrio nem diversão sem uso real
+- [x] T031 [SC-006] [NFR-004] Fechar o Gate 3 em `validation.md` com veredito e risco aceito (sem teste ao vivo com a mão real; valores a calibrar; faixa de acerto do bot como proteção de regressão) e atualizar o estado da spec para `validated` ao fim, sem afirmar equilíbrio nem diversão sem uso real
 
 ## Cobertura
 
