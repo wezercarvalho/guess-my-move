@@ -165,6 +165,7 @@ export const protocolErrorCodeSchema = z.enum([
     'NOT_YOUR_TURN',
     'DUPLICATE_COMMAND',
     'RESUME_DENIED',
+    'INTERNAL_ERROR',
 ])
 export const protocolErrorSchema = strict({
     code: protocolErrorCodeSchema,

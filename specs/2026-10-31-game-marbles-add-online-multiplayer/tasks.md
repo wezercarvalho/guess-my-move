@@ -33,10 +33,10 @@
 
 ## Fase 4 — NestJS e gateway WebSocket
 
-- [ ] T013 [US-002] [FR-007] [FR-011] [NFR-004] Escrever testes falhando de configuração, health, limite de payload/comandos e acknowledgements do gateway.
-- [ ] T014 [US-002] [FR-007] [FR-011] Implementar `apps/server` com NestJS 12.3.2, Socket.IO 4.8.4, health, gateway, ticker e encerramento limpo.
-- [ ] T015 [US-002] [US-003] [US-004] [FR-007] [FR-012] [SC-003] [SC-004] Escrever e passar integração real com dois clientes: criar, entrar, prontidão, tiro, duplicata, desconectar e retomar.
-- [ ] T016 [FR-014] [NFR-003] [NFR-004] Provar que logs/acks não expõem token, stack ou payload de mídia e que um socket infrator não derruba outra sala.
+- [x] T013 [US-002] [FR-007] [FR-011] [NFR-004] Escrever testes falhando de configuração, health, limite de payload/comandos e acknowledgements do gateway.
+- [x] T014 [US-002] [FR-007] [FR-011] Implementar `apps/server` com NestJS 12.3.2, Socket.IO 4.8.4, health, gateway, ticker e encerramento limpo.
+- [x] T015 [US-002] [US-003] [US-004] [FR-007] [FR-012] [SC-003] [SC-004] Escrever e passar integração real com dois clientes: criar, entrar, prontidão, tiro, duplicata, desconectar e retomar.
+- [x] T016 [FR-014] [NFR-003] [NFR-004] Provar que logs/acks não expõem token, stack ou payload de mídia e que um socket infrator não derruba outra sala.
 
 ## Fase 5 — Cliente e tela online
 

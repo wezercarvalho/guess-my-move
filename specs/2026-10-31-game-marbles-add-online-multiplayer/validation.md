@@ -50,10 +50,21 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 - **Verde:** 10/10 testes; Bete, Triângulo e Cova concluem três rodadas com duas fontes remotas; typecheck do servidor.
 - **Limitação:** estado somente em memória e uma instância, como especificado; a integração de transporte pertence à Fase 4.
 
+### Fase 4 — NestJS e gateway WebSocket
+
+- **Resultado:** PASS.
+- **Vermelho observado:** os testes de fundação/gateway não carregaram antes dos módulos; o e2e não carregou antes de `app.setup.ts`.
+- **Implementação:** NestJS 12.3.2, Socket.IO 4.8.4 forçado a WebSocket, payload de 8 KiB, health, config estrita, limiter 20/s, acks sanitizados, broadcasts e ticker de 33 ms.
+- **Verde:** 22/22 testes do servidor; typecheck, build e lint oficiais verdes.
+- **E2E:** duas conexões criam/entram, ficam prontas, recebem o mesmo estado, veem intenção, rejeitam vez/seq inválidas e retomam o papel após queda.
+- **Isolamento:** mídia abaixo do limite vira `INVALID_PAYLOAD` sem ecoar conteúdo/stack; payload acima de 8 KiB fecha apenas o socket infrator e outra sala continua funcionando.
+- **Compatibilidade:** NestJS 12.3.2 compilou e executou com Node 26.12.1, TypeScript 7.0.2 e Vitest/SWC neste repositório. Isso não prova suporte geral fora desta configuração.
+- **Limitação:** teste só em loopback e uma instância; nenhuma medição de latência, carga ou internet.
+
 ## Conclusão das tarefas
 
-- **Concluídas:** 12 (T001–T012)
-- **Pendentes:** 15
+- **Concluídas:** 16 (T001–T016)
+- **Pendentes:** 11
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -66,14 +77,14 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | FR-004    | T006, T020             | contador e anel local PASS; rótulos remotos pendentes              | BLOCKED   |
 | FR-005    | T007, T021             | 162 testes do pacote + 68 web PASS; fallback de rede pendente      | BLOCKED   |
 | FR-006    | T008, T009             | 5 testes de schemas/eventos compartilhados                         | PASS      |
-| FR-007    | T013–T015              | pendente                                                           | BLOCKED   |
+| FR-007    | T013–T015              | health, gateway WebSocket e e2e com dois clientes                  | PASS      |
 | FR-008    | T010, T011             | criação, lotação, modo e limite em `room.service.test.ts`          | PASS      |
 | FR-009    | T010–T012              | prontidão + sessão única; três modos remotos concluídos            | PASS      |
-| FR-010    | T008–T012, T015        | vetor/seq/vez/idempotência no serviço PASS; e2e pendente           | BLOCKED   |
-| FR-011    | T008–T015              | estado versionado no serviço PASS; gateway pendente                | BLOCKED   |
-| FR-012    | T010, T011, T015       | pausa/retomada/expiração unitárias PASS; e2e pendente              | BLOCKED   |
+| FR-010    | T008–T012, T015        | vetor, seq, vez, idempotência e e2e                                | PASS      |
+| FR-011    | T008–T015              | estado versionado, ack sanitizado e broadcast e2e                  | PASS      |
+| FR-012    | T010, T011, T015       | pausa, retomada e expiração unitárias; retomada e2e                | PASS      |
 | FR-013    | T017–T020              | pendente                                                           | BLOCKED   |
-| FR-014    | T008, T009, T016, T024 | schema recusa mídia/campos extras; revisão de logs/bundle pendente | BLOCKED   |
+| FR-014    | T008, T009, T016, T024 | schema, ack, log e payload e2e PASS; revisão do bundle pendente    | BLOCKED   |
 | FR-015    | T017, T018, T021       | pendente                                                           | BLOCKED   |
 | FR-016    | T002, T025–T027        | documentação inicial criada                                        | BLOCKED   |
 
@@ -102,6 +113,9 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | `yarn typecheck` em `packages/marbles`                                   | 2026-10-31 | PASS      | Zod Mini e exports públicos compilam no TypeScript 7.                   |
 | `yarn exec vitest run test/room.service.test.ts` em `apps/server`        | 2026-10-31 | FAIL/PASS | módulo ausente antes; 10/10 verdes, incluindo três modos completos.     |
 | `yarn typecheck` em `apps/server`                                        | 2026-10-31 | PASS      | serviço e snapshot de rede compilam com Node 26/TS7.                    |
+| `yarn test` em `apps/server`                                             | 2026-10-31 | PASS      | 22 testes: serviço, gateway, health, rate limit e 4 e2e.                |
+| `yarn build` em `apps/server`                                            | 2026-10-31 | PASS      | NestJS 12.3.2 compilado por TypeScript 7.0.2.                           |
+| `yarn lint` na raiz                                                      | 2026-10-31 | PASS      | 203 arquivos; 0 avisos e 0 erros após tipar eventos como `unknown`.     |
 
 ## Medições e benchmark
 
@@ -112,8 +126,8 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 ## Validações estruturais e documentais
 
 - **Links e catálogo:** catálogo ainda precisa ser atualizado e validado por `sdd:check`.
-- **Contratos:** protocolo compartilhado implementado e testado; sala e gateway pendentes.
-- **Privacidade e segredos:** schemas estritos recusam mídia, landmarks e campos extras; prova de logs/bundle pendente.
+- **Contratos:** protocolo, sala autoritativa e gateway implementados e testados; cliente web pendente.
+- **Privacidade e segredos:** schemas, acks e e2e recusam mídia e não ecoam conteúdo, token ou stack; revisão do bundle pendente.
 - **Fronteira de informação:** nenhuma carta entra no protocolo planejado; teste pendente.
 - **UTF-8 e acentuação:** arquivos criados em UTF-8.
 - **Alterações fora de escopo:** `.kiro/settings/` preexistente permanece sem rastreio e intocado.
