@@ -112,6 +112,12 @@ export interface AimView {
     direction: Vec | null
 }
 
+/** Próximo tiro anunciado do adversário antes de ser aplicado. */
+export interface OpponentIntent {
+    velocity: Vec
+    power: number
+}
+
 /** Estado da partida exposto à tela. */
 export interface MatchView {
     modeId: string
@@ -123,7 +129,7 @@ export interface MatchView {
     lastRoundOutcome: Outcome | null
     matchOutcome: Outcome | null
     turn: Competitor | null
-    playerShotsLeft: number
+    shotsLeft: Record<Competitor, number>
     roundYield: Record<Competitor, number>
     scoreLabel: string | null
     field: Body[]
@@ -148,6 +154,8 @@ export interface MarblesSnapshot {
     match: MatchView | null
     /** Mira em andamento (só na vez do jogador). */
     aim: AimView | null
+    /** Próximo tiro do adversário enquanto a prévia curta está visível. */
+    opponentIntent: OpponentIntent | null
     /** Posição da pinça no campo e se está fechada; `null` quando a mão não é vista. */
     hand: { point: Vec; closed: boolean } | null
     debug: MarblesDebug
@@ -159,6 +167,8 @@ const SUMMARY_INTERVAL_MS = 250
 const CAMERA_FPS_WINDOW_MS = 1000
 /** Espera curta (ms) mostrando o resultado da rodada antes de começar a próxima. */
 const ROUND_DWELL_MS = 900
+/** Tempo inicial para a pessoa ver a intenção do adversário antes do tiro. */
+const OPPONENT_INTENT_MS = 450
 
 const messageOf = (error: unknown) =>
     error instanceof Error && error.message ? error.message : 'Falha ao usar o detector de mão.'
@@ -167,6 +177,25 @@ function modeEntry(modeId: string): ModeEntry {
     return modes.find((m) => m.id === modeId) ?? modes[0]
 }
 
+/** Fonte determinística do bot; ausência de campo/alvo significa passar a vez. */
+export function createBotShotSource(
+    entry: ModeEntry,
+    mode: Mode,
+    planner: BotPlanner,
+    seedBase: number,
+): ShotSource {
+    const aimPoint = entry.botAimPoint(mode)
+    let shot = 0
+    return {
+        nextShot(field?: readonly Body[]): Vec | null {
+            if (!field || field.length === 0) return null
+            const point = aimPoint(field, 'opponent')
+            if (!point) return null
+            shot++
+            return planner.planShot(field[0].pos, point, seedBase + shot * 101)
+        },
+    }
+}
 /**
  * Orquestra câmera, detector de mão, controlador de mira e a partida animada,
  * sem depender do React: a interface assina as mudanças (`subscribe`/
@@ -192,7 +221,10 @@ export class MarblesController {
 
     // Partida em andamento.
     private session: MatchSession | null = null
+    private botSource: ShotSource | null = null
     private aimView: AimView | null = null
+    private opponentIntent: OpponentIntent | null = null
+    private opponentIntentDue: number | null = null
     private roundDwellUntil: number | null = null
 
     private lastFlick: {
@@ -305,17 +337,19 @@ export class MarblesController {
     readonly startMatch = (): void => {
         const entry = modeEntry(this.modeId)
         const mode: Mode = entry.create()
+        this.botSource = this.opponent === 'bot' ? this.makeBotSource(entry, mode) : null
         this.session = createMatchSession({
             modeId: entry.id,
             mode,
             opponent: this.opponent,
-            bot: this.makeBotSource(entry, mode),
         })
         this.aim.reset()
         this.pinch.reset()
         this.flick.reset()
         this.lastFlick = null
         this.aimView = null
+        this.opponentIntent = null
+        this.opponentIntentDue = null
         this.roundDwellUntil = null
         this.sync()
     }
@@ -328,7 +362,10 @@ export class MarblesController {
     /** Volta à tela de escolha (trocar de modo). */
     readonly changeMode = (): void => {
         this.session = null
+        this.botSource = null
         this.aimView = null
+        this.opponentIntent = null
+        this.opponentIntentDue = null
         this.roundDwellUntil = null
         this.aim.reset()
         this.pinch.reset()
@@ -343,22 +380,11 @@ export class MarblesController {
      * a sequência de acertos e erros do bot não se repetir de uma partida à outra.
      */
     private makeBotSource(entry: ModeEntry, mode: Mode): ShotSource {
-        const aimPoint = entry.botAimPoint(mode)
         const planner = (this.env.createBot ?? ((level) => createBotPlanner(BOT_LEVELS[level])))(
             this.botLevel,
         )
         const seedBase = this.env.seed ?? Math.floor(Math.random() * 0x1_0000_0000)
-        let shot = 0
-        return {
-            nextShot(field?: readonly Body[]): Vec | null {
-                shot++
-                if (!field || field.length === 0) return { x: 300, y: 0 }
-                const origin = field[0].pos
-                const point = aimPoint(field, 'opponent')
-                if (!point) return { x: 300, y: 0 }
-                return planner.planShot(origin, point, seedBase + shot * 101)
-            },
-        }
+        return createBotShotSource(entry, mode, planner, seedBase)
     }
 
     private sync(): void {
@@ -533,12 +559,13 @@ export class MarblesController {
         }
     }
 
-    /** Avança a partida: anima a rolagem e, após a rodada, aguarda e começa a próxima. */
+    /** Avança a partida: mostra a intenção do bot, anima a rolagem e troca a rodada. */
     private advanceMatch(dt: number, now: number): void {
         const session = this.session
         if (!session) return
-        const phase = session.snapshot().phase
-        if (phase === 'round-over') {
+        const snap = session.snapshot()
+        if (snap.phase === 'round-over') {
+            this.clearOpponentIntent()
             if (this.roundDwellUntil === null) this.roundDwellUntil = now + ROUND_DWELL_MS
             else if (now >= this.roundDwellUntil) {
                 this.roundDwellUntil = null
@@ -548,7 +575,36 @@ export class MarblesController {
             return
         }
         this.roundDwellUntil = null
+
+        if (snap.phase === 'opponent-turn' && snap.opponent === 'bot') {
+            if (!this.opponentIntent) {
+                session.shooter()
+                const velocity = this.botSource?.nextShot(session.snapshot().field) ?? null
+                if (!velocity) {
+                    session.passShot('opponent')
+                    return
+                }
+                this.opponentIntent = {
+                    velocity,
+                    power: Math.min(1, Math.hypot(velocity.x, velocity.y) / 1100),
+                }
+                this.opponentIntentDue = now + OPPONENT_INTENT_MS
+                return
+            }
+            if (this.opponentIntentDue !== null && now >= this.opponentIntentDue) {
+                session.fireShot('opponent', this.opponentIntent.velocity)
+                this.clearOpponentIntent()
+            }
+            return
+        }
+
+        this.clearOpponentIntent()
         session.advance(dt)
+    }
+
+    private clearOpponentIntent(): void {
+        this.opponentIntent = null
+        this.opponentIntentDue = null
     }
 
     private stopLoop(): void {
@@ -641,7 +697,7 @@ export class MarblesController {
             lastRoundOutcome: snap.lastRoundOutcome,
             matchOutcome: snap.matchOutcome,
             turn: snap.turn,
-            playerShotsLeft: snap.playerShotsLeft,
+            shotsLeft: { ...snap.shotsLeft },
             roundYield: snap.roundYield,
             scoreLabel: snap.scoreLabel,
             field: snap.field,
@@ -671,6 +727,7 @@ export class MarblesController {
             failureReason: this.failureReason,
             match: this.matchView(),
             aim: playerTurn ? this.aimView : null,
+            opponentIntent: this.opponentIntent ? { ...this.opponentIntent } : null,
             hand: this.handOnField(),
             debug: {
                 delegate: this.delegate,

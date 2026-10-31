@@ -14,11 +14,11 @@
 
 ## Fase 1 — Motor e melhorias do jogo atual
 
-- [ ] T003 [US-001] [FR-002] [SC-001] Escrever testes falhando para `shotsLeft`, `opponent-turn`, `fireShot` por competidor e adversário `remote` em `packages/marbles/test/`.
-- [ ] T004 [US-001] [FR-002] Implementar a sessão neutra e compatibilidade local em `packages/marbles/src/match/`; confirmar equivalência dos condutores.
-- [ ] T005 [US-001] [FR-003] [SC-001] Escrever teste falhando do bot sem campo/alvo e implementar `null` sem tiro arbitrário, com intenção exposta antes do disparo.
-- [ ] T006 [US-001] [FR-004] Escrever testes falhando e implementar contador por competidor, rótulo neutro e distinção por contorno/forma no campo.
-- [ ] T007 [US-005] [FR-005] Rodar testes direcionados dos três modos, bot, controlador e tela local; registrar resultado da fase.
+- [x] T003 [US-001] [FR-002] [SC-001] Escrever testes falhando para `shotsLeft`, `opponent-turn`, `fireShot` por competidor e adversário `remote` em `packages/marbles/test/`.
+- [x] T004 [US-001] [FR-002] Implementar a sessão neutra e compatibilidade local em `packages/marbles/src/match/`; confirmar equivalência dos condutores.
+- [x] T005 [US-001] [FR-003] [SC-001] Escrever teste falhando do bot sem campo/alvo e implementar `null` sem tiro arbitrário, com intenção exposta antes do disparo.
+- [x] T006 [US-001] [FR-004] Escrever testes falhando e implementar contador por competidor, rótulo neutro e distinção por contorno/forma no campo.
+- [x] T007 [US-005] [FR-005] Rodar testes direcionados dos três modos, bot, controlador e tela local; registrar resultado da fase.
 
 ## Fase 2 — Protocolo compartilhado
 

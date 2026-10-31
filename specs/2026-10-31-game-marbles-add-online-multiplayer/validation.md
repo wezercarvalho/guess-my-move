@@ -22,32 +22,41 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 - **Decisões:** servidor novo; Socket.IO sobre WebSocket; sala efêmera; autoridade no servidor; câmera e landmarks fora da rede.
 - **Limitação:** nenhuma implementação ou execução do NestJS foi validada nesta fase.
 
+### Fase 1 — Motor e leitura da partida
+
+- **Resultado:** PASS.
+- **Vermelho observado:** `multiplayer-session.test.ts` falhou em 3/3 casos por ausência de `shotsLeft`, `fireShot` e retorno do adaptador legado; `marblesController.test.ts` falhou nos 2 casos novos por ausência do helper sem fallback e da prévia.
+- **Implementação:** adversário `remote`, fase `opponent-turn`, `shotsLeft`, `fireShot`/`passShot`, helper do bot sem tiro arbitrário, prévia de 450 ms, contador nomeado e anel tracejado no segundo competidor.
+- **Verde:** pacote marbles 162/162; 68 testes direcionados da web; typecheck de marbles/web; lint após ajuste final pendente de repetição.
+- **Mutação:** remover a seta fez o teste da intenção falhar; remover "do bot" fez o teste do contador falhar; ambas as implementações foram restauradas e os testes passaram.
+- **Limitação:** 450 ms é valor inicial sem teste de usabilidade; nenhuma regra de força, vitória ou física foi recalibrada.
+
 ## Conclusão das tarefas
 
-- **Concluídas:** 2 (T001–T002)
-- **Pendentes:** 25
+- **Concluídas:** 7 (T001–T007)
+- **Pendentes:** 20
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
 
-| Requisito | Tarefas                | Evidência                                                         | Resultado |
-| --------- | ---------------------- | ----------------------------------------------------------------- | --------- |
-| FR-001    | T001                   | spec singleplayer validada; T031 e Gate 3 aprovados em 2026-10-31 | PASS      |
-| FR-002    | T003, T004             | pendente                                                          | BLOCKED   |
-| FR-003    | T005, T020             | pendente                                                          | BLOCKED   |
-| FR-004    | T006, T020             | pendente                                                          | BLOCKED   |
-| FR-005    | T007, T021             | pendente                                                          | BLOCKED   |
-| FR-006    | T008, T009             | pendente                                                          | BLOCKED   |
-| FR-007    | T013–T015              | pendente                                                          | BLOCKED   |
-| FR-008    | T010, T011             | pendente                                                          | BLOCKED   |
-| FR-009    | T010–T012              | pendente                                                          | BLOCKED   |
-| FR-010    | T008–T012, T015        | pendente                                                          | BLOCKED   |
-| FR-011    | T008–T015              | pendente                                                          | BLOCKED   |
-| FR-012    | T010, T011, T015       | pendente                                                          | BLOCKED   |
-| FR-013    | T017–T020              | pendente                                                          | BLOCKED   |
-| FR-014    | T008, T009, T016, T024 | pendente                                                          | BLOCKED   |
-| FR-015    | T017, T018, T021       | pendente                                                          | BLOCKED   |
-| FR-016    | T002, T025–T027        | documentação inicial criada                                       | BLOCKED   |
+| Requisito | Tarefas                | Evidência                                                          | Resultado |
+| --------- | ---------------------- | ------------------------------------------------------------------ | --------- |
+| FR-001    | T001                   | spec singleplayer validada; T031 e Gate 3 aprovados em 2026-10-31  | PASS      |
+| FR-002    | T003, T004             | `multiplayer-session.test.ts`; `match-session-equivalence.test.ts` | PASS      |
+| FR-003    | T005, T020             | bot sem fallback e prévia local PASS; integração remota pendente   | BLOCKED   |
+| FR-004    | T006, T020             | contador e anel local PASS; rótulos remotos pendentes              | BLOCKED   |
+| FR-005    | T007, T021             | 162 testes do pacote + 68 web PASS; fallback de rede pendente      | BLOCKED   |
+| FR-006    | T008, T009             | pendente                                                           | BLOCKED   |
+| FR-007    | T013–T015              | pendente                                                           | BLOCKED   |
+| FR-008    | T010, T011             | pendente                                                           | BLOCKED   |
+| FR-009    | T010–T012              | pendente                                                           | BLOCKED   |
+| FR-010    | T008–T012, T015        | pendente                                                           | BLOCKED   |
+| FR-011    | T008–T015              | pendente                                                           | BLOCKED   |
+| FR-012    | T010, T011, T015       | pendente                                                           | BLOCKED   |
+| FR-013    | T017–T020              | pendente                                                           | BLOCKED   |
+| FR-014    | T008, T009, T016, T024 | pendente                                                           | BLOCKED   |
+| FR-015    | T017, T018, T021       | pendente                                                           | BLOCKED   |
+| FR-016    | T002, T025–T027        | documentação inicial criada                                        | BLOCKED   |
 
 ## Histórias e critérios de aceitação
 
@@ -61,11 +70,15 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 
 ## Comandos executados
 
-| Comando exato                            | Data       | Resultado | Evidência/observação                                                    |
-| ---------------------------------------- | ---------- | --------- | ----------------------------------------------------------------------- |
-| `git fetch --prune origin`               | 2026-10-31 | PASS      | `origin/main` em `a614920`, merge do PR #110.                           |
-| `git log --all --oneline -- apps/server` | 2026-10-31 | PASS      | criação em `147ec25`, remoção em `4d501b8`; nenhum gateway multiplayer. |
-| `yarn npm info` para NestJS/Socket.IO    | 2026-10-31 | PASS      | NestJS 12.3.2 e Socket.IO 4.8.4 publicados.                             |
+| Comando exato                                                            | Data       | Resultado | Evidência/observação                                                    |
+| ------------------------------------------------------------------------ | ---------- | --------- | ----------------------------------------------------------------------- |
+| `git fetch --prune origin`                                               | 2026-10-31 | PASS      | `origin/main` em `a614920`, merge do PR #110.                           |
+| `git log --all --oneline -- apps/server`                                 | 2026-10-31 | PASS      | criação em `147ec25`, remoção em `4d501b8`; nenhum gateway multiplayer. |
+| `yarn npm info` para NestJS/Socket.IO                                    | 2026-10-31 | PASS      | NestJS 12.3.2 e Socket.IO 4.8.4 publicados.                             |
+| `yarn workspace @guess-my-move/marbles test multiplayer-session.test.ts` | 2026-10-31 | FAIL/PASS | 3 falhas esperadas antes do código; 3/3 verdes depois.                  |
+| `yarn test` em `packages/marbles`                                        | 2026-10-31 | PASS      | 162 testes em 15 arquivos.                                              |
+| `yarn exec vitest run` nos 3 testes de marbles da web                    | 2026-10-31 | PASS      | 68 testes direcionados; avisos `act` preexistentes não falham.          |
+| `yarn workspace` typecheck de marbles e web                              | 2026-10-31 | PASS      | contratos neutros e consumidores compilam.                              |
 
 ## Medições e benchmark
 

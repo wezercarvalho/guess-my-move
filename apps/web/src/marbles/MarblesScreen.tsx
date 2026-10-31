@@ -84,8 +84,8 @@ function statusText(game: MarblesGameView): string {
                 return game.aim.shot ? 'Mira pronta. Abra os dedos.' : 'Mirando: afaste mais a mão.'
             }
             return game.shotControl === 'flick' ? 'Sua vez. Feche a mão.' : 'Sua vez. Feche a pinça.'
-        case 'bot-turn':
-            return 'Vez do bot…'
+        case 'opponent-turn':
+            return match.opponent === 'bot' ? 'Vez do bot…' : 'Vez da outra pessoa…'
         case 'rolling':
             return 'Bolinha rolando…'
         case 'round-over':
@@ -152,16 +152,25 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             field: game.match.field,
             decor: game.match.decor,
             aim: game.aim,
+            opponentIntent: game.opponentIntent,
             hand: game.hand,
             shooterOwner: game.match.turn ?? 'player',
         })
-    }, [game.match, game.aim, game.hand])
+    }, [game.match, game.aim, game.opponentIntent, game.hand])
 
     const debugDrawer = useDrawer()
     const selectedMode = modes.find((m) => m.id === game.modeId) ?? modes[0]
     const matchMode = game.match ? (modes.find((m) => m.id === game.match?.modeId) ?? modes[0]) : null
     const guideMode = (matchMode ?? selectedMode).create()
     const ready = game.match?.phase === 'player-turn' && game.trackerStatus === 'ready'
+    const shotsOwner = game.match?.turn ?? 'player'
+    const shotsLeft = game.match?.shotsLeft[shotsOwner] ?? 0
+    const shotsLabel =
+        shotsOwner === 'player'
+            ? 'Seus tiros restantes'
+            : game.match?.opponent === 'bot'
+              ? 'Tiros do bot restantes'
+              : 'Tiros da outra pessoa restantes'
 
     return (
         <div className="marbles-screen">
@@ -255,7 +264,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                     </p>
                                 )}
                                 <p className="shot-counter" data-testid="shots-left">
-                                    Tiros restantes: {game.match.playerShotsLeft}
+                                    {shotsLabel}: {shotsLeft}
                                 </p>
                                 <p className="turn-indicator" data-testid="turn">
                                     {game.match.opponent === 'bot'

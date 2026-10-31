@@ -384,6 +384,7 @@ describe('MarblesScreen: vez do bot', () => {
             h.tick(1, 16)
         }
         if (reachedBotTurn) {
+            expect(screen.getByTestId('shots-left')).toHaveTextContent(/tiros do bot restantes/i)
             const shotsBefore = screen.getByTestId('shots-left').textContent
             h.run(closed(300, 300), 3)
             expect(screen.getByTestId('shots-left').textContent).toBe(shotsBefore)
