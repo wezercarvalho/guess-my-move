@@ -22,8 +22,8 @@
 
 ## Fase 2 — Protocolo compartilhado
 
-- [ ] T008 [US-002] [US-003] [FR-006] [FR-010] [FR-011] [FR-014] [SC-002] Escrever testes falhando dos schemas estritos, eventos, vetor, sequência e estado versionado.
-- [ ] T009 [US-002] [US-003] [FR-006] [FR-010] [FR-011] [FR-014] Implementar `packages/marbles/src/multiplayer/` e exportar a API pública; confirmar testes verdes e ausência de mídia/carta.
+- [x] T008 [US-002] [US-003] [FR-006] [FR-010] [FR-011] [FR-014] [SC-002] Escrever testes falhando dos schemas estritos, eventos, vetor, sequência e estado versionado.
+- [x] T009 [US-002] [US-003] [FR-006] [FR-010] [FR-011] [FR-014] Implementar `packages/marbles/src/multiplayer/` e exportar a API pública; confirmar testes verdes e ausência de mídia/carta.
 
 ## Fase 3 — Sala autoritativa
 

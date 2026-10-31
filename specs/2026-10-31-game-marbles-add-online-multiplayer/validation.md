@@ -31,10 +31,20 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 - **Mutação:** remover a seta fez o teste da intenção falhar; remover "do bot" fez o teste do contador falhar; ambas as implementações foram restauradas e os testes passaram.
 - **Limitação:** 450 ms é valor inicial sem teste de usabilidade; nenhuma regra de força, vitória ou física foi recalibrada.
 
+### Fase 2 — Protocolo compartilhado
+
+- **Resultado:** PASS.
+- **Vermelho observado:** `multiplayer-protocol.test.ts` não carregou porque `src/multiplayer/index.ts` ainda não existia.
+- **Implementação:** eventos estáveis, códigos/credenciais, schemas Zod Mini estritos, vetor de 150–1100 unid/s, estado versionado e snapshot de rede sem `playerShotsLeft`.
+- **Verde:** 5/5 testes do protocolo e typecheck do pacote.
+- **Privacidade:** os testes recusam `frame`, `video`, `landmarks` e qualquer campo desconhecido; os tipos não incluem câmera, gesto bruto ou carta.
+- **Dependência:** Zod 4.6.7 já usado no monorepo foi declarado também em `@guess-my-move/marbles`; `yarn install` alterou apenas a entrada do workspace no lockfile.
+- **Limitação:** a autoridade, idempotência por sala e integração Socket.IO ainda não existem; serão provadas nas Fases 3 e 4.
+
 ## Conclusão das tarefas
 
-- **Concluídas:** 7 (T001–T007)
-- **Pendentes:** 20
+- **Concluídas:** 9 (T001–T009)
+- **Pendentes:** 18
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -46,15 +56,15 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | FR-003    | T005, T020             | bot sem fallback e prévia local PASS; integração remota pendente   | BLOCKED   |
 | FR-004    | T006, T020             | contador e anel local PASS; rótulos remotos pendentes              | BLOCKED   |
 | FR-005    | T007, T021             | 162 testes do pacote + 68 web PASS; fallback de rede pendente      | BLOCKED   |
-| FR-006    | T008, T009             | pendente                                                           | BLOCKED   |
+| FR-006    | T008, T009             | 5 testes de schemas/eventos compartilhados                         | PASS      |
 | FR-007    | T013–T015              | pendente                                                           | BLOCKED   |
 | FR-008    | T010, T011             | pendente                                                           | BLOCKED   |
 | FR-009    | T010–T012              | pendente                                                           | BLOCKED   |
-| FR-010    | T008–T012, T015        | pendente                                                           | BLOCKED   |
-| FR-011    | T008–T015              | pendente                                                           | BLOCKED   |
+| FR-010    | T008–T012, T015        | vetor/seq estritos PASS; autoridade e integração pendentes         | BLOCKED   |
+| FR-011    | T008–T015              | schema de estado/versionamento PASS; servidor pendente             | BLOCKED   |
 | FR-012    | T010, T011, T015       | pendente                                                           | BLOCKED   |
 | FR-013    | T017–T020              | pendente                                                           | BLOCKED   |
-| FR-014    | T008, T009, T016, T024 | pendente                                                           | BLOCKED   |
+| FR-014    | T008, T009, T016, T024 | schema recusa mídia/campos extras; revisão de logs/bundle pendente | BLOCKED   |
 | FR-015    | T017, T018, T021       | pendente                                                           | BLOCKED   |
 | FR-016    | T002, T025–T027        | documentação inicial criada                                        | BLOCKED   |
 
@@ -79,6 +89,8 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 | `yarn test` em `packages/marbles`                                        | 2026-10-31 | PASS      | 162 testes em 15 arquivos.                                              |
 | `yarn exec vitest run` nos 3 testes de marbles da web                    | 2026-10-31 | PASS      | 68 testes direcionados; avisos `act` preexistentes não falham.          |
 | `yarn workspace` typecheck de marbles e web                              | 2026-10-31 | PASS      | contratos neutros e consumidores compilam.                              |
+| `yarn exec vitest run test/multiplayer-protocol.test.ts`                 | 2026-10-31 | FAIL/PASS | módulo ausente antes; 5/5 testes verdes após os schemas.                |
+| `yarn typecheck` em `packages/marbles`                                   | 2026-10-31 | PASS      | Zod Mini e exports públicos compilam no TypeScript 7.                   |
 
 ## Medições e benchmark
 
@@ -89,8 +101,8 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 ## Validações estruturais e documentais
 
 - **Links e catálogo:** catálogo ainda precisa ser atualizado e validado por `sdd:check`.
-- **Contratos:** planejados, não implementados.
-- **Privacidade e segredos:** o design proíbe mídia/landmarks; prova automatizada pendente.
+- **Contratos:** protocolo compartilhado implementado e testado; sala e gateway pendentes.
+- **Privacidade e segredos:** schemas estritos recusam mídia, landmarks e campos extras; prova de logs/bundle pendente.
 - **Fronteira de informação:** nenhuma carta entra no protocolo planejado; teste pendente.
 - **UTF-8 e acentuação:** arquivos criados em UTF-8.
 - **Alterações fora de escopo:** `.kiro/settings/` preexistente permanece sem rastreio e intocado.

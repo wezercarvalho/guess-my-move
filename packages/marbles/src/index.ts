@@ -65,6 +65,47 @@ export {
     stepBodies,
 } from './physics.js'
 export {
+    CLIENT_EVENTS,
+    MAX_COMMANDS_PER_SECOND,
+    MAX_SHOT_SPEED,
+    MAX_SOCKET_PAYLOAD_BYTES,
+    MIN_SHOT_SPEED,
+    MODE_IDS,
+    RECONNECT_GRACE_MS,
+    ROOM_CODE_LENGTH,
+    SERVER_EVENTS,
+    competitorSchema,
+    createRoomSchema,
+    joinRoomSchema,
+    leaveRoomSchema,
+    modeIdSchema,
+    normalizeRoomCode,
+    protocolErrorCodeSchema,
+    protocolErrorSchema,
+    readyRoomSchema,
+    resumeRoomSchema,
+    resumeTokenSchema,
+    roomAccessSchema,
+    roomCodeSchema,
+    roomIntentSchema,
+    roomStateSchema,
+    roomStatusSchema,
+    shotCommandSchema,
+    velocitySchema,
+    wireMatchSnapshotSchema,
+    type CreateRoomCommand,
+    type JoinRoomCommand,
+    type ModeId,
+    type ProtocolError,
+    type ProtocolErrorCode,
+    type ReadyRoomCommand,
+    type ResumeRoomCommand,
+    type RoomAccess,
+    type RoomState,
+    type ShotCommand,
+    type WireMatchSnapshot,
+} from './multiplayer/index.js'
+export {
     DEFAULT_PINCH,
     type PinchConfig,
     type PinchDetector,
@@ -98,6 +139,7 @@ export {
 } from './modes/hole/index.js'
 
 import { type Competitor, type Mode } from './match/index.js'
+import { type ModeId } from './multiplayer/index.js'
 import { type Body, type Vec } from './physics.js'
 import { DEFAULT_BETE_MODE, createBeteMode } from './modes/bete/index.js'
 import {
@@ -110,7 +152,7 @@ import { DEFAULT_HOLE_MODE, createHoleMode, type HoleMode } from './modes/hole/i
 
 /**
  * Ponto de chegada do tiro do bot num modo, dado o campo preparado e de quem é a
- * vez. `null` quando não há alvo (o chamador escolhe um tiro de reserva). A
+ * vez. `null` quando não há alvo e a fonte deve passar a vez. A
  * geometria do modo vive aqui, não no controlador da tela.
  */
 export type BotAimPoint = (field: readonly Body[], competitor: Competitor) => Vec | null
@@ -118,7 +160,7 @@ export type BotAimPoint = (field: readonly Body[], competitor: Competitor) => Ve
 /** Uma entrada do registro de modos para a interface montar o seletor. */
 export interface ModeEntry {
     /** Identificador estável do modo (usado em rota e seletor). */
-    id: string
+    id: ModeId
     /** Nome de exibição do modo. */
     name: string
     /** Cria uma instância nova do modo (estado por rodada próprio de cada partida). */
