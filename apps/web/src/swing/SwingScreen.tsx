@@ -7,7 +7,16 @@ import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, St
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { DEFAULT_CITY_MAP, type CityMap } from './cityCatalog.js'
-import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
+import {
+    HEAD_IDLE_HINT,
+    KEYS,
+    STEPS,
+    currentStep,
+    gripStatusLine,
+    guideHint,
+    headStatusLine,
+    statusLine,
+} from './guide.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
@@ -101,6 +110,7 @@ export function SwingScreen({
         cameraActive: camera.isActive,
         faceTrackerStatus: game.faceTrackerStatus,
         faceVisible: game.faceVisible,
+        lockMode: game.headLock.mode,
     })
 
     return (
@@ -197,7 +207,7 @@ export function SwingScreen({
                             {game.lookMode === 'face' ? (
                                 <>
                                     <p aria-live="polite" className="round-status" data-testid="head-status">
-                                        {headStatus || 'Vire a cabeça para olhar em volta.'}
+                                        {headStatus || HEAD_IDLE_HINT}
                                     </p>
                                     <Button
                                         variant="secondary"

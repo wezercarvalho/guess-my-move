@@ -69,3 +69,15 @@ Design das mudanças de FR-011..FR-014, mantendo a separação puro/apresentaç�
 4. **Legenda de teclado (FR-014, `guide.ts`):** `KEYS: readonly KeyGroup[]` exportado; `SwingScreen` renderiza o painel "Teclado" sempre visível, com `<kbd>`, estilizado em `swing.css` com os tokens.
 
 Mudanças nos arquivos compartilhados com a issue #81 (`swingController.ts`, `SwingScreen.tsx`, `guide.ts`) seguem pequenas e aditivas (NFR-005); `world.ts` não mudou nesta emenda.
+
+## Emenda CQ-012 (trava da direção do olhar por gesto de mão)
+
+Design de FR-015..FR-020, mantendo a separação puro/apresentação:
+
+1. **Pose (FR-015, `pose.ts`):** `isThumbDownOpenHand(landmarks)`: quatro dedos esticados (`EXTENDED_RATIO`), polegar afastado (`THUMB_OUT`) e ponta do polegar abaixo do centro da palma por `LOCK_THUMB_DROP` do tamanho da palma. O controlador a trata antes de `webSignal`/`isOpenPalm`.
+2. **Filtro (FR-016, `lockGesture.ts`):** `createLockGesture({ onsetMs, releaseGraceMs })` com `update(present, dtMs)`.
+3. **Trava (FR-017/FR-018, `headLook.ts`):** `update(orientation, dt, lock = false)` com os estados `following`/`locked`/`waiting`. Guarda um histórico curto do desvio total para travar na direção de `lookbackMs` antes. `HeadLookState` ganha `mode`, `liveYaw`/`livePitch` (só a parte da cabeça) e `recenterProgress`. `yawOffset`/`pitchOffset` continuam sendo o total aplicado ao olhar.
+4. **Controlador (FR-019, `swingController.ts`):** lê a pose por quadro de câmera, filtra com `lockGesture`, passa `lock` ao `headLook`, usa `liveYaw`/`livePitch` na escalada pelo olhar (inativa fora de `following`) e considera a cabeça no comando do olhar também travada e aguardando o centro. Snapshot e depuração ganham o estado da trava.
+5. **Tela (FR-020, `guide.ts`, `SwingScreen.tsx`, `SwingDebugPanel.tsx`):** `headStatusLine` ganha o estado da trava; a depuração mostra o estado, a pose por mão e o progresso.
+
+Mudanças em `swingController.ts`, `guide.ts` e `SwingScreen.tsx` seguem pequenas e aditivas (NFR-005); `world.ts` e `physics.ts` não mudam.

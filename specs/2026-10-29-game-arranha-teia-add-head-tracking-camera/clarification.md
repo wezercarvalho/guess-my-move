@@ -66,3 +66,40 @@ Emenda registrada depois que o dono testou a câmera pela cabeça (sessão de 20
 - **D-10.4 — Legenda de teclado:** painel "Teclado" sempre visível, uma linha por grupo, com `<kbd>`; a lista é **dados exportados** (`KEYS` em `apps/web/src/swing/guide.ts`) para outro PR acrescentar linhas sem conflito de layout.
 
 Incorporadas em FR-011..FR-014. Gate 3 **aprovado** pelo maintainer em 2026-10-30, sem medições.
+
+## CQ-012 — Trava da direção do olhar por gesto de mão (issue #106)
+
+Emenda registrada depois que o dono testou o modo Rosto (sessão de 2026-10-31).
+
+### O que o dono viu
+
+Para olhar para o lado ele vira a cabeça e deixa de ver o monitor, que é fixo. Ao voltar o rosto para a tela, o desvio some e a câmera volta. Ele não consegue manter a direção escolhida e olhar a tela.
+
+### Alternativas consideradas
+
+- **Joystick de taxa** (a câmera gira enquanto a cabeça está virada): rejeitada, porque exige manter a cabeça virada para continuar girando.
+- **Trava por tempo parado** (dwell): rejeitada, porque pode disparar sem querer.
+- **Tecla de embreagem**: rejeitada, porque as mãos já estão ocupadas com a teia.
+- **Direção pela íris**: rejeitada, por precisão baixa e sem medição.
+- **Gesto de mão** (a proposta do dono): adotada. A trava é sempre intencional e não depende de tecla.
+
+### Decisões
+
+- **D-12.1 — Gesto:** mão aberta com o dedão para baixo, qualquer mão (proposta do dono, com uma foto da pose). Reconhecido pela geometria dos landmarks (FR-015), sem depender do rótulo do reconhecedor.
+- **D-12.2 — Estados:** seguindo, travada (gesto valendo) e aguardando o centro (gesto desfeito). Sem o gesto, nada trava. Com o gesto, a direção fica fixa. Ao tirar a mão, a direção continua e a cabeça só volta a girar a câmera depois do rosto centralizar (FR-017).
+- **D-12.3 — Direção travada é relativa:** vira a nova frente e o desvio da cabeça soma a ela. O dono confirmou: "depois de travar e centralizar o rosto de volta, a câmera volta a ter o mesmo comportamento de permitir esquerda/direita". Não é fixa no mundo.
+- **D-12.4 — Momento da trava:** usa a direção de `lookbackMs` antes do gesto ser reconhecido, porque levar a mão ao gesto mexe a cabeça (FR-017).
+- **D-12.5 — Conflito com a palma aberta:** a pose do dedão para baixo não conta como palma aberta nem como pose de teia; não agarra nem derruba o agarre (FR-015). A mão que trava não segura teia (R-06).
+- **D-12.6 — Saída de segurança:** o gesto só vale enquanto dura; "Centralizar" encerra a trava e zera a direção travada. Não há estado que prenda o olhar: travada acaba com o gesto, e aguardando o centro acaba ao centralizar ou em "Centralizar". A tecla Espaço NÃO é saída (é a teia do centro); a issue #106 foi corrigida.
+- **D-12.7 — Estabilização:** sem rosto fora da trava, mantém o desvio por `faceLostHoldMs` antes de voltar (FR-018). Com a trava, perder o rosto não muda nada.
+
+Incorporadas em FR-015..FR-020 e US-006.
+
+## Gate 1 — Clarificação aprovada (emenda CQ-012)
+
+- **Status:** aprovado
+- **Data:** 2026-10-31
+- **Aprovador:** Wezer (@wezercarvalho)
+- **Referência:** mensagens do maintainer na sessão de 2026-10-31: a proposta do gesto ("E se toda vez que eu fizer assim com a mão... travarmos a mira") e "Não entendi tuas dúvidas, já esclareci que depois de travar e centralizar o rosto de volta, a câmera volta a ter o mesmo comportamento de permitir esquerda/direita".
+- **Artefatos aprovados:** a emenda CQ-012 de `spec.md` e `clarification.md`.
+- **Observações:** a aprovação é inferida dessas mensagens, que pedem a mecânica e respondem à única dúvida de comportamento. Os valores (200 ms, 150 ms, 400 ms, 300 ms, 1500 ms, 0,9 da palma) são de jogo e não foram medidos.
