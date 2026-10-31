@@ -8,19 +8,41 @@
 // Função pura: recebe o JSON da Overpass e devolve o objeto City (mais as
 // contagens de relações usadas/ignoradas, úteis para o build e para os testes).
 
-// Bbox fixo do trecho de Midtown (mesmos valores do brief).
-const BBOX = { minLat: 40.754, maxLat: 40.762, minLon: -73.99, maxLon: -73.9805 }
-const LAT0 = (BBOX.minLat + BBOX.maxLat) / 2
-const LON0 = (BBOX.minLon + BBOX.maxLon) / 2
+const DEFAULT_OPTIONS = {
+    name: 'Midtown Manhattan',
+    attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
+    bbox: { minLat: 40.754, maxLat: 40.762, minLon: -73.99, maxLon: -73.9805 },
+    rotationDeg: 29,
+}
 
-// Metros por grau: equirretangular em torno de (LAT0, LON0).
-const METERS_PER_DEG_LAT = 110574
-const METERS_PER_DEG_LON = Math.cos((LAT0 * Math.PI) / 180) * 111320
+/** Projeção equirretangular local, parametrizada por cidade. */
+function projectionFor(options) {
+    const { bbox, rotationDeg } = options
+    if (
+        !bbox ||
+        ![bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon].every(Number.isFinite) ||
+        bbox.minLat >= bbox.maxLat ||
+        bbox.minLon >= bbox.maxLon
+    ) {
+        throw new Error('bbox da cidade inválido')
+    }
+    if (!Number.isFinite(rotationDeg)) throw new Error('rotação da cidade inválida')
+    const lat0 = (bbox.minLat + bbox.maxLat) / 2
+    const lon0 = (bbox.minLon + bbox.maxLon) / 2
+    const metersPerDegLat = 110574
+    const metersPerDegLon = Math.cos((lat0 * Math.PI) / 180) * 111320
+    const angle = (rotationDeg * Math.PI) / 180
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
 
-// Rotação de 29°: o eixo das avenidas passa a correr ao longo de Z.
-const ANG = (29 * Math.PI) / 180
-const COS29 = Math.cos(ANG)
-const SIN29 = Math.sin(ANG)
+    return (lat, lon) => {
+        const e = (lon - lon0) * metersPerDegLon
+        const n = (lat - lat0) * metersPerDegLat
+        const cross = e * cos - n * sin
+        const along = e * sin + n * cos
+        return { x: cross, z: -along }
+    }
+}
 
 // Larguras de pista, em metros, por classe de via.
 const ROAD_WIDTHS = {
@@ -40,17 +62,6 @@ const ROAD_WIDTHS = {
 const round1 = (value) => {
     const rounded = Math.round(value * 10) / 10
     return rounded === 0 ? 0 : rounded
-}
-
-/** Projeta (lat, lon) para o plano local rotacionado; devolve {x, z} em metros. */
-function project(lat, lon) {
-    const e = (lon - LON0) * METERS_PER_DEG_LON
-    const n = (lat - LAT0) * METERS_PER_DEG_LAT
-    const cross = e * COS29 - n * SIN29
-    const along = e * SIN29 + n * COS29
-    // Mantém a precisão plena aqui; o arredondamento a 0,1 m é feito só na saída
-    // (depois de testar fechamento, colinearidade e área).
-    return { x: cross, z: -along }
 }
 
 /** Remove o último ponto quando ele repete o primeiro (anel fechado). */
@@ -109,7 +120,7 @@ function readHeight(tags) {
 }
 
 /** Converte uma geometria OSM (lista de {lat, lon}) em pontos {x, z} projetados. */
-function projectGeometry(geometry) {
+function projectGeometry(geometry, project) {
     return (geometry ?? []).map(({ lat, lon }) => project(lat, lon))
 }
 
@@ -141,9 +152,12 @@ function singleClosedOuter(relation) {
 /**
  * Converte a resposta da Overpass no objeto City v1.
  * @param {{elements?: Array<object>}} overpassJson
+ * @param {{name?: string, attribution?: string, bbox?: {minLat:number,maxLat:number,minLon:number,maxLon:number}, rotationDeg?: number}} options
  * @returns {import('../../../packages/swing/src/city.ts').City & {relationsUsed: number, relationsSkipped: number}}
  */
-export function cityFromOsm(overpassJson) {
+export function cityFromOsm(overpassJson, options = {}) {
+    const config = { ...DEFAULT_OPTIONS, ...options, bbox: options.bbox ?? DEFAULT_OPTIONS.bbox }
+    const project = projectionFor(config)
     const elements = overpassJson?.elements ?? []
     const buildings = []
     const roads = []
@@ -154,7 +168,7 @@ export function cityFromOsm(overpassJson) {
         const tags = element.tags ?? {}
 
         if (element.type === 'way' && tags.building && Array.isArray(element.geometry)) {
-            const building = buildingFromRing(projectGeometry(element.geometry), tags)
+            const building = buildingFromRing(projectGeometry(element.geometry, project), tags)
             if (building) buildings.push(building)
             continue
         }
@@ -162,11 +176,12 @@ export function cityFromOsm(overpassJson) {
         if (element.type === 'way' && tags.highway && Array.isArray(element.geometry)) {
             const width = ROAD_WIDTHS[tags.highway]
             if (width === undefined) continue
-            const points = projectGeometry(element.geometry)
+            const points = projectGeometry(element.geometry, project)
             if (points.length < 2) continue
             const line = []
             for (const point of points) line.push(round1(point.x), round1(point.z))
-            roads.push({ width, line })
+            const name = typeof tags.name === 'string' ? tags.name.trim() : ''
+            roads.push(name ? { width, name, line } : { width, line })
             continue
         }
 
@@ -176,7 +191,7 @@ export function cityFromOsm(overpassJson) {
                 relationsSkipped++
                 continue
             }
-            const building = buildingFromRing(projectGeometry(geometry), tags)
+            const building = buildingFromRing(projectGeometry(geometry, project), tags)
             if (building) {
                 buildings.push(building)
                 relationsUsed++
@@ -210,8 +225,8 @@ export function cityFromOsm(overpassJson) {
 
     return {
         version: 1,
-        name: 'Midtown Manhattan',
-        attribution: 'Dados do mapa © colaboradores do OpenStreetMap (ODbL)',
+        name: config.name,
+        attribution: config.attribution,
         bounds: {
             minX: round1(minX),
             maxX: round1(maxX),

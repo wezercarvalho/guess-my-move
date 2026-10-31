@@ -7,6 +7,12 @@ type GrabDebug = SwingSnapshot['grabDebug']
 
 const yesNo = (value: boolean) => (value ? 'sim' : 'não')
 
+/** Estado da trava da direção do olhar, para a depuração. */
+const LOCK_MODE_LABELS: Record<HeadDebug['lockMode'], string> = {
+    following: 'seguindo a cabeça',
+    locked: 'travada',
+}
+
 /**
  * Leitura de cada mão: o alcance de cada dedo (esticado passa de 1,50; dobrado fica abaixo de
  * 1,30), o quanto o polegar se abre (a pose pede 0,60 ou mais) e o gesto que o jogo entendeu.
@@ -47,6 +53,10 @@ export function SwingDebugPanel({
                     <dd>{head.yawDeg}°</dd>
                     <dt>Cabeça (inclinação)</dt>
                     <dd>{head.pitchDeg}°</dd>
+                    <dt>Trava da direção</dt>
+                    <dd>{LOCK_MODE_LABELS[head.lockMode]}</dd>
+                    <dt>Dedão para baixo (gesto)</dt>
+                    <dd>{yesNo(head.lockPose)}</dd>
                     <dt>Escalada pelo olhar</dt>
                     <dd>
                         {head.climbIntent === null
@@ -70,6 +80,8 @@ export function SwingDebugPanel({
                         <dd>{yesNo(hand.openPalm)}</dd>
                         <dt>Punho fechado (soltar)</dt>
                         <dd>{yesNo(hand.fist)}</dd>
+                        <dt>Dedão para baixo (travar)</dt>
+                        <dd>{yesNo(hand.lockPose)}</dd>
                         {hand.metrics ? (
                             <>
                                 <dt>Indicador</dt>

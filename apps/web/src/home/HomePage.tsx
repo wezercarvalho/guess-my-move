@@ -48,7 +48,7 @@ export function HomePage() {
                 />
                 <GameCard
                     title="Arranha-Teia"
-                    description="Balance entre os prédios de Midtown e lance a teia com o gesto “eu te amo”."
+                    description="Escolha a cidade e balance entre os prédios com as mãos."
                     href="swing.html"
                     action="Jogar Arranha-Teia"
                 />

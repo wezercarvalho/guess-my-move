@@ -14,6 +14,8 @@ export interface CityBuilding {
 export interface CityRoad {
     /** Largura da pista, em metros. */
     readonly width: number
+    /** Nome da rua no OpenStreetMap; ausente quando a via não tem nome. */
+    readonly name?: string
     /** Eixo da rua, em pares `x, z`. */
     readonly line: readonly number[]
 }

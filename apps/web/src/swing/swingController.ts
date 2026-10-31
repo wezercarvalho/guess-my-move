@@ -8,22 +8,27 @@ import {
     type HeadLook,
     type HeadClimb,
     type HeadClimbState,
+    type HeadLookMode,
     type HeadLookState,
     type FaceReading,
+    type LockGesture,
     type TriggerGesture,
     type WebSide,
     type WebTrigger,
+    type SwingConfig,
     DEFAULT_SWING,
     climbSignal,
     createCityIndex,
     createHeadClimb,
     createHeadLook,
+    createLockGesture,
     createSwingWorld,
     createWebTrigger,
     handMetrics,
     handSide,
     isFist,
     isOpenPalm,
+    isThumbDownOpenHand,
     swingCue,
     webSignal,
 } from '@guess-my-move/swing'
@@ -62,6 +67,8 @@ export interface SwingHud {
 /** Dependências do controlador; em testes, a cidade, o 3D, o relógio e as teclas são simulados. */
 export interface SwingEnv {
     createTracker: CreateHandTracker
+    /** Valores de jogo ajustáveis por mapa (ex.: altura inicial); ausente usa o padrão. */
+    config?: SwingConfig
     /** Detector de rosto para girar a câmera com a cabeça; ausente desliga o recurso (fallback = hoje). */
     createFaceTracker?: CreateFaceTracker
     loadCity: () => Promise<City>
@@ -94,6 +101,8 @@ export interface HandDebug {
     openPalm: boolean
     /** Punho fechado (pedido de soltar a parede quando agarrado). */
     fist: boolean
+    /** Mão aberta com o dedão para baixo (gesto de travar a direção do olhar). */
+    lockPose: boolean
 }
 
 /** O que o detector de rosto lê da cabeça, para o painel de depuração. */
@@ -111,6 +120,10 @@ export interface HeadDebug {
     /** Escalar olhando: direção pedida e quanto da espera passou (0 a 1). */
     climbIntent: 'up' | 'down' | null
     climbProgress: number
+    /** Trava da direção: seguindo a cabeça ou travada pelo gesto. */
+    lockMode: HeadLookMode
+    /** Há uma mão no gesto de travar neste quadro (antes do filtro de tempo). */
+    lockPose: boolean
 }
 
 export interface SwingSnapshot {
@@ -142,12 +155,27 @@ export interface SwingSnapshot {
     headDebug: HeadDebug
     /** Escalar olhando: para onde o olhar pede (esperando ou escalando), a espera (0 a 1) e se já escala. */
     headClimb: { intent: 'up' | 'down' | null; progress: number; climbing: boolean }
+    /** Trava da direção do olhar: seguindo a cabeça ou travada pelo gesto. */
+    headLock: { mode: HeadLookMode }
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
     lastThrow: 'hit' | 'miss' | null
     hud: SwingHud
     attribution: string
+}
+
+/** Olhar da cabeça antes de qualquer leitura: sem calibração, seguindo e sem direção travada. */
+const INITIAL_HEAD: HeadLookState = {
+    yawOffset: 0,
+    pitchOffset: 0,
+    calibrated: false,
+    faceVisible: false,
+    mode: 'following',
+    liveYaw: 0,
+    livePitch: 0,
+    lockedYaw: 0,
+    lockedPitch: 0,
 }
 
 const PUBLISH_INTERVAL_MS = 100
@@ -202,7 +230,11 @@ export class SwingController {
     /** Escalar olhando: segurar o olhar para cima/baixo agarrado, por ~2 s, escala. */
     private readonly headClimb: HeadClimb = createHeadClimb()
     private headClimbState: HeadClimbState = { climb: 0, intent: null, progress: 0, climbing: false }
-    private headState: HeadLookState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+    /** Filtro do gesto de travar a direção (dedão para baixo): tempo mínimo e tolerância a quadros ruins. */
+    private readonly lockGesture: LockGesture = createLockGesture()
+    /** Alguma mão está no gesto de travar no quadro de câmera mais recente. */
+    private lockPose = false
+    private headState: HeadLookState = INITIAL_HEAD
     /** Último desvio da cabeça já aplicado ao olhar; o próximo passo soma só a variação. */
     private appliedHead = { yaw: 0, pitch: 0 }
     /** Leitura do rosto no quadro de câmera mais recente (`null` sem rosto). */
@@ -299,7 +331,8 @@ export class SwingController {
         this.faceTrackerStatus = 'idle'
         this.headLook.reset()
         this.headClimb.reset()
-        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.lockGesture.reset()
+        this.headState = INITIAL_HEAD
         this.appliedHead = { yaw: 0, pitch: 0 }
         this.hand = null
         this.snapshot = this.buildSnapshot()
@@ -314,6 +347,8 @@ export class SwingController {
     /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
     readonly recenterHead = (): void => {
         this.headLook.recenter()
+        // Encerra também o gesto em andamento: "Centralizar" sempre sai da trava.
+        this.lockGesture.reset()
         this.emit()
     }
 
@@ -330,7 +365,8 @@ export class SwingController {
         // Em qualquer troca, zera o "já aplicado" para não somar/subtrair o desvio de uma vez.
         this.headLook.reset()
         this.headClimb.reset()
-        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.lockGesture.reset()
+        this.headState = INITIAL_HEAD
         this.appliedHead = { yaw: 0, pitch: 0 }
         this.lastFace = null
         this.sync()
@@ -374,7 +410,7 @@ export class SwingController {
             return
         }
         this.city = city
-        this.world = createSwingWorld(createCityIndex(city))
+        this.world = createSwingWorld(createCityIndex(city), this.env.config ?? DEFAULT_SWING)
         this.phase = 'playing'
         if (this.size.width > 0) this.resize(this.size.width, this.size.height)
         this.sync()
@@ -414,6 +450,7 @@ export class SwingController {
                 this.faceTrackerStatus = 'ready'
                 this.headLook.reset()
                 this.headClimb.reset()
+        this.lockGesture.reset()
                 this.appliedHead = { yaw: 0, pitch: 0 }
                 this.sync()
             },
@@ -433,7 +470,8 @@ export class SwingController {
         this.faceTrackerStatus = 'idle'
         this.headLook.reset()
         this.headClimb.reset()
-        this.headState = { yawOffset: 0, pitchOffset: 0, calibrated: false, faceVisible: false }
+        this.lockGesture.reset()
+        this.headState = INITIAL_HEAD
         this.appliedHead = { yaw: 0, pitch: 0 }
     }
 
@@ -473,6 +511,7 @@ export class SwingController {
         this.hands = []
         this.handDebug = []
         this.grabs = { left: false, right: false }
+        this.lockPose = false
         this.climb = 0
         this.releaseFist = false
         this.prevWrist = { left: null, right: null }
@@ -524,10 +563,12 @@ export class SwingController {
         const head = this.updateHeadLook(dt)
         this.headClimbState = this.headClimb.update(
             {
-                pitch: this.headState.pitchOffset,
-                yaw: this.headState.yawOffset,
+                // Só a parte viva da cabeça: a direção travada nunca conta como "olhar para cima".
+                pitch: this.headState.livePitch,
+                yaw: this.headState.liveYaw,
                 active:
                     gripped &&
+                    this.headState.mode === 'following' &&
                     this.lookMode === 'face' &&
                     this.faceTracker !== null &&
                     this.headState.faceVisible &&
@@ -559,6 +600,8 @@ export class SwingController {
             // A cabeça soma um desvio ao olhar enquanto há rosto; a mira da teia segue junto.
             lookDelta: head.delta,
             lookActive: head.active,
+            // A direção travada vira a nova frente: o acompanhamento automático mira o rumo mais ela.
+            lookBias: head.bias,
         }
         world.advance(input, dt)
         if (world.state.touchingWall) this.wallContactAt = now
@@ -591,22 +634,38 @@ export class SwingController {
      * quando chega um quadro novo da câmera) e devolve a VARIAÇÃO do desvio desde o último
      * passo, para somar ao olhar sem acumular, e se a cabeça está comandando agora.
      */
-    private updateHeadLook(dt: number): { delta: { yaw: number; pitch: number }; active: boolean } {
-        if (this.faceTracker === null) return { delta: { yaw: 0, pitch: 0 }, active: false }
-        this.headState = this.headLook.update(this.lastFace?.orientation ?? null, dt)
+    private updateHeadLook(dt: number): {
+        delta: { yaw: number; pitch: number }
+        active: boolean
+        bias: { yaw: number; pitch: number }
+    } {
+        if (this.faceTracker === null) {
+            this.lockGesture.reset()
+            return { delta: { yaw: 0, pitch: 0 }, active: false, bias: { yaw: 0, pitch: 0 } }
+        }
+        // O gesto de travar só vale no modo Rosto (o detector de rosto só existe nele).
+        const lock = this.lockGesture.update(this.lockPose, dt * 1000)
+        this.headState = this.headLook.update(this.lastFace?.orientation ?? null, dt, lock)
         const delta = {
             yaw: this.headState.yawOffset - this.appliedHead.yaw,
             pitch: this.headState.pitchOffset - this.appliedHead.pitch,
         }
         this.appliedHead = { yaw: this.headState.yawOffset, pitch: this.headState.pitchOffset }
-        // Ativa (segura o olhar contra o acompanhamento automático) enquanto há rosto e um desvio.
+        // Ativa (segura o olhar contra o acompanhamento automático) enquanto há rosto e a cabeça
+        // desvia o olhar. Travada, o acompanhamento mira o rumo mais a direção travada (`bias`),
+        // então a cabeça não comanda e o olhar fica relativo ao movimento.
         const active =
+            this.headState.mode === 'following' &&
             this.headState.faceVisible &&
-            (Math.abs(this.headState.yawOffset) > 1e-4 ||
-                Math.abs(this.headState.pitchOffset) > 1e-4 ||
+            (Math.abs(this.headState.liveYaw) > 1e-4 ||
+                Math.abs(this.headState.livePitch) > 1e-4 ||
                 Math.abs(delta.yaw) > 1e-5 ||
                 Math.abs(delta.pitch) > 1e-5)
-        return { delta, active }
+        return {
+            delta,
+            active,
+            bias: { yaw: this.headState.lockedYaw, pitch: this.headState.lockedPitch },
+        }
     }
 
     /** Mostra, antes de lançar, onde a teia prenderia a partir de cada mão que está sem teia. */
@@ -732,6 +791,9 @@ export class SwingController {
         this.handDebug = []
         const openPalm = { left: false, right: false }
         const closedFist = { left: false, right: false }
+        // Já agarrado, a mão no gesto de travar continua valendo como mão aberta (não derruba o agarre).
+        const gripped = this.world?.state.grip != null
+        let lockSeen = false
         const wrist: { left: number | null; right: number | null } = {
             left: null,
             right: null,
@@ -742,11 +804,15 @@ export class SwingController {
             .sort((a, b) => b.x - a.x)
         order.forEach(({ tracked }, position) => {
             const side = order.length === 2 ? (position === 0 ? 'left' : 'right') : handSide(tracked.landmarks)
-            const signal = webSignal(tracked.landmarks, tracked.gesture)
+            // O dedão para baixo trava a direção: não é pose de teia nem palma aberta (não solta a teia
+            // nem agarra a parede), salvo para manter um agarre que já existe.
+            const lockPose = isThumbDownOpenHand(tracked.landmarks)
+            lockSeen ||= lockPose
+            const signal = lockPose ? null : webSignal(tracked.landmarks, tracked.gesture)
             signals[side] = signal
-            const palmOpen = isOpenPalm(tracked.landmarks)
+            const palmOpen = isOpenPalm(tracked.landmarks) && !lockPose
             const fistClosed = isFist(tracked.landmarks)
-            openPalm[side] = palmOpen
+            openPalm[side] = palmOpen || (lockPose && gripped)
             closedFist[side] = fistClosed
             const w = tracked.landmarks[0] as { x: number; y: number } | undefined
             if (w) wrist[side] = w.y
@@ -757,6 +823,7 @@ export class SwingController {
                 metrics: handMetrics(tracked.landmarks),
                 openPalm: palmOpen,
                 fist: fistClosed,
+                lockPose,
             })
         })
 
@@ -768,6 +835,7 @@ export class SwingController {
         // Soltar da parede: punho fechado de qualquer mão (o passo exige segurá-lo por tempo).
         this.releaseFist = closedFist.left || closedFist.right
         this.grabs = openPalm
+        this.lockPose = lockSeen
         this.prevWrist = wrist
         return signals
     }
@@ -873,7 +941,10 @@ export class SwingController {
                 pitchDeg: Math.round((this.headState.pitchOffset * 180) / Math.PI),
                 climbIntent: this.headClimbState.intent,
                 climbProgress: this.headClimbState.progress,
+                lockMode: this.headState.mode,
+                lockPose: this.lockPose,
             },
+            headLock: { mode: this.headState.mode },
             grabDebug: {
                 touchingWall: state?.touchingWall ?? false,
                 gripped: state?.grip != null,

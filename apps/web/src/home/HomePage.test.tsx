@@ -34,7 +34,7 @@ describe('HomePage', () => {
     it('o card do Arranha-Teia leva a swing.html', () => {
         render(<HomePage />)
         const card = screen.getByRole('article', { name: /arranha-teia/i })
-        expect(within(card).getByText(/eu te amo/i)).toBeInTheDocument()
+        expect(within(card).getByText(/escolha a cidade/i)).toBeInTheDocument()
         expect(within(card).getByRole('link', { name: /jogar/i })).toHaveAttribute(
             'href',
             'swing.html',

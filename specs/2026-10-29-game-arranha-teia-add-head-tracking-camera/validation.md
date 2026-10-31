@@ -95,3 +95,37 @@ Comandos rodados um a um (memória limitada; nunca em paralelo). Resultados REAI
 - **Com rosto real:** o headless desta máquina não tem câmera simulada, então **o desenho dos pontos do rosto e o sentido do giro com a cabeça NÃO foram validados ao vivo**. A correção do sinal é **derivada** (matriz + relato do dono, ver `research.md`) e fixada por testes com matrizes conhecidas, não medida com instrumento. O desenho (`drawFace`) é coberto por teste com contexto 2D simulado, mas sem rosto real não há como confirmar o traçado na tela.
 - **fps com mãos + rosto, precisão da pose e a sensação do giro** seguem **não medidos** (Gate 3 aprovado pelo maintainer sem medições). Nenhum número de desempenho é afirmado.
 - **Licença do `face_landmarker.task`** segue não confirmada na fonte (NFR-004, R-04).
+
+## CQ-012 — Trava da direção do olhar por gesto de mão (worktrees `wt-106` e `wt-82`, 2026-10-31)
+
+Revisão no mesmo dia, a pedido do maintainer depois do primeiro teste: o estado "aguardando o rosto centralizar" foi removido; a trava vale só enquanto o gesto dura e, ao tirar a mão, a cabeça volta a somar na hora à direção travada. Os números abaixo são da versão revisada, rodada em `wt-82` depois da junção com a branch das cidades.
+
+Spec em `validating`: as tarefas T25 a T30 estão concluídas e o **Gate 3 da emenda segue pendente do teste ao vivo do maintainer** (o Gate 3 anterior, de 2026-10-30, cobre FR-001 a FR-014). Comandos rodados em série (memória limitada), resultados REAIS:
+
+| Comando                              | Resultado                                                                                                                                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `yarn check:static`                  | PASS — typecheck de todos os workspaces + oxlint 0 avisos, 0 erros (183 arquivos).                                                                                                                     |
+| `yarn test` (`@guess-my-move/swing`) | PASS — 17 arquivos, 227 testes (novos: `lockGesture.test.ts` 7; `pose.test.ts` com `isThumbDownOpenHand`; `headLook.test.ts` com 14 testes da trava; `world.test.ts` com 3 do viés).                   |
+| `yarn test` (`@guess-my-move/web`)   | PASS — Vitest 39 arquivos, 366 testes (novos: `swingHeadLock.test.ts` 11; `SwingDebugPanel.test.tsx` 3; `guide.test.ts` +5) + `node --test` 73 testes (inclui os do catálogo de cidades desta branch). |
+| `yarn test` (core, marbles)          | PASS — core 68; marbles 159.                                                                                                                                                                           |
+| `yarn build`                         | PASS — `tsc --build` + `vite build` ok (aviso pré-existente de tamanho de chunk do `swing`).                                                                                                           |
+| `yarn test:gates`                    | PASS — 231 testes.                                                                                                                                                                                     |
+| `yarn test:sdd`                      | PASS — 109 testes.                                                                                                                                                                                     |
+| `yarn sdd:check`                     | PASS — catálogo, estados, gates, cobertura e links válidos; esta spec em `validating`.                                                                                                                 |
+| `yarn docs:format:check`             | PASS — documentação formatada (`yarn docs:format:fix` aplicado antes).                                                                                                                                 |
+| `yarn security:dependencies`         | PASS — `info=0 low=0 moderate=0 high=0 critical=0`.                                                                                                                                                    |
+
+### Test-first e checagem de mutação
+
+- **Vistos falhar antes do código:** `isThumbDownOpenHand`, `lockGesture` e os modos da trava no `headLook` (30 testes vermelhos antes da implementação); o controlador (`swingHeadLock.test.ts`, 8 testes vermelhos antes da integração); `guide.test.ts` (4 vermelhos); o viés do `world.ts` (2 vermelhos).
+- **Escritos junto com o código, sem vermelho observado:** a exposição de `lockedYaw`/`lockedPitch`, `SwingDebugPanel.test.tsx` e os 3 testes de parede e escalada do controlador. Para esses, e para o viés do controlador, fiz a checagem inversa: desfiz cada mudança por um instante e o teste correspondente falhou (mutações: palma contando o gesto, o gesto não segurando um agarre existente, a escalada usando o desvio total, o controlador sem `lookBias`, o `world.ts` sem o viés).
+- **Revisão (sem espera pelo centro):** os 2 testes novos do `headLook` (volta a seguir na hora, e soma à direção travada com a cabeça ainda virada) foram vistos falhar antes de remover o estado de espera. Os testes do controlador, do texto e da depuração foram ajustados junto com o código, sem vermelho observado; o do controlador "cabeça ainda virada após tirar a mão" já falhava no desenho anterior por construção (esperava o modo de espera).
+- **Descoberta no desenho:** o desvio da cabeça somado direto a `state.yaw` deixava a direção fixa no MUNDO (o acompanhamento automático fica suspenso com desvio diferente de zero). Para a direção travada ser relativa ao movimento (decisão D-12.3), o mundo ganhou `SwingInput.lookBias` e o acompanhamento mira rumo mais viés (FR-017/FR-019).
+
+### O que NÃO foi verificado (honesto)
+
+- **Com mão e rosto reais:** nenhum teste desta emenda usa câmera. Os landmarks das mãos são sintéticos (uma palma girada 90°) e o rosto é simulado por ângulos. Não foi medido se o MediaPipe lê o dedão para baixo com a mão de lado, nem se a mão relaxada dispara a pose sem querer (R-05).
+- **Valores de jogo, não medidos:** 0,9 da palma para o dedão abaixo do centro, 200 ms de gesto, 150 ms de tolerância, 400 ms de histórico antes do gesto, 1,5 s de manutenção sem rosto. A depuração mostra o estado para ajustar ao vivo.
+- **Chromium:** não rodei. O painel "Direção do olhar" só aparece com a câmera ativa, e este ambiente não tem câmera simulada, então uma verificação sem câmera não mostraria nada da emenda; ela fica coberta pelos testes de tela e de controlador em jsdom.
+- **Mão da teia (R-06):** a mão no gesto de travar não segura a pose de teia; isso não foi testado ao vivo.
+- **fps com mãos e rosto**, precisão da pose e licença do `face_landmarker.task` seguem não medidos/confirmados.

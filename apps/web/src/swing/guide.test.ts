@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
+import {
+    HEAD_IDLE_HINT,
+    KEYS,
+    STEPS,
+    currentStep,
+    gripStatusLine,
+    guideHint,
+    headStatusLine,
+    statusLine,
+} from './guide.js'
 
 const ok = {
     cameraActive: true,
@@ -163,6 +172,37 @@ describe('headStatusLine', () => {
     it('diz que a cabeça não está disponível quando o detector de rosto falha', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'error', faceVisible: false })
         expect(line).toMatch(/cabeça/i)
+    })
+})
+
+describe('headStatusLine com a trava da direção (CQ-012)', () => {
+    const base = { cameraActive: true, faceTrackerStatus: 'ready', faceVisible: true } as const
+
+    it('travada: diz que a direção está travada e o que fazer', () => {
+        const line = headStatusLine({ ...base, lockMode: 'locked' })
+        expect(line).toMatch(/travada/i)
+        expect(line).toMatch(/tire a mão/i)
+    })
+
+    it('travada, o texto da trava vale mesmo sem rosto à vista', () => {
+        expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'locked' })).toMatch(/travada/i)
+    })
+
+    it('seguindo ou sem informar o modo: fica como antes', () => {
+        expect(headStatusLine({ ...base, lockMode: 'following' })).toBe('')
+        expect(headStatusLine(base)).toBe('')
+        expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'following' })).toMatch(/rosto fora do quadro/i)
+    })
+
+    it('carregando ou com erro, esses avisos vêm antes da trava', () => {
+        expect(headStatusLine({ ...base, faceTrackerStatus: 'loading', lockMode: 'locked' })).toMatch(/carregando/i)
+        expect(headStatusLine({ ...base, faceTrackerStatus: 'error', lockMode: 'locked' })).toMatch(/indisponível/i)
+    })
+
+    it('a dica padrão ensina o gesto de travar em uma linha', () => {
+        expect(HEAD_IDLE_HINT).toMatch(/dedão para baixo/i)
+        expect(HEAD_IDLE_HINT).toMatch(/trava/i)
+        expect(HEAD_IDLE_HINT).not.toContain('\n')
     })
 })
 

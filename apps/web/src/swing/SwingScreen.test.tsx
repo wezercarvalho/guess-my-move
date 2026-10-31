@@ -73,7 +73,7 @@ describe('SwingScreen', () => {
     it('mostra o título, a frase de apoio e o crédito do mapa', async () => {
         await openGame()
         expect(screen.getByRole('heading', { level: 1, name: 'Arranha-Teia' })).toBeInTheDocument()
-        expect(screen.getByText(/balance entre os prédios de midtown/i)).toBeInTheDocument()
+        expect(screen.getByText(/Midtown Manhattan · Nova York, Estados Unidos/i)).toBeInTheDocument()
         expect(screen.getByTestId('map-credit')).toHaveTextContent(/OpenStreetMap \(ODbL\)/)
     })
 

@@ -1,3 +1,4 @@
+import { DEFAULT_SWING, type City } from '@guess-my-move/swing'
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
 import {
@@ -6,14 +7,18 @@ import {
     realTwoHandGestureLoader,
 } from '../tracker/mediapipeTracker.js'
 import { createMediaPipeFaceTracker } from '../tracker/faceTracker.js'
+import { type CityMap } from './cityCatalog.js'
 import { createThreeRenderer } from './cityRenderer.js'
 import { fetchCity } from './loadCity.js'
 import { SwingController, type SwingEnv, type SwingSnapshot } from './swingController.js'
 
-/** Dependências injetáveis para teste; os padrões usam o navegador, o MediaPipe e o Three.js. */
-export type SwingDeps = Partial<SwingEnv>
+/** Dependências injetáveis para teste; `loadCity` recebe o mapa validado pelo catálogo. */
+export type SwingDeps = Omit<Partial<SwingEnv>, 'loadCity'> & {
+    loadCity?: (map: CityMap) => Promise<City>
+}
 
 export interface UseSwingGameOptions {
+    map: CityMap
     cameraActive: boolean
     videoRef: RefObject<HTMLVideoElement | null>
     overlayRef: RefObject<HTMLCanvasElement | null>
@@ -30,8 +35,9 @@ export interface SwingGameView extends SwingSnapshot {
     resize: (width: number, height: number) => void
 }
 
-function resolveEnv(deps: SwingDeps | undefined): SwingEnv {
+function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
     return {
+        config: deps?.config ?? { ...DEFAULT_SWING, spawnHeight: map.spawnHeight },
         createTracker:
             deps?.createTracker ??
             (() =>
@@ -42,8 +48,8 @@ function resolveEnv(deps: SwingDeps | undefined): SwingEnv {
         createFaceTracker:
             deps?.createFaceTracker ??
             (() => createMediaPipeFaceTracker(undefined, delegatePreferenceFromSearch(window.location.search))),
-        loadCity:
-            deps?.loadCity ?? (() => fetchCity(`${import.meta.env.BASE_URL}swing/midtown.json`)),
+        loadCity: () =>
+            deps?.loadCity ? deps.loadCity(map) : fetchCity(`${import.meta.env.BASE_URL}${map.file}`),
         createRenderer: deps?.createRenderer ?? createThreeRenderer,
         requestFrame:
             deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),
@@ -55,8 +61,8 @@ function resolveEnv(deps: SwingDeps | undefined): SwingEnv {
 
 /** Camada fina sobre o `SwingController`: cria o controlador uma vez e assina as mudanças. */
 export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
-    const { cameraActive, videoRef, overlayRef, sceneRef, effectsRef, deps } = options
-    const [controller] = useState(() => new SwingController(resolveEnv(deps)))
+    const { map, cameraActive, videoRef, overlayRef, sceneRef, effectsRef, deps } = options
+    const [controller] = useState(() => new SwingController(resolveEnv(map, deps)))
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
 
     useEffect(() => {

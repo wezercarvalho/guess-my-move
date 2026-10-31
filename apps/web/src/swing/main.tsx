@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 
 import '../styles.css'
 import './swing.css'
-import { SwingScreen } from './SwingScreen.js'
+import { SwingApp } from './SwingApp.js'
 
 const container = document.getElementById('root')
 if (!container) {
@@ -12,8 +12,6 @@ if (!container) {
 
 createRoot(container).render(
     <StrictMode>
-        <main className="app app-wide">
-            <SwingScreen />
-        </main>
+        <SwingApp />
     </StrictMode>,
 )

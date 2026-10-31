@@ -32,6 +32,7 @@ export {
     type FaceReading,
     type HeadLook,
     type HeadLookConfig,
+    type HeadLookMode,
     type HeadLookState,
     type HeadOrientation,
     createHeadLook,
@@ -46,12 +47,19 @@ export {
     createHeadClimb,
 } from './headClimb.js'
 export {
+    DEFAULT_LOCK_GESTURE,
+    type LockGesture,
+    type LockGestureConfig,
+    createLockGesture,
+} from './lockGesture.js'
+export {
     type HandMetrics,
     type HandPoint,
     handMetrics,
     handSide,
     isFist,
     isOpenPalm,
+    isThumbDownOpenHand,
     isWebPose,
     webSignal,
 } from './pose.js'

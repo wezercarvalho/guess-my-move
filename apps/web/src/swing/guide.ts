@@ -1,4 +1,4 @@
-import { DEFAULT_HEAD_CLIMB, type SwingCue } from '@guess-my-move/swing'
+import { DEFAULT_HEAD_CLIMB, type HeadLookMode, type SwingCue } from '@guess-my-move/swing'
 
 import { type SwingTrackerStatus } from './swingController.js'
 
@@ -112,16 +112,28 @@ export interface HeadStatusInput {
     faceTrackerStatus: SwingTrackerStatus
     /** Há rosto à vista agora. */
     faceVisible: boolean
+    /** Trava da direção (CQ-012): seguindo a cabeça ou travada pelo gesto. */
+    lockMode?: HeadLookMode
 }
+
+/** Dica de uma linha do painel "Direção do olhar" quando tudo está certo: ensina o gesto de travar. */
+export const HEAD_IDLE_HINT = 'Vire a cabeça para olhar. Mão aberta com o dedão para baixo trava a direção.'
 
 /**
  * Status de uma linha da câmera pela cabeça; vazia quando está tudo certo (rosto à vista)
  * ou quando o recurso não está ativo (sem câmera / detector de rosto parado).
  */
-export function headStatusLine({ cameraActive, faceTrackerStatus, faceVisible }: HeadStatusInput): string {
+export function headStatusLine({
+    cameraActive,
+    faceTrackerStatus,
+    faceVisible,
+    lockMode = 'following',
+}: HeadStatusInput): string {
     if (!cameraActive || faceTrackerStatus === 'idle') return ''
     if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
     if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
+    // Travada, perder o rosto não muda o olhar: o texto da trava vale.
+    if (lockMode === 'locked') return 'Direção travada. Tire a mão e olhe para a tela.'
     if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
     return ''
 }
