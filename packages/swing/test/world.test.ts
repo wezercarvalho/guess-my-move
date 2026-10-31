@@ -179,4 +179,46 @@ describe('createSwingWorld', () => {
         }
         expect(world.state.yaw).toBeGreaterThan(0.3)
     })
+
+    /** Voa 3 s com velocidade +X constante; devolve o olhar assentado, com ou sem o viés. */
+    function fly(bias?: { yaw: number; pitch: number }) {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.started = true
+        world.state.position.y = 300
+        world.state.yaw = 0
+        for (let i = 0; i < 360; i++) {
+            world.state.velocity = { x: 30, y: 0, z: 0 }
+            world.step({ held: {}, yawRate: 0, pitchRate: 0, ...(bias ? { lookBias: bias } : {}) }, 1 / 120)
+        }
+        return world.state
+    }
+
+    it('direção travada (CQ-012): o acompanhamento automático mira o rumo MAIS o viés, não só o rumo', () => {
+        const plain = fly()
+        const biased = fly({ yaw: 0.5, pitch: 0 })
+        // O rumo é +X (PI/2): sem viés o olhar assenta nele, com viés assenta ao lado.
+        expect(plain.yaw).toBeCloseTo(Math.PI / 2, 1)
+        expect(biased.yaw - plain.yaw).toBeCloseTo(0.5, 1)
+    })
+
+    it('direção travada: o viés também vale para a inclinação do acompanhamento', () => {
+        const plain = fly()
+        const biased = fly({ yaw: 0, pitch: 0.2 })
+        expect(biased.pitch - plain.pitch).toBeCloseTo(0.2, 1)
+    })
+
+    it('sem viés o acompanhamento é o de sempre, e com a cabeça ativa o viés não age', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.started = true
+        world.state.position.y = 80
+        world.state.yaw = 0
+        world.state.velocity = { x: 30, y: 0, z: 0 }
+        for (let i = 0; i < 60; i++) {
+            world.step(
+                { held: {}, yawRate: 0, pitchRate: 0, lookActive: true, lookBias: { yaw: 0.5, pitch: 0 } },
+                1 / 120,
+            )
+        }
+        expect(Math.abs(world.state.yaw)).toBeLessThan(0.05)
+    })
 })
