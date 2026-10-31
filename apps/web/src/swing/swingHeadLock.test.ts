@@ -176,7 +176,7 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(hand?.signal).toBeNull()
     })
 
-    it('com o gesto, a direção trava; ao tirar a mão e centralizar o rosto, a cabeça volta a seguir', async () => {
+    it('com o gesto, a direção trava; ao tirar a mão, a cabeça volta a seguir na hora, a partir dela', async () => {
         const game = await playing()
         const { controller, detectAll, detectFace, tick, lastState } = game
         tick()
@@ -194,11 +194,9 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         run(tick, 1000)
         expect(lastState().yaw).toBeCloseTo(turned, 1)
 
-        // Tira a mão com o rosto centralizado: aguarda e depois volta a seguir.
+        // Tira a mão com o rosto centralizado: volta a seguir a cabeça, sem esperar, e a câmera fica.
         detectAll.mockReturnValue([])
-        run(tick, 250)
-        expect(controller.getSnapshot().headLock.mode).toBe('waiting')
-        run(tick, 800)
+        run(tick, 400)
         expect(controller.getSnapshot().headLock.mode).toBe('following')
         expect(lastState().yaw).toBeCloseTo(turned, 1)
 
@@ -224,7 +222,7 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(lastState().yaw).toBeCloseTo(before, 1)
     })
 
-    it('tirar a mão com a cabeça ainda virada não gira a câmera até centralizar', async () => {
+    it('tirar a mão com a cabeça ainda virada: a câmera volta a seguir a cabeça, somando à direção travada', async () => {
         const game = await playing()
         const { controller, detectAll, detectFace, tick, lastState } = game
         const turned = turnHead(game, 25)
@@ -233,8 +231,8 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         detectAll.mockReturnValue([])
         detectFace.mockReturnValue(face(40))
         run(tick, 2000)
-        expect(controller.getSnapshot().headLock.mode).toBe('waiting')
-        expect(lastState().yaw).toBeCloseTo(turned, 1)
+        expect(controller.getSnapshot().headLock.mode).toBe('following')
+        expect(lastState().yaw).toBeGreaterThan(turned + 0.2)
     })
 
     it('travada, o acompanhamento mira o rumo mais a direção travada, mesmo sem rosto à vista', async () => {

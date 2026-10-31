@@ -54,8 +54,6 @@ export interface HeadLookConfig {
      * pedido de trava valer, porque levar a mão ao gesto mexe a cabeça. Valor de jogo.
      */
     lookbackMs: number
-    /** Trava (CQ-012): tempo, em ms, com o rosto na zona morta para voltar a seguir a cabeça. Valor de jogo. */
-    recenterMs: number
     /**
      * Sem rosto e sem trava (CQ-012): tempo, em ms, que o desvio atual é mantido antes de voltar
      * suave à direção travada (zero sem trava). Valor de jogo.
@@ -71,15 +69,15 @@ export const DEFAULT_HEAD_LOOK: HeadLookConfig = {
     maxPitch: (45 * Math.PI) / 180,
     smoothing: 8,
     lookbackMs: 400,
-    recenterMs: 300,
     faceLostHoldMs: 1500,
 }
 
 /**
  * Modo do olhar (CQ-012): `following` a cabeça soma o desvio; `locked` a direção está travada
- * pelo gesto; `waiting` o gesto acabou e a direção continua até o rosto centralizar.
+ * pelo gesto, enquanto ele durar. Ao tirar a mão volta a `following`, e a direção travada
+ * continua como a nova frente (a cabeça soma a ela).
  */
-export type HeadLookMode = 'following' | 'locked' | 'waiting'
+export type HeadLookMode = 'following' | 'locked'
 
 /** Estado do olhar da cabeça num quadro. */
 export interface HeadLookState {
@@ -91,14 +89,12 @@ export interface HeadLookState {
     calibrated: boolean
     /** Havia rosto no último quadro. */
     faceVisible: boolean
-    /** Seguindo a cabeça, travada ou aguardando o centro. */
+    /** Seguindo a cabeça ou travada pelo gesto. */
     mode: HeadLookMode
-    /** Parte da guinada que vem só da cabeça agora (zero travada e aguardando o centro). */
+    /** Parte da guinada que vem só da cabeça agora (zero travada). */
     liveYaw: number
-    /** Parte da inclinação que vem só da cabeça agora (zero travada e aguardando o centro). */
+    /** Parte da inclinação que vem só da cabeça agora (zero travada). */
     livePitch: number
-    /** Aguardando o centro: quanto da centralização passou (0 a 1); zero nos demais modos. */
-    recenterProgress: number
     /** Guinada travada pelo gesto (a nova frente), em radianos; zero sem trava. É o viés do acompanhamento automático. */
     lockedYaw: number
     /** Inclinação travada pelo gesto, em radianos; zero sem trava. */
@@ -162,7 +158,6 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
     let mode: HeadLookMode = 'following'
     let baseYaw = 0
     let basePitch = 0
-    let centeredMs = 0
     let lostMs = 0
     let clockMs = 0
     // Histórico curto do desvio total, para travar na direção de antes do gesto.
@@ -201,7 +196,6 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             mode,
             liveYaw: following ? yawOffset - baseYaw : 0,
             livePitch: following ? pitchOffset - basePitch : 0,
-            recenterProgress: mode === 'waiting' ? Math.min(1, centeredMs / config.recenterMs) : 0,
             lockedYaw: baseYaw,
             lockedPitch: basePitch,
         }
@@ -243,10 +237,9 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
                 baseYaw = picked.yaw
                 basePitch = picked.pitch
                 mode = 'locked'
-                centeredMs = 0
             } else if (!lock && mode === 'locked') {
-                mode = 'waiting'
-                centeredMs = 0
+                // Gesto desfeito: a cabeça volta a somar já, a partir da direção travada.
+                mode = 'following'
             }
 
             // Espelhamento: a imagem da câmera é invertida. A matriz já dá yaw positivo
@@ -254,16 +247,6 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             // para a direita, então o sinal já casa (sem inversão extra aqui).
             const liveYaw = orientation ? shape(orientation.yaw - neutral.yaw, config, config.maxYaw) : 0
             const livePitch = orientation ? shape(orientation.pitch - neutral.pitch, config, config.maxPitch) : 0
-
-            if (mode === 'waiting') {
-                // A direção continua; a cabeça só volta a girar a câmera com o rosto na zona morta.
-                const centered = orientation !== null && liveYaw === 0 && livePitch === 0
-                centeredMs = centered ? centeredMs + dt * 1000 : 0
-                if (centeredMs >= config.recenterMs) {
-                    mode = 'following'
-                    centeredMs = 0
-                }
-            }
 
             let targetYaw = baseYaw
             let targetPitch = basePitch
@@ -292,7 +275,6 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             mode = 'following'
             baseYaw = 0
             basePitch = 0
-            centeredMs = 0
             lostMs = 0
             history = []
         },
@@ -306,7 +288,6 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             mode = 'following'
             baseYaw = 0
             basePitch = 0
-            centeredMs = 0
             lostMs = 0
             clockMs = 0
             history = []

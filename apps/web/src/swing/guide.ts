@@ -112,7 +112,7 @@ export interface HeadStatusInput {
     faceTrackerStatus: SwingTrackerStatus
     /** Há rosto à vista agora. */
     faceVisible: boolean
-    /** Trava da direção (CQ-012): seguindo a cabeça, travada pelo gesto ou aguardando o rosto centralizar. */
+    /** Trava da direção (CQ-012): seguindo a cabeça ou travada pelo gesto. */
     lockMode?: HeadLookMode
 }
 
@@ -132,9 +132,8 @@ export function headStatusLine({
     if (!cameraActive || faceTrackerStatus === 'idle') return ''
     if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
     if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
-    // Travada ou aguardando o centro, perder o rosto não muda o olhar: o texto da trava vale.
+    // Travada, perder o rosto não muda o olhar: o texto da trava vale.
     if (lockMode === 'locked') return 'Direção travada. Tire a mão e olhe para a tela.'
-    if (lockMode === 'waiting') return 'Direção mantida. Centralize o rosto para voltar a seguir a cabeça.'
     if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
     return ''
 }

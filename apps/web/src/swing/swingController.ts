@@ -120,12 +120,10 @@ export interface HeadDebug {
     /** Escalar olhando: direção pedida e quanto da espera passou (0 a 1). */
     climbIntent: 'up' | 'down' | null
     climbProgress: number
-    /** Trava da direção: seguindo a cabeça, travada pelo gesto ou aguardando o rosto centralizar. */
+    /** Trava da direção: seguindo a cabeça ou travada pelo gesto. */
     lockMode: HeadLookMode
     /** Há uma mão no gesto de travar neste quadro (antes do filtro de tempo). */
     lockPose: boolean
-    /** Aguardando o centro: quanto da centralização passou (0 a 1). */
-    recenterProgress: number
 }
 
 export interface SwingSnapshot {
@@ -157,8 +155,8 @@ export interface SwingSnapshot {
     headDebug: HeadDebug
     /** Escalar olhando: para onde o olhar pede (esperando ou escalando), a espera (0 a 1) e se já escala. */
     headClimb: { intent: 'up' | 'down' | null; progress: number; climbing: boolean }
-    /** Trava da direção do olhar: o modo e, aguardando o centro, o quanto falta (0 a 1). */
-    headLock: { mode: HeadLookMode; progress: number }
+    /** Trava da direção do olhar: seguindo a cabeça ou travada pelo gesto. */
+    headLock: { mode: HeadLookMode }
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */
@@ -176,7 +174,6 @@ const INITIAL_HEAD: HeadLookState = {
     mode: 'following',
     liveYaw: 0,
     livePitch: 0,
-    recenterProgress: 0,
     lockedYaw: 0,
     lockedPitch: 0,
 }
@@ -655,8 +652,8 @@ export class SwingController {
         }
         this.appliedHead = { yaw: this.headState.yawOffset, pitch: this.headState.pitchOffset }
         // Ativa (segura o olhar contra o acompanhamento automático) enquanto há rosto e a cabeça
-        // desvia o olhar. Travada ou aguardando o centro, o acompanhamento mira o rumo mais a
-        // direção travada (`bias`), então a cabeça não comanda e o olhar fica relativo ao movimento.
+        // desvia o olhar. Travada, o acompanhamento mira o rumo mais a direção travada (`bias`),
+        // então a cabeça não comanda e o olhar fica relativo ao movimento.
         const active =
             this.headState.mode === 'following' &&
             this.headState.faceVisible &&
@@ -946,9 +943,8 @@ export class SwingController {
                 climbProgress: this.headClimbState.progress,
                 lockMode: this.headState.mode,
                 lockPose: this.lockPose,
-                recenterProgress: this.headState.recenterProgress,
             },
-            headLock: { mode: this.headState.mode, progress: this.headState.recenterProgress },
+            headLock: { mode: this.headState.mode },
             grabDebug: {
                 touchingWall: state?.touchingWall ?? false,
                 gripped: state?.grip != null,

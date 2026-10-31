@@ -86,11 +86,11 @@ Para olhar para o lado ele vira a cabeça e deixa de ver o monitor, que é fixo.
 ### Decisões
 
 - **D-12.1 — Gesto:** mão aberta com o dedão para baixo, qualquer mão (proposta do dono, com uma foto da pose). Reconhecido pela geometria dos landmarks (FR-015), sem depender do rótulo do reconhecedor.
-- **D-12.2 — Estados:** seguindo, travada (gesto valendo) e aguardando o centro (gesto desfeito). Sem o gesto, nada trava. Com o gesto, a direção fica fixa. Ao tirar a mão, a direção continua e a cabeça só volta a girar a câmera depois do rosto centralizar (FR-017).
-- **D-12.3 — Direção travada é relativa:** vira a nova frente e o desvio da cabeça soma a ela. O dono confirmou: "depois de travar e centralizar o rosto de volta, a câmera volta a ter o mesmo comportamento de permitir esquerda/direita". Não é fixa no mundo.
+- **D-12.2 — Estados:** seguindo e travada (gesto valendo). Sem o gesto, nada trava. Com o gesto, a direção fica fixa. Ao tirar a mão, a cabeça volta a girar a câmera na hora, a partir da direção travada (FR-017). A primeira versão tinha um terceiro estado, aguardando o rosto centralizar por 0,3 s; o maintainer o recusou depois do primeiro teste ("a abordagem de centralizar o rosto não ficou muito boa") e ele foi removido, com o tempo `recenterMs`.
+- **D-12.3 — Direção travada é relativa:** vira a nova frente e o desvio da cabeça soma a ela. O dono confirmou que, depois de travar, a câmera volta a ter o comportamento de esquerda e direita; hoje isso vale logo ao tirar a mão. Não é fixa no mundo.
 - **D-12.4 — Momento da trava:** usa a direção de `lookbackMs` antes do gesto ser reconhecido, porque levar a mão ao gesto mexe a cabeça (FR-017).
 - **D-12.5 — Conflito com a palma aberta:** a pose do dedão para baixo não conta como palma aberta nem como pose de teia; não agarra nem derruba o agarre (FR-015). A mão que trava não segura teia (R-06).
-- **D-12.6 — Saída de segurança:** o gesto só vale enquanto dura; "Centralizar" encerra a trava e zera a direção travada. Não há estado que prenda o olhar: travada acaba com o gesto, e aguardando o centro acaba ao centralizar ou em "Centralizar". A tecla Espaço NÃO é saída (é a teia do centro); a issue #106 foi corrigida.
+- **D-12.6 — Saída de segurança:** o gesto só vale enquanto dura; "Centralizar" encerra a trava e zera a direção travada. Não há estado que prenda o olhar: a trava acaba com o gesto. A tecla Espaço NÃO é saída (é a teia do centro); a issue #106 foi corrigida.
 - **D-12.7 — Estabilização:** sem rosto fora da trava, mantém o desvio por `faceLostHoldMs` antes de voltar (FR-018). Com a trava, perder o rosto não muda nada.
 
 Incorporadas em FR-015..FR-020 e US-006.
@@ -102,4 +102,8 @@ Incorporadas em FR-015..FR-020 e US-006.
 - **Aprovador:** Wezer (@wezercarvalho)
 - **Referência:** mensagens do maintainer na sessão de 2026-10-31: a proposta do gesto ("E se toda vez que eu fizer assim com a mão... travarmos a mira") e "Não entendi tuas dúvidas, já esclareci que depois de travar e centralizar o rosto de volta, a câmera volta a ter o mesmo comportamento de permitir esquerda/direita".
 - **Artefatos aprovados:** a emenda CQ-012 de `spec.md` e `clarification.md`.
-- **Observações:** a aprovação é inferida dessas mensagens, que pedem a mecânica e respondem à única dúvida de comportamento. Os valores (200 ms, 150 ms, 400 ms, 300 ms, 1500 ms, 0,9 da palma) são de jogo e não foram medidos.
+- **Observações:** a aprovação é inferida dessas mensagens, que pedem a mecânica e respondem à única dúvida de comportamento. Os valores (200 ms, 150 ms, 400 ms, 1500 ms, 0,9 da palma) são de jogo e não foram medidos.
+
+### Revisão da emenda (2026-10-31, depois do primeiro teste)
+
+O maintainer testou e pediu: "A abordagem de centralizar o rosto não ficou muito boa, vamos manter travado somente enquanto a mão estiver com a posição de travar. Ao tirar a mão, a câmera volta a acompanhar o rosto." Removi o estado de espera (`waiting`), o tempo `recenterMs` e o progresso da centralização. Interpretação adotada: ao tirar a mão a cabeça volta a girar a câmera na hora; a direção travada continua como a nova frente (a cabeça soma a ela) e só "Centralizar" a zera. Se ele quiser que a direção travada também volte ao normal ao tirar a mão, a mudança é pequena (zerar a base ao soltar), mas desfaz o ganho de poder olhar o monitor.

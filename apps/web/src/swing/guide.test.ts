@@ -184,15 +184,8 @@ describe('headStatusLine com a trava da direção (CQ-012)', () => {
         expect(line).toMatch(/tire a mão/i)
     })
 
-    it('aguardando o centro: pede para centralizar o rosto', () => {
-        const line = headStatusLine({ ...base, lockMode: 'waiting' })
-        expect(line).toMatch(/mantida/i)
-        expect(line).toMatch(/centralize o rosto/i)
-    })
-
-    it('travada ou aguardando, o texto da trava vale mesmo sem rosto à vista', () => {
+    it('travada, o texto da trava vale mesmo sem rosto à vista', () => {
         expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'locked' })).toMatch(/travada/i)
-        expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'waiting' })).toMatch(/mantida/i)
     })
 
     it('seguindo ou sem informar o modo: fica como antes', () => {

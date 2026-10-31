@@ -11,7 +11,6 @@ const yesNo = (value: boolean) => (value ? 'sim' : 'não')
 const LOCK_MODE_LABELS: Record<HeadDebug['lockMode'], string> = {
     following: 'seguindo a cabeça',
     locked: 'travada',
-    waiting: 'aguardando o centro',
 }
 
 /**
@@ -58,8 +57,6 @@ export function SwingDebugPanel({
                     <dd>{LOCK_MODE_LABELS[head.lockMode]}</dd>
                     <dt>Dedão para baixo (gesto)</dt>
                     <dd>{yesNo(head.lockPose)}</dd>
-                    <dt>Centralizando</dt>
-                    <dd>{head.lockMode === 'waiting' ? `${Math.round(head.recenterProgress * 100)}%` : '—'}</dd>
                     <dt>Escalada pelo olhar</dt>
                     <dd>
                         {head.climbIntent === null

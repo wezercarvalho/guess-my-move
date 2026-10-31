@@ -271,7 +271,6 @@ describe('trava da direção (CQ-012)', () => {
         expect(state.mode).toBe('following')
         expect(state.yawOffset).toBeGreaterThan(0)
         expect(state.liveYaw).toBeCloseTo(state.yawOffset, 6)
-        expect(state.recenterProgress).toBe(0)
     })
 
     it('com o pedido, trava e a cabeça deixa de girar a câmera', () => {
@@ -296,50 +295,31 @@ describe('trava da direção (CQ-012)', () => {
         expect(locked.yawOffset).toBeGreaterThan(turned.yawOffset * 0.9)
     })
 
-    it('ao tirar a mão, mantém a direção e espera o rosto centralizar', () => {
+    it('ao tirar a mão, volta a seguir a cabeça na hora, somando à direção travada', () => {
         const look = calibrated()
         const turned = run(look, RIGHT, 1.5)
         run(look, RIGHT, 0.1, true)
         run(look, CENTER, 1, true)
-        // Gesto desfeito com o rosto já no centro: aguarda por recenterMs.
-        const early = run(look, CENTER, 0.1)
-        expect(early.mode).toBe('waiting')
-        expect(early.yawOffset).toBeCloseTo(turned.yawOffset, 2)
-        expect(early.recenterProgress).toBeGreaterThan(0)
-        expect(early.recenterProgress).toBeLessThan(1)
+        // Gesto desfeito: sem espera, o modo já é "seguindo" e a direção travada continua.
+        const first = look.update(CENTER, 1 / 60, false)
+        expect(first.mode).toBe('following')
         const done = run(look, CENTER, 0.5)
         expect(done.mode).toBe('following')
         expect(done.yawOffset).toBeCloseTo(turned.yawOffset, 2)
         expect(done.liveYaw).toBeCloseTo(0, 3)
     })
 
-    it('olhando de lado ao tirar a mão, continua aguardando e não gira a câmera', () => {
+    it('tirar a mão com a cabeça ainda virada: a cabeça soma à direção travada (sem esperar o centro)', () => {
         const look = calibrated()
         const turned = run(look, RIGHT, 1.5)
         run(look, RIGHT, 0.1, true)
-        // Tira a mão com a cabeça ainda virada: aguarda indefinidamente.
-        const waiting = run(look, RIGHT, 5)
-        expect(waiting.mode).toBe('waiting')
-        expect(waiting.recenterProgress).toBe(0)
-        expect(waiting.yawOffset).toBeCloseTo(turned.yawOffset, 2)
-        // Vira mais ainda: a câmera não acompanha.
-        const more = run(look, { yaw: ANGLE * 2, pitch: 0 }, 2)
-        expect(more.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+        const after = run(look, RIGHT, 2)
+        expect(after.mode).toBe('following')
+        expect(after.liveYaw).toBeGreaterThan(0.2)
+        expect(after.yawOffset).toBeGreaterThan(turned.yawOffset + 0.2)
     })
 
-    it('a centralização recomeça se a cabeça sair do centro antes de recenterMs', () => {
-        const look = calibrated()
-        run(look, RIGHT, 1.5)
-        run(look, RIGHT, 0.1, true)
-        run(look, CENTER, 0.2)
-        const broke = run(look, RIGHT, 0.1)
-        expect(broke.mode).toBe('waiting')
-        expect(broke.recenterProgress).toBe(0)
-        const back = run(look, CENTER, 0.15)
-        expect(back.mode).toBe('waiting')
-    })
-
-    it('depois de centralizar, a cabeça soma a partir da direção travada, sem salto', () => {
+    it('depois de tirar a mão, a cabeça soma a partir da direção travada, sem salto', () => {
         const look = calibrated()
         const turned = run(look, RIGHT, 1.5)
         run(look, RIGHT, 0.1, true)
@@ -379,7 +359,7 @@ describe('trava da direção (CQ-012)', () => {
         expect(second.yawOffset).toBeCloseTo(turnedAgain.yawOffset, 2)
     })
 
-    it('travada ou aguardando o centro, perder o rosto não muda o olhar', () => {
+    it('travada, perder o rosto não muda o olhar', () => {
         const look = calibrated()
         const turned = run(look, RIGHT, 1.5)
         run(look, RIGHT, 0.1, true)
@@ -387,9 +367,6 @@ describe('trava da direção (CQ-012)', () => {
         expect(lockedNoFace.mode).toBe('locked')
         expect(lockedNoFace.faceVisible).toBe(false)
         expect(lockedNoFace.yawOffset).toBeCloseTo(turned.yawOffset, 2)
-        const waitingNoFace = run(look, null, 4)
-        expect(waitingNoFace.mode).toBe('waiting')
-        expect(waitingNoFace.yawOffset).toBeCloseTo(turned.yawOffset, 2)
     })
 
     it('fora da trava, sem rosto volta suave à direção travada, não a zero', () => {
@@ -422,7 +399,7 @@ describe('trava da direção (CQ-012)', () => {
         expect(turned.lockedPitch).toBe(0)
         const locked = run(look, RIGHT, 0.1, true)
         expect(locked.lockedYaw).toBeCloseTo(turned.yawOffset, 2)
-        // Segue valendo aguardando o centro e seguindo de novo; "Centralizar" zera.
+        // Segue valendo depois de tirar a mão (seguindo a cabeça); "Centralizar" zera.
         expect(run(look, CENTER, 0.1).lockedYaw).toBeCloseTo(turned.yawOffset, 2)
         expect(run(look, CENTER, 1).lockedYaw).toBeCloseTo(turned.yawOffset, 2)
         look.recenter()
@@ -444,6 +421,5 @@ describe('trava da direção (CQ-012)', () => {
         const state = look.update(null, 1 / 60)
         expect(state.mode).toBe('following')
         expect(state.yawOffset).toBe(0)
-        expect(state.recenterProgress).toBe(0)
     })
 })
