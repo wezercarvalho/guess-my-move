@@ -91,6 +91,7 @@ function statusText(game: MarblesGameView): string {
         if (!room.match) return 'Aguardando as duas pessoas ficarem prontas.'
         if (room.match.phase === 'player-turn' || room.match.phase === 'opponent-turn') {
             if (!isOwnTurn(game)) return 'Vez da outra pessoa…'
+            if (game.failureReason) return 'O detector falhou. Pare e ative a câmera novamente.'
             if (game.cameraFailed) return 'Libere o acesso à câmera para jogar.'
             if (game.trackerStatus !== 'ready') return 'Sua vez. Ative a câmera para jogar.'
             if (!game.debug.handVisible) return 'Sua vez. Mostre a mão inteira para a câmera.'
@@ -105,7 +106,7 @@ function statusText(game: MarblesGameView): string {
                   : 'Mirando: afaste mais a mão.'
         }
     }
-    if (game.failureReason) return 'O detector falhou. Use “Trocar de modo”.'
+    if (game.failureReason) return 'O detector falhou. Pare e ative a câmera novamente.'
     if (game.cameraFailed) return 'Sem câmera não há jogo. Libere o acesso no navegador.'
     const match = game.match
     if (!match) {

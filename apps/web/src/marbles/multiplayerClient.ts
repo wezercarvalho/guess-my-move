@@ -79,6 +79,7 @@ export class MultiplayerClient {
     private nextSeq = 1
     private resumePromise: Promise<void> | null = null
     private listening = false
+    private roomGeneration = 0
     private snapshot: MultiplayerSnapshot = {
         connection: 'idle',
         access: null,
@@ -87,8 +88,12 @@ export class MultiplayerClient {
     }
 
     private readonly onConnect = () => {
-        this.patch({ connection: 'connected', error: null })
-        this.resumePromise = this.resumeSaved()
+        const generation = this.roomGeneration
+        const resuming = this.snapshot.access !== null
+        this.patch({ connection: resuming ? 'connecting' : 'connected', error: null })
+        this.resumePromise = this.resumeSaved().then(() => {
+            if (generation === this.roomGeneration && this.socket.connected) this.patch({ connection: 'connected' })
+        })
     }
 
     private readonly onDisconnect = () => {
@@ -181,17 +186,21 @@ export class MultiplayerClient {
     }
 
     async createRoom(modeId: ModeId): Promise<boolean> {
+        const generation = ++this.roomGeneration
         await this.connect()
+        if (generation !== this.roomGeneration) return false
         const ack = await this.emitAck(CLIENT_EVENTS.create, { modeId })
-        return this.acceptAccess(ack)
+        return generation === this.roomGeneration && this.acceptAccess(ack)
     }
 
     async joinRoom(roomCode: string): Promise<boolean> {
+        const generation = ++this.roomGeneration
         await this.connect()
+        if (generation !== this.roomGeneration) return false
         const ack = await this.emitAck(CLIENT_EVENTS.join, {
             roomCode: normalizeRoomCode(roomCode),
         })
-        return this.acceptAccess(ack)
+        return generation === this.roomGeneration && this.acceptAccess(ack)
     }
 
     async setReady(ready: boolean): Promise<boolean> {
@@ -201,7 +210,7 @@ export class MultiplayerClient {
     }
 
     async sendShot(velocity: Vec): Promise<boolean> {
-        if (!this.snapshot.access) return false
+        if (!this.snapshot.access || this.snapshot.connection !== 'connected') return false
         const seq = this.nextSeq++
         this.writeStorage(SEQUENCE_STORAGE_KEY, String(this.nextSeq))
         const ack = await this.emitAck(CLIENT_EVENTS.shot, { seq, velocity })
@@ -209,12 +218,14 @@ export class MultiplayerClient {
     }
 
     async leave(): Promise<void> {
-        if (this.snapshot.access && this.socket.connected) {
+        const generation = ++this.roomGeneration
+        if (this.socket.connected) {
             await this.emitAck(CLIENT_EVENTS.leave, {})
         }
+        if (generation !== this.roomGeneration) return
         this.clearAccess()
         this.nextSeq = 1
-        this.patch({ access: null, room: null, error: null })
+        this.patch({ access: null, room: null, error: null, connection: this.socket.connected ? 'connected' : 'disconnected' })
     }
 
     destroy(): void {
@@ -228,13 +239,14 @@ export class MultiplayerClient {
     }
 
     private async resumeSaved(): Promise<void> {
+        const generation = this.roomGeneration
         const saved = this.snapshot.access ?? this.readAccess()
         if (!saved) return
         const ack = await this.emitAck(CLIENT_EVENTS.resume, {
             roomCode: saved.roomCode,
             resumeToken: saved.resumeToken,
         })
-        this.acceptAccess(ack, true)
+        if (generation === this.roomGeneration) this.acceptAccess(ack, true)
     }
 
     private acceptAccess(ack: CommandAck, resuming = false): boolean {

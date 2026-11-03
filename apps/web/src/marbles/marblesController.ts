@@ -334,6 +334,10 @@ export class MarblesController {
         }
         this.multiplayer = snapshot
         this.sendRemoteShot = sendShot
+        if (snapshot.access && !this.session) {
+            this.playType = 'online'
+            this.opponent = 'remote'
+        }
         if (snapshot.room) {
             this.playType = 'online'
             this.modeId = snapshot.room.modeId
@@ -449,8 +453,9 @@ export class MarblesController {
     private reconcile(): void {
         if (!this.cameraActive && !this.cameraFailed) {
             // Câmera desligada: o detector é liberado; a partida escolhida é preservada.
-            if (this.trackerStatus === 'ready' || this.trackerStatus === 'loading') {
+            if (this.trackerStatus !== 'idle') {
                 this.releaseTracker()
+                this.failureReason = null
             }
         }
     }

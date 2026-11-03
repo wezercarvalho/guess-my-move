@@ -17,6 +17,11 @@ class FakeSocket implements ClientSocket {
     readonly emitted: { event: string; payload: unknown }[] = []
     private readonly listeners = new Map<string, Set<(...args: unknown[]) => void>>()
     private readonly acks = new Map<string, unknown>()
+    private readonly deferred = new Set<string>()
+    private readonly pending = new Map<string, ((value: unknown) => void)[]>()
+
+    defer(event: string): void { this.deferred.add(event) }
+    reply(event: string, value: unknown): void { this.pending.get(event)?.shift()?.(value) }
 
     respond(event: string, value: unknown): void {
         this.acks.set(event, value)
@@ -46,7 +51,11 @@ class FakeSocket implements ClientSocket {
 
     emit(event: string, payload: unknown, ack?: (value: unknown) => void): this {
         this.emitted.push({ event, payload })
-        if (ack) ack(this.acks.get(event) ?? { ok: true })
+        if (ack && this.deferred.has(event)) {
+            const pending = this.pending.get(event) ?? []
+            pending.push(ack)
+            this.pending.set(event, pending)
+        } else if (ack) ack(this.acks.get(event) ?? { ok: true })
         return this
     }
 
@@ -210,5 +219,70 @@ describe('MultiplayerClient', () => {
             event: CLIENT_EVENTS.shot,
             payload: { seq: 2, velocity: { x: 300, y: 0 } },
         })
+    })
+})
+
+describe('MultiplayerClient: corrida de retomada', () => {
+    it('não libera tiros antes do servidor confirmar a retomada', async () => {
+        const socket = new FakeSocket()
+        socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+        const client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        await client.createRoom('bete')
+        socket.defer(CLIENT_EVENTS.resume)
+        socket.disconnect()
+        socket.connect()
+        expect(client.getSnapshot().connection).toBe('connecting')
+        await expect(client.sendShot({ x: 300, y: 0 })).resolves.toBe(false)
+        expect(socket.emitted.filter(e => e.event === CLIENT_EVENTS.shot)).toHaveLength(0)
+        socket.reply(CLIENT_EVENTS.resume, { ok: true, access })
+        await vi.waitFor(() => expect(client.getSnapshot().connection).toBe('connected'))
+        client.destroy()
+    })
+
+    it('uma confirmação antiga de retomada não desfaz a saída da sala', async () => {
+        const socket = new FakeSocket()
+        const storage = memoryStorage()
+        socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+        const client = new MultiplayerClient({ socket, storage })
+        await client.createRoom('bete')
+        socket.defer(CLIENT_EVENTS.resume)
+        socket.disconnect()
+        socket.connect()
+        await client.leave()
+        socket.reply(CLIENT_EVENTS.resume, { ok: true, access })
+        await Promise.resolve()
+        await Promise.resolve()
+        expect(client.getSnapshot().access).toBeNull()
+        expect(storage.getItem(MULTIPLAYER_STORAGE_KEY)).toBeNull()
+        client.destroy()
+    })
+})
+
+describe('MultiplayerClient: cancelar entrada para jogar local', () => {
+    it('não aceita uma criação confirmada depois de sair', async () => {
+        const socket = new FakeSocket()
+        socket.defer(CLIENT_EVENTS.create)
+        const client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        const creation = client.createRoom('bete')
+        await vi.waitFor(() => expect(socket.emitted.some(e => e.event === CLIENT_EVENTS.create)).toBe(true))
+        await client.leave()
+        socket.reply(CLIENT_EVENTS.create, { ok: true, access })
+        await expect(creation).resolves.toBe(false)
+        expect(client.getSnapshot().access).toBeNull()
+        expect(socket.emitted.some(e => e.event === CLIENT_EVENTS.leave)).toBe(true)
+        client.destroy()
+    })
+
+    it('não cria sala quando a conexão chega depois de escolher sair', async () => {
+        const socket = new FakeSocket()
+        vi.spyOn(socket, 'connect').mockImplementation(() => {})
+        const client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        const creation = client.createRoom('bete')
+        await client.leave()
+        socket.connected = true
+        socket.serverEmit('connect')
+        await expect(creation).resolves.toBe(false)
+        expect(socket.emitted.some(e => e.event === CLIENT_EVENTS.create)).toBe(false)
+        client.destroy()
     })
 })

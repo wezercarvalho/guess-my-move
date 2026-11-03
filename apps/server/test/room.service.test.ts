@@ -197,7 +197,6 @@ describe('RoomService: desconexão e retomada', () => {
     })
 })
 
-
 describe('RoomService: partida completa por modo', () => {
     for (const modeId of ['bete', 'triangle', 'hole'] as const) {
         it(`conclui ${modeId} com duas fontes remotas`, () => {
@@ -246,4 +245,49 @@ describe('RoomService: partida completa por modo', () => {
             expect(final?.match?.roundOutcomes).toHaveLength(3)
         })
     }
+})
+
+describe('RoomService: regressões antes do teste com câmera', () => {
+    it('retoma anfitriã sozinha e continua permitindo a entrada de convidado', () => {
+        const { service } = harness()
+        const host = service.create('host', { modeId: 'bete' })
+        service.disconnect('host')
+        const resumed = service.resume('host-new', { roomCode: host.access.roomCode, resumeToken: host.access.resumeToken })
+        expect(resumed.state.status).toBe('waiting')
+        expect(service.join('guest', { roomCode: host.access.roomCode }).state.status).toBe('ready')
+        service.setReady('host-new', { ready: true })
+        expect(service.setReady('guest', { ready: true }).match).not.toBeNull()
+    })
+
+    it('não altera prontidão durante pausa por conexão ausente', () => {
+        const { service } = harness()
+        service.create('host', { modeId: 'bete' })
+        service.join('guest', { roomCode: 'ABCDEF' })
+        service.setReady('host', { ready: true })
+        service.disconnect('host')
+        expectRoomError(() => service.setReady('guest', { ready: true }), 'NOT_READY')
+        expect(service.state('ABCDEF')).toMatchObject({ status: 'paused', players: { opponent: { ready: false } } })
+    })
+
+    it('publica a bolinha do competidor da vez na Cova antes da mira', () => {
+        const h = harness()
+        h.service.create('host', { modeId: 'hole' })
+        h.service.join('guest', { roomCode: 'ABCDEF' })
+        h.service.setReady('host', { ready: true })
+        const initial = h.service.setReady('guest', { ready: true }).match?.field[0]?.pos
+        h.service.submitShot('host', { seq: 1, velocity: { x: 150, y: 0 } })
+        h.advanceClock(450)
+        let moved: { x: number; y: number } | undefined
+        for (let i = 0; i < 100; i++) {
+            const state = h.service.state('ABCDEF')
+            if (state?.match?.phase !== 'rolling') break
+            moved = state.match.field[0]?.pos
+            h.advanceClock(50)
+        }
+        const guestTurn = h.service.state('ABCDEF')
+        expect(guestTurn?.match?.turn).toBe('opponent')
+        expect(moved).not.toEqual(initial)
+        expect(guestTurn?.match?.field[0]?.pos).toEqual(initial)
+        expect(guestTurn?.match?.decor?.resting).toContainEqual(expect.objectContaining({ owner: 'player' }))
+    })
 })

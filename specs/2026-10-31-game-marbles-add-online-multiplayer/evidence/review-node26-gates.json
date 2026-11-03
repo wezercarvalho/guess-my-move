@@ -1,0 +1,28 @@
+{
+  "review_date": "2026-11-03",
+  "runtime": "Node 26.12.1 / Yarn 4.18.1",
+  "environment": "node:26.12.1-bookworm-slim",
+  "result": "PASS",
+  "commands": {
+    "yarn check:all": "PASS",
+    "yarn test:gates": "PASS",
+    "yarn test:sdd": "PASS",
+    "yarn sdd:check": "PASS",
+    "yarn security:dependencies": "PASS"
+  },
+  "tests": {
+    "core": 68,
+    "marbles": 171,
+    "server": 25,
+    "swing": 227,
+    "web_vitest": 434,
+    "web_node": 78,
+    "gates": 231,
+    "sdd": 109
+  },
+  "limitations": [
+    "Primeiro agregado excedeu 5s no teste preexistente de 3000 tiros do bot; repetição sem processos concorrentes passou sem mudar timeout ou algoritmo.",
+    "Câmera/detector simulados no smoke; internet, fps e gestos reais não medidos.",
+    "T023/T027 aguardam maintainer."
+  ]
+}

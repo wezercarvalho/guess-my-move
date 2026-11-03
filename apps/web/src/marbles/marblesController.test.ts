@@ -570,3 +570,19 @@ describe('MarblesController: autoridade da sala', () => {
         }
     }
 })
+
+
+describe('MarblesController: recuperação do detector', () => {
+    it('permite tentar novamente desligando e ativando a câmera após falha de carga', async () => {
+        let attempts = 0
+        const tracker: HandTracker = { delegate: 'CPU', detect: () => null, close: vi.fn() }
+        const h = harness({ createTracker: () => ++attempts === 1 ? Promise.reject(new Error('falha transitória')) : Promise.resolve(tracker) })
+        h.controller.setCamera(true, false)
+        await vi.waitFor(() => expect(h.controller.getSnapshot().trackerStatus).toBe('error'))
+        h.controller.setCamera(false, false)
+        h.controller.setCamera(true, false)
+        await vi.waitFor(() => expect(h.controller.getSnapshot().trackerStatus).toBe('ready'))
+        expect(attempts).toBe(2)
+        expect(h.controller.getSnapshot().failureReason).toBeNull()
+    })
+})

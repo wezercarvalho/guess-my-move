@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { type Mode, createMatchSession } from '../src/index.js'
+import { type Mode, createMatchSession, modes } from '../src/index.js'
 
 const mode: Mode = {
     name: 'duelo remoto',
@@ -84,4 +84,31 @@ describe('sessão de partida para dois competidores humanos', () => {
         expect(session.firePlayerShot({ x: 100, y: 0 })).toBe(true)
         expect(session.snapshot().shotsLeft.player).toBe(1)
     })
+})
+
+describe('Bete remoto: resultado real da rodada', () => {
+    for (const scenario of [
+        { playerHit: true, opponentHit: false, outcome: 'win' },
+        { playerHit: false, opponentHit: true, outcome: 'loss' },
+        { playerHit: true, opponentHit: true, outcome: 'draw' },
+        { playerHit: false, opponentHit: false, outcome: 'draw' },
+    ] as const) {
+        it(`jogador acerta=${scenario.playerHit}, convidado acerta=${scenario.opponentHit}: ${scenario.outcome}`, () => {
+            const session = createMatchSession({ modeId: 'bete', mode: modes[0].create(), opponent: 'remote' })
+            for (let i = 0; i < 10; i++) {
+                const snap = session.snapshot()
+                if (snap.phase === 'round-over') break
+                const role = snap.turn
+                if (!role) throw new Error('esperava uma vez ativa')
+                const hit = role === 'player' ? scenario.playerHit : scenario.opponentHit
+                const field = snap.field
+                const dx = field[1].pos.x - field[0].pos.x
+                const dy = field[1].pos.y - field[0].pos.y
+                const length = Math.hypot(dx, dy)
+                session.fireShot(role, hit ? { x: 1100 * dx / length, y: 1100 * dy / length } : { x: 0, y: 150 })
+                settle(session)
+            }
+            expect(session.snapshot()).toMatchObject({ phase: 'round-over', lastRoundOutcome: scenario.outcome, shotsLeft: { player: scenario.playerHit || scenario.opponentHit ? 4 : 0, opponent: scenario.playerHit || scenario.opponentHit ? 4 : 0 } })
+        })
+    }
 })

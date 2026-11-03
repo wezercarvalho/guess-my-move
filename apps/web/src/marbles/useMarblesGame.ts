@@ -1,5 +1,5 @@
 import { type BotLevel, type Opponent } from '@guess-my-move/marbles'
-import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
+import { type RefObject, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import {
     createMediaPipeHandTracker,
@@ -79,6 +79,7 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
     const [multiplayer] = useState<MultiplayerStore>(
         () => deps?.multiplayer ?? new MultiplayerClient(),
     )
+    const playTypeChoice = useRef(0)
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
     const multiplayerSnapshot = useSyncExternalStore(
         multiplayer.subscribe,
@@ -113,8 +114,14 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
         ...snapshot,
         setMode: controller.setMode,
         setPlayType: (playType) => {
+            const choice = ++playTypeChoice.current
             controller.setPlayType(playType)
             if (playType === 'online') void multiplayer.connect()
+            else void multiplayer.leave().then(() => {
+                if (choice !== playTypeChoice.current) return
+                controller.setMultiplayer(multiplayer.getSnapshot(), null)
+                controller.setPlayType('local')
+            })
         },
         setOpponent: controller.setOpponent,
         setBotLevel: controller.setBotLevel,

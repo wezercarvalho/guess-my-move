@@ -446,6 +446,7 @@ describe('MarblesScreen: status de uma linha por estado', () => {
         fireEvent.click(screen.getByRole('button', { name: /ativar câmera/i }))
         const alert = await screen.findByRole('alert')
         expect(alert).toHaveTextContent('Motivo: modelo ausente')
+        expect(screen.getByTestId('game-status')).toHaveTextContent('Pare e ative a câmera novamente.')
     })
 
     it('anuncia o status numa região aria-live educada', () => {

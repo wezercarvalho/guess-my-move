@@ -101,7 +101,7 @@ Os scripts Yarn usaram `COREPACK_HOME=/tmp/guess-my-move-corepack` , `YARN_GLOBA
 
 ## Entrega para revisão
 
-- [PR #114](https://github.com/wezercarvalho/guess-my-move/pull/114), rascunho confirmado no GitHub e atribuída a `wezercarvalho`; sem merge nem publicação.
+- [PR #114](https://github.com/wezercarvalho/guess-my-move/pull/114), aberta inicialmente em rascunho e atribuída a `wezercarvalho`; sem merge nem publicação.
 - Commit do cliente/evidências: `0985a42`, mais os cinco commits anteriores da iniciativa.
 - Hook de pré-push passou nos seis escopos: testes SDD, checker SDD, docs, tooling, estáticos e auditoria. Ele executa o modo estático; isso não aprova `check:all`.
 - Instalação imutável das dependências concluída com Yarn 4.18.1; o cache global foi direcionado para uma pasta gravável sem mudar versões ou lockfile.
@@ -137,3 +137,37 @@ T023/T027 continuam abertas até o teste e aceite; não são tratadas como execu
 - **Runtime:** Node 26.12.1 foi instalado e validado; a execução atual no contêiner oficial demonstra os gates com o runtime alvo. A sessão anterior em Node 24 permanece identificada como histórica.
 - **Estado SDD:** o checker exige todas as tarefas concluídas para `validating`; a spec fica `implementing` até T023/T027, embora desenvolvimento e gates automatizados estejam concluídos.
 - **Gate 3:** autorização antecipada do maintainer em 2026-10-31 preservada, condicionada aos gates verdes e à convergência. Status `implementing`, aguardando teste e aceite humano de CQ-005.
+
+## Revisão antes da câmera — 2026-11-03
+
+A revisão encontrou pendências de implementação que os gates anteriores não cobriam. Foram reproduzidas com testes falhando e corrigidas antes da nova entrega:
+
+- Bete remoto ignorava a comparação de acertos entre humanos. Quatro cenários agora cobrem vitória, derrota e os dois empates com a física real.
+- Cova publicava o campo anterior antes de preparar a bolinha da pessoa da vez. O snapshot agora prepara a posição usada pela mira e inclui a bolinha em repouso do oponente remoto.
+- Recarregar uma sala só com anfitriã deixava a sala pausada e impedia a entrada. A retomada retorna a `waiting`; prontidão durante uma desconexão é recusada sem alterar o lobby.
+- A reconexão liberava tiros antes do aceite da retomada; respostas atrasadas podiam restaurar uma sala após sair. O cliente aguarda o aceite e invalida operações antigas, inclusive criação/entrada canceladas ao escolher Local.
+- Falha transitória do detector ficava sem recuperação. Parar e ativar a câmera permite tentar novamente; a tela informa esse caminho.
+
+### Cobertura reavaliada
+
+| Requisitos                    | Evidência                                                                                                                   |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| FR-001                        | Spec singleplayer convergida para `validated`, T031 e aceite anterior preservados.                                          |
+| FR-002–FR-005 / SC-001        | Testes do motor, bot, controlador e tela; placar Bete remoto e campo Cova acrescentados nesta revisão.                      |
+| FR-006–FR-011 / SC-002–SC-003 | Schemas estritos, testes de sala/gateway e integração com dois clientes Socket.IO; autoridade, sequência e erro sanitizado. |
+| FR-012 / SC-004               | Relógio controlado, expiração/retomada e regressões de lobby; queda e reload demonstrados no navegador.                     |
+| FR-013 / SC-005               | Tela/controlador/cliente; conexão pendente, cancelamento, retomada e saída para Local.                                      |
+| FR-014 / SC-006               | Revisão dos schemas/logs, recusa de mídia/campos extras e frame real de tiro com sequência/vetor.                           |
+| FR-015                        | Proxy na mesma origem e regressão local sem servidor.                                                                       |
+| FR-016 / SC-007 / NFR-007     | Gates locais e CI; aceite humano T023/T027 permanece aberto.                                                                |
+| NFR-001–NFR-006               | Motor compartilhado, memória efêmera, limites de payload/taxa e testes registrados; sem promessa de desempenho.             |
+
+### Demonstração adicional
+
+[Resultado no navegador](evidence/review-browser-smoke.json), [anfitriã](evidence/review-online-host.png) e [convidada](evidence/review-online-guest.png). Duas páginas Chromium demonstraram reload da anfitriã antes de entrar a convidada, início, tiro por pinça simulada, alternância, queda/retomada, reload da convidada e saída para partida local, sem erro de página. Node 26.12.1, servidor compilado e Vite em loopback; câmera/detector simulados.
+
+A primeira execução agregada desta revisão excedeu o timeout de 5 s no teste preexistente que simula 3000 tiros do bot, durante execuções concorrentes. A repetição sem os processos concorrentes passou pelo mesmo teste; não se alterou o timeout nem a regra para encobrir a falha. O agregado final `yarn check:all` passou: typecheck, lint, core 68, marbles 171, servidor 25, swing 227, web 434 Vitest + 78 auxiliares e build. `test:gates` (231), `test:sdd` (109), `sdd:check` e `security:dependencies` também passaram; auditoria sem vulnerabilidades reportadas. Ver [resumo desta revisão](evidence/review-node26-gates.json).
+
+Violão permanece em standby até dezembro por orientação do maintainer. Não houve merge nem publicação. Câmera real, conforto visual, internet e aceite de uso continuam reservados ao maintainer; os testes automatizados não os substituem.
+
+A PR foi marcada pronta para executar o CI e retorna a rascunho para o teste do maintainer previsto em FR-016. O aceite humano não foi antecipado.

@@ -191,6 +191,7 @@ export class RoomService {
     setReady(socketId: string, command: ReadyRoomCommand): RoomState {
         const { room, role } = this.membership(socketId)
         if (room.session) return this.toState(room)
+        if (room.status === 'paused') throw new RoomError('NOT_READY', 'Aguarde a reconexão antes de ficar pronto.')
         const slot = room.slots[role]
         if (slot.ready === command.ready) return this.toState(room)
         slot.ready = command.ready
@@ -365,6 +366,8 @@ export class RoomService {
     }
 
     private toWireSnapshot(modeId: ModeId, session: MatchSession): WireMatchSnapshot {
+        // Cada modo prepara a bolinha da pessoa da vez antes de o cliente calcular a mira.
+        session.shooter()
         const snapshot = session.snapshot()
         return {
             modeId,
@@ -415,10 +418,10 @@ export class RoomService {
     }
 
     private connectedStatus(room: Room): RoomState['status'] {
-        if (!room.slots.player.socketId || !room.slots.opponent.socketId) return 'paused'
-        if (room.session?.snapshot().phase === 'match-over') return 'finished'
-        if (room.session) return 'playing'
-        return room.slots.player.ready && room.slots.opponent.ready ? 'playing' : 'ready'
+        if (Object.values(room.slots).some(slot => slot.disconnectedAt !== null)) return 'paused'
+        if (!room.session) return room.slots.opponent.socketId ? 'ready' : 'waiting'
+        if (room.session.snapshot().phase === 'match-over') return 'finished'
+        return 'playing'
     }
 
     private reconnectDeadline(room: Room): number | null {
