@@ -8,6 +8,8 @@ import {
 } from '@guess-my-move/swing'
 import {
     BackSide,
+    BoxGeometry,
+    TorusGeometry,
     BufferGeometry,
     CanvasTexture,
     Color,
@@ -169,15 +171,18 @@ function geometryOf(data: MeshData): BufferGeometry {
 }
 
 /** Céu em degradê de fim de tarde: horizonte quente, topo azul-escuro. */
-function skyDome(): Mesh {
+function skyDome(aurora = false): Mesh {
     const geometry = new SphereGeometry(1500, 24, 16)
     const positions = geometry.getAttribute('position')
     const colors: number[] = []
     const color = new Color()
+    const horizon = aurora ? new Color('#164768') : HORIZON
+    const middle = aurora ? new Color('#392258') : MIDDLE
+    const zenith = aurora ? new Color('#080c27') : ZENITH
     for (let i = 0; i < positions.count; i++) {
         const height = Math.max(0, positions.getY(i) / 1500)
-        if (height < 0.35) color.copy(HORIZON).lerp(MIDDLE, height / 0.35)
-        else color.copy(MIDDLE).lerp(ZENITH, (height - 0.35) / 0.65)
+        if (height < 0.35) color.copy(horizon).lerp(middle, height / 0.35)
+        else color.copy(middle).lerp(zenith, (height - 0.35) / 0.65)
         colors.push(color.r, color.g, color.b)
     }
     geometry.setAttribute('color', new Float32BufferAttribute(colors, 3))
@@ -195,7 +200,8 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     const scene = new Scene()
-    scene.fog = new Fog(HORIZON.clone(), CITY_ATMOSPHERE.fogNear, CITY_ATMOSPHERE.fogFar)
+    const aurora = city.visual?.theme === 'aurora'
+    scene.fog = new Fog(aurora ? new Color('#164768') : HORIZON.clone(), CITY_ATMOSPHERE.fogNear, CITY_ATMOSPHERE.fogFar)
     const camera = new PerspectiveCamera(FOV_STILL, 1, 0.3, 2200)
     camera.rotation.order = 'YXZ'
 
@@ -205,7 +211,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         return item
     }
 
-    const sky = skyDome()
+    const sky = skyDome(aurora)
     track(sky.geometry)
     track(sky.material as MeshBasicMaterial)
     scene.add(sky)
@@ -213,7 +219,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     const facade = track(facadeTexture())
     const wallMaterial = track(
         new MeshBasicMaterial({
-            map: facade,
+            ...(aurora ? {} : { map: facade }),
             vertexColors: true,
             side: DoubleSide,
         }),
@@ -224,6 +230,47 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     const walls = new Mesh(track(geometryOf(buildWalls(city))), wallMaterial)
     const roofs = new Mesh(track(geometryOf(buildRoofs(city))), roofMaterial)
     scene.add(walls, roofs)
+
+    if (aurora) {
+        // Néon sem iluminação dinâmica, texturas ou chamadas de rede.
+        const colors = [0x4af3ed, 0xff67c8, 0xa78bfa]
+        const neonMaterials = colors.map((color) => track(new MeshBasicMaterial({ color, fog: false })))
+        const trim = track(new BoxGeometry(1, 1, 1))
+        city.buildings.forEach((building, id) => {
+            const xs = building.ring.filter((_, i) => i % 2 === 0)
+            const zs = building.ring.filter((_, i) => i % 2 === 1)
+            const minX = Math.min(...xs), maxX = Math.max(...xs)
+            const minZ = Math.min(...zs), maxZ = Math.max(...zs)
+            const material = neonMaterials[id % neonMaterials.length]
+            for (const z of [minZ, maxZ]) {
+                const band = new Mesh(trim, material)
+                band.scale.set(maxX-minX+0.4, 0.7, 0.5)
+                band.position.set((minX+maxX)/2, building.height-0.3, z)
+                scene.add(band)
+            }
+            // Pilares e painéis coincidem com as fachadas, sem obstáculos invisíveis.
+            for (const x of [minX, maxX]) {
+                const strip = new Mesh(trim, material)
+                strip.scale.set(0.6, building.height, 0.6)
+                strip.position.set(x, building.height/2, minZ-0.1)
+                scene.add(strip)
+            }
+        })
+        const moon = new Mesh(track(new SphereGeometry(85, 24, 16)), track(new MeshBasicMaterial({ color: 0xc1b2ed, fog: false })))
+        moon.position.set(0, 650, -850)
+        scene.add(moon)
+        const planet = new Mesh(track(new SphereGeometry(38, 20, 12)), track(new MeshBasicMaterial({ color: 0x5cd4e6, fog: false })))
+        planet.position.set(350, 700, -1000)
+        scene.add(planet)
+        const ring = new Mesh(track(new TorusGeometry(64, 2.5, 6, 48)), neonMaterials[2])
+        ring.position.copy(planet.position)
+        ring.rotation.x = 0.8
+        scene.add(ring)
+        const water = new Mesh(track(new PlaneGeometry(8000, 8000)), track(new MeshBasicMaterial({ color: 0x164768, transparent: true, opacity: 0.65 })))
+        water.rotation.x = -Math.PI / 2
+        water.position.y = 0.05
+        scene.add(water)
+    }
 
     const ground = groundTexture(city)
     track(ground.texture)

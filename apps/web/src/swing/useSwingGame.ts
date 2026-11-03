@@ -9,6 +9,7 @@ import {
 import { createMediaPipeFaceTracker } from '../tracker/faceTracker.js'
 import { type CityMap } from './cityCatalog.js'
 import { createThreeRenderer } from './cityRenderer.js'
+import { createTrainingCity, TRAINING_MAP } from './training.js'
 import { fetchCity } from './loadCity.js'
 import { SwingController, type SwingEnv, type SwingSnapshot } from './swingController.js'
 
@@ -49,7 +50,7 @@ function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
             deps?.createFaceTracker ??
             (() => createMediaPipeFaceTracker(undefined, delegatePreferenceFromSearch(window.location.search))),
         loadCity: () =>
-            deps?.loadCity ? deps.loadCity(map) : fetchCity(`${import.meta.env.BASE_URL}${map.file}`),
+            deps?.loadCity ? deps.loadCity(map) : map.id === TRAINING_MAP.id ? Promise.resolve(createTrainingCity()) : fetchCity(`${import.meta.env.BASE_URL}${map.file}`),
         createRenderer: deps?.createRenderer ?? createThreeRenderer,
         requestFrame:
             deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),

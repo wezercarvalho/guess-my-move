@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-03",
+  "branch": "feat/108-arranha-teia-treino",
+  "base_commit": "a614920",
+  "environment": {
+    "image": "node:26.12.1-bookworm-slim",
+    "node": "26.12.1",
+    "corepack": "0.36.0",
+    "yarn": "4.18.1",
+    "git_installed": true
+  },
+  "source_archive_sha256": "b8954e357f6b2a9a7c4cfa21397aaf8d2244f1ecd146b8dbe2a4ccc150138aae",
+  "checks": [
+    {
+      "command": "yarn install --immutable",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn check:all",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn test:gates",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn test:sdd",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn sdd:check",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn docs:format:check",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn security:dependencies",
+      "exit_code": 0
+    }
+  ],
+  "tests": {
+    "core": 68,
+    "marbles": 159,
+    "swing": 227,
+    "web_vitest": 413,
+    "web_node_test": 78,
+    "gates": 231,
+    "sdd": 109
+  },
+  "dependency_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  },
+  "limitations": [
+    "Câmera real e julgamento visual final aguardam o maintainer.",
+    "Sem medição de fps, latência ou precisão de gesto.",
+    "Smoke visual em navegador headless com teclado, sem requisições de terceiros."
+  ]
+}

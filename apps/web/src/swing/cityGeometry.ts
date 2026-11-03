@@ -56,10 +56,10 @@ function signedArea(ring: readonly number[]): number {
     return area / 2
 }
 
-function wallsOf(building: CityBuilding, id: number, out: number[][]): void {
+function wallsOf(building: CityBuilding, id: number, out: number[][], aurora = false): void {
     const [positions, colors, uvs, indices] = out as [number[], number[], number[], number[]]
     const { ring, height } = building
-    const tint = tintOf(id)
+    const tint: readonly [number, number, number] = aurora ? ([[0.16,0.85,0.9],[0.9,0.24,0.6],[0.45,0.32,0.95],[0.2,0.7,0.6]][id % 4] as [number,number,number]) : tintOf(id)
     const outward = signedArea(ring) > 0 ? 1 : -1
     const n = ring.length / 2
     let along = 0
@@ -92,7 +92,7 @@ function wallsOf(building: CityBuilding, id: number, out: number[][]): void {
 export function buildWalls(city: City): MeshData {
     const out: number[][] = [[], [], [], []]
     city.buildings.forEach((building, id) => {
-        wallsOf(building, id, out)
+        wallsOf(building, id, out, city.visual?.theme === 'aurora')
     })
     return finish(out[0] ?? [], out[1] ?? [], out[2] ?? [], out[3] ?? [])
 }

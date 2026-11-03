@@ -1,3 +1,5 @@
+import { TrainingPanel } from './TrainingPanel.js'
+import { TRAINING_MAP } from './training.js'
 import { useEffect, useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -205,6 +207,7 @@ export function SwingScreen({
                 </Panel>
 
                 <div className="swing-side">
+                    {map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
                     <CameraPanel
                         camera={camera}
                         videoRef={videoRef}

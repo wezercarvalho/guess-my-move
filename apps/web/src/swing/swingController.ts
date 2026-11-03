@@ -1,3 +1,4 @@
+import { advanceTraining, EMPTY_TRAINING, type TrainingProgress } from './training.js'
 import {
     type City,
     type SwingCue,
@@ -163,6 +164,7 @@ export interface SwingSnapshot {
     lastThrow: 'hit' | 'miss' | null
     hud: SwingHud
     attribution: string
+    training: TrainingProgress
 }
 
 /** Olhar da cabeça antes de qualquer leitura: sem calibração, seguindo e sem direção travada. */
@@ -272,6 +274,7 @@ export class SwingController {
     private loop: number | null = null
     private lastNow: number | null = null
     private lastEmitAt = 0
+    private training: TrainingProgress = EMPTY_TRAINING
     private snapshot: SwingSnapshot
 
     constructor(env: SwingEnv) {
@@ -385,6 +388,7 @@ export class SwingController {
 
     /** Volta ao ponto de partida. */
     readonly restart = (): void => {
+        this.training = EMPTY_TRAINING
         this.world?.reset()
         this.triggers.left.reset()
         this.triggers.right.reset()
@@ -604,6 +608,14 @@ export class SwingController {
             lookBias: head.bias,
         }
         world.advance(input, dt)
+        this.training = advanceTraining(this.training, {
+            webSides: world.state.webs.map((web) => web.side),
+            pulling: world.state.webs.some((web) => web.side === -1 ? input.pull?.left : web.side === 1 ? input.pull?.right : input.pull?.center),
+            gripped: world.state.grip !== null,
+            headClimbing: this.headClimbState.climbing,
+            locked: this.headState.mode === 'locked',
+            released: !input.held.left && !input.held.right && !input.held.center,
+        })
         if (world.state.touchingWall) this.wallContactAt = now
         this.noteThrow(world)
         renderer.render(world.state)
@@ -954,6 +966,7 @@ export class SwingController {
             lastThrow: this.lastThrow,
             hud,
             attribution: this.city?.attribution ?? '',
+            training: this.training,
         }
     }
 
