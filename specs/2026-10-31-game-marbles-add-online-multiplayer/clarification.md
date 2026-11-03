@@ -93,3 +93,12 @@
 - **Artefatos aprovados:** `spec.md`, `clarification.md`
 - **Referência:** mensagem do maintainer nesta sessão: "Pode considerar todos os gates aceitos, se precisar pode segmentar em issues".
 - **Observações:** o maintainer autorizou avançar até o PR draft. Valores e hipóteses do agente permanecem ajustáveis no teste e não são apresentados como medidos.
+
+## CQ-005 — Concluir validação automatizada e reservar a câmera real ao maintainer
+
+- **Data:** `2026-11-03`
+- **Autor:** wezercarvalho (maintainer)
+- **Referência verificável:** mensagem nesta conversa: "Entendi, pode fazer então. Ao final eu faço os testes com câmera real. Pode abrir em paralelo arranha-teia. Pode atualizar o node se precisar."
+- **Decisão:** concluir os gates automatizados no Node 26 exigido, iniciar Arranha-Teia em checkout separado e reservar câmera real/avaliação de uso ao maintainer. Não ampliar as regras do multiplayer nem alterar o Violão no Ar.
+- **Execução:** Node 26.12.1 instalado em runtime isolado; checksum oficial conferido. O cache SWC do host continuou bloqueado, então a validação completa usa a imagem oficial `node:26.12.1-bookworm-slim`, com instalação imutável e sem mudança de versões do projeto.
+- **Consequência:** T025 concluída após todos os gates verdes; T023/T027 aguardam o teste/aceite do maintainer. Estado `implementing`; a aprovação antecipada do Gate 3 continua condicionada à convergência, sem registrar como executado um teste humano ainda pendente.

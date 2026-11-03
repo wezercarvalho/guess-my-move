@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-03",
+  "source_commit": "a066232f91324672c6eb3dfbb313888f7346e8c6",
+  "image": "node:26.12.1-bookworm-slim",
+  "image_digest": "sha256:88e480776c6149ff1d098cd304f44bf18057fb5d284a3329b78162d29821e28c",
+  "node": "26.12.1",
+  "yarn": "4.18.1",
+  "corepack": "0.36.0",
+  "installation": {
+    "command": "yarn install --immutable",
+    "exit_code": 0
+  },
+  "checks": [
+    {
+      "command": "yarn check:all",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn test:gates",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn test:sdd",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn sdd:check",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn docs:format:check",
+      "exit_code": 0
+    },
+    {
+      "command": "yarn security:dependencies",
+      "exit_code": 0
+    }
+  ],
+  "tests": {
+    "core": 68,
+    "marbles": 167,
+    "server": 22,
+    "swing": 227,
+    "web_vitest": 429,
+    "web_node_test": 78,
+    "gates": 231,
+    "sdd": 109
+  },
+  "dependency_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  },
+  "limitations": [
+    "Câmera e gesto reais serão testados pelo maintainer.",
+    "Sem medição de internet, latência, fps ou equilíbrio.",
+    "O host continua com restrição do cache SWC; o agregado completo foi executado no contêiner oficial."
+  ]
+}

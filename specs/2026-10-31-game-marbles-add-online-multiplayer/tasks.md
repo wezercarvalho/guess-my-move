@@ -51,13 +51,15 @@
 - [x] T022 [US-002] [US-003] [US-004] [SC-003] [SC-004] Executar servidor e web locais; demonstrar em duas abas criação, entrada, prontidão, tiro, alternância, desconexão e retomada.
 - [ ] T023 [US-005] [FR-013] [SC-005] Capturar evidência do fluxo e executar revisão independente de usabilidade por pessoa nova; corrigir achados materiais.
 - [x] T024 [FR-014] [SC-006] Revisar protocolo, logs e bundle para confirmar que nenhum frame, vídeo, landmark, gesto bruto, carta ou token do servidor é transmitido/logado.
-- [ ] T025 [FR-016] [NFR-007] Executar `check:all`, `test:gates`, `test:sdd`, `sdd:check`, `docs:format:check` e `security:dependencies`; registrar comandos e resultados.
+- [x] T025 [FR-016] [NFR-007] Executar `check:all`, `test:gates`, `test:sdd`, `sdd:check`, `docs:format:check` e `security:dependencies`; registrar comandos e resultados.
 - [x] T026 [FR-016] [SC-007] Atualizar README, PROJECT_SPEC, arquitetura, desenvolvimento local, catálogo e `validation.md`; revisar o diff; abrir PR em rascunho com `Closes #111`, `Closes #112` e `Closes #113`.
 - [ ] T027 [FR-016] [SC-007] Reconciliar implementação, spec, tarefas e evidências; efetivar o Gate 3 aprovado e promover a spec a `validated` somente se não houver falha material.
 
 ## Retomada em 2026-11-03
 
-T017–T022 e T024 concluídas. T023 tem capturas e demonstração automatizada em duas páginas, mas falta avaliação por pessoa nova. T025 está parcial: web, núcleos, build e verificações estáticas passam; `check:all` encontra bloqueio de cache nativo SWC neste ambiente Node 24 (o alvo é Node 26). T026 concluída: documentação e [PR #114 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/114), atribuída a `wezercarvalho`. T027 aguarda esses resultados; a spec continua `implementing`.
+T017–T022 e T024–T026 concluídas. O agregado `check:all` e todos os gates oficiais passaram em Node 26.12.1/Yarn 4.18.1 na imagem oficial `node:26.12.1-bookworm-slim`; o contêiner resolve a restrição do cache SWC do host sem mudar dependências. Evidências em `validation.md` e `evidence/node26-gates.json`.
+
+T023 tem capturas e demonstração automatizada em duas páginas; o teste com câmera real e a avaliação de uso serão feitos pelo maintainer, conforme sua mensagem em 2026-11-03. T027 aguarda esse aceite. A spec permanece em `implementing` porque o checker exige todas as tarefas concluídas para `validating`, sem declarar Gate 3 concluído nem autorizar merge antes do teste reservado ao maintainer. A [PR #114](https://github.com/wezercarvalho/guess-my-move/pull/114) reúne a entrega e permanece atribuída a `wezercarvalho`.
 
 ## Cobertura
 

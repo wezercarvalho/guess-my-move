@@ -3,7 +3,7 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** implementação funcional; validação final parcial
+- **Status:** validação automatizada concluída; teste com câmera real reservado ao maintainer
 - **Constituição:** 1.0.0
 - **Retomada:** `2026-11-03`
 - **Executor:** Codex; histórico das Fases 0–4 por kirocrew
@@ -13,7 +13,7 @@
 
 Motor, protocolo, servidor e cliente web implementados. O fluxo online foi demonstrado em duas páginas de Chromium com servidor NestJS compilado: criar, entrar, prontidão, tiro por pinça simulada, alternância, queda, retomada, reload e saída para modo local. As imagens e landmarks ficam no navegador; o frame de tiro contém apenas evento, sequência e vetor.
 
-O Gate 3 continua pendente: `check:all` encontra um bloqueio de cache nativo SWC ao carregar os testes do servidor neste ambiente, que fornece Node 24.22.2 em vez do Node 26.12.1 exigido pelo projeto. A revisão independente de usabilidade por pessoa nova também não ocorreu. Nenhum teste ou gate não executado é tratado como aprovado.
+O bloqueio do agregado foi resolvido executando a instalação imutável e todos os gates na imagem oficial Node 26.12.1. O SWC e os 22 testes do servidor passaram. O Gate 3 continua aguardando o teste com câmera real e a avaliação de uso que o maintainer reservou para si nesta conversa (CQ-005); não há merge nem publicação.
 
 ## Progresso por fase
 
@@ -79,9 +79,9 @@ O Gate 3 continua pendente: `check:all` encontra um bloqueio de cache nativo SWC
 - **Privacidade:** revisão do protocolo/gateway e frame capturado sem imagens, vídeo, áudio, landmarks, gesto bruto ou carta. Token de retomada existe somente no acesso privado e no comando de retomada; não aparece nas capturas ou logs versionados. Não há chave de provedor.
 - **Evidências:** [anfitriã](evidence/online-host.png), [convidada](evidence/online-guest.png) e [resultado do navegador](evidence/browser-smoke.json).
 - **Revisão visual do executor:** lobby compacto durante a partida, rótulos pela perspectiva local e contraste/contorno herdados do campo. Isso não substitui a avaliação por pessoa nova (T023).
-- **Gates:** estáticos, build, web, governança e auditoria passaram; agregado bloqueado pelos testes do servidor. A evidência histórica da Fase 4 não substitui uma nova execução.
+- **Gates:** todos os scripts oficiais passaram no Node 26.12.1, incluindo `check:all` e os 22 testes atuais do servidor; evidência desta execução em `evidence/node26-gates.json`.
 
-## Comandos e resultados desta retomada
+## Comandos da primeira execução no host (histórico)
 
 Os scripts Yarn usaram `COREPACK_HOME=/tmp/guess-my-move-corepack` , `YARN_GLOBAL_FOLDER=/home/codex/Documents/Codex/runtime-tmp/yarn-global` e `TMPDIR=/home/codex/Documents/Codex/runtime-tmp`: o Yarn global era 1.22 e o `/tmp` padrão não permite executar os launchers temporários. Nenhum manifesto ou requisito de runtime foi rebaixado para contornar o ambiente.
 
@@ -106,18 +106,34 @@ Os scripts Yarn usaram `COREPACK_HOME=/tmp/guess-my-move-corepack` , `YARN_GLOBA
 - Hook de pré-push passou nos seis escopos: testes SDD, checker SDD, docs, tooling, estáticos e auditoria. Ele executa o modo estático; isso não aprova `check:all`.
 - Instalação imutável das dependências concluída com Yarn 4.18.1; o cache global foi direcionado para uma pasta gravável sem mudar versões ou lockfile.
 
-## Pendências de conclusão
+## Validação final no Node 26 (substitui o bloqueio do primeiro ambiente)
 
-- **T023:** colher avaliação independente de usabilidade por pessoa nova. Capturas e demonstração automatizada já disponíveis.
-- **T025:** repetir `check:all` no runtime alvo Node 26.12.1 e ambiente que permita carregar SWC. Os demais gates estão registrados acima.
-- **T026 concluída:** documentação e [PR #114 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/114), atribuída a `wezercarvalho`.
-- **T027:** reconciliar esses resultados antes de promover a spec a `validated`.
+- **Fonte executada:** commit `a066232f91324672c6eb3dfbb313888f7346e8c6`, exportado com `git archive`; os arquivos de aplicação não foram alterados nesta rodada.
+- **Ambiente:** imagem oficial `node:26.12.1-bookworm-slim`, digest `sha256:88e480776c6149ff1d098cd304f44bf18057fb5d284a3329b78162d29821e28c`, Corepack 0.36.0 e Yarn 4.18.1. Git/CA instalados no contêiner para os testes dos hooks. Nenhuma versão do projeto foi alterada.
+- **Instalação:** `yarn install --immutable` passou. O SWC carregou e executou no filesystem próprio do contêiner. A restrição do cache do host não era causada somente pelo Node 24.
+- **Resultado:** `yarn check:all`, `yarn test:gates`, `yarn test:sdd`, `yarn sdd:check`, `yarn docs:format:check` e `yarn security:dependencies` passaram com código zero.
+- **Testes:** core 68, marbles 167, servidor 22, swing 227, web 429 Vitest + 78 auxiliares; gates 231 e SDD 109. Auditoria sem vulnerabilidades reportadas.
+- **Evidência:** [resultados estruturados](evidence/node26-gates.json). Os bloqueios e comandos da primeira retomada acima são históricos, preservados para explicar a mudança de ambiente.
+- **Limitações:** avisos preexistentes de `act`/canvas no jsdom e chunk grande no Arranha-Teia não falharam os gates; não há medição de internet, fps, latência ou equilíbrio.
+
+## Teste reservado ao maintainer
+
+Conforme CQ-005, câmera real e avaliação de uso serão executadas pelo maintainer antes do aceite final. Roteiro:
+
+1. Com Node 26, executar `yarn install --immutable`, `yarn dev:server` e `yarn dev:web`. Usar dois contextos de navegador ou dispositivos que alcancem a mesma instância; câmera exige `localhost` ou HTTPS.
+2. Em `/marbles.html`, escolher Online, criar sala e entrar pelo código na outra tela. Marcar prontidão em ambas e ativar as câmeras.
+3. Jogar Bete, Triângulo e Cova com pinça e estalo. Conferir tiros só na própria vez, placar coerente e resultados invertidos entre vencedor/perdedor.
+4. Após alguns tiros, interromper uma conexão por menos de 60 segundos: ambas devem pausar e retomar os mesmos papéis. Recarregar a aba e continuar atirando deve funcionar sem reiniciar a sequência.
+5. Sair da sala e iniciar uma partida local. Registrar comportamento observado, navegador/dispositivos e qualquer problema de reconhecimento ou uso.
+
+T023/T027 continuam abertas até o teste e aceite; não são tratadas como executadas. O desenvolvimento e os gates automatizados estão concluídos.
 
 ## Convergência e preservação
 
-- **Requisitos:** FR-001–FR-015 têm implementação; FR-016/SC-007 continuam parcialmente pendentes por validação final/revisão/PR. Evidências comportamentais estão nos testes de pacote/servidor das Fases 1–4, nos testes da web e na demonstração desta retomada.
+- **Requisitos:** FR-001–FR-015 têm implementação; FR-016/SC-007 têm gates e PR disponíveis; resta o aceite humano reservado ao maintainer. Evidências comportamentais estão nos testes de pacote/servidor das Fases 1–4, nos testes da web e na demonstração desta retomada.
 - **Alterações preexistentes:** cliente/controlador/testes/manifesto/lockfile da Fase 5 foram preservados e completados. `.kiro/settings/` permanece fora do commit e intocado.
 - **Checkout:** o original em `/srv/ai-harness/workspaces/guess-my-move/guess-my-move` estava disponível somente para leitura nesta conversa. A continuidade preserva seu HEAD, branch e alterações na cópia `/home/codex/Documents/Codex/guess-my-move`; o original não foi alterado.
 - **Outros jogos:** Violão no Ar em standby a pedido do maintainer; Arranha-Teia e backlog em triagem fora do escopo.
-- **Runtime:** Node 24.22.2 desta sessão não demonstra compatibilidade com Node 26; a evidência histórica do Node 26 permanece identificada como histórica.
-- **Gate 3:** autorização antecipada do maintainer em 2026-10-31 preservada, condicionada aos gates verdes e à convergência. Status continua `implementing`.
+- **Runtime:** Node 26.12.1 foi instalado e validado; a execução atual no contêiner oficial demonstra os gates com o runtime alvo. A sessão anterior em Node 24 permanece identificada como histórica.
+- **Estado SDD:** o checker exige todas as tarefas concluídas para `validating`; a spec fica `implementing` até T023/T027, embora desenvolvimento e gates automatizados estejam concluídos.
+- **Gate 3:** autorização antecipada do maintainer em 2026-10-31 preservada, condicionada aos gates verdes e à convergência. Status `implementing`, aguardando teste e aceite humano de CQ-005.
