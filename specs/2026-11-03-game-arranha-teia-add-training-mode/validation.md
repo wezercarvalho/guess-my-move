@@ -1,5 +1,9 @@
 # Validação
 
+## Entrega para teste
+
+[PR #115 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/115), atribuída a `wezercarvalho`. Commit da implementação: `b5d836b`; sem merge ou publicação. Os gates locais passaram no Node 26; por estar em rascunho, o CI remoto não é tratado como executado.
+
 ## Estado e intenção
 
 Implementação disponível na branch `feat/108-arranha-teia-treino`, isolada da branch de bolinhas. A issue #108 foi executada conforme autorização do maintainer nesta conversa em 2026-11-03; Violão segue em standby. O usuário reservou para si a câmera real e o aceite de uso/visual.

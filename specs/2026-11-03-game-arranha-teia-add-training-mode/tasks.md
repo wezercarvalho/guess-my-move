@@ -4,9 +4,13 @@
 - [x] T002 [FR-002] [NFR-001] Testes de cenário, âncoras e colisão antes do gerador Aurora.
 - [x] T003 [FR-003] [FR-004] Testes de exercícios antes da função cumulativa, controlador e painel.
 - [x] T004 [NFR-002] Passe visual procedural simples e descarte de recursos.
-- [ ] T005 [NFR-003] Gates, demonstração e PR em rascunho, documentando limites.
+- [x] T005 [NFR-003] Gates, demonstração e PR em rascunho, documentando limites.
 
 - [ ] T006 [SC-002] Maintainer testa visual e câmera real e registra aceite final; reservado ao usuário nesta conversa.
+
+## Entrega
+
+[PR #115 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/115), atribuída a `wezercarvalho`; implementação no commit `b5d836b`, com todos os gates automatizados verdes. T006/Gate 3 ficam para o teste do maintainer.
 
 ## Revisão independente por outro agente
 
