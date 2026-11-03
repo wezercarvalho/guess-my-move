@@ -40,20 +40,24 @@
 
 ## Fase 5 — Cliente e tela online
 
-- [ ] T017 [US-005] [FR-013] [FR-015] [SC-005] Escrever testes falhando do `MultiplayerClient`: create/join/resume/ready/shot/leave, estado, erro e `sessionStorage`.
-- [ ] T018 [US-005] [FR-013] [FR-015] Implementar cliente Socket.IO pela mesma origem e driver remoto; integrar à mira sem duplicar câmera ou regras.
-- [ ] T019 [US-002] [US-005] [FR-013] [SC-005] Escrever testes falhando da tela `Local | Online`, criar/entrar, código, presença, prontidão, papel, espera, própria vez e vez remota.
-- [ ] T020 [US-001] [US-005] [FR-003] [FR-004] [FR-013] Implementar a tela com componentes/tokens existentes, intenção do oponente e resultado pela perspectiva local.
-- [ ] T021 [US-005] [FR-005] [FR-015] Provar por teste que falha de conexão não impede modo local, e que pinça/estalo só enviam tiro na própria vez.
+- [x] T017 [US-005] [FR-013] [FR-015] [SC-005] Escrever testes falhando do `MultiplayerClient`: create/join/resume/ready/shot/leave, estado, erro e `sessionStorage`.
+- [x] T018 [US-005] [FR-013] [FR-015] Implementar cliente Socket.IO pela mesma origem e driver remoto; integrar à mira sem duplicar câmera ou regras.
+- [x] T019 [US-002] [US-005] [FR-013] [SC-005] Escrever testes falhando da tela `Local | Online`, criar/entrar, código, presença, prontidão, papel, espera, própria vez e vez remota.
+- [x] T020 [US-001] [US-005] [FR-003] [FR-004] [FR-013] Implementar a tela com componentes/tokens existentes, intenção do oponente e resultado pela perspectiva local.
+- [x] T021 [US-005] [FR-005] [FR-015] Provar por teste que falha de conexão não impede modo local, e que pinça/estalo só enviam tiro na própria vez.
 
 ## Fase 6 — Demonstração, revisão e convergência
 
-- [ ] T022 [US-002] [US-003] [US-004] [SC-003] [SC-004] Executar servidor e web locais; demonstrar em duas abas criação, entrada, prontidão, tiro, alternância, desconexão e retomada.
+- [x] T022 [US-002] [US-003] [US-004] [SC-003] [SC-004] Executar servidor e web locais; demonstrar em duas abas criação, entrada, prontidão, tiro, alternância, desconexão e retomada.
 - [ ] T023 [US-005] [FR-013] [SC-005] Capturar evidência do fluxo e executar revisão independente de usabilidade por pessoa nova; corrigir achados materiais.
-- [ ] T024 [FR-014] [SC-006] Revisar protocolo, logs e bundle para confirmar que nenhum frame, vídeo, landmark, gesto bruto, carta ou token do servidor é transmitido/logado.
+- [x] T024 [FR-014] [SC-006] Revisar protocolo, logs e bundle para confirmar que nenhum frame, vídeo, landmark, gesto bruto, carta ou token do servidor é transmitido/logado.
 - [ ] T025 [FR-016] [NFR-007] Executar `check:all`, `test:gates`, `test:sdd`, `sdd:check`, `docs:format:check` e `security:dependencies`; registrar comandos e resultados.
 - [ ] T026 [FR-016] [SC-007] Atualizar README, PROJECT_SPEC, arquitetura, desenvolvimento local, catálogo e `validation.md`; revisar o diff; abrir PR em rascunho com `Closes #111`, `Closes #112` e `Closes #113`.
 - [ ] T027 [FR-016] [SC-007] Reconciliar implementação, spec, tarefas e evidências; efetivar o Gate 3 aprovado e promover a spec a `validated` somente se não houver falha material.
+
+## Retomada em 2026-11-03
+
+T017–T022 e T024 concluídas. T023 tem capturas e demonstração automatizada em duas páginas, mas falta avaliação por pessoa nova. T025 está parcial: web, núcleos, build e verificações estáticas passam; `check:all` encontra bloqueio de cache nativo SWC neste ambiente Node 24 (o alvo é Node 26). T026 tem documentação atualizada, PR ainda pendente. T027 aguarda esses resultados; a spec continua `implementing`.
 
 ## Cobertura
 

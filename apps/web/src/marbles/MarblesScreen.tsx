@@ -1,4 +1,10 @@
-import { type BotLevel, DEFAULT_PHYSICS, modes, type Opponent, type Outcome } from '@guess-my-move/marbles'
+import {
+    type BotLevel,
+    DEFAULT_PHYSICS,
+    modes,
+    type Opponent,
+    type Outcome,
+} from '@guess-my-move/marbles'
 import { useEffect, useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -18,6 +24,7 @@ import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { drawField } from './fieldView.js'
 import { MarblesDebugPanel } from './MarblesDebugPanel.js'
 import { type MatchView, type ShotControl } from './marblesController.js'
+import { MultiplayerLobby } from './MultiplayerLobby.js'
 import { ShotGuide } from './ShotGuide.js'
 import { type MarblesDeps, type MarblesGameView, useMarblesGame } from './useMarblesGame.js'
 
@@ -66,7 +73,38 @@ const ROUND_LABEL: Record<Outcome, string> = {
  * mão não vista, sua vez, vez do bot, rodada vencida/empatada/perdida, partida
  * encerrada e falha do detector. Os detalhes ficam no guia "Como jogar".
  */
+function isOwnTurn(game: MarblesGameView): boolean {
+    const role = game.playType === 'online' ? game.multiplayer.access?.role : 'player'
+    return (
+        game.match?.turn === role &&
+        game.match?.phase === (role === 'opponent' ? 'opponent-turn' : 'player-turn')
+    )
+}
+
 function statusText(game: MarblesGameView): string {
+    if (game.playType === 'online') {
+        const { room, connection } = game.multiplayer
+        if (connection !== 'connected') return 'Conexão interrompida. Tentando reconectar…'
+        if (!room) return 'Crie uma sala ou entre com o código.'
+        if (room.status === 'paused')
+            return 'Partida pausada. Aguardando reconexão por até 60 segundos…'
+        if (!room.match) return 'Aguardando as duas pessoas ficarem prontas.'
+        if (room.match.phase === 'player-turn' || room.match.phase === 'opponent-turn') {
+            if (!isOwnTurn(game)) return 'Vez da outra pessoa…'
+            if (game.cameraFailed) return 'Libere o acesso à câmera para jogar.'
+            if (game.trackerStatus !== 'ready') return 'Sua vez. Ative a câmera para jogar.'
+            if (!game.debug.handVisible) return 'Sua vez. Mostre a mão inteira para a câmera.'
+            if (!game.aim)
+                return game.shotControl === 'flick'
+                    ? 'Sua vez. Feche a mão.'
+                    : 'Sua vez. Feche a pinça.'
+            return game.shotControl === 'flick'
+                ? 'Armado. Mire e estique o polegar.'
+                : game.aim.shot
+                  ? 'Mira pronta. Abra os dedos.'
+                  : 'Mirando: afaste mais a mão.'
+        }
+    }
     if (game.failureReason) return 'O detector falhou. Use “Trocar de modo”.'
     if (game.cameraFailed) return 'Sem câmera não há jogo. Libere o acesso no navegador.'
     const match = game.match
@@ -83,7 +121,9 @@ function statusText(game: MarblesGameView): string {
                 if (game.shotControl === 'flick') return 'Armado. Mire e estique o polegar.'
                 return game.aim.shot ? 'Mira pronta. Abra os dedos.' : 'Mirando: afaste mais a mão.'
             }
-            return game.shotControl === 'flick' ? 'Sua vez. Feche a mão.' : 'Sua vez. Feche a pinça.'
+            return game.shotControl === 'flick'
+                ? 'Sua vez. Feche a mão.'
+                : 'Sua vez. Feche a pinça.'
         case 'opponent-turn':
             return match.opponent === 'bot' ? 'Vez do bot…' : 'Vez da outra pessoa…'
         case 'rolling':
@@ -160,13 +200,17 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
 
     const debugDrawer = useDrawer()
     const selectedMode = modes.find((m) => m.id === game.modeId) ?? modes[0]
-    const matchMode = game.match ? (modes.find((m) => m.id === game.match?.modeId) ?? modes[0]) : null
+    const matchMode = game.match
+        ? (modes.find((m) => m.id === game.match?.modeId) ?? modes[0])
+        : null
     const guideMode = (matchMode ?? selectedMode).create()
-    const ready = game.match?.phase === 'player-turn' && game.trackerStatus === 'ready'
+    const ready = isOwnTurn(game) && game.trackerStatus === 'ready'
+    const online = game.playType === 'online'
+    const ownRole = online ? game.multiplayer.access?.role : 'player'
     const shotsOwner = game.match?.turn ?? 'player'
     const shotsLeft = game.match?.shotsLeft[shotsOwner] ?? 0
     const shotsLabel =
-        shotsOwner === 'player'
+        shotsOwner === ownRole
             ? 'Seus tiros restantes'
             : game.match?.opponent === 'bot'
               ? 'Tiros do bot restantes'
@@ -202,6 +246,19 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                         </DrawerToggle>
                     </div>
 
+                    {game.choosing && (
+                        <SegmentedControl
+                            legend="Partida"
+                            name="play-type"
+                            value={game.playType}
+                            options={[
+                                { value: 'local', label: 'Local' },
+                                { value: 'online', label: 'Online' },
+                            ]}
+                            onChange={game.setPlayType}
+                        />
+                    )}
+                    {online && <MultiplayerLobby game={game} />}
                     {game.choosing ? (
                         <div className="marbles-setup" data-testid="setup">
                             <SegmentedControl
@@ -211,14 +268,16 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                 options={modes.map((m) => ({ value: m.id, label: m.name }))}
                                 onChange={game.setMode}
                             />
-                            <SegmentedControl
-                                legend="Adversário"
-                                name="opponent"
-                                value={game.opponent}
-                                options={OPPONENTS}
-                                onChange={game.setOpponent}
-                            />
-                            {game.opponent === 'bot' && (
+                            {!online && (
+                                <SegmentedControl
+                                    legend="Adversário"
+                                    name="opponent"
+                                    value={game.opponent}
+                                    options={OPPONENTS}
+                                    onChange={game.setOpponent}
+                                />
+                            )}
+                            {!online && game.opponent === 'bot' && (
                                 <SegmentedControl
                                     legend="Nível do bot"
                                     name="bot-level"
@@ -227,7 +286,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                     onChange={game.setBotLevel}
                                 />
                             )}
-                            <Button onClick={game.startMatch}>Começar partida</Button>
+                            {!online && <Button onClick={game.startMatch}>Começar partida</Button>}
                         </div>
                     ) : (
                         <canvas
@@ -247,9 +306,11 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                             <>
                                 <p className="match-mode" data-testid="match-mode">
                                     {matchMode?.name} ·{' '}
-                                    {game.match.opponent === 'bot'
-                                        ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
-                                        : 'Contra a meta'}
+                                    {online
+                                        ? 'Online · Outra pessoa'
+                                        : game.match.opponent === 'bot'
+                                          ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
+                                          : 'Contra a meta'}
                                 </p>
                                 <p className="round-number" data-testid="round-number">
                                     Rodada {game.match.round + 1} de {game.match.roundsPerMatch}
@@ -258,37 +319,58 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                 {game.match.scoreLabel && (
                                     <p className="round-yield" data-testid="round-yield">
                                         {game.match.scoreLabel}:{' '}
-                                        {game.match.opponent === 'bot'
-                                            ? `Você ${game.match.roundYield.player} × ${game.match.roundYield.opponent} Bot`
-                                            : game.match.roundYield.player}
+                                        {online
+                                            ? `Você ${game.match.roundYield[ownRole ?? 'player']} × ${game.match.roundYield[ownRole === 'player' ? 'opponent' : 'player']} Outra pessoa`
+                                            : game.match.opponent === 'bot'
+                                              ? `Você ${game.match.roundYield.player} × ${game.match.roundYield.opponent} Bot`
+                                              : game.match.roundYield.player}
                                     </p>
                                 )}
                                 <p className="shot-counter" data-testid="shots-left">
                                     {shotsLabel}: {shotsLeft}
                                 </p>
                                 <p className="turn-indicator" data-testid="turn">
-                                    {game.match.opponent === 'bot'
-                                        ? game.match.turn === 'player'
-                                            ? 'Sua vez'
-                                            : game.match.turn === 'opponent'
-                                              ? 'Vez do bot'
-                                              : '—'
-                                        : 'Contra a meta'}
+                                    {online
+                                        ? game.match.turn
+                                            ? game.match.turn === ownRole
+                                                ? 'Sua vez'
+                                                : 'Vez da outra pessoa'
+                                            : '—'
+                                        : game.match.opponent === 'bot'
+                                          ? game.match.turn === 'player'
+                                              ? 'Sua vez'
+                                              : game.match.turn === 'opponent'
+                                                ? 'Vez do bot'
+                                                : '—'
+                                          : 'Contra a meta'}
                                 </p>
-                                {game.match.opponent === 'bot' && (
+                                {(online || game.match.opponent === 'bot') && (
                                     <p className="marbles-legend" data-testid="legend">
-                                        <span className="swatch swatch--player" aria-hidden="true" />{' '}
-                                        Você
-                                        <span className="swatch swatch--bot" aria-hidden="true" /> Bot
+                                        <span
+                                            className="swatch swatch--player"
+                                            aria-hidden="true"
+                                        />{' '}
+                                        {ownRole === 'opponent' ? 'Outra pessoa' : 'Você'}
+                                        <span
+                                            className="swatch swatch--bot"
+                                            aria-hidden="true"
+                                        />{' '}
+                                        {online
+                                            ? ownRole === 'opponent'
+                                                ? 'Você'
+                                                : 'Outra pessoa'
+                                            : 'Bot'}
                                     </p>
                                 )}
                             </>
                         ) : (
                             <p className="round-number" data-testid="round-number">
                                 {selectedMode.name} ·{' '}
-                                {game.opponent === 'bot'
-                                    ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
-                                    : 'Contra a meta'}
+                                {online
+                                    ? 'Online'
+                                    : game.opponent === 'bot'
+                                      ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
+                                      : 'Contra a meta'}
                             </p>
                         )}
                         <p aria-live="polite" className="round-status" data-testid="game-status">
@@ -306,13 +388,15 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                         ? OUTCOME_LABEL[game.match.matchOutcome]
                                         : ''}
                                 </p>
-                                <Button onClick={game.playAgain}>Jogar de novo</Button>
-                                <Button variant="secondary" onClick={game.changeMode}>
-                                    Trocar de modo
-                                </Button>
+                                {!online && <Button onClick={game.playAgain}>Jogar de novo</Button>}
+                                {!online && (
+                                    <Button variant="secondary" onClick={game.changeMode}>
+                                        Trocar de modo
+                                    </Button>
+                                )}
                             </div>
                         )}
-                        {game.match && game.match.phase !== 'match-over' && (
+                        {!online && game.match && game.match.phase !== 'match-over' && (
                             <Button variant="secondary" onClick={game.changeMode}>
                                 Trocar de modo
                             </Button>

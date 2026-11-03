@@ -3,15 +3,17 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** em andamento
+- **Status:** implementação funcional; validação final parcial
 - **Constituição:** 1.0.0
-- **Data:** `2026-10-31`
-- **Executor/revisor:** kirocrew (agente), com Gate 3 autorizado pelo maintainer e condicionado à convergência
-- **Commit:** não disponível
+- **Retomada:** `2026-11-03`
+- **Executor:** Codex; histórico das Fases 0–4 por kirocrew
+- **Branch:** `feat/111-marbles-multiplayer`
 
 ## Resumo do resultado
 
-Auditoria e planejamento concluídos. A implementação ainda não começou. Esta página será atualizada ao fim de cada fase para permitir retomada sem depender do histórico da conversa.
+Motor, protocolo, servidor e cliente web implementados. O fluxo online foi demonstrado em duas páginas de Chromium com servidor NestJS compilado: criar, entrar, prontidão, tiro por pinça simulada, alternância, queda, retomada, reload e saída para modo local. As imagens e landmarks ficam no navegador; o frame de tiro contém apenas evento, sequência e vetor.
+
+O Gate 3 continua pendente: `check:all` encontra um bloqueio de cache nativo SWC ao carregar os testes do servidor neste ambiente, que fornece Node 24.22.2 em vez do Node 26.12.1 exigido pelo projeto. A revisão independente de usabilidade por pessoa nova também não ocorreu. Nenhum teste ou gate não executado é tratado como aprovado.
 
 ## Progresso por fase
 
@@ -61,108 +63,54 @@ Auditoria e planejamento concluídos. A implementação ainda não começou. Est
 - **Compatibilidade:** NestJS 12.3.2 compilou e executou com Node 26.12.1, TypeScript 7.0.2 e Vitest/SWC neste repositório. Isso não prova suporte geral fora desta configuração.
 - **Limitação:** teste só em loopback e uma instância; nenhuma medição de latência, carga ou internet.
 
-## Conclusão das tarefas
+### Fase 5 — Cliente e tela online
 
-- **Concluídas:** 16 (T001–T016)
-- **Pendentes:** 11
-- **Evidência:** `tasks.md`
+- **Resultado:** PASS nos testes direcionados e suíte web.
+- **Vermelho observado nesta retomada:** dois novos testes do cliente falharam, demonstrando ausência de retomada quando o acesso já estava em memória e reinício incorreto da sequência dos tiros após reload (5 testes anteriores passaram). A tela ainda não continha seleção Local/Online nem lobby; os cenários foram escritos antes da implementação.
+- **Implementação:** `MultiplayerClient`, `MultiplayerLobby`, driver remoto e proxy Vite na mesma origem; código normalizado, presença, prontidão, papel, saída, erro/pausa e resultado pela perspectiva de cada participante. Acesso e próxima sequência sobrevivem ao reload em `sessionStorage`; armazenamento bloqueado não impede a conexão corrente.
+- **Regressão:** pinça e estalo só enviam vetores na própria vez conectada, para ambos os papéis; nenhuma física remota avança no navegador. Tiro pendente bloqueia outra mira.
+- **Verde:** 71 testes direcionados em três arquivos (cliente, controlador e tela); suíte web completa com 429 testes Vitest e 78 testes auxiliares por `node:test`.
+- **Limitação:** detector e câmera simulados; gestos reais, equilíbrio e qualidade de rede não medidos.
 
-## Evidências por requisito
+### Fase 6 — Demonstração e revisão
 
-| Requisito | Tarefas                | Evidência                                                          | Resultado |
-| --------- | ---------------------- | ------------------------------------------------------------------ | --------- |
-| FR-001    | T001                   | spec singleplayer validada; T031 e Gate 3 aprovados em 2026-10-31  | PASS      |
-| FR-002    | T003, T004             | `multiplayer-session.test.ts`; `match-session-equivalence.test.ts` | PASS      |
-| FR-003    | T005, T020             | bot sem fallback e prévia local PASS; integração remota pendente   | BLOCKED   |
-| FR-004    | T006, T020             | contador e anel local PASS; rótulos remotos pendentes              | BLOCKED   |
-| FR-005    | T007, T021             | 162 testes do pacote + 68 web PASS; fallback de rede pendente      | BLOCKED   |
-| FR-006    | T008, T009             | 5 testes de schemas/eventos compartilhados                         | PASS      |
-| FR-007    | T013–T015              | health, gateway WebSocket e e2e com dois clientes                  | PASS      |
-| FR-008    | T010, T011             | criação, lotação, modo e limite em `room.service.test.ts`          | PASS      |
-| FR-009    | T010–T012              | prontidão + sessão única; três modos remotos concluídos            | PASS      |
-| FR-010    | T008–T012, T015        | vetor, seq, vez, idempotência e e2e                                | PASS      |
-| FR-011    | T008–T015              | estado versionado, ack sanitizado e broadcast e2e                  | PASS      |
-| FR-012    | T010, T011, T015       | pausa, retomada e expiração unitárias; retomada e2e                | PASS      |
-| FR-013    | T017–T020              | pendente                                                           | BLOCKED   |
-| FR-014    | T008, T009, T016, T024 | schema, ack, log e payload e2e PASS; revisão do bundle pendente    | BLOCKED   |
-| FR-015    | T017, T018, T021       | pendente                                                           | BLOCKED   |
-| FR-016    | T002, T025–T027        | documentação inicial criada                                        | BLOCKED   |
+- **Demonstração:** PASS em duas páginas de Chromium, com contextos independentes, Vite e NestJS compilado em loopback. A câmera usa dispositivo falso e tracker com landmarks sintéticos; o gesto percorre a mira da aplicação e gera um frame `match:shot` real.
+- **Rede:** ambas entram e ficam prontas, recebem a alternância; desconectar a convidada pausa a anfitriã, reconectar recupera a vez e reload recupera código/papel. Sair permite iniciar uma partida local.
+- **Privacidade:** revisão do protocolo/gateway e frame capturado sem imagens, vídeo, áudio, landmarks, gesto bruto ou carta. Token de retomada existe somente no acesso privado e no comando de retomada; não aparece nas capturas ou logs versionados. Não há chave de provedor.
+- **Evidências:** [anfitriã](evidence/online-host.png), [convidada](evidence/online-guest.png) e [resultado do navegador](evidence/browser-smoke.json).
+- **Revisão visual do executor:** lobby compacto durante a partida, rótulos pela perspectiva local e contraste/contorno herdados do campo. Isso não substitui a avaliação por pessoa nova (T023).
+- **Gates:** estáticos, build, web, governança e auditoria passaram; agregado bloqueado pelos testes do servidor. A evidência histórica da Fase 4 não substitui uma nova execução.
 
-## Histórias e critérios de aceitação
+## Comandos e resultados desta retomada
 
-| História/cenário            | Demonstração | Resultado |
-| --------------------------- | ------------ | --------- |
-| US-001 / leitura da partida | pendente     | BLOCKED   |
-| US-002 / criar e entrar     | pendente     | BLOCKED   |
-| US-003 / autoridade         | pendente     | BLOCKED   |
-| US-004 / retomada           | pendente     | BLOCKED   |
-| US-005 / local e online     | pendente     | BLOCKED   |
+Os scripts Yarn usaram `COREPACK_HOME=/tmp/guess-my-move-corepack` , `YARN_GLOBAL_FOLDER=/home/codex/Documents/Codex/runtime-tmp/yarn-global` e `TMPDIR=/home/codex/Documents/Codex/runtime-tmp`: o Yarn global era 1.22 e o `/tmp` padrão não permite executar os launchers temporários. Nenhum manifesto ou requisito de runtime foi rebaixado para contornar o ambiente.
 
-## Comandos executados
+| Comando                                                       | Resultado | Evidência e limites                                                                                                                                    |
+| ------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `yarn check:static`                                           | PASS      | Typecheck de todos os workspaces e Oxlint; executado após correções e os novos testes.                                                                 |
+| `yarn check:all`                                              | BLOCKED   | Núcleos core (68 testes) e marbles (167) passam; o servidor não carrega SWC por `ERR_SWC_NATIVE_CACHE`. O agregado termina com erro; não foi aprovado. |
+| `yarn workspace @guess-my-move/web test`                      | PASS      | 429 testes em 42 arquivos + 78 auxiliares. Avisos jsdom de canvas durante a suíte não impediram a conclusão.                                           |
+| `yarn build`                                                  | PASS      | Todos os workspaces; aviso de chunk grande no Arranha-Teia, fora do escopo.                                                                            |
+| `yarn test:gates`                                             | PASS      | 231 testes.                                                                                                                                            |
+| `yarn test:sdd`                                               | PASS      | 109 testes.                                                                                                                                            |
+| `yarn security:dependencies`                                  | PASS      | info/low/moderate/high/critical: todos zero.                                                                                                           |
+| `yarn sdd:check`                                              | PASS      | Catálogo, estados, gates, cobertura e links válidos.                                                                                                   |
+| `yarn docs:format:check`                                      | PASS      | Todos os documentos no formato esperado.                                                                                                               |
+| `yarn workspace @guess-my-move/server start` + `yarn dev:web` | PASS      | Servidor compilado, health e gateway funcionando no navegador.                                                                                         |
+| Chromium/Playwright, duas páginas                             | PASS      | JSON e capturas em `evidence/`; sem teste de internet ou mão real.                                                                                     |
 
-| Comando exato                                                            | Data       | Resultado | Evidência/observação                                                    |
-| ------------------------------------------------------------------------ | ---------- | --------- | ----------------------------------------------------------------------- |
-| `git fetch --prune origin`                                               | 2026-10-31 | PASS      | `origin/main` em `a614920`, merge do PR #110.                           |
-| `git log --all --oneline -- apps/server`                                 | 2026-10-31 | PASS      | criação em `147ec25`, remoção em `4d501b8`; nenhum gateway multiplayer. |
-| `yarn npm info` para NestJS/Socket.IO                                    | 2026-10-31 | PASS      | NestJS 12.3.2 e Socket.IO 4.8.4 publicados.                             |
-| `yarn workspace @guess-my-move/marbles test multiplayer-session.test.ts` | 2026-10-31 | FAIL/PASS | 3 falhas esperadas antes do código; 3/3 verdes depois.                  |
-| `yarn test` em `packages/marbles`                                        | 2026-10-31 | PASS      | 162 testes em 15 arquivos.                                              |
-| `yarn exec vitest run` nos 3 testes de marbles da web                    | 2026-10-31 | PASS      | 68 testes direcionados; avisos `act` preexistentes não falham.          |
-| `yarn workspace` typecheck de marbles e web                              | 2026-10-31 | PASS      | contratos neutros e consumidores compilam.                              |
-| `yarn exec vitest run test/multiplayer-protocol.test.ts`                 | 2026-10-31 | FAIL/PASS | módulo ausente antes; 5/5 testes verdes após os schemas.                |
-| `yarn typecheck` em `packages/marbles`                                   | 2026-10-31 | PASS      | Zod Mini e exports públicos compilam no TypeScript 7.                   |
-| `yarn exec vitest run test/room.service.test.ts` em `apps/server`        | 2026-10-31 | FAIL/PASS | módulo ausente antes; 10/10 verdes, incluindo três modos completos.     |
-| `yarn typecheck` em `apps/server`                                        | 2026-10-31 | PASS      | serviço e snapshot de rede compilam com Node 26/TS7.                    |
-| `yarn test` em `apps/server`                                             | 2026-10-31 | PASS      | 22 testes: serviço, gateway, health, rate limit e 4 e2e.                |
-| `yarn build` em `apps/server`                                            | 2026-10-31 | PASS      | NestJS 12.3.2 compilado por TypeScript 7.0.2.                           |
-| `yarn lint` na raiz                                                      | 2026-10-31 | PASS      | 203 arquivos; 0 avisos e 0 erros após tipar eventos como `unknown`.     |
+## Pendências de conclusão
 
-## Medições e benchmark
+- **T023:** colher avaliação independente de usabilidade por pessoa nova. Capturas e demonstração automatizada já disponíveis.
+- **T025:** repetir `check:all` no runtime alvo Node 26.12.1 e ambiente que permita carregar SWC. Os demais gates estão registrados acima.
+- **T026:** documentação atualizada; abertura da PR draft será registrada antes do encerramento desta retomada.
+- **T027:** reconciliar esses resultados antes de promover a spec a `validated`.
 
-- **Protocolo e amostra:** nenhuma medição; somente auditoria estática e consulta de versões.
-- **Métricas:** nenhuma.
-- **Limitações:** nenhuma conclusão sobre latência, fps, capacidade, estabilidade na internet ou compatibilidade prática antes dos testes.
+## Convergência e preservação
 
-## Validações estruturais e documentais
-
-- **Links e catálogo:** catálogo ainda precisa ser atualizado e validado por `sdd:check`.
-- **Contratos:** protocolo, sala autoritativa e gateway implementados e testados; cliente web pendente.
-- **Privacidade e segredos:** schemas, acks e e2e recusam mídia e não ecoam conteúdo, token ou stack; revisão do bundle pendente.
-- **Fronteira de informação:** nenhuma carta entra no protocolo planejado; teste pendente.
-- **UTF-8 e acentuação:** arquivos criados em UTF-8.
-- **Alterações fora de escopo:** `.kiro/settings/` preexistente permanece sem rastreio e intocado.
-
-## Constitution Check final
-
-| Princípio/gate                     | Resultado | Evidência ou desvio aprovado                           |
-| ---------------------------------- | --------- | ------------------------------------------------------ |
-| I. Intenção antes da implementação | PASS      | documentos SDD criados antes do código.                |
-| II. Test-first                     | BLOCKED   | implementação ainda não começou.                       |
-| III. Núcleo puro e determinístico  | BLOCKED   | desenho aprovado; prova pendente.                      |
-| IV. Privacidade local              | BLOCKED   | desenho aprovado; prova pendente.                      |
-| V. Sem código órfão                | PASS      | decisão explícita de não restaurar o servidor de IA.   |
-| VI. Convergência (Gate 3)          | BLOCKED   | aprovação antecipada existe; evidência final pendente. |
-
-## Convergência
-
-- **Divergências encontradas:** spec singleplayer ainda em `implementing`; T001 trata a convergência.
-- **Artefatos reabertos:** nenhum.
-- **Reexecuções:** nenhuma.
-
-## Limitações e riscos residuais
-
-| Limitação/risco                                                 | Impacto                             | Responsável   | Aceite                  |
-| --------------------------------------------------------------- | ----------------------------------- | ------------- | ----------------------- |
-| Node 26/TypeScript 7 não aparecem na matriz explícita do NestJS | pode bloquear build/runtime         | kirocrew      | aceito para prova local |
-| 30 Hz e 60 s são valores iniciais                               | suavidade/espera não medidas        | wezercarvalho | aceito para teste       |
-| Sem teste na internet                                           | qualidade de rede desconhecida      | wezercarvalho | risco aceito            |
-| Equilíbrio e fps seguem não medidos                             | diversão/desempenho não comprovados | wezercarvalho | risco aceito            |
-
-## Gate 3 — Convergência validada
-
-- **Veredito:** aprovado com risco aceito, condicionado à conclusão de T001–T027 e ausência de falha material
-- **Aprovador:** wezercarvalho (maintainer)
-- **Data:** `2026-10-31`
-- **Escopo aprovado:** FR-001 a FR-016, issues #111, #112 e #113
-- **Riscos aceitos:** compatibilidade a provar; valores iniciais; sem teste de internet, fps ou equilíbrio real
-- **Observações:** a autorização antecipada não promove a spec a `validated`; a promoção ocorre somente após implementação, evidências e gates convergirem.
+- **Requisitos:** FR-001–FR-015 têm implementação; FR-016/SC-007 continuam parcialmente pendentes por validação final/revisão/PR. Evidências comportamentais estão nos testes de pacote/servidor das Fases 1–4, nos testes da web e na demonstração desta retomada.
+- **Alterações preexistentes:** cliente/controlador/testes/manifesto/lockfile da Fase 5 foram preservados e completados. `.kiro/settings/` permanece fora do commit e intocado.
+- **Checkout:** o original em `/srv/ai-harness/workspaces/guess-my-move/guess-my-move` estava disponível somente para leitura nesta conversa. A continuidade preserva seu HEAD, branch e alterações na cópia `/home/codex/Documents/Codex/guess-my-move`; o original não foi alterado.
+- **Outros jogos:** Violão no Ar em standby a pedido do maintainer; Arranha-Teia e backlog em triagem fora do escopo.
+- **Runtime:** Node 24.22.2 desta sessão não demonstra compatibilidade com Node 26; a evidência histórica do Node 26 permanece identificada como histórica.
+- **Gate 3:** autorização antecipada do maintainer em 2026-10-31 preservada, condicionada aos gates verdes e à convergência. Status continua `implementing`.

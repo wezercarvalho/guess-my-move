@@ -1,4 +1,12 @@
-import { modes } from '@guess-my-move/marbles'
+import {
+    createMatchSession,
+    wireMatchSnapshotSchema,
+    type ModeId,
+    type RoomAccess,
+    type RoomState,
+    type Vec,
+    modes,
+} from '@guess-my-move/marbles'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -6,6 +14,10 @@ import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
 import { createFakeStream, namedError } from '../test-utils/fakeMedia.js'
 import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
 import { MarblesScreen } from './MarblesScreen.js'
+import {
+    type MultiplayerSnapshot,
+    type MultiplayerStore,
+} from './multiplayerClient.js'
 import { type MarblesDeps } from './useMarblesGame.js'
 
 /** Estado do vídeo simulado: o jsdom não decodifica nem anima vídeo. */
@@ -59,6 +71,115 @@ beforeEach(() => {
 afterEach(() => {
     vi.restoreAllMocks()
 })
+
+function room(modeId: ModeId): RoomState {
+    return {
+        roomCode: 'ABCDEF',
+        modeId,
+        status: 'waiting',
+        version: 0,
+        players: {
+            player: { connected: true, ready: false },
+            opponent: { connected: false, ready: false },
+        },
+        match: null,
+        intent: null,
+        reconnectDeadlineMs: null,
+    }
+}
+
+class FakeMultiplayer implements MultiplayerStore {
+    private readonly listeners = new Set<() => void>()
+    private snapshot: MultiplayerSnapshot = {
+        connection: 'idle',
+        access: null,
+        room: null,
+        error: null,
+    }
+    readonly shots: Vec[] = []
+
+    readonly subscribe = (listener: () => void): (() => void) => {
+        this.listeners.add(listener)
+        return () => this.listeners.delete(listener)
+    }
+
+    readonly getSnapshot = (): MultiplayerSnapshot => this.snapshot
+
+    connect(): Promise<void> {
+        this.set({ ...this.snapshot, connection: 'connected' })
+        return Promise.resolve()
+    }
+
+    createRoom(modeId: ModeId): Promise<boolean> {
+        const access: RoomAccess = {
+            roomCode: 'ABCDEF',
+            role: 'player',
+            resumeToken: 'a'.repeat(32),
+        }
+        this.set({ connection: 'connected', access, room: room(modeId), error: null })
+        return Promise.resolve(true)
+    }
+
+    joinRoom(roomCode: string): Promise<boolean> {
+        const access: RoomAccess = {
+            roomCode: roomCode.trim().toUpperCase(),
+            role: 'opponent',
+            resumeToken: 'b'.repeat(32),
+        }
+        this.set({
+            connection: 'connected',
+            access,
+            room: {
+                ...room('bete'),
+                roomCode: access.roomCode,
+                status: 'ready',
+                players: {
+                    player: { connected: true, ready: false },
+                    opponent: { connected: true, ready: false },
+                },
+            },
+            error: null,
+        })
+        return Promise.resolve(true)
+    }
+
+    setReady(ready: boolean): Promise<boolean> {
+        const current = this.snapshot
+        if (!current.room || !current.access) return Promise.resolve(false)
+        this.set({
+            ...current,
+            room: {
+                ...current.room,
+                version: current.room.version + 1,
+                players: {
+                    ...current.room.players,
+                    [current.access.role]: {
+                        ...current.room.players[current.access.role],
+                        ready,
+                    },
+                },
+            },
+        })
+        return Promise.resolve(true)
+    }
+
+    sendShot(velocity: Vec): Promise<boolean> {
+        this.shots.push(velocity)
+        return Promise.resolve(true)
+    }
+
+    leave(): Promise<void> {
+        this.set({ connection: 'connected', access: null, room: null, error: null })
+        return Promise.resolve()
+    }
+
+    destroy(): void {}
+
+    set(snapshot: MultiplayerSnapshot): void {
+        this.snapshot = snapshot
+        for (const listener of this.listeners) listener()
+    }
+}
 
 function harness(options: { createTracker?: MarblesDeps['createTracker'] } = {}) {
     let nowMs = 1000
@@ -425,5 +546,74 @@ describe('MarblesScreen: controle de tiro e fim de partida', () => {
         expect(screen.getByRole('button', { name: /trocar de modo/i })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /trocar de modo/i }))
         expect(screen.getByTestId('setup')).toBeInTheDocument()
+    })
+})
+
+
+describe('MarblesScreen: online', () => {
+    function setup() {
+        const multiplayer = new FakeMultiplayer()
+        const h = harness()
+        h.deps.multiplayer = multiplayer
+        renderScreen(h)
+        fireEvent.click(screen.getByRole('radio', { name: 'Online' }))
+        return { multiplayer, h }
+    }
+
+    it('cria sala, mostra presença e prontidão, e permite sair para o local', async () => {
+        const { multiplayer } = setup()
+        fireEvent.click(screen.getByRole('button', { name: 'Criar sala' }))
+        await screen.findByText('ABCDEF')
+        expect(screen.getByText(/aguardando outra pessoa/i)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Estou pronto' }))
+        await waitFor(() => expect(multiplayer.getSnapshot().room?.players.player.ready).toBe(true))
+        fireEvent.click(screen.getByRole('button', { name: 'Sair da sala' }))
+        await screen.findByRole('button', { name: 'Criar sala' })
+        fireEvent.click(screen.getByRole('radio', { name: 'Local' }))
+        expect(screen.getByRole('button', { name: 'Começar partida' })).toBeEnabled()
+    })
+
+    it('entra com código e identifica o papel da pessoa convidada', async () => {
+        setup()
+        fireEvent.change(screen.getByLabelText('Código da sala'), { target: { value: ' abcdef ' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Entrar na sala' }))
+        await screen.findByText('ABCDEF')
+        expect(screen.getByText(/você é a pessoa convidada/i)).toBeInTheDocument()
+    })
+
+    it('apresenta erro de conexão e mantém o modo local disponível', () => {
+        const { multiplayer } = setup()
+        act(() => multiplayer.set({ connection: 'disconnected', access: null, room: null,
+            error: { code: 'INTERNAL_ERROR', message: 'Servidor indisponível.' } }))
+        expect(screen.getByRole('alert')).toHaveTextContent('Servidor indisponível.')
+        fireEvent.click(screen.getByRole('radio', { name: 'Local' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Começar partida' }))
+        expect(screen.getByRole('img', { name: /campo do jogo/i })).toBeInTheDocument()
+    })
+
+    it('mostra a vez, o placar e o resultado pela perspectiva da pessoa convidada', async () => {
+        const { multiplayer } = setup()
+        await act(async () => { await multiplayer.joinRoom('ABCDEF') })
+        const session = createMatchSession({ modeId: 'bete', mode: modes[0].create(), opponent: 'remote' })
+        const { playerShotsLeft: _legacy, ...snap } = session.snapshot()
+        const match = wireMatchSnapshotSchema.parse({ ...snap, opponent: 'remote' })
+        const current = multiplayer.getSnapshot()
+        act(() => multiplayer.set({ ...current, room: { ...room('bete'), status: 'playing',
+            match: { ...match, modeId: 'bete', opponent: 'remote', phase: 'opponent-turn', turn: 'opponent' } } }))
+        expect(screen.getByTestId('turn')).toHaveTextContent('Sua vez')
+        expect(screen.getByTestId('shots-left')).toHaveTextContent('Seus tiros restantes')
+        expect(screen.getByTestId('match-mode')).toHaveTextContent('Online')
+        act(() => multiplayer.set({ ...current, room: { ...room('bete'), status: 'finished',
+            match: { ...match, modeId: 'bete', opponent: 'remote', phase: 'match-over', matchOutcome: 'win' } } }))
+        expect(screen.getByTestId('endgame')).toHaveTextContent('Derrota')
+        expect(screen.queryByRole('button', { name: 'Jogar de novo' })).not.toBeInTheDocument()
+    })
+
+    it('informa pausa de rede antes de pedir um gesto', async () => {
+        const { multiplayer } = setup()
+        await act(async () => { await multiplayer.createRoom('bete') })
+        const current = multiplayer.getSnapshot()
+        act(() => multiplayer.set({ ...current, room: { ...room('bete'), status: 'paused' } }))
+        expect(screen.getByTestId('game-status')).toHaveTextContent(/conexão|reconectar/i)
     })
 })

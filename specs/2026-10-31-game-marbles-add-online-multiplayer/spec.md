@@ -38,7 +38,7 @@ supersedes: []
 branch: feat/111-marbles-multiplayer
 constitution_version: 1.0.0
 created_at: 2026-10-31
-updated_at: 2026-10-31
+updated_at: 2026-11-03
 ---
 
 # Bolinhas de gude, revisão de jogabilidade e multiplayer online

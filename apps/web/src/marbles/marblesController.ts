@@ -16,6 +16,7 @@ import {
     type ModeEntry,
     type MatchPhase,
     type MatchSession,
+    type ModeId,
     type Opponent,
     type Outcome,
     type PinchDetector,
@@ -39,11 +40,13 @@ import {
     type HandTracker,
     type TrackerDelegate,
 } from '../tracker/handTracker.js'
+import { type MultiplayerSnapshot } from './multiplayerClient.js'
 
 export type MarblesTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 /** Modo de tiro: a pinça com arrasto (padrão) ou o estalo do polegar (alpha). */
 export type ShotControl = 'pinch' | 'flick'
+export type PlayType = 'local' | 'online'
 
 /** Lê `?mode=estalo` da URL; qualquer outro valor mantém a pinça. */
 export function shotControlFromSearch(search: string): ShotControl {
@@ -63,6 +66,13 @@ function flickOutcome(release: FlickRelease, fired: boolean): FlickOutcome {
     if (release.verdict === 'unsustained') return 'não sustentado'
     if (release.verdict === 'open_hand') return 'mão aberta'
     return fired ? 'disparado' : 'sem mira'
+}
+
+function outcomeForRole(outcome: Outcome | null, role: Competitor | null): Outcome | null {
+    if (!outcome || role !== 'opponent') return outcome
+    if (outcome === 'win') return 'loss'
+    if (outcome === 'loss') return 'win'
+    return 'draw'
 }
 
 /** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
@@ -138,9 +148,11 @@ export interface MatchView {
 
 /** Foto imutável do jogo, entregue à interface a cada mudança. */
 export interface MarblesSnapshot {
-    /** `true` antes de a partida começar (tela inicial de escolha). */
+    playType: PlayType
+    multiplayer: MultiplayerSnapshot
+    /** `true` antes de uma partida ou sala começar. */
     choosing: boolean
-    modeId: string
+    modeId: ModeId
     opponent: Opponent
     /** Nível do bot escolhido (vale só contra o bot). */
     botLevel: BotLevel
@@ -179,7 +191,7 @@ function modeEntry(modeId: string): ModeEntry {
 
 /** Fonte determinística do bot; ausência de campo/alvo significa passar a vez. */
 export function createBotShotSource(
-    entry: ModeEntry,
+    entry: Pick<ModeEntry, 'botAimPoint'>,
     mode: Mode,
     planner: BotPlanner,
     seedBase: number,
@@ -214,10 +226,18 @@ export class MarblesController {
     })
 
     // Escolha da tela inicial.
-    private modeId: string
+    private modeId: ModeId
     private opponent: Opponent = 'target'
     private botLevel: BotLevel = DEFAULT_BOT_LEVEL
     private shotControl: ShotControl
+    private playType: PlayType = 'local'
+    private multiplayer: MultiplayerSnapshot = {
+        connection: 'idle',
+        access: null,
+        room: null,
+        error: null,
+    }
+    private sendRemoteShot: ((velocity: Vec) => void) | null = null
 
     // Partida em andamento.
     private session: MatchSession | null = null
@@ -293,6 +313,35 @@ export class MarblesController {
         this.snapshot = this.buildSnapshot()
     }
 
+    readonly setPlayType = (playType: PlayType): void => {
+        if (this.session || this.multiplayer.room) return
+        this.playType = playType
+        if (playType === 'online') this.opponent = 'remote'
+        else if (this.opponent === 'remote') this.opponent = 'target'
+        this.sync()
+    }
+
+    setMultiplayer(
+        snapshot: MultiplayerSnapshot,
+        sendShot: ((velocity: Vec) => void) | null,
+    ): void {
+        const previous = this.multiplayer
+        if (previous.room?.match?.turn !== snapshot.room?.match?.turn || previous.room?.status !== snapshot.room?.status || previous.connection !== snapshot.connection || snapshot.room?.intent) {
+            this.aim.reset()
+            this.pinch.reset()
+            this.flick.reset()
+            this.aimView = null
+        }
+        this.multiplayer = snapshot
+        this.sendRemoteShot = sendShot
+        if (snapshot.room) {
+            this.playType = 'online'
+            this.modeId = snapshot.room.modeId
+            this.opponent = 'remote'
+        }
+        this.sync()
+    }
+
     setCamera(active: boolean, failed: boolean): void {
         this.cameraActive = active
         this.cameraFailed = failed
@@ -301,22 +350,24 @@ export class MarblesController {
 
     /** Escolhe o modo na tela inicial (sem efeito durante a partida). */
     readonly setMode = (modeId: string): void => {
-        if (this.session) return
-        if (!modes.some((m) => m.id === modeId)) return
-        this.modeId = modeId
+        if (this.session || this.multiplayer.room) return
+        const entry = modes.find((mode) => mode.id === modeId)
+        if (!entry) return
+        this.modeId = entry.id
         this.sync()
     }
 
     /** Escolhe o adversário na tela inicial (sem efeito durante a partida). */
     readonly setOpponent = (opponent: Opponent): void => {
-        if (this.session) return
+        if (this.playType !== 'local' || this.session || this.multiplayer.room) return
+        if (opponent === 'remote') return
         this.opponent = opponent
         this.sync()
     }
 
     /** Escolhe o nível do bot na tela inicial (sem efeito durante a partida). */
     readonly setBotLevel = (level: BotLevel): void => {
-        if (this.session) return
+        if (this.session || this.multiplayer.room) return
         this.botLevel = level
         this.sync()
     }
@@ -335,6 +386,7 @@ export class MarblesController {
 
     /** Começa a partida com o modo e o adversário escolhidos. */
     readonly startMatch = (): void => {
+        if (this.playType !== 'local') return
         const entry = modeEntry(this.modeId)
         const mode: Mode = entry.create()
         this.botSource = this.opponent === 'bot' ? this.makeBotSource(entry, mode) : null
@@ -503,11 +555,36 @@ export class MarblesController {
         this.loop = env.requestFrame(this.step)
     }
 
-    /** Lê a mão no quadro e, na vez do jogador, alimenta o controlador de mira. */
+    private currentShooter(): Vec | null {
+        if (this.playType === 'online') {
+            const room = this.multiplayer.room
+            const role = this.multiplayer.access?.role
+            if (!room?.match || !role || room.status !== 'playing' || room.intent || this.multiplayer.connection !== 'connected') return null
+            const phase = role === 'player' ? 'player-turn' : 'opponent-turn'
+            if (room.match.turn !== role || room.match.phase !== phase) return null
+            const shooter = room.match.field[0]
+            return shooter ? { ...shooter.pos } : null
+        }
+        return this.session?.shooter() ?? null
+    }
+
+    private awaitingOwnShot(): boolean {
+        if (this.playType === 'online') return this.currentShooter() !== null
+        return this.session?.awaitingPlayerShot() ?? false
+    }
+
+    private fireCurrentShot(velocity: Vec): void {
+        if (this.playType === 'online') {
+            this.sendRemoteShot?.(velocity)
+            return
+        }
+        this.session?.firePlayerShot(velocity)
+    }
+
+    /** Lê a mão no quadro e, na própria vez, alimenta o controlador de mira. */
     private readHand(hand: ReturnType<HandTracker['detect']>, aspect: number, now: number): void {
-        const session = this.session
-        const shooter = session?.shooter() ?? null
-        const awaiting = session?.awaitingPlayerShot() ?? false
+        const shooter = this.currentShooter()
+        const awaiting = this.awaitingOwnShot()
 
         if (this.shotControl === 'flick') {
             const reading = this.flick.update(
@@ -534,7 +611,7 @@ export class MarblesController {
             ? { pinch: out.aiming.pinch, shot: out.aiming.shot, direction: null }
             : null
         if (out.fired) {
-            this.session?.firePlayerShot(out.fired)
+            this.fireCurrentShot(out.fired)
             this.aimView = null
         }
     }
@@ -554,13 +631,14 @@ export class MarblesController {
             }
         }
         if (out.fired) {
-            this.session?.firePlayerShot(out.fired)
+            this.fireCurrentShot(out.fired)
             this.aimView = null
         }
     }
 
     /** Avança a partida: mostra a intenção do bot, anima a rolagem e troca a rodada. */
     private advanceMatch(dt: number, now: number): void {
+        if (this.playType === 'online') return
         const session = this.session
         if (!session) return
         const snap = session.snapshot()
@@ -684,23 +762,28 @@ export class MarblesController {
     }
 
     private matchView(): MatchView | null {
-        const session = this.session
-        if (!session) return null
-        const snap = session.snapshot()
+        const remote = this.playType === 'online' ? this.multiplayer.room?.match : null
+        const snap = this.playType === 'online' ? remote : this.session?.snapshot()
+        if (!snap) return null
+        const role = remote ? (this.multiplayer.access?.role ?? null) : null
         return {
             modeId: snap.modeId,
             opponent: snap.opponent,
             phase: snap.phase,
             round: snap.round,
             roundsPerMatch: snap.roundsPerMatch,
-            roundOutcomes: snap.roundOutcomes,
-            lastRoundOutcome: snap.lastRoundOutcome,
-            matchOutcome: snap.matchOutcome,
+            roundOutcomes: snap.roundOutcomes.map((outcome) => outcomeForRole(outcome, role) ?? outcome),
+            lastRoundOutcome: outcomeForRole(snap.lastRoundOutcome, role),
+            matchOutcome: outcomeForRole(snap.matchOutcome, role),
             turn: snap.turn,
             shotsLeft: { ...snap.shotsLeft },
-            roundYield: snap.roundYield,
+            roundYield: { ...snap.roundYield },
             scoreLabel: snap.scoreLabel,
-            field: snap.field,
+            field: snap.field.map((body) => ({
+                pos: { ...body.pos },
+                vel: { ...body.vel },
+                radius: body.radius,
+            })),
             decor: snap.decor,
         }
     }
@@ -714,20 +797,51 @@ export class MarblesController {
             this.summary = summarizeLatency(this.latencies)
             this.lastSummaryAt = now
         }
-        // Na vez do bot o gesto é ignorado: nenhuma mira é exposta.
-        const playerTurn = this.session?.snapshot().phase === 'player-turn'
+        const remoteRoom = this.playType === 'online' ? this.multiplayer.room : null
+        const remoteRole = this.multiplayer.access?.role ?? null
+        const localOwnTurn = this.session?.snapshot().phase === 'player-turn'
+        const remoteOwnTurn =
+            this.multiplayer.connection === 'connected' &&
+            !remoteRoom?.intent &&
+            remoteRoom?.status === 'playing' &&
+            remoteRoom.match?.turn === remoteRole &&
+            remoteRoom.match.phase ===
+                (remoteRole === 'opponent' ? 'opponent-turn' : 'player-turn')
+        const ownTurn = this.playType === 'online' ? remoteOwnTurn : localOwnTurn
+        const remoteIntent = remoteRoom?.intent
+            ? {
+                  velocity: { ...remoteRoom.intent.velocity },
+                  power: Math.min(
+                      1,
+                      Math.hypot(
+                          remoteRoom.intent.velocity.x,
+                          remoteRoom.intent.velocity.y,
+                      ) / 1100,
+                  ),
+              }
+            : null
         return {
-            choosing: this.session === null,
-            modeId: this.modeId,
-            opponent: this.opponent,
+            playType: this.playType,
+            multiplayer: this.multiplayer,
+            choosing:
+                this.playType === 'online'
+                    ? this.multiplayer.room === null
+                    : this.session === null,
+            modeId: remoteRoom?.modeId ?? this.modeId,
+            opponent: this.playType === 'online' ? 'remote' : this.opponent,
             botLevel: this.botLevel,
             shotControl: this.shotControl,
             trackerStatus: this.trackerStatus,
             cameraFailed: this.cameraFailed,
             failureReason: this.failureReason,
             match: this.matchView(),
-            aim: playerTurn ? this.aimView : null,
-            opponentIntent: this.opponentIntent ? { ...this.opponentIntent } : null,
+            aim: ownTurn ? this.aimView : null,
+            opponentIntent:
+                this.playType === 'online'
+                    ? remoteIntent
+                    : this.opponentIntent
+                      ? { ...this.opponentIntent }
+                      : null,
             hand: this.handOnField(),
             debug: {
                 delegate: this.delegate,
