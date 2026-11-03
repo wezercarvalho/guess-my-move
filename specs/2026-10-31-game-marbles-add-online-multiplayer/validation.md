@@ -99,11 +99,18 @@ Os scripts Yarn usaram `COREPACK_HOME=/tmp/guess-my-move-corepack` , `YARN_GLOBA
 | `yarn workspace @guess-my-move/server start` + `yarn dev:web` | PASS      | Servidor compilado, health e gateway funcionando no navegador.                                                                                         |
 | Chromium/Playwright, duas páginas                             | PASS      | JSON e capturas em `evidence/`; sem teste de internet ou mão real.                                                                                     |
 
+## Entrega para revisão
+
+- [PR #114](https://github.com/wezercarvalho/guess-my-move/pull/114), rascunho confirmado no GitHub e atribuída a `wezercarvalho`; sem merge nem publicação.
+- Commit do cliente/evidências: `0985a42`, mais os cinco commits anteriores da iniciativa.
+- Hook de pré-push passou nos seis escopos: testes SDD, checker SDD, docs, tooling, estáticos e auditoria. Ele executa o modo estático; isso não aprova `check:all`.
+- Instalação imutável das dependências concluída com Yarn 4.18.1; o cache global foi direcionado para uma pasta gravável sem mudar versões ou lockfile.
+
 ## Pendências de conclusão
 
 - **T023:** colher avaliação independente de usabilidade por pessoa nova. Capturas e demonstração automatizada já disponíveis.
 - **T025:** repetir `check:all` no runtime alvo Node 26.12.1 e ambiente que permita carregar SWC. Os demais gates estão registrados acima.
-- **T026:** documentação atualizada; abertura da PR draft será registrada antes do encerramento desta retomada.
+- **T026 concluída:** documentação e [PR #114 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/114), atribuída a `wezercarvalho`.
 - **T027:** reconciliar esses resultados antes de promover a spec a `validated`.
 
 ## Convergência e preservação
