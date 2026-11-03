@@ -2,7 +2,7 @@
 
 ## Entrega para teste
 
-[PR #115 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/115), atribuída a `wezercarvalho`. Commit da implementação: `b5d836b`; sem merge ou publicação. Os gates locais passaram no Node 26; por estar em rascunho, o CI remoto não é tratado como executado.
+[PR #115 em rascunho](https://github.com/wezercarvalho/guess-my-move/pull/115), atribuída a `wezercarvalho`. Commit da implementação: `b5d836b`; sem merge ou publicação. Os gates locais passaram no Node 26. O CI remoto foi executado posteriormente; resultado registrado na revisão abaixo.
 
 ## Estado e intenção
 
@@ -44,3 +44,11 @@ Playwright/Chromium demonstrou treino com renderização WebGL, exercício esque
 - Conferir Viajante e links diretos das cidades, além de reiniciar e recolher o painel.
 
 T006/Gate 3 aguardam esse aceite. A spec permanece `implementing`, conforme exigência do checker de que todas as tarefas estejam concluídas antes de `validating`/`validated`. Não houve merge nem publicação. Nenhuma afirmação de fps, latência ou precisão de gesto foi feita.
+
+## Revisão antes da câmera — 2026-11-03
+
+O [CI da PR #115](https://github.com/wezercarvalho/guess-my-move/actions/runs/41584346497) passou no commit `5c680a1f9b7e4d0c5372f079786da73c8dcf1abb`: `check:all`, governança e gate obrigatório verdes. A auditoria remota foi dispensada pelo filtro de paths, pois não houve mudança de dependências; a auditoria local anterior passou.
+
+A revisão adicional de seleção/URLs (FR-001), cenário/colisões/alcance (FR-002), exercícios e painel (FR-003–FR-004) não identificou nova correção necessária. As evidências automatizadas e a demonstração de navegador acima cobrem SC-001. NFR-001–NFR-002 foram conferidos no código; SC-002/NFR-003 e T006 continuam aguardando câmera real e avaliação visual do maintainer.
+
+A PR foi marcada pronta para executar o CI e retorna a rascunho para o teste reservado ao maintainer. Não houve merge nem publicação. Violão fica em standby até dezembro; os itens em triagem não foram antecipados nesta entrega.
