@@ -145,11 +145,11 @@ describe('MultiplayerClient', () => {
         })
         expect(socket.emitted).toContainEqual({
             event: CLIENT_EVENTS.shot,
-            payload: { seq: 1, velocity: { x: 300, y: 0 } },
+            payload: { matchNumber: 1, seq: 1, velocity: { x: 300, y: 0 } },
         })
         expect(socket.emitted).toContainEqual({
             event: CLIENT_EVENTS.shot,
-            payload: { seq: 2, velocity: { x: 300, y: 0 } },
+            payload: { matchNumber: 1, seq: 2, velocity: { x: 300, y: 0 } },
         })
 
         await client.leave()
@@ -217,7 +217,7 @@ describe('MultiplayerClient', () => {
         await next.sendShot({ x: 300, y: 0 })
         expect(nextSocket.emitted).toContainEqual({
             event: CLIENT_EVENTS.shot,
-            payload: { seq: 2, velocity: { x: 300, y: 0 } },
+            payload: { matchNumber: 1, seq: 2, velocity: { x: 300, y: 0 } },
         })
     })
 })
@@ -285,4 +285,30 @@ describe('MultiplayerClient: cancelar entrada para jogar local', () => {
         expect(socket.emitted.some(e => e.event === CLIENT_EVENTS.create)).toBe(false)
         client.destroy()
     })
+})
+
+
+it('envia apelidos e indexa a revanche pela partida atual', async () => {
+    const socket=new FakeSocket()
+    socket.respond(CLIENT_EVENTS.create,{ok:true,access})
+    const client=new MultiplayerClient({socket,storage:memoryStorage()})
+    await client.createRoom('bete','Ana')
+    expect(socket.emitted).toContainEqual({event:CLIENT_EVENTS.create,payload:{modeId:'bete',nickname:'Ana'}})
+    socket.serverEmit(SERVER_EVENTS.state,{...waiting,status:'finished',matchNumber:3})
+    await client.setRematchReady(true)
+    expect(socket.emitted).toContainEqual({event:CLIENT_EVENTS.rematch,payload:{ready:true,matchNumber:3}})
+    client.destroy()
+})
+
+
+it('indexa tiros da revanche e preserva sequência crescente', async () => {
+    const socket=new FakeSocket()
+    socket.respond(CLIENT_EVENTS.create,{ok:true,access})
+    const client=new MultiplayerClient({socket,storage:memoryStorage()})
+    await client.createRoom('bete','Ana')
+    await client.sendShot({x:150,y:0})
+    socket.serverEmit(SERVER_EVENTS.state,{...waiting,status:'playing',matchNumber:2,version:100})
+    await client.sendShot({x:150,y:0})
+    expect(socket.emitted).toContainEqual({event:CLIENT_EVENTS.shot,payload:{seq:2,matchNumber:2,velocity:{x:150,y:0}}})
+    client.destroy()
 })

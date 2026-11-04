@@ -204,7 +204,7 @@ describe('RoomService: partida completa por modo', () => {
             h.service.create('host', { modeId })
             h.service.join('guest', { roomCode: 'ABCDEF' })
             h.service.setReady('host', { ready: true })
-            h.service.setReady('guest', { ready: true })
+            const initial = h.service.setReady('guest', { ready: true })
             let playerSeq = 0
             let opponentSeq = 0
             let guard = 0
@@ -243,6 +243,10 @@ describe('RoomService: partida completa por modo', () => {
             expect(final?.status).toBe('finished')
             expect(final?.match?.phase).toBe('match-over')
             expect(final?.match?.roundOutcomes).toHaveLength(3)
+            h.service.setRematchReady('host',{ready:true,matchNumber:1})
+            const replay=h.service.setRematchReady('guest',{ready:true,matchNumber:1})
+            expect(replay).toMatchObject({modeId,matchNumber:2,status:'playing',match:{round:0,roundOutcomes:[]}})
+            expect(replay.match?.field).toEqual(initial.match?.field)
         })
     }
 })
@@ -289,5 +293,53 @@ describe('RoomService: regressões antes do teste com câmera', () => {
         expect(moved).not.toEqual(initial)
         expect(guestTurn?.match?.field[0]?.pos).toEqual(initial)
         expect(guestTurn?.match?.decor?.resting).toContainEqual(expect.objectContaining({ owner: 'player' }))
+    })
+})
+
+
+describe('RoomService: identidade e revanche', () => {
+    it('preserva nomes e recusa apelido repetido sem ocupar a vaga', () => {
+        const h=harness()
+        h.service.create('host',{modeId:'bete',nickname:'Ana'})
+        expectRoomError(()=>h.service.join('duplicate',{roomCode:'ABCDEF',nickname:'ana'}),'NICKNAME_TAKEN')
+        const guest=h.service.join('guest',{roomCode:'ABCDEF',nickname:'Bia'})
+        expect(guest.state.players.player.nickname).toBe('Ana')
+        expect(guest.state.players.opponent.nickname).toBe('Bia')
+        h.service.disconnect('guest')
+        expect(h.service.resume('guest-new',{roomCode:'ABCDEF',resumeToken:guest.access.resumeToken}).state.players.opponent.nickname).toBe('Bia')
+    })
+
+    it('nova partida exige ambos, aceita cancelamento e rejeita comandos da partida anterior', () => {
+        const h=harness()
+        h.service.create('host',{modeId:'bete',nickname:'Ana'})
+        h.service.join('guest',{roomCode:'ABCDEF',nickname:'Bia'})
+        expectRoomError(()=>h.service.setRematchReady('host',{ready:true,matchNumber:1}),'NOT_READY')
+        h.service.setReady('host',{ready:true});h.service.setReady('guest',{ready:true})
+        let seq=0
+        for(let guard=0;guard<20000;guard++) {
+            const state=h.service.state('ABCDEF')!
+            if(state.status==='finished')break
+            const match=state.match!
+            if(match.phase==='player-turn'||match.phase==='opponent-turn') {
+                h.service.submitShot(match.turn==='player'?'host':'guest',{seq:++seq,velocity:{x:150,y:0}})
+                h.advanceClock(450)
+            } else h.advanceClock(match.phase==='round-over'?950:50)
+        }
+        const final=h.service.state('ABCDEF')!
+        expect(final.status).toBe('finished')
+        const first=h.service.setRematchReady('host',{ready:true,matchNumber:1})
+        expect(first.match).toEqual(final.match)
+        expect(first.players.player.rematchReady).toBe(true)
+        expect(h.service.setRematchReady('host',{ready:false,matchNumber:1}).players.player.rematchReady).toBe(false)
+        h.service.setRematchReady('host',{ready:true,matchNumber:1})
+        h.service.disconnect('guest')
+        expectRoomError(()=>h.service.setRematchReady('host',{ready:false,matchNumber:1}),'NOT_READY')
+        h.service.resume('guest-new',{roomCode:'ABCDEF',resumeToken:'b'.repeat(32)})
+        const replay=h.service.setRematchReady('guest-new',{ready:true,matchNumber:1})
+        expect(replay).toMatchObject({roomCode:'ABCDEF',status:'playing',matchNumber:2,nextTurn:'opponent',players:{player:{nickname:'Ana',rematchReady:false},opponent:{nickname:'Bia',rematchReady:false}},match:{round:0,turn:'player',roundOutcomes:[]}})
+        expect(replay.version).toBeGreaterThan(final.version)
+        expectRoomError(()=>h.service.setRematchReady('host',{ready:true,matchNumber:1}),'STALE_MATCH')
+        expectRoomError(()=>h.service.submitShot('host',{seq:++seq,matchNumber:1,velocity:{x:150,y:0}}),'STALE_MATCH')
+        expect(h.service.submitShot('host',{seq:++seq,matchNumber:2,velocity:{x:150,y:0}}).intent).not.toBeNull()
     })
 })

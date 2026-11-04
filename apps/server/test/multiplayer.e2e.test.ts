@@ -100,9 +100,9 @@ describe('servidor multiplayer e2e', () => {
         host.on(SERVER_EVENTS.state, collectStates(hostStates))
         guest.on(SERVER_EVENTS.state, collectStates(guestStates))
 
-        const created = accessOf(await emitAck(host, CLIENT_EVENTS.create, { modeId: 'bete' }))
+        const created = accessOf(await emitAck(host, CLIENT_EVENTS.create, { modeId: 'bete', nickname: 'Ana' }))
         const joined = accessOf(
-            await emitAck(guest, CLIENT_EVENTS.join, { roomCode: created.roomCode.toLowerCase() }),
+            await emitAck(guest, CLIENT_EVENTS.join, { roomCode: created.roomCode.toLowerCase(), nickname: 'Bia' }),
         )
         expect(joined.role).toBe('opponent')
         await emitAck(host, CLIENT_EVENTS.ready, { ready: true })
@@ -115,6 +115,10 @@ describe('servidor multiplayer e2e', () => {
             lastWhere(guestStates, (state) => state.status === 'playing'),
         )
         expect(hostPlaying).toEqual(guestPlaying)
+        expect(hostPlaying.players.player.nickname).toBe('Ana')
+        expect(hostPlaying.players.opponent.nickname).toBe('Bia')
+        expect(hostPlaying.nextTurn).toBe('opponent')
+        expect(await emitAck(host,CLIENT_EVENTS.rematch,{ready:true,matchNumber:1})).toMatchObject({ok:false,error:{code:'NOT_READY'}})
         expect(hostPlaying.match).toMatchObject({ opponent: 'remote', turn: 'player' })
 
         const wrongTurn = await emitAck(guest, CLIENT_EVENTS.shot, {

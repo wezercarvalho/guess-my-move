@@ -326,7 +326,7 @@ export class MarblesController {
         sendShot: ((velocity: Vec) => void) | null,
     ): void {
         const previous = this.multiplayer
-        if (previous.room?.match?.turn !== snapshot.room?.match?.turn || previous.room?.status !== snapshot.room?.status || previous.connection !== snapshot.connection || snapshot.room?.intent) {
+        if (previous.room?.matchNumber !== snapshot.room?.matchNumber || previous.room?.match?.turn !== snapshot.room?.match?.turn || previous.room?.status !== snapshot.room?.status || previous.connection !== snapshot.connection || snapshot.room?.intent) {
             this.aim.reset()
             this.pinch.reset()
             this.flick.reset()

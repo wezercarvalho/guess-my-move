@@ -1,0 +1,22 @@
+{
+  "result": "PASS",
+  "shots": 6,
+  "scenarios": [
+    "apelidos e unicidade",
+    "reload da anfitriã no lobby",
+    "participantes/prontidão/vez e sequência nominais",
+    "queda e retomada identificam Bia",
+    "partida Bete completa por comandos reais do cliente",
+    "resultado preservado até confirmação bilateral",
+    "cancelamento da revanche",
+    "reload da convidada preserva apelido e confirmação da outra pessoa",
+    "revanche com mesmo código/papéis e nova partida",
+    "tiro aceito após revanche com sequência preservada",
+    "mobile sem overflow horizontal",
+    "saída encerra sala e permite Local"
+  ],
+  "limitations": [
+    "loopback; sem câmera ou gesto real",
+    "instrumentação do cliente apenas no harness de demonstração; nenhuma mudança de diagnóstico no app"
+  ]
+}

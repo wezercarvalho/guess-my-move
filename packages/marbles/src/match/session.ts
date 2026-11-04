@@ -97,6 +97,8 @@ export interface MatchSession {
     /** Avança a física e, somente contra bot com fonte configurada, produz o tiro automático. */
     advance(dtMs: number): void
     /** Começa a próxima rodada após `round-over` (a tela decide quando, depois de mostrar o resultado). */
+    /** Próxima vez se a rodada continuar; após round-over, quem abre a próxima. */
+    nextCompetitor(): Competitor | null
     beginNextRound(): void
     /** Tiros gastos na rodada que acabou de encerrar (para provar o encerramento antecipado). */
     shotsSpentInPreviousRound(): number
@@ -316,6 +318,15 @@ export function createMatchSession(
                 })),
                 decor: mode.describe ? mode.describe(rollingBy ?? turn, opponent) : null,
             }
+        },
+
+        nextCompetitor(): Competitor | null {
+            if (phase === 'match-over') return null
+            if (phase === 'round-over') return startsRound(round)
+            const candidate = opponent === 'target' ? 'player' : other(turn)
+            if (!limitReached(candidate)) return candidate
+            const spentAfterShot = shotsSpent[turn] + (phase === 'rolling' ? 0 : 1)
+            return spentAfterShot < mode.shotLimit(turn, opponent) && !mode.isFinished?.(turn) ? turn : null
         },
 
         shooter(): Vec | null {

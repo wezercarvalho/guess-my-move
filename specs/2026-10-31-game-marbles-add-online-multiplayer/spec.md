@@ -38,7 +38,7 @@ supersedes: []
 branch: feat/111-marbles-multiplayer
 constitution_version: 1.0.0
 created_at: 2026-10-31
-updated_at: 2026-11-03
+updated_at: 2026-11-04
 ---
 
 # Bolinhas de gude, revisão de jogabilidade e multiplayer online
@@ -64,7 +64,7 @@ O motor já separa câmera, mira, física, regras e fonte do tiro, porém ainda 
 
 ## Fora de escopo
 
-- Contas, perfis, nomes livres, autenticação externa ou dados pessoais.
+- Contas, perfis, autenticação externa ou dados pessoais além do apelido efêmero definido nesta revisão.
 - Matchmaking público, chat, ranking, histórico, banco de dados ou replay persistido.
 - Espectadores, mais de duas pessoas, Redis, múltiplas instâncias e migração de sala entre processos.
 - Rollback, previsão local, compensação avançada de latência ou promessa de latência/fps.
@@ -212,3 +212,12 @@ Como pessoa jogadora, quero escolher `Local` ou `Online` antes da partida, para 
 - **Data:** 2026-10-31
 - **Referência:** mensagem do maintainer nesta sessão: "Pode considerar todos os gates aceitos, se precisar pode segmentar em issues. Ao final, pode abrir um PR contendo tudo e deixar em draft".
 - **Justificativa:** adota a constituição vigente sem emenda; a aprovação antecipada não autoriza declarar evidência que ainda não foi produzida.
+
+## Usabilidade online após teste do maintainer — 2026-11-04
+
+O maintainer solicitou identificação por nickname, participantes visíveis, vez atual/próxima e nova partida sem recriar sala.
+
+- FR-017: antes de criar/entrar, escolher apelido de 2–20 caracteres (letras, números, espaços, ponto, hífen ou sublinhado), normalizado e distinto do outro na sala. Sem conta; preservar apelidos ao reconectar/recarregar e descartá-los ao encerrar a sala. Comandos sem apelido recebem Jogador 1/2; cliente e servidor desta revisão são atualizados juntos; apelido nunca é interpretado como HTML nem logado.
+- FR-018: listar duas vagas com apelidos, marca Você, presença e prontidão/espera. Mostrar Agora e Na sequência com nomes, tiros por jogador e rótulos sem depender apenas de cores. Próxima vez vem do motor autoritativo; antes do fim do tiro é condicional à continuação da rodada, nunca promessa de uma vez que pode não acontecer.
+- FR-019: após o resultado, permitir que cada jogador confirme/cancele uma revanche na mesma sala. Preservar código, papéis e nomes; iniciar uma única partida nova quando ambos confirmarem conectados. Não aceitar revanche durante partida/pausa, nem comandos atrasados de outra partida. Preservar resultado até ambos confirmarem e manter sair disponível.
+- SC-008: testes de protocolo, sala, motor, cliente e tela mais demonstração com dois contextos provam identidade, turnos, pausas e revanche; modo local permanece funcional.

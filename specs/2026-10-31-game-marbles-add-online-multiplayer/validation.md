@@ -171,3 +171,39 @@ A primeira execução agregada desta revisão excedeu o timeout de 5 s no teste 
 Violão permanece em standby até dezembro por orientação do maintainer. Não houve merge nem publicação. Câmera real, conforto visual, internet e aceite de uso continuam reservados ao maintainer; os testes automatizados não os substituem.
 
 A PR foi marcada pronta para executar o CI e retorna a rascunho para o teste do maintainer previsto em FR-016. O aceite humano não foi antecipado.
+
+## Usabilidade online — 2026-11-04
+
+### Resultado implementado
+
+- FR-017/T028: apelido antes de criar/entrar, 2–20 caracteres permitidos, normalização e recusa de duplicado sem ocupar a vaga. Lista nominal com marca Você, papel, conexão e prontidão; nomes preservados pelo slot na reconexão/reload. Sem conta ou persistência de apelidos; sem nickname em logs. Texto renderizado por React, nunca HTML.
+- FR-018/T029: destaque Agora/Na sequência e tiros para ambos; legenda e placar nominais. Estados de tiro confirmado, bolinha rolando, pausa identificando a pessoa ausente, resultado e quem abre a próxima rodada. O motor calcula a previsão; a interface informa que antes do resultado ela depende de a rodada continuar. A previsão pula quem não tem mais tiros; não inventa vez após fim.
+- FR-019/T030: Jogar novamente/Cancelar revanche no resultado. A primeira confirmação preserva placar e resultado, esperando a outra pessoa. A confirmação de ambos conectados inicia uma única sessão nova, no mesmo modo/código/papéis/apelidos, limpando rodada e placar. Sequência de tiro permanece crescente; número da partida impede aplicar tiros/confirmações antigos. Comandos durante partida ou pausa são recusados.
+- SC-008/T031: demonstração com duas pessoas/contextos, além de testes de protocolo, motor, sala, gateway real, cliente e tela. Modo local preservado.
+
+### Teste antes do código e revisão
+
+No código anterior, falharam três cenários de protocolo/motor (11 testes anteriores passaram), dois novos testes de sala (13 anteriores passaram), o novo caso do cliente (11 anteriores passaram) e três testes de lobby. O serviço anterior foi exportado no contêiner antes de receber a implementação nova e foi exercitado com os testes novos, reproduzindo ausência de nomes/revanche. A sequência e versões existentes continuam cobertas.
+
+A suíte do servidor cobre conclusão e nova partida nos três modos, cancelamento, pausa/retomada, identidade, recusa de comandos antigos e campos novos no gateway Socket.IO. O cliente testa número da partida e sequência crescente na revanche; a tela testa papel, resultado invertido e fluxo Local/Online.
+
+### Demonstração no navegador
+
+[Resultado estruturado](evidence/usability-online-smoke.json), [início](evidence/usability-online-start.png), [espera da revanche](evidence/usability-online-rematch.png) e [mobile](evidence/usability-online-mobile.png).
+
+Chromium com duas conexões reais demonstrou: Ana cria/recarrega lobby; apelido repetido é recusado; Bia entra; ambas ficam prontas; nomes/vez/próxima aparecem; queda identifica Bia e retoma; seis tiros pelo cliente real completam Bete; resultado fica enquanto Ana confirma/cancela/confirma; Bia recarrega, recupera o nome e confirma; partida 2 começa na mesma sala e aceita outro tiro com sequência preservada. Mobile 390×844 não apresentou overflow horizontal. Sair encerra para ambos e permite Local.
+
+O harness chama o cliente real sem câmera/gestos, por instrumentação temporária fora da aplicação. A primeira tentativa observava uma instância não assinada do cliente criada pelo StrictMode e dava falso timeout na retomada; o harness foi corrigido para observar a instância efetivamente assinada. A retomada da aplicação passou sem alteração adicional. Um segundo ensaio precisou reiniciar os servidores de desenvolvimento depois de seus processos terminarem; o resultado final corresponde à execução completa registrada acima.
+
+Limites: loopback, sem internet/câmera real nem avaliação por pessoa nova. As capturas não contêm imagem de câmera, nome real ou credencial; Ana/Bia são apelidos sintéticos. Não há promessa de latência, equilíbrio ou usabilidade comprovada por humano. T023/T027 continuam abertas para o teste e aceite do maintainer.
+
+### Gates finais da revisão de usabilidade
+
+- `yarn install --immutable` e `yarn check:all` passaram no contêiner oficial `node:26.12.1-bookworm-slim`, Node 26.12.1/Corepack 0.36.0/Yarn 4.18.1. Typecheck, lint, core 68, marbles 174, servidor 27, swing 227, web 443 Vitest + 78 auxiliares e build. Os arquivos de aplicação/testes executados foram comparados por SHA-256 com a árvore entregue; todos coincidem.
+- `yarn test:gates` (231) e `yarn test:sdd` (109) passaram no host com Node 26.12.1. `sdd:check`, formatação e estáticos são novamente verificados pelo hook antes do push. Auditoria de dependências registrada no [resumo estruturado](evidence/usability-online-gates.json).
+- Avisos preexistentes de canvas no jsdom e chunk grande do Arranha-Teia não impediram a conclusão. Nenhuma dependência, manifesto ou lockfile foi alterado.
+- A PR #114 permanece em rascunho: o workflow remoto ignora rascunhos. O CI verde anterior de `a2eb67d` é histórico; esta revisão se apoia nos gates locais completos e no navegador, sem tratar checks ignorados como sucesso. Sem merge ou publicação.
+
+### Roteiro de aceite
+
+Atualizar servidor e web juntos na branch `feat/111-marbles-multiplayer` e reiniciar ambos. Escolher Online, informar apelidos diferentes e entrar na mesma sala. Conferir quem entrou/prontidão, Agora/Na sequência, contadores e placar por nome. Jogar os três modos, interromper/recarregar uma conexão e conferir a identidade restaurada. Ao fim, uma pessoa confirma Jogar novamente; o resultado deve permanecer e a outra deve ver quem quer revanche. Testar cancelar e confirmar de ambos: nova partida na mesma sala, sem perder nomes nem precisar criar código novo. Câmera real e avaliação de compreensão por pessoa nova continuam com o maintainer (T023/T027).

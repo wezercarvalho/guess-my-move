@@ -20,6 +20,7 @@ import {
     leaveRoomSchema,
     normalizeRoomCode,
     readyRoomSchema,
+    rematchRoomSchema,
     resumeRoomSchema,
     shotCommandSchema,
 } from '@guess-my-move/marbles'
@@ -134,6 +135,18 @@ export class MultiplayerGateway
     ): Promise<CommandAck> {
         return this.execute(client, readyRoomSchema, raw, (command) => {
             const state = this.rooms.setReady(client.id, command)
+            this.publish(state.roomCode, state)
+            return { ok: true }
+        })
+    }
+
+    @SubscribeMessage(CLIENT_EVENTS.rematch)
+    async handleRematch(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() raw: unknown,
+    ): Promise<CommandAck> {
+        return this.execute(client, rematchRoomSchema, raw, (command) => {
+            const state = this.rooms.setRematchReady(client.id, command)
             this.publish(state.roomCode, state)
             return { ok: true }
         })

@@ -9,6 +9,7 @@ export const CLIENT_EVENTS = {
     join: 'room:join',
     resume: 'room:resume',
     ready: 'room:ready',
+    rematch: 'room:rematch',
     shot: 'match:shot',
     leave: 'room:leave',
 } as const
@@ -41,14 +42,20 @@ export function normalizeRoomCode(value: string): string {
     return value.replace(/\s+/g, '').toUpperCase()
 }
 
-export const createRoomSchema = strict({ modeId: modeIdSchema })
-export const joinRoomSchema = strict({ roomCode: roomCodeSchema })
+export const nicknameSchema = z.pipe(
+    z.string().check(z.regex(/^[\p{L}\p{M}\p{N} ._-]+$/u)),
+    z.transform((value) => value.normalize('NFKC').trim().replace(/ +/g, ' ')),
+).check(z.minLength(2), z.maxLength(20))
+
+export const createRoomSchema = strict({ modeId: modeIdSchema, nickname: z.exactOptional(nicknameSchema) })
+export const joinRoomSchema = strict({ roomCode: roomCodeSchema, nickname: z.exactOptional(nicknameSchema) })
 export const resumeRoomSchema = strict({
     roomCode: roomCodeSchema,
     resumeToken: resumeTokenSchema,
 })
 export const readyRoomSchema = strict({ ready: z.boolean() })
 export const leaveRoomSchema = strict({})
+export const rematchRoomSchema = strict({ ready: z.boolean(), matchNumber: positiveInt() })
 
 export const velocitySchema = strict({
     x: finiteNumber(),
@@ -64,6 +71,7 @@ export const velocitySchema = strict({
 )
 
 export const shotCommandSchema = strict({
+    matchNumber: z.exactOptional(positiveInt()),
     seq: positiveInt(),
     velocity: velocitySchema,
 })
@@ -127,7 +135,11 @@ export const wireMatchSnapshotSchema = strict({
     decor: z.nullable(decorSchema),
 })
 
-const playerPresenceSchema = strict({ connected: z.boolean(), ready: z.boolean() })
+const playerPresenceSchema = strict({
+    connected: z.boolean(), ready: z.boolean(),
+    nickname: z.exactOptional(z.nullable(nicknameSchema)),
+    rematchReady: z.exactOptional(z.boolean()),
+})
 export const roomStatusSchema = z.enum(['waiting', 'ready', 'playing', 'paused', 'finished'])
 export const roomIntentSchema = z.nullable(
     strict({ competitor: competitorSchema, velocity: velocitySchema }),
@@ -138,6 +150,8 @@ export const roomStateSchema = strict({
     modeId: modeIdSchema,
     status: roomStatusSchema,
     version: nonNegativeInt(),
+    matchNumber: z.exactOptional(positiveInt()),
+    nextTurn: z.exactOptional(z.nullable(competitorSchema)),
     players: strict({
         player: playerPresenceSchema,
         opponent: playerPresenceSchema,
@@ -155,6 +169,8 @@ export const roomAccessSchema = strict({
 
 export const protocolErrorCodeSchema = z.enum([
     'INVALID_PAYLOAD',
+    'NICKNAME_TAKEN',
+    'STALE_MATCH',
     'RATE_LIMITED',
     'ROOM_LIMIT',
     'ROOM_NOT_FOUND',
@@ -175,6 +191,7 @@ export const protocolErrorSchema = strict({
 export type CreateRoomCommand = z.infer<typeof createRoomSchema>
 export type JoinRoomCommand = z.infer<typeof joinRoomSchema>
 export type ResumeRoomCommand = z.infer<typeof resumeRoomSchema>
+export type RematchRoomCommand = z.infer<typeof rematchRoomSchema>
 export type ReadyRoomCommand = z.infer<typeof readyRoomSchema>
 export type ShotCommand = z.infer<typeof shotCommandSchema>
 export type RoomState = z.infer<typeof roomStateSchema>

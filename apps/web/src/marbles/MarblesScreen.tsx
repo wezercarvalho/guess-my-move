@@ -25,6 +25,7 @@ import { drawField } from './fieldView.js'
 import { MarblesDebugPanel } from './MarblesDebugPanel.js'
 import { type MatchView, type ShotControl } from './marblesController.js'
 import { MultiplayerLobby } from './MultiplayerLobby.js'
+import { onlineTurn, onlineWaiting, otherPlayer, playerLabel, playerName } from './onlinePresentation.js'
 import { ShotGuide } from './ShotGuide.js'
 import { type MarblesDeps, type MarblesGameView, useMarblesGame } from './useMarblesGame.js'
 
@@ -87,10 +88,14 @@ function statusText(game: MarblesGameView): string {
         if (connection !== 'connected') return 'Conexão interrompida. Tentando reconectar…'
         if (!room) return 'Crie uma sala ou entre com o código.'
         if (room.status === 'paused')
-            return 'Partida pausada. Aguardando reconexão por até 60 segundos…'
-        if (!room.match) return 'Aguardando as duas pessoas ficarem prontas.'
+            return onlineWaiting(room, game.multiplayer.access?.role ?? 'player')
+        if (!room.match) return onlineWaiting(room, game.multiplayer.access?.role ?? 'player')
+        if (room.intent) return `Tiro de ${playerName(room,room.intent.competitor)} confirmado. Aguarde a bolinha parar.`
+        if (room.match.phase === 'rolling') return onlineTurn(room,game.multiplayer.access?.role ?? 'player').now
+        if (room.match.phase === 'round-over') return `Rodada encerrada. ${onlineTurn(room,game.multiplayer.access?.role ?? 'player').next}`
+        if (room.match.phase === 'match-over') return room.match.matchOutcome === 'draw' ? 'Partida encerrada: empate. Vocês podem jogar novamente nesta sala.' : `Partida encerrada. ${playerName(room,room.match.matchOutcome === 'win' ? 'player' : 'opponent')} venceu. Vocês podem jogar novamente nesta sala.`
         if (room.match.phase === 'player-turn' || room.match.phase === 'opponent-turn') {
-            if (!isOwnTurn(game)) return 'Vez da outra pessoa…'
+            if (!isOwnTurn(game)) return `Vez de ${playerName(room, room.match.turn ?? 'player')}. Aguarde seu turno.`
             if (game.failureReason) return 'O detector falhou. Pare e ative a câmera novamente.'
             if (game.cameraFailed) return 'Libere o acesso à câmera para jogar.'
             if (game.trackerStatus !== 'ready') return 'Sua vez. Ative a câmera para jogar.'
@@ -208,6 +213,8 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
     const ready = isOwnTurn(game) && game.trackerStatus === 'ready'
     const online = game.playType === 'online'
     const ownRole = online ? game.multiplayer.access?.role : 'player'
+    const onlineRoom = game.multiplayer.room
+    const turnFeedback = online && onlineRoom ? onlineTurn(onlineRoom, ownRole ?? 'player') : null
     const shotsOwner = game.match?.turn ?? 'player'
     const shotsLeft = game.match?.shotsLeft[shotsOwner] ?? 0
     const shotsLabel =
@@ -215,7 +222,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
             ? 'Seus tiros restantes'
             : game.match?.opponent === 'bot'
               ? 'Tiros do bot restantes'
-              : 'Tiros da outra pessoa restantes'
+              : onlineRoom ? `Tiros de ${playerName(onlineRoom,shotsOwner)} restantes` : 'Tiros da outra pessoa restantes'
 
     return (
         <div className="marbles-screen">
@@ -308,7 +315,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                 <p className="match-mode" data-testid="match-mode">
                                     {matchMode?.name} ·{' '}
                                     {online
-                                        ? 'Online · Outra pessoa'
+                                        ? onlineRoom ? `Online · ${playerName(onlineRoom,'player')} × ${playerName(onlineRoom,'opponent')}` : 'Online'
                                         : game.match.opponent === 'bot'
                                           ? `Contra o bot · ${BOT_LEVEL_LABEL[game.botLevel]}`
                                           : 'Contra a meta'}
@@ -321,7 +328,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                     <p className="round-yield" data-testid="round-yield">
                                         {game.match.scoreLabel}:{' '}
                                         {online
-                                            ? `Você ${game.match.roundYield[ownRole ?? 'player']} × ${game.match.roundYield[ownRole === 'player' ? 'opponent' : 'player']} Outra pessoa`
+                                            ? `${onlineRoom ? playerLabel(onlineRoom,ownRole ?? 'player',ownRole ?? 'player') : 'Você'} ${game.match.roundYield[ownRole ?? 'player']} × ${game.match.roundYield[ownRole === 'player' ? 'opponent' : 'player']} ${onlineRoom ? playerName(onlineRoom,otherPlayer(ownRole ?? 'player')) : 'Outra pessoa'}`
                                             : game.match.opponent === 'bot'
                                               ? `Você ${game.match.roundYield.player} × ${game.match.roundYield.opponent} Bot`
                                               : game.match.roundYield.player}
@@ -332,11 +339,7 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                 </p>
                                 <p className="turn-indicator" data-testid="turn">
                                     {online
-                                        ? game.match.turn
-                                            ? game.match.turn === ownRole
-                                                ? 'Sua vez'
-                                                : 'Vez da outra pessoa'
-                                            : '—'
+                                        ? turnFeedback?.now ?? 'Aguardando a partida'
                                         : game.match.opponent === 'bot'
                                           ? game.match.turn === 'player'
                                               ? 'Sua vez'
@@ -345,21 +348,20 @@ export function MarblesScreen({ cameraGetUserMedia, deps }: MarblesScreenProps) 
                                                 : '—'
                                           : 'Contra a meta'}
                                 </p>
+                                {turnFeedback && <p className="marbles-next-turn" data-testid="next-turn">{turnFeedback.next}</p>}
                                 {(online || game.match.opponent === 'bot') && (
                                     <p className="marbles-legend" data-testid="legend">
                                         <span
                                             className="swatch swatch--player"
                                             aria-hidden="true"
                                         />{' '}
-                                        {ownRole === 'opponent' ? 'Outra pessoa' : 'Você'}
+                                        {onlineRoom ? playerLabel(onlineRoom,'player',ownRole ?? 'player') : 'Você'}
                                         <span
                                             className="swatch swatch--bot"
                                             aria-hidden="true"
                                         />{' '}
                                         {online
-                                            ? ownRole === 'opponent'
-                                                ? 'Você'
-                                                : 'Outra pessoa'
+                                            ? onlineRoom ? playerLabel(onlineRoom,'opponent',ownRole ?? 'player') : 'Outra pessoa'
                                             : 'Bot'}
                                     </p>
                                 )}

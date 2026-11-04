@@ -163,6 +163,13 @@ class FakeMultiplayer implements MultiplayerStore {
         return Promise.resolve(true)
     }
 
+    setRematchReady(ready: boolean): Promise<boolean> {
+        const current = this.snapshot
+        if (!current.room || !current.access) return Promise.resolve(false)
+        this.set({...current, room:{...current.room,players:{...current.room.players,[current.access.role]:{...current.room.players[current.access.role],rematchReady:ready}}}})
+        return Promise.resolve(true)
+    }
+
     sendShot(velocity: Vec): Promise<boolean> {
         this.shots.push(velocity)
         return Promise.resolve(true)
@@ -558,6 +565,7 @@ describe('MarblesScreen: online', () => {
         h.deps.multiplayer = multiplayer
         renderScreen(h)
         fireEvent.click(screen.getByRole('radio', { name: 'Online' }))
+        fireEvent.change(screen.getByLabelText('Seu apelido'),{target:{value:'Pessoa teste'}})
         return { multiplayer, h }
     }
 
@@ -607,7 +615,7 @@ describe('MarblesScreen: online', () => {
         act(() => multiplayer.set({ ...current, room: { ...room('bete'), status: 'finished',
             match: { ...match, modeId: 'bete', opponent: 'remote', phase: 'match-over', matchOutcome: 'win' } } }))
         expect(screen.getByTestId('endgame')).toHaveTextContent('Derrota')
-        expect(screen.queryByRole('button', { name: 'Jogar de novo' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Jogar novamente' })).toBeEnabled()
     })
 
     it('informa pausa de rede antes de pedir um gesto', async () => {

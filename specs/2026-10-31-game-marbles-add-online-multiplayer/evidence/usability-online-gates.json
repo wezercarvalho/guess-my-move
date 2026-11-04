@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-04",
+  "runtime": "Node 26.12.1 / Yarn 4.18.1 / Corepack 0.36.0",
+  "environment": "node:26.12.1-bookworm-slim",
+  "immutable_install": "PASS",
+  "check_all": "PASS",
+  "tests": {
+    "core": 68,
+    "marbles": 174,
+    "server": 27,
+    "swing": 227,
+    "web_vitest": 443,
+    "web_node": 78,
+    "gates": 231,
+    "sdd": 109
+  },
+  "source_comparison": "SHA-256 de todos os arquivos modificados/novos de aplicação e testes coincide com o executado no contêiner",
+  "browser": "PASS: dois contextos reais, seis tiros no Bete, revanche e retomada; mobile sem overflow",
+  "manual_acceptance": "PENDING: câmera real e compreensão por pessoa nova, T023/T027",
+  "remote_ci": "PR em rascunho; checks são ignorados e não provam esta revisão",
+  "dependency_audit": "PASS: info=0 low=0 moderate=0 high=0 critical=0",
+  "sdd_check": "PASS"
+}

@@ -104,3 +104,12 @@ T023 tem capturas e demonstração automatizada em duas páginas; o teste com c�
 - **Artefatos aprovados:** `research.md`, `plan.md`, `tasks.md`
 - **Referência:** mensagem do maintainer nesta sessão: "Pode considerar todos os gates aceitos, se precisar pode segmentar em issues".
 - **Exceções:** novo servidor, Socket.IO e credencial efêmera foram aceitos como complexidade necessária; evidência final continua obrigatória.
+
+## Revisão de usabilidade — 2026-11-04
+
+- [x] T028 [FR-017] [SC-008] Testes e implementação de apelidos validados, distintos e preservados na retomada.
+- [x] T029 [FR-018] [SC-008] Testes e implementação de previsão da vez no motor e feedback nominal de fases/presença/tiros na tela.
+- [x] T030 [FR-019] [SC-008] Testes e implementação da revanche com confirmação bilateral, cancelamento e recusa de comandos antigos.
+- [x] T031 [FR-017] [FR-018] [FR-019] [SC-008] Integração, demonstração em dois contextos, gates e PR atualizada; aceite humano continua T023/T027.
+
+Análise de consistência: FR-017–FR-019 cobertos por T028–T031; sem antecipar fila para mais de duas pessoas ou trocar modo dentro da sala. Aprovação do escopo e execução: maintainer nesta conversa em 2026-11-04 ao solicitar a revisão dos pontos observados. Bolinhas é a frente ativa enquanto o maintainer retesta Arranha-Teia.

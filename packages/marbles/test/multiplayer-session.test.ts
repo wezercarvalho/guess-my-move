@@ -112,3 +112,30 @@ describe('Bete remoto: resultado real da rodada', () => {
         })
     }
 })
+
+
+it('prevê a próxima vez sem consumir tiro nem alterar o snapshot', () => {
+    const session = createMatchSession({modeId:'bete',mode:modes[0].create(),opponent:'remote'})
+    const before=session.snapshot()
+    expect(session.nextCompetitor()).toBe('opponent')
+    expect(session.snapshot()).toEqual(before)
+    session.fireShot('player',{x:0,y:150})
+    expect(session.nextCompetitor()).toBe('opponent')
+    settle(session)
+    expect(session.snapshot().turn).toBe('opponent')
+    expect(session.nextCompetitor()).toBe('player')
+})
+
+
+it('a previsão pula quem esgotou os tiros e aponta quem abre a próxima rodada', () => {
+    const session=createMatchSession({modeId:'bete',mode:{...mode,roundsPerMatch:3,shotLimit:role=>role==='player'?3:1},opponent:'remote'})
+    session.fireShot('player',{x:150,y:0});settle(session)
+    session.fireShot('opponent',{x:150,y:0});settle(session)
+    expect(session.snapshot().turn).toBe('player')
+    expect(session.nextCompetitor()).toBe('player')
+    session.fireShot('player',{x:150,y:0});settle(session)
+    expect(session.nextCompetitor()).toBeNull()
+    session.fireShot('player',{x:150,y:0});settle(session)
+    expect(session.snapshot().phase).toBe('round-over')
+    expect(session.nextCompetitor()).toBe('opponent')
+})

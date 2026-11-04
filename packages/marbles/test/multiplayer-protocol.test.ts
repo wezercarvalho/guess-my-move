@@ -8,6 +8,8 @@ import {
     MODE_IDS,
     SERVER_EVENTS,
     createRoomSchema,
+    nicknameSchema,
+    rematchRoomSchema,
     joinRoomSchema,
     normalizeRoomCode,
     readyRoomSchema,
@@ -27,6 +29,7 @@ describe('protocolo multiplayer', () => {
             join: 'room:join',
             resume: 'room:resume',
             ready: 'room:ready',
+            rematch: 'room:rematch',
             shot: 'match:shot',
             leave: 'room:leave',
         })
@@ -96,4 +99,16 @@ describe('protocolo multiplayer', () => {
             players: { ...state.players, player: { ...state.players.player, landmarks: [] } },
         })
     })
+})
+
+
+it('aceita apelidos normalizados e limita conteúdo e tamanho', () => {
+    expect(nicknameSchema.parse('  João   Azul  ')).toBe('João Azul')
+    expect(createRoomSchema.parse({modeId:'bete',nickname:'Lia'})).toMatchObject({nickname:'Lia'})
+    for (const nickname of ['a', ' '.repeat(5), 'a'.repeat(21), '<script>', 'Ana\nBia']) {
+        expectInvalid(nicknameSchema,nickname)
+    }
+    expect(rematchRoomSchema.parse({ready:true,matchNumber:1})).toEqual({ready:true,matchNumber:1})
+    expectInvalid(rematchRoomSchema,{ready:true,matchNumber:0})
+    expectInvalid(rematchRoomSchema,{ready:true,matchNumber:1,landmarks:[]})
 })

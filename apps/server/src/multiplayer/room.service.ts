@@ -2,6 +2,8 @@ import { randomBytes } from 'node:crypto'
 
 import {
     RECONNECT_GRACE_MS,
+    nicknameSchema,
+    type RematchRoomCommand,
     type Competitor,
     type CreateRoomCommand,
     type JoinRoomCommand,
@@ -37,6 +39,8 @@ interface Slot {
     socketId: string | null
     readonly token: string
     ready: boolean
+    nickname: string | null
+    rematchReady: boolean
     lastSeq: number
     disconnectedAt: number | null
 }
@@ -53,6 +57,7 @@ interface Room {
     readonly slots: Record<Competitor, Slot>
     status: RoomState['status']
     version: number
+    matchNumber: number
     session: MatchSession | null
     pendingShot: PendingShot | null
     roundDwellMs: number | null
@@ -124,6 +129,8 @@ export class RoomService {
             socketId,
             token: this.token(),
             ready: false,
+            nickname: this.nickname(command.nickname, 'Jogador 1'),
+            rematchReady: false,
             lastSeq: 0,
             disconnectedAt: null,
         }
@@ -136,12 +143,15 @@ export class RoomService {
                     socketId: null,
                     token: this.token(),
                     ready: false,
+                    nickname: null,
+                    rematchReady: false,
                     lastSeq: 0,
                     disconnectedAt: null,
                 },
             },
             status: 'waiting',
             version: 0,
+            matchNumber: 1,
             session: null,
             pendingShot: null,
             roundDwellMs: null,
@@ -161,6 +171,11 @@ export class RoomService {
         if (slot.socketId || slot.disconnectedAt !== null) {
             throw new RoomError('ROOM_FULL', 'A sala já tem duas pessoas.')
         }
+        const nickname = this.nickname(command.nickname, 'Jogador 2')
+        if (nickname.toLocaleLowerCase('pt-BR') === room.slots.player.nickname?.toLocaleLowerCase('pt-BR')) {
+            throw new RoomError('NICKNAME_TAKEN', 'Esse apelido já está na sala. Escolha outro.')
+        }
+        slot.nickname = nickname
         slot.socketId = socketId
         room.status = 'ready'
         room.version++
@@ -201,14 +216,7 @@ export class RoomService {
             room.slots.player.ready &&
             room.slots.opponent.ready
         ) {
-            const entry = modes.find(({ id }) => id === room.modeId)
-            if (!entry) throw new RoomError('INVALID_PAYLOAD', 'Modo de jogo inválido.')
-            room.session = createMatchSession({
-                modeId: room.modeId,
-                mode: entry.create(),
-                opponent: 'remote',
-            })
-            room.status = 'playing'
+            this.startMatch(room)
         } else {
             room.status = room.slots.player.socketId && room.slots.opponent.socketId ? 'ready' : 'waiting'
         }
@@ -216,9 +224,42 @@ export class RoomService {
         return this.toState(room)
     }
 
+    setRematchReady(socketId: string, command: RematchRoomCommand): RoomState {
+        const { room, role } = this.membership(socketId)
+        if (command.matchNumber !== room.matchNumber) throw new RoomError('STALE_MATCH', 'Este comando é de outra partida.')
+        if (room.status !== 'finished' || room.session?.snapshot().phase !== 'match-over') {
+            throw new RoomError('NOT_READY', 'Aguarde o fim da partida e as duas conexões para jogar novamente.')
+        }
+        if (room.slots[role].rematchReady === command.ready) return this.toState(room)
+        room.slots[role].rematchReady = command.ready
+        if (Object.values(room.slots).every(slot => slot.socketId && slot.rematchReady)) {
+            room.matchNumber++
+            this.startMatch(room)
+        }
+        room.version++
+        return this.toState(room)
+    }
+
+    private startMatch(room: Room): void {
+        const entry = modes.find(({ id }) => id === room.modeId)
+        if (!entry) throw new RoomError('INVALID_PAYLOAD', 'Modo de jogo inválido.')
+        room.session = createMatchSession({ modeId: room.modeId, mode: entry.create(), opponent: 'remote' })
+        room.pendingShot = null
+        room.roundDwellMs = null
+        for (const slot of Object.values(room.slots)) slot.rematchReady = false
+        room.status = 'playing'
+    }
+
+    private nickname(value: string | undefined, fallback: string): string {
+        const parsed = nicknameSchema.safeParse(value ?? fallback)
+        if (!parsed.success) throw new RoomError('INVALID_PAYLOAD', 'Use um apelido de 2 a 20 caracteres: letras, números, espaço, ponto, hífen ou sublinhado.')
+        return parsed.data
+    }
+
     submitShot(socketId: string, command: ShotCommand): RoomState {
         const { room, role } = this.membership(socketId)
         const slot = room.slots[role]
+        if ((command.matchNumber ?? 1) !== room.matchNumber) throw new RoomError('STALE_MATCH', 'Este tiro é de outra partida.')
         if (command.seq <= slot.lastSeq) {
             throw new RoomError('DUPLICATE_COMMAND', 'Este comando de tiro já foi recebido.')
         }
@@ -344,14 +385,20 @@ export class RoomService {
             modeId: room.modeId,
             status: room.status,
             version: room.version,
+            matchNumber: room.matchNumber,
+            nextTurn: room.session?.nextCompetitor() ?? null,
             players: {
                 player: {
                     connected: room.slots.player.socketId !== null,
                     ready: room.slots.player.ready,
+                    nickname: room.slots.player.nickname,
+                    rematchReady: room.slots.player.rematchReady,
                 },
                 opponent: {
                     connected: room.slots.opponent.socketId !== null,
                     ready: room.slots.opponent.ready,
+                    nickname: room.slots.opponent.nickname,
+                    rematchReady: room.slots.opponent.rematchReady,
                 },
             },
             match: room.session ? this.toWireSnapshot(room.modeId, room.session) : null,

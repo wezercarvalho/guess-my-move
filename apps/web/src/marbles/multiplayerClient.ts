@@ -39,9 +39,10 @@ export interface MultiplayerStore {
     subscribe: (listener: () => void) => () => void
     getSnapshot: () => MultiplayerSnapshot
     connect(): Promise<void>
-    createRoom(modeId: ModeId): Promise<boolean>
-    joinRoom(roomCode: string): Promise<boolean>
+    createRoom(modeId: ModeId, nickname?: string): Promise<boolean>
+    joinRoom(roomCode: string, nickname?: string): Promise<boolean>
     setReady(ready: boolean): Promise<boolean>
+    setRematchReady(ready: boolean): Promise<boolean>
     sendShot(velocity: Vec): Promise<boolean>
     leave(): Promise<void>
     destroy(): void
@@ -185,20 +186,21 @@ export class MultiplayerClient {
         await this.resumePromise
     }
 
-    async createRoom(modeId: ModeId): Promise<boolean> {
+    async createRoom(modeId: ModeId, nickname?: string): Promise<boolean> {
         const generation = ++this.roomGeneration
         await this.connect()
         if (generation !== this.roomGeneration) return false
-        const ack = await this.emitAck(CLIENT_EVENTS.create, { modeId })
+        const ack = await this.emitAck(CLIENT_EVENTS.create, { modeId, ...(nickname === undefined ? {} : { nickname }) })
         return generation === this.roomGeneration && this.acceptAccess(ack)
     }
 
-    async joinRoom(roomCode: string): Promise<boolean> {
+    async joinRoom(roomCode: string, nickname?: string): Promise<boolean> {
         const generation = ++this.roomGeneration
         await this.connect()
         if (generation !== this.roomGeneration) return false
         const ack = await this.emitAck(CLIENT_EVENTS.join, {
             roomCode: normalizeRoomCode(roomCode),
+            ...(nickname === undefined ? {} : { nickname }),
         })
         return generation === this.roomGeneration && this.acceptAccess(ack)
     }
@@ -209,11 +211,17 @@ export class MultiplayerClient {
         return this.acceptAck(ack)
     }
 
+    async setRematchReady(ready: boolean): Promise<boolean> {
+        if (!this.snapshot.access || this.snapshot.connection !== 'connected' || this.snapshot.room?.status !== 'finished') return false
+        const ack = await this.emitAck(CLIENT_EVENTS.rematch, { ready, matchNumber: this.snapshot.room.matchNumber ?? 1 })
+        return this.acceptAck(ack)
+    }
+
     async sendShot(velocity: Vec): Promise<boolean> {
         if (!this.snapshot.access || this.snapshot.connection !== 'connected') return false
         const seq = this.nextSeq++
         this.writeStorage(SEQUENCE_STORAGE_KEY, String(this.nextSeq))
-        const ack = await this.emitAck(CLIENT_EVENTS.shot, { seq, velocity })
+        const ack = await this.emitAck(CLIENT_EVENTS.shot, { seq, velocity, matchNumber: this.snapshot.room?.matchNumber ?? 1 })
         return this.acceptAck(ack)
     }
 

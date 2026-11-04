@@ -102,3 +102,7 @@
 - **Decisão:** concluir os gates automatizados no Node 26 exigido, iniciar Arranha-Teia em checkout separado e reservar câmera real/avaliação de uso ao maintainer. Não ampliar as regras do multiplayer nem alterar o Violão no Ar.
 - **Execução:** Node 26.12.1 instalado em runtime isolado; checksum oficial conferido. O cache SWC do host continuou bloqueado, então a validação completa usa a imagem oficial `node:26.12.1-bookworm-slim`, com instalação imutável e sem mudança de versões do projeto.
 - **Consequência:** T025 concluída após todos os gates verdes; T023/T027 aguardam o teste/aceite do maintainer. Estado `implementing`; a aprovação antecipada do Gate 3 continua condicionada à convergência, sem registrar como executado um teste humano ainda pendente.
+
+## Revisão de usabilidade — 2026-11-04
+
+Autorização do maintainer nesta conversa: “Pode revisar esses pontos de usabilidade e feedback de tela para auxiliar na compreensão do que está acontecendo.” Inclui explicitamente nickname, quem entrou, vez atual/próxima e jogar novamente sem criar sala. Mantêm-se duas vagas, modo fixo, mesma sala e privacidade da câmera. Revanche exige confirmação de ambos, com cancelamento; a ordem ainda não resolvida pelo tiro é apresentada como condicional. Detalhes reversíveis de UX/protocolo definidos pelo agente para executar a solicitação; aceite de uso continua com o maintainer.

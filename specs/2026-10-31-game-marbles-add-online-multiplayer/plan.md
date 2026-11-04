@@ -85,7 +85,7 @@ apps/web/vite.config.ts  proxy WebSocket na mesma origem
 4. Na própria vez, o cliente calcula a mira por câmera e envia `{ seq, velocity }`.
 5. Servidor valida, aplica `fireShot`, avança física e publica snapshots versionados.
 6. Queda pausa a sala; `resume` dentro de 60 s substitui o socket do papel e continua.
-7. Fim, saída ou expiração remove a sala e limpa a credencial no cliente.
+7. Saída ou expiração remove a sala; fim preserva o resultado e permite revanche por confirmação de ambos.
 
 ## Mapeamento de requisitos
 
@@ -146,3 +146,9 @@ apps/web/vite.config.ts  proxy WebSocket na mesma origem
 | Novo servidor NestJS           | novo processo e dependências | cliente como autoridade diverge e aceita trapaça     | maintainer, 2026-10-31                                    |
 | Socket.IO em vez de `ws`       | protocolo adicional          | implementar sala/ack/reconexão manualmente           | maintainer autorizou WebSocket; decisão técnica do agente |
 | Credencial efêmera de retomada | estado adicional por papel   | retomar só pelo código permite ocupar o papel alheio | maintainer, gates antecipados                             |
+
+## Plano da revisão de usabilidade — 2026-11-04
+
+FR-017: schema compartilhado de apelido, opcional em comandos legados; validação e unicidade no servidor; nicknames apenas em slots efêmeros. FR-018: motor expõe próxima vez por método de leitura, servidor publica, web deriva rótulos de estágio e lista duas pessoas com marca local. Sem duplicar física/regras no cliente. FR-019: evento de prontidão da revanche, indexado pelo número da partida; novo número ao iniciar ambos, versão monotônica e sequência de tiro preservadas. Tiros passam a identificar partida; comandos legados sem número valem somente na primeira. Evitar replay de requisição/tiro antigo. Resultado não some na primeira confirmação. SC-008: testes antes do código, integração Socket.IO e navegador com duas pessoas, incluindo desconexão, nomes e resultado/revanche.
+
+Constitution Check pré/pós-design: intenção de UX solicitada explicitamente pelo maintainer; extensão de nomes livres anterior atualizada primeiro na spec. Sem conta, banco, imagem, landmark ou segredo novo. Apelidos limitados e exibidos como texto. Sem novas dependências e sem mudar a física. Plano/tarefas desta correção autorizados pelo pedido de execução do maintainer em 2026-11-04; teste e aceite final permanecem pendentes.

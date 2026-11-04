@@ -39,9 +39,10 @@ export interface MarblesGameView extends MarblesSnapshot {
     setBotLevel: (level: BotLevel) => void
     setShotControl: (control: ShotControl) => void
     startMatch: () => void
-    createRoom: () => Promise<boolean>
-    joinRoom: (roomCode: string) => Promise<boolean>
+    createRoom: (nickname: string) => Promise<boolean>
+    joinRoom: (roomCode: string, nickname: string) => Promise<boolean>
     setReady: (ready: boolean) => Promise<boolean>
+    setRematchReady: (ready: boolean) => Promise<boolean>
     leaveRoom: () => Promise<void>
     /** Fim de partida. */
     playAgain: () => void
@@ -127,9 +128,10 @@ export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView 
         setBotLevel: controller.setBotLevel,
         setShotControl: controller.setShotControl,
         startMatch: controller.startMatch,
-        createRoom: () => multiplayer.createRoom(snapshot.modeId),
-        joinRoom: (roomCode) => multiplayer.joinRoom(roomCode),
+        createRoom: (nickname) => multiplayer.createRoom(snapshot.modeId, nickname),
+        joinRoom: (roomCode, nickname) => multiplayer.joinRoom(roomCode, nickname),
         setReady: (ready) => multiplayer.setReady(ready),
+        setRematchReady: (ready) => multiplayer.setRematchReady(ready),
         leaveRoom: async () => {
             await multiplayer.leave()
             controller.setMultiplayer(multiplayer.getSnapshot(), null)
