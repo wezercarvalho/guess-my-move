@@ -241,6 +241,7 @@ export class SwingController {
     private appliedHead = { yaw: 0, pitch: 0 }
     /** Leitura do rosto no quadro de câmera mais recente (`null` sem rosto). */
     private lastFace: FaceReading | null = null
+    private faceSamplePending = false
     /** Direção do olhar: `face` (padrão) usa a cabeça; `auto` não carrega o detector de rosto. */
     private lookMode: LookMode = 'face'
     private hand: TrackedHand | null = null
@@ -349,6 +350,7 @@ export class SwingController {
 
     /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
     readonly recenterHead = (): void => {
+        if (!this.lastFace?.orientation) return
         this.headLook.recenter()
         // Encerra também o gesto em andamento: "Centralizar" sempre sai da trava.
         this.lockGesture.reset()
@@ -372,11 +374,13 @@ export class SwingController {
         this.headState = INITIAL_HEAD
         this.appliedHead = { yaw: 0, pitch: 0 }
         this.lastFace = null
+        this.faceSamplePending = false
         this.sync()
     }
 
     /** Ajusta o 3D e a camada de efeitos ao tamanho do palco. */
-    resize(width: number, height: number): void {
+    readonly resize = (width: number, height: number): void => {
+        if (width <= 0 || height <= 0 || (width === this.size.width && height === this.size.height)) return
         this.size = { width, height }
         this.renderer?.resize(width, height)
         const effects = this.surfaces.getEffects()
@@ -416,7 +420,7 @@ export class SwingController {
         this.city = city
         this.world = createSwingWorld(createCityIndex(city), this.env.config ?? DEFAULT_SWING)
         this.phase = 'playing'
-        if (this.size.width > 0) this.resize(this.size.width, this.size.height)
+        if (this.size.width > 0) this.renderer.resize(this.size.width, this.size.height)
         this.sync()
     }
 
@@ -520,6 +524,7 @@ export class SwingController {
         this.releaseFist = false
         this.prevWrist = { left: null, right: null }
         this.lastFace = null
+        this.faceSamplePending = false
         const now = this.env.now()
         this.applyTriggers({ left: null, right: null }, now)
         const overlay = this.surfaces.getOverlay()
@@ -657,7 +662,8 @@ export class SwingController {
         }
         // O gesto de travar só vale no modo Rosto (o detector de rosto só existe nele).
         const lock = this.lockGesture.update(this.lockPose, dt * 1000)
-        this.headState = this.headLook.update(this.lastFace?.orientation ?? null, dt, lock)
+        this.headState = this.headLook.update(this.lastFace?.orientation ?? null, dt, lock, this.faceSamplePending)
+        this.faceSamplePending = false
         const delta = {
             yaw: this.headState.yawOffset - this.appliedHead.yaw,
             pitch: this.headState.pitchOffset - this.appliedHead.pitch,
@@ -772,11 +778,13 @@ export class SwingController {
         if (!face) return
         try {
             this.lastFace = face.detect(video, now)
+            this.faceSamplePending = true
         } catch (error) {
             this.releaseFaceTracker()
             this.faceTrackerStatus = 'error'
             this.faceTrackerFailure = messageOf(error)
             this.lastFace = null
+            this.faceSamplePending = false
         }
     }
 

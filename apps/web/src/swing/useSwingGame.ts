@@ -87,6 +87,6 @@ export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
         restart: controller.restart,
         recenterHead: controller.recenterHead,
         setLookMode: controller.setLookMode,
-        resize: controller.resize.bind(controller),
+        resize: controller.resize,
     }
 }

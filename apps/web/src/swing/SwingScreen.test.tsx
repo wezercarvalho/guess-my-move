@@ -29,7 +29,8 @@ function harness(overrides: SwingDeps = {}) {
     let nowMs = 1000
     let queued: (() => void) | null = null
     const keys = new EventTarget()
-    const renderer: SwingRenderer = { resize: vi.fn(), render: vi.fn(), dispose: vi.fn() }
+    const resize = vi.fn()
+    const renderer: SwingRenderer = { resize, render: vi.fn(), dispose: vi.fn() }
     const deps: SwingDeps = {
         loadCity: () => Promise.resolve(city),
         createRenderer: () => renderer,
@@ -46,6 +47,7 @@ function harness(overrides: SwingDeps = {}) {
     }
     return {
         deps,
+        resize,
         press: (key: string) => keys.dispatchEvent(new KeyboardEvent('keydown', { key })),
         run(count = 1, stepMs = 16) {
             for (let i = 0; i < count; i++) {
@@ -272,4 +274,44 @@ describe('SwingScreen', () => {
         expect(within(selector).getByRole('radio', { name: 'Automática' })).toBeChecked()
         expect(screen.getByTestId('head-status')).toHaveTextContent(/câmera automática/i)
     })
+})
+
+
+describe('regressão de redimensionamento durante o HUD', () => {
+    it('atualiza HUD sem recriar o observador nem redimensionar o canvas', async () => {
+        const observe = vi.fn()
+        const disconnect = vi.fn()
+        vi.stubGlobal('ResizeObserver', class { observe = observe; disconnect = disconnect })
+        try {
+            const h = await openGame()
+            const observations = observe.mock.calls.length
+            const resizes = h.resize.mock.calls.length
+            h.run(20, 120)
+            expect(observe).toHaveBeenCalledTimes(observations)
+            expect(h.resize).toHaveBeenCalledTimes(resizes)
+        } finally { vi.unstubAllGlobals() }
+    })
+})
+
+
+it('explica a calibração e só permite centralizar com orientação válida', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    let seen = false
+    const h = harness({
+        createTracker: () => Promise.resolve({delegate: 'CPU', detect: () => null, close() {}}),
+        createFaceTracker: () => Promise.resolve({delegate: 'CPU', detect: () => seen ? {orientation: {yaw:0,pitch:0},landmarks:[]} : null, close() {}}),
+    })
+    render(<SwingScreen cameraGetUserMedia={() => Promise.resolve(createFakeStream().stream)} deps={h.deps} />)
+    await waitFor(() => expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i))
+    fireEvent.click(screen.getByRole('button', {name:'Ativar câmera'}))
+    const video = screen.getByTestId('camera-preview') as HTMLVideoElement
+    Object.defineProperties(video, {readyState:{value:4},videoWidth:{value:640},videoHeight:{value:480}})
+    await waitFor(() => expect(screen.getByRole('button',{name:'Parar câmera'})).toBeInTheDocument())
+    h.run(1,120)
+    expect(screen.getByRole('button',{name:'Centralizar'})).toBeDisabled()
+    seen=true
+    video.currentTime=1
+    h.run(1,120)
+    expect(screen.getByTestId('head-status')).toHaveTextContent(/cabeça parada para calibrar/)
+    expect(screen.getByRole('button',{name:'Centralizar'})).toBeEnabled()
 })

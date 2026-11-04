@@ -49,6 +49,41 @@ T006/Gate 3 aguardam esse aceite. A spec permanece `implementing`, conforme exig
 
 O [CI da PR #115](https://github.com/wezercarvalho/guess-my-move/actions/runs/41584346497) passou no commit `5c680a1f9b7e4d0c5372f079786da73c8dcf1abb`: `check:all`, governança e gate obrigatório verdes. A auditoria remota foi dispensada pelo filtro de paths, pois não houve mudança de dependências; a auditoria local anterior passou.
 
-A revisão adicional de seleção/URLs (FR-001), cenário/colisões/alcance (FR-002), exercícios e painel (FR-003–FR-004) não identificou nova correção necessária. As evidências automatizadas e a demonstração de navegador acima cobrem SC-001. NFR-001–NFR-002 foram conferidos no código; SC-002/NFR-003 e T006 continuam aguardando câmera real e avaliação visual do maintainer.
+A revisão automatizada de 2026-11-03 de seleção/URLs, cenário/colisões e exercícios não identificou as regressões posteriormente relatadas no teste real de 2026-11-04. Ela não comprovava alinhamento ou fluidez da câmera. As evidências automatizadas e a demonstração de navegador acima cobrem SC-001. NFR-001–NFR-002 foram conferidos no código; SC-002/NFR-003 e T006 continuam aguardando câmera real e avaliação visual do maintainer.
 
 A PR foi marcada pronta para executar o CI e retorna a rascunho para o teste reservado ao maintainer. Não houve merge nem publicação. Violão fica em standby até dezembro; os itens em triagem não foram antecipados nesta entrega.
+
+## Correções após o teste com câmera — 2026-11-04
+
+O maintainer encontrou deslocamento dos pontos, engasgos e dificuldade de olhar verticalmente. T006 permanece aberta para reteste; o aceite anterior não foi concedido. Bolinhas não foi alterado nesta correção e Violão segue em standby até dezembro.
+
+### Causas reproduzidas e correções
+
+- FR-005/T007: o CSS compacto usava `object-fit: cover`, mas mãos e rosto eram projetados com `containRect`. Restaurado `contain`, com o mesmo espelhamento do overlay. Vídeos 4:3 passam a ter barras laterais em vez de recorte/deslocamento.
+- FR-006/T008: `resize.bind(controller)` criava callback novo em cada publicação do HUD. O efeito remontava o ResizeObserver e redimensionava WebGL/canvas sem mudar o palco. Callback agora é estável, e dimensões repetidas são ignoradas. O teste falhou com 23 observações em vez das 3 iniciais e passou após corrigir.
+- FR-006/T008: os quatro detalhes de néon de cada prédio eram meshes separados. Agora são instâncias em três lotes por material, com as mesmas posições, escalas e colisões.
+- FR-007/T009: calibração contava frames de tela repetindo a última leitura e não verificava estabilidade. Agora conta somente amostras novas, calcula o neutro médio numa janela estável e reinicia com movimento maior que 2°. A suavização continua a cada frame gráfico; não mudaram ganho, zona morta ou limites do olhar.
+- FR-007/T009: extração de ângulos pelos elementos de eixos diferentes misturava roll com pitch/yaw. Agora usa o eixo frontal da matriz, removendo a escala; teste com rotação composta/escala preserva as direções e rejeita matrizes inválidas. O [formato MatrixData do MediaPipe](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/framework/formats/matrix_data.proto) define a ordem de coluna usada pelo adaptador.
+- A tela orienta manter a cabeça parada durante a calibração e só permite Centralizar com orientação válida do rosto. O controlador também recusa centralização sem rosto; centralização não finge calibração sem leitura.
+
+### Evidência e limites
+
+Cinco regressões novas do núcleo falharam antes da implementação (227 anteriores passaram): quadro repetido, movimento durante calibração, centralização sem leitura, rotação composta e matriz inválida. O teste do ResizeObserver e o contrato do enquadramento também falharam antes das correções. Depois, a suíte do núcleo passou com 232 testes; testes direcionados de rosto/trava/escalada e tela passaram. O teste de tela cobre instrução de calibração e botão desativado sem rosto; o controlador cobre olhar para cima/baixo e calibração somente em imagens novas.
+
+[Smoke de câmera no Chromium](evidence/camera-regression-smoke.json): vídeo local de canvas e detectores simulados demonstraram 640×480 e 1280×720, ponto verde no pixel esperado e caixas coincidentes de vídeo/overlay; olhar positivo/negativo, bloqueio sem rosto e centralização redefinindo o neutro. O renderer foi simulado nesse smoke para isolar a câmera; nenhum rosto, imagem pessoal ou landmark real foi salvo. As tentativas iniciais do harness usaram esperas fixas e amostragem separada de pixels; foram substituídas por observação atômica do quadro válido e espera pela calibração. Não representam teste da qualidade do MediaPipe real.
+
+[Contagens gráficas](evidence/camera-regression-render-cost.json): WebGL real, headless, Aurora parada, viewport 1440×900. Antes do batching: 1245 chamadas/15 quadros = 83 por quadro; depois: 72/6 = 12 por quadro. O resize repetido observado na linha de base foi 18 vezes em 2 segundos, e cessou após estabilizar callback/dimensões. Essas são contagens desta cena; renderização por software e amostras curtas não medem fps do usuário, latência do detector ou ganho geral de desempenho.
+
+As verificações anteriores não cobriam essas regressões; o relato do maintainer foi necessário para reproduzi-las. Não há alegação de fluidez ou precisão com câmera real até o reteste. A primeira execução agregada desta correção excedeu 5 s no teste preexistente de 3000 tiros do bot, enquanto o navegador e outros testes rodavam juntos. Não se mudou bolinhas nem timeout para contornar isso; execução final isolada registrada abaixo.
+
+### Gates finais desta correção
+
+- `yarn install --immutable` e `yarn check:all` passaram na imagem oficial `node:26.12.1-bookworm-slim` (Node 26.12.1, Corepack 0.36.0, Yarn 4.18.1): core 68, marbles 159, swing 232, web 417 Vitest + 79 auxiliares, typecheck, lint e build.
+- O agregado do host continuou excedendo 5 s no teste preexistente de 3000 tiros de bolinhas, inclusive numa repetição sem navegador. A mesma árvore de aplicação passou no contêiner; nenhuma mudança foi feita em bolinhas, timeout ou dependências. Essa diferença de ambiente não é apresentada como correção daquele teste.
+- `yarn test:gates` (231), `yarn test:sdd` (109), `yarn sdd:check` e `yarn security:dependencies` passaram no host com Node 26.12.1. Auditoria: todas as severidades zero. Formatação dos docs verificada pelo hook de pré-push.
+- [Resumo estruturado desta correção](evidence/camera-regression-gates.json). Os avisos preexistentes de canvas no jsdom e chunk maior que 500 kB não falharam o agregado.
+- A PR #115 permanece em rascunho; o workflow remoto ignora rascunhos. O CI verde de `6ccc9bc` acima é histórico, não valida este novo código; não houve novo ciclo de ready nem merge. A conclusão desta correção se apoia nos gates locais completos e na demonstração, não no CI antigo.
+
+### Reteste reservado ao maintainer
+
+Na branch `feat/108-arranha-teia-treino`, abrir `swing.html?mode=training` e recarregar completamente a página para substituir a instância antiga do controlador. Ativar a câmera, olhar para a tela e manter a cabeça parada até terminar a calibração. Conferir pontos sobre mãos e rosto; olhar para cima/baixo, clicar Centralizar numa posição confortável, testar trava e escalada. Comparar a fluidez com câmera desligada e ligada; repetir em uma cidade do modo Viajante. Informar se ainda houver engasgos, junto com navegador/dispositivo e em qual modo ocorrem. T006/SC-002 e o aceite de precisão/fluidez reais permanecem pendentes.

@@ -15,3 +15,9 @@ Pontes aéreas decorativas não servem de chão: plataformas transitáveis são 
 ## Constitution Check — pós-design
 
 PASS: os requisitos convergem com o plano e o risco visual será revisado pelo maintainer; nenhuma nova captura, serviço, mídia ou dependência.
+
+## Plano de correção — 2026-11-04
+
+FR-005: usar contain no preview, consistente com a projeção existente do overlay; preservar espelhamento único. FR-006: estabilizar callback de resize entre publicações e evitar resize com dimensões repetidas; agrupar néon estático por material com instâncias, preservando transformações e descarte. FR-007: separar amostra nova da suavização por quadro, exigir janela de pose estável para o neutro e extrair direção frontal da matriz sem misturar roll; indicar calibração e impedir centralização sem leitura válida. SC-003: testes falhando antes das correções, gates oficiais, demonstração e contagens no navegador; câmera real ainda depende do maintainer.
+
+Constitution Check pré/pós-design: correções no escopo de gesto/câmera autorizadas explicitamente pelo usuário em 2026-11-04; nenhuma transmissão/persistência de mídia, dependência, mudança de física ou serviço novo. Risco: calibração pode esperar mais com movimento; status deve explicar ao jogador. Não alterar ganho/deadzone por tentativa sem medição. Rejeitado diminuir qualidade visual como atalho; reduzir trabalho repetido preservando a cena.

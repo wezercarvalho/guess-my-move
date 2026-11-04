@@ -60,3 +60,8 @@ describe('layout do Arranha-Teia', () => {
         assert.match(block, /overflow-y:\s*auto/)
     })
 })
+
+
+it('a câmera compacta preserva a mesma área contain usada pelos pontos', () => {
+    assert.match(ruleBody(swingCss, '.swing-side .camera-preview'), /object-fit:\s*contain/)
+})

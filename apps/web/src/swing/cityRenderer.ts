@@ -18,6 +18,8 @@ import {
     Float32BufferAttribute,
     Fog,
     Mesh,
+    InstancedMesh,
+    Object3D,
     MeshBasicMaterial,
     PerspectiveCamera,
     PlaneGeometry,
@@ -236,26 +238,38 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         const colors = [0x4af3ed, 0xff67c8, 0xa78bfa]
         const neonMaterials = colors.map((color) => track(new MeshBasicMaterial({ color, fog: false })))
         const trim = track(new BoxGeometry(1, 1, 1))
+        // Um lote por material, em vez de quatro meshes por prédio a cada quadro.
+        const batches = neonMaterials.map((material, group) => {
+            const count = city.buildings.filter((_, id) => id % neonMaterials.length === group).length * 4
+            const mesh = track(new InstancedMesh(trim, material, count))
+            scene.add(mesh)
+            return { mesh, next: 0 }
+        })
+        const transform = new Object3D()
         city.buildings.forEach((building, id) => {
             const xs = building.ring.filter((_, i) => i % 2 === 0)
             const zs = building.ring.filter((_, i) => i % 2 === 1)
             const minX = Math.min(...xs), maxX = Math.max(...xs)
             const minZ = Math.min(...zs), maxZ = Math.max(...zs)
-            const material = neonMaterials[id % neonMaterials.length]
-            for (const z of [minZ, maxZ]) {
-                const band = new Mesh(trim, material)
-                band.scale.set(maxX-minX+0.4, 0.7, 0.5)
-                band.position.set((minX+maxX)/2, building.height-0.3, z)
-                scene.add(band)
+            const batch = batches[id % batches.length]
+            const add = (x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
+                transform.position.set(x, y, z)
+                transform.scale.set(sx, sy, sz)
+                transform.updateMatrix()
+                batch.mesh.setMatrixAt(batch.next++, transform.matrix)
             }
-            // Pilares e painéis coincidem com as fachadas, sem obstáculos invisíveis.
+            for (const z of [minZ, maxZ]) {
+                add((minX+maxX)/2, building.height-0.3, z, maxX-minX+0.4, 0.7, 0.5)
+            }
+            // Mesmas posições e escalas do néon original; a colisão continua no City v1.
             for (const x of [minX, maxX]) {
-                const strip = new Mesh(trim, material)
-                strip.scale.set(0.6, building.height, 0.6)
-                strip.position.set(x, building.height/2, minZ-0.1)
-                scene.add(strip)
+                add(x, building.height/2, minZ-0.1, 0.6, building.height, 0.6)
             }
         })
+        for (const { mesh } of batches) {
+            mesh.instanceMatrix.needsUpdate = true
+            mesh.computeBoundingSphere()
+        }
         const moon = new Mesh(track(new SphereGeometry(85, 24, 16)), track(new MeshBasicMaterial({ color: 0xc1b2ed, fog: false })))
         moon.position.set(0, 650, -850)
         scene.add(moon)

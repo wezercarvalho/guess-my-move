@@ -68,9 +68,9 @@ async function playingWithFace() {
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)
-    const tick = (ms = 16) => {
+    const tick = (ms = 16, newCameraFrame = true) => {
         time += ms
-        video.currentTime += 1
+        if (newCameraFrame) video.currentTime += 1
         const callback = pending
         pending = null
         callback?.()
@@ -254,4 +254,25 @@ describe('SwingController — direção do olhar (Automática vs Rosto)', () => 
         await flush()
         expect(controller.getSnapshot().lookMode).toBe('auto')
     })
+})
+
+
+it('o laço gráfico não calibra a cabeça repetindo uma única imagem', async () => {
+    const { controller, detectFace, tick } = await playingWithFace()
+    detectFace.mockReturnValue(face(0))
+    tick()
+    for (let i = 0; i < 20; i++) tick(16, false)
+    expect(controller.getSnapshot().headDebug.calibrated).toBe(false)
+    for (let i = 0; i < 20; i++) tick()
+    expect(controller.getSnapshot().headDebug.calibrated).toBe(true)
+})
+
+it('inclinar para baixo após centralizar no neutro move o olhar para baixo', async () => {
+    const { controller, detectFace, tick, lastState } = await playingWithFace()
+    detectFace.mockReturnValue(face(0, 10))
+    settle(tick, 20)
+    controller.recenterHead()
+    detectFace.mockReturnValue(face(0, -15))
+    settle(tick, 120)
+    expect(lastState().pitch).toBeLessThan(-0.05)
 })

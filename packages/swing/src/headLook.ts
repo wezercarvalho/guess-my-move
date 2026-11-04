@@ -105,9 +105,10 @@ export interface HeadLook {
     /**
      * Um quadro: a orientação da cabeça (`null` sem rosto), o tempo `dt` em segundos e, desde a
      * CQ-012, se o gesto de travar vale neste quadro (`lock`). Devolve o desvio suavizado a somar
-     * ao olhar.
+     * ao olhar. `newSample=false` suaviza o último resultado sem contar a mesma imagem
+     * novamente na calibração (a tela pode desenhar mais rápido que a câmera).
      */
-    update(orientation: HeadOrientation | null, dt: number, lock?: boolean): HeadLookState
+    update(orientation: HeadOrientation | null, dt: number, lock?: boolean, newSample?: boolean): HeadLookState
     /** Trata a orientação atual como o novo neutro e encerra a trava (botão "Centralizar"). */
     recenter(): void
     /** Volta ao estado inicial, sem calibração. */
@@ -121,19 +122,15 @@ export interface HeadLook {
  * matriz não tem 16 números.
  */
 export function headOrientationFromMatrix(matrix: readonly number[]): HeadOrientation | null {
-    if (matrix.length !== 16) return null
-    // Ordem de coluna: índice = coluna*4 + linha. r[linha][coluna].
-    const r = (row: number, col: number) => matrix[col * 4 + row] ?? 0
-    // A matriz do MediaPipe leva o modelo canônico (olha para +Z, X à direita da imagem, Y
-    // para cima) ao espaço da câmera, SEM espelhar. Em Ry(theta), +Z vai a (sin theta, 0,
-    // cos theta): r(0,2)=sin, r(2,2)=cos, r(2,0)=-sin. Como a imagem não é espelhada, virar
-    // a cabeça para a direita do jogador é theta NEGATIVO; invertemos o sinal para que
-    // `yaw > 0` signifique "olha para a sua direita". O mesmo para a inclinação: em Rx(phi),
-    // +Z vai a (0, -sin phi, cos phi), e olhar para cima é phi negativo, então `pitch > 0`
-    // ao olhar para cima. Assim o olhar do jogo (yaw cresce à direita, pitch positivo para
-    // cima) casa com o desvio sem inversão extra.
-    const yaw = Math.atan2(r(2, 0), r(2, 2))
-    const pitch = Math.atan2(r(1, 2), r(1, 1))
+    if (matrix.length !== 16 || !matrix.every(Number.isFinite)) return null
+    // Coluna Z da rotação: direção frontal. A norma horizontal remove a escala;
+    // o eixo frontal não muda quando a cabeça inclina lateralmente (roll).
+    const x = matrix[8] ?? 0
+    const y = matrix[9] ?? 0
+    const z = matrix[10] ?? 0
+    if (Math.hypot(x, y, z) < 1e-6) return null
+    const yaw = Math.atan2(-x, z)
+    const pitch = Math.atan2(y, Math.hypot(x, z))
     return { yaw, pitch }
 }
 
@@ -150,6 +147,7 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
     let calibrated = false
     let neutral: HeadOrientation = { yaw: 0, pitch: 0 }
     let stableFrames = 0
+    let calibrationOrigin: HeadOrientation | null = null
     let last: HeadOrientation | null = null
     // Desvio TOTAL aplicado ao olhar (direção travada + cabeça), suavizado.
     let yawOffset = 0
@@ -202,7 +200,8 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
     }
 
     return {
-        update(orientation, dt, lock = false) {
+        update(orientation, dt, lock = false, newSample = true) {
+            if (orientation && (!Number.isFinite(orientation.yaw) || !Number.isFinite(orientation.pitch))) orientation = null
             clockMs += dt * 1000
 
             if (!calibrated) {
@@ -212,12 +211,26 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
                     yawOffset = approach(yawOffset, 0, dt)
                     pitchOffset = approach(pitchOffset, 0, dt)
                     stableFrames = 0
+                    calibrationOrigin = null
+                    last = null
                     return state(false)
                 }
-                stableFrames++
-                neutral = orientation
-                if (stableFrames >= config.calibrationFrames) calibrated = true
-                last = orientation
+                if (newSample) {
+                    // Uma janela inteira perto da pose inicial; movimento reinicia a janela.
+                    const tolerance = (2 * Math.PI) / 180
+                    if (!calibrationOrigin || Math.abs(orientation.yaw - calibrationOrigin.yaw) > tolerance || Math.abs(orientation.pitch - calibrationOrigin.pitch) > tolerance) {
+                        calibrationOrigin = { ...orientation }
+                        stableFrames = 0
+                        neutral = { yaw: 0, pitch: 0 }
+                    }
+                    stableFrames++
+                    neutral = {
+                        yaw: neutral.yaw + (orientation.yaw - neutral.yaw) / stableFrames,
+                        pitch: neutral.pitch + (orientation.pitch - neutral.pitch) / stableFrames,
+                    }
+                    if (stableFrames >= config.calibrationFrames) calibrated = true
+                    last = orientation
+                }
                 // Durante a calibração o olhar não se mexe (e a trava não vale).
                 yawOffset = approach(yawOffset, 0, dt)
                 pitchOffset = approach(pitchOffset, 0, dt)
@@ -268,7 +281,8 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             return state(orientation !== null)
         },
         recenter() {
-            if (last) neutral = last
+            if (!last) return
+            neutral = { ...last }
             calibrated = true
             stableFrames = config.calibrationFrames
             // Encerra a trava e zera a direção travada: o olhar volta suave ao acompanhamento.
@@ -282,6 +296,7 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             calibrated = false
             neutral = { yaw: 0, pitch: 0 }
             stableFrames = 0
+            calibrationOrigin = null
             last = null
             yawOffset = 0
             pitchOffset = 0

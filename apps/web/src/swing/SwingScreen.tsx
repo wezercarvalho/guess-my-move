@@ -122,6 +122,7 @@ export function SwingScreen({
         cameraActive: camera.isActive,
         faceTrackerStatus: game.faceTrackerStatus,
         faceVisible: game.faceVisible,
+        calibrated: game.headDebug.calibrated,
         lockMode: game.headLock.mode,
     })
 
@@ -227,7 +228,7 @@ export function SwingScreen({
                                     <Button
                                         variant="secondary"
                                         onClick={game.recenterHead}
-                                        disabled={game.faceTrackerStatus !== 'ready'}
+                                        disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
                                     >
                                         Centralizar
                                     </Button>

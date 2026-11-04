@@ -426,7 +426,7 @@ ul.swing-keys kbd {
 .swing-side .camera-preview {
     max-height: none;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 @media (max-width: 959px) {

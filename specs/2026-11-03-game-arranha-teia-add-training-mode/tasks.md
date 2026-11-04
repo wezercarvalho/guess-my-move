@@ -37,3 +37,12 @@ Plano, issue #108 e requisitos convergem; dependência de feedback #109 já inte
 - Artefatos aprovados: plan.md, tasks.md
 - Referência: autorização de execução nesta conversa: “Entendi, pode fazer então. Ao final eu faço os testes com câmera real. Pode abrir em paralelo arranha-teia.”
 - Exceções: nenhuma; autorização de executar a issue existente, detalhes técnicos reversíveis definidos pelo agente e disponibilizados para revisão.
+
+## Correções do teste com câmera — 2026-11-04
+
+- [x] T007 [FR-005] [SC-003] Reproduzir e corrigir enquadramento divergente do vídeo/pontos; demonstrar 4:3 e 16:9.
+- [x] T008 [FR-006] [SC-003] Reproduzir resize em publicações do HUD, estabilizar callback/dimensões e medir chamadas gráficas; agrupar néon estático.
+- [x] T009 [FR-007] [SC-003] Reproduzir falsa calibração com quadro repetido/movimento; corrigir amostragem, centralização e extração da inclinação; preservar trava/escalada.
+- [x] T010 [FR-005] [FR-006] [FR-007] [SC-003] Gates, evidências e atualização da PR; manter T006 em aberto para reteste real.
+
+Plano/tarefas corretivas autorizados pelo maintainer nesta conversa em 2026-11-04, ao solicitar revisão e tratamento das regressões observadas. Análise de consistência: requisitos de correção cobertos por T007–T010; sem mudança de intenção do produto nem antecipação do aceite humano.

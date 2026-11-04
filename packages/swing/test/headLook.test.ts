@@ -423,3 +423,46 @@ describe('trava da direção (CQ-012)', () => {
         expect(state.yawOffset).toBe(0)
     })
 })
+
+
+describe('regressões de calibração e inclinação', () => {
+    it('não calibra repetindo o mesmo quadro em vários frames de tela', () => {
+        const look = createHeadLook()
+        look.update(CENTER, 1 / 60, false, true)
+        let state = look.update(CENTER, 1 / 60, false, false)
+        for (let i = 0; i < 60; i++) state = look.update(CENTER, 1 / 60, false, false)
+        expect(state.calibrated).toBe(false)
+    })
+
+    it('espera uma janela estável, sem calibrar enquanto a cabeça está movendo', () => {
+        const look = createHeadLook()
+        let state = look.update(CENTER, 1 / 60)
+        for (let i = 0; i < 30; i++) state = look.update({yaw: 0, pitch: i * 0.02}, 1 / 60)
+        expect(state.calibrated).toBe(false)
+        const neutral = {yaw: 0.1, pitch: -0.1}
+        for (let i = 0; i < 13; i++) state = look.update(neutral, 1 / 60)
+        expect(state.calibrated).toBe(true)
+        expect(settle(look, neutral).pitchOffset).toBeCloseTo(0, 5)
+    })
+
+    it('centralizar sem uma leitura válida não declara calibração', () => {
+        const look = createHeadLook()
+        look.recenter()
+        expect(look.update(null, 1 / 60).calibrated).toBe(false)
+    })
+
+    it('extrai pitch e yaw sem misturar a rotação lateral da cabeça', () => {
+        // Rotação YXZ: Y=-30°, X=-20°, Z=25°, com escala uniforme 1.7.
+        const y = -Math.PI/6, x = -Math.PI/9, z = 25*Math.PI/180
+        const cy=Math.cos(y), sy=Math.sin(y), cx=Math.cos(x), sx=Math.sin(x), cz=Math.cos(z), sz=Math.sin(z)
+        const matrix = [cy*cz+sy*sx*sz,cx*sz,-sy*cz+cy*sx*sz,0,-cy*sz+sy*sx*cz,cx*cz,sy*sz+cy*sx*cz,0,sy*cx,-sx,cy*cx,0,0,0,-50,1].map((v,i)=>i<12 && i%4!==3 ? v*1.7 : v)
+        const pose=headOrientationFromMatrix(matrix)
+        expect(pose?.pitch).toBeCloseTo(-x, 5)
+        expect(pose?.yaw).toBeCloseTo(-y, 5)
+    })
+
+    it('recusa matriz com valores inválidos', () => {
+        expect(headOrientationFromMatrix(Array(16).fill(NaN))).toBeNull()
+        expect(headOrientationFromMatrix(Array(16).fill(0))).toBeNull()
+    })
+})

@@ -1,0 +1,31 @@
+{
+  "result": "PASS",
+  "alignments": [
+    {
+      "video": [
+        640,
+        480
+      ],
+      "fit": "contain",
+      "landmarkAtExpectedPixel": true
+    },
+    {
+      "video": [
+        1280,
+        720
+      ],
+      "fit": "contain",
+      "landmarkAtExpectedPixel": true
+    }
+  ],
+  "scenarios": [
+    "pitch positivo e negativo após calibração",
+    "centralizar bloqueado sem rosto",
+    "centralizar redefine neutro com rosto válido"
+  ],
+  "limitations": [
+    "vídeo, leituras e renderer simulados para isolar a integração da câmera; geometria e chamadas gráficas medidas separadamente com WebGL real",
+    "nenhum rosto ou imagem pessoal persistido",
+    "não prova acurácia ou fps em câmera real"
+  ]
+}
