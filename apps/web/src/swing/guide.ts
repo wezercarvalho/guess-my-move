@@ -112,6 +112,7 @@ export interface HeadStatusInput {
     faceTrackerStatus: SwingTrackerStatus
     /** Há rosto à vista agora. */
     faceVisible: boolean
+    calibrated?: boolean
     /** Trava da direção (CQ-012): seguindo a cabeça ou travada pelo gesto. */
     lockMode?: HeadLookMode
 }
@@ -127,6 +128,7 @@ export function headStatusLine({
     cameraActive,
     faceTrackerStatus,
     faceVisible,
+    calibrated = true,
     lockMode = 'following',
 }: HeadStatusInput): string {
     if (!cameraActive || faceTrackerStatus === 'idle') return ''
@@ -135,6 +137,7 @@ export function headStatusLine({
     // Travada, perder o rosto não muda o olhar: o texto da trava vale.
     if (lockMode === 'locked') return 'Direção travada. Tire a mão e olhe para a tela.'
     if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
+    if (!calibrated) return 'Olhe para a tela e mantenha a cabeça parada para calibrar.'
     return ''
 }
 

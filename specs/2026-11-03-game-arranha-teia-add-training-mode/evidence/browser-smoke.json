@@ -1,0 +1,29 @@
+{
+  "dimensions": {
+    "height": 900,
+    "document": 900,
+    "exercises": {
+      "x": 1120,
+      "y": 64,
+      "width": 300,
+      "height": 414.15625,
+      "top": 64,
+      "right": 1420,
+      "bottom": 478.15625,
+      "left": 1120
+    },
+    "stage": {
+      "x": 29,
+      "y": 77,
+      "width": 1062,
+      "height": 760.8125,
+      "top": 77,
+      "right": 1091,
+      "bottom": 837.8125,
+      "left": 29
+    }
+  },
+  "errors": [],
+  "thirdParties": [],
+  "keyboardExercise": "Exercícios do treino\nExercícios do treino\n\nExplore no seu ritmo, sem tempo nem pontuação. Os gestos precisam produzir a ação no jogo.\n\n✓ Lançar a teia esquerda\n— concluído\n○ Lançar a teia direita\n— pendente\n○ Puxar uma teia com o punho fechado\n— pendente\n○ Soltar a teia com a palma aberta\n— pendente\n○ Agarrar uma parede com a mão aberta\n— pendente\n○ Escalar olhando para cima ou para baixo\n— pendente\n○ Travar a direção do olhar com o dedão para baixo\n— pendente"
+}

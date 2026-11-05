@@ -1,3 +1,5 @@
+import { TrainingPanel } from './TrainingPanel.js'
+import { TRAINING_MAP } from './training.js'
 import { useEffect, useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -120,6 +122,7 @@ export function SwingScreen({
         cameraActive: camera.isActive,
         faceTrackerStatus: game.faceTrackerStatus,
         faceVisible: game.faceVisible,
+        calibrated: game.headDebug.calibrated,
         lockMode: game.headLock.mode,
     })
 
@@ -205,6 +208,7 @@ export function SwingScreen({
                 </Panel>
 
                 <div className="swing-side">
+                    {map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
                     <CameraPanel
                         camera={camera}
                         videoRef={videoRef}
@@ -224,7 +228,7 @@ export function SwingScreen({
                                     <Button
                                         variant="secondary"
                                         onClick={game.recenterHead}
-                                        disabled={game.faceTrackerStatus !== 'ready'}
+                                        disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
                                     >
                                         Centralizar
                                     </Button>

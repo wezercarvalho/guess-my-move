@@ -1,0 +1,23 @@
+{
+  "environment": "Chromium headless, WebGL real, Aurora parada, viewport 1440x900; renderer por software",
+  "before_batching": {
+    "draw_calls": 1245,
+    "frames": 15,
+    "calls_per_frame": 83,
+    "note": "callback de resize já estabilizado nessa medição; geometria ainda original"
+  },
+  "after_batching": {
+    "draw_calls": 72,
+    "frames": 6,
+    "calls_per_frame": 12
+  },
+  "repeated_resize": {
+    "before": 18,
+    "after": 0,
+    "sample_ms": 2000
+  },
+  "limits": [
+    "contagens desta cena, não benchmark de fps ou acurácia",
+    "vídeo e detectores não ativos na contagem de desenho"
+  ]
+}

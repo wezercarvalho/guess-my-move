@@ -426,7 +426,7 @@ ul.swing-keys kbd {
 .swing-side .camera-preview {
     max-height: none;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 @media (max-width: 959px) {
@@ -594,3 +594,11 @@ ul.swing-keys kbd {
         white-space: nowrap;
     }
 }
+
+.swing-training { padding: 1rem; border: 1px solid var(--color-border, #555); border-radius: 12px; background: rgb(16 22 40 / 95%); }
+.swing-training summary { cursor: pointer; font-weight: 700; }
+.swing-training fieldset { border: 0; padding: 0; margin: 0; }
+.swing-training p { font-size: .85rem; color: #b8c2d6; }
+.swing-training ul { list-style: none; padding: 0; font-size: .85rem; }
+.swing-training li { margin-block: .55rem; }
+.swing-training li[data-done="true"] { color: #7df2d6; }
