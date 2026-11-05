@@ -1,8 +1,8 @@
 # Guess My Move
 
-> Open-source gesture games where the browser recognizes your movements from the webcam using on-device computer vision — no server, no cloud AI.
+> Open-source gesture games where the browser recognizes your movements from the webcam using on-device computer vision — on-device vision, with an optional server for online marbles.
 
-**Act it. The browser checks it.** Você ativa a webcam e joga com a mão. O navegador detecta a mão com o MediaPipe Hand Landmarker, calcula números simples a cada quadro (ângulo, distância entre os dedos) e funções puras e determinísticas decidem o que aconteceu. Nada sai do navegador.
+**Act it. The browser checks it.** Você ativa a webcam e joga com a mão. O navegador detecta a mão com o MediaPipe Hand Landmarker, calcula números simples a cada quadro (ângulo, distância entre os dedos) e funções puras e determinísticas decidem o que aconteceu. Imagens e landmarks ficam no navegador; o multiplayer de bolinhas envia somente comandos e estado da partida.
 
 ## Jogos
 
@@ -30,7 +30,7 @@ corepack enable
 yarn install --immutable
 ```
 
-Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `packages/core`, `packages/marbles`). Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
+Um único `yarn install` na raiz instala todos os workspaces (`apps/web`, `apps/server`, `packages/core`, `packages/marbles`, `packages/swing`). Antes do primeiro push, instale também o hook de pré-push com `node scripts/git-hooks/install.mjs`.
 
 ## Como rodar
 
@@ -79,10 +79,21 @@ yarn build     # prepare:assets + tsc --build + vite build (saída em apps/web/d
 yarn preview   # serve o build localmente
 ```
 
+## Bolinhas de gude online
+
+Em dois terminais, execute `yarn dev:server` e `yarn dev:web`. Abra `/marbles.html`, escolha **Online** e um dos modos (Bete, Triângulo ou Cova), e crie uma sala. A outra pessoa entra pelo código; ambas clicam em **Estou pronto**. A câmera é necessária apenas para atirar, sempre na própria vez.
+
+O servidor NestJS/Socket.IO mantém a única partida autoritativa em memória. Uma queda pausa a sala por até 60 segundos; reconectar ou recarregar a aba retoma o mesmo papel. **Sair da sala** encerra a sala; para outra partida online, crie uma nova. O modo **Local** continua funcionando sem servidor.
+
+O Vite encaminha `/socket.io` e `/api` para `127.0.0.1:3000` no desenvolvimento. Se alterar `PORT` do servidor, ajuste também o proxy local. Em hospedagem, web e servidor precisam compartilhar a origem e suportar upgrade WebSocket. Esta entrega não configura nem publica hospedagem.
+
+A sala recebe somente vetores de tiro e comandos de controle; câmera, vídeo e landmarks ficam no navegador. A retomada usa credencial temporária em `sessionStorage`, sem contas ou banco. Evidências e limitações: [validação multiplayer](specs/2026-10-31-game-marbles-add-online-multiplayer/validation.md).
+
 ## Estrutura
 
 | Pasta              | Conteúdo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/server`      | NestJS 12 e Socket.IO: health, salas efêmeras, autoridade da partida e reconexão; sem câmera, IA, banco ou persistência.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `apps/web`         | React + Vite: menu, câmera, detector MediaPipe atrás da interface `HandTracker`, laço por quadro, esqueleto, painéis e as páginas dos jogos.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `packages/core`    | TypeScript puro do jogo de cartas: schema e carta, ângulo da mão, avaliador da oscilação e máquina de estados da rodada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `packages/marbles` | TypeScript puro do bete: física 2D de círculos, detector de pinça, tiro por arrasto, detector de estalo e máquina de estados da rodada.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |

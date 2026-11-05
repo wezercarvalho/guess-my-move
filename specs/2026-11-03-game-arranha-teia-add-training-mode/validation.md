@@ -87,3 +87,9 @@ As verificações anteriores não cobriam essas regressões; o relato do maintai
 ### Reteste reservado ao maintainer
 
 Na branch `feat/108-arranha-teia-treino`, abrir `swing.html?mode=training` e recarregar completamente a página para substituir a instância antiga do controlador. Ativar a câmera, olhar para a tela e manter a cabeça parada até terminar a calibração. Conferir pontos sobre mãos e rosto; olhar para cima/baixo, clicar Centralizar numa posição confortável, testar trava e escalada. Comparar a fluidez com câmera desligada e ligada; repetir em uma cidade do modo Viajante. Informar se ainda houver engasgos, junto com navegador/dispositivo e em qual modo ocorrem. T006/SC-002 e o aceite de precisão/fluidez reais permanecem pendentes.
+
+## Integração com a main — 2026-11-05
+
+Após o merge da PR #114, a PR #115 apresentou conflito no catálogo `specs/README.md`: as duas iniciativas adicionaram entradas no mesmo ponto. A resolução preserva ambas em ordem cronológica e integra `origin/main` em `c09b6b1`, sem reescrever o histórico da branch. Não houve conflito em código de aplicação. O diff em relação à main foi conferido: servidor, bolinhas, protocolo, manifesto e lockfile permanecem iguais à base integrada; as alterações de treino/câmera do Arranha-Teia foram preservadas.
+
+A instalação imutável foi repetida após incorporar o servidor e suas dependências. O agregado completo `yarn check:all` passou na imagem oficial Node 26.12.1, incluindo as duas frentes: core 68, marbles 174, servidor 27, swing 232, web 453 Vitest + 79 auxiliares, tipos, lint e build. `test:gates` (231) e `test:sdd` (109) também passaram; checker, formatação e auditoria são verificados no hook de pré-push. O aceite de câmera/visual T006 continua com o maintainer; esta integração não o antecipa.

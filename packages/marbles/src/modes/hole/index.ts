@@ -267,7 +267,7 @@ export function createHoleMode(overrides: Partial<HoleConfig> = {}): HoleMode {
                     radius: cfg.holeRadius,
                     active: Math.min(state[competitor].activeHole, cfg.holesPerRound - 1),
                 },
-                ...(opponent === 'bot' && rivalPlayed
+                ...(opponent !== 'target' && rivalPlayed
                     ? {
                           resting: [
                               { pos: { ...rivalState.pos }, radius: cfg.marbleRadius, owner: rival },

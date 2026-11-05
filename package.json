@@ -8,6 +8,7 @@
         "node": ">=26.12.1 <27"
     },
     "workspaces": [
+        "apps/server",
         "apps/web",
         "packages/core",
         "packages/marbles",
@@ -20,6 +21,7 @@
         "build": "yarn workspaces foreach --all --topological run build",
         "check:static": "yarn typecheck && yarn lint",
         "check:all": "yarn check:static && yarn test && yarn build",
+        "dev:server": "yarn workspace @guess-my-move/server dev",
         "dev:web": "yarn workspace @guess-my-move/web dev",
         "sdd:check": "node scripts/sdd/check-specs.mjs --root .",
         "test:sdd": "node --test test/sdd/check-specs.node-test.mjs test/sdd/check-gate.node-test.mjs",

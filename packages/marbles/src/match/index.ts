@@ -9,11 +9,11 @@
 import { type Body, DEFAULT_PHYSICS, type PhysicsConfig, type Vec } from '../physics.js'
 import { createMatchSession } from './session.js'
 
-/** O jogador ou o adversário automático. */
+/** Primeiro ou segundo competidor da partida. */
 export type Competitor = 'player' | 'opponent'
 
-/** Quem o jogador enfrenta: a meta (solo, sem vez) ou o bot (dois competidores com vez). */
-export type Opponent = 'target' | 'bot'
+/** Quem o jogador enfrenta: a meta solo, o bot ou outra pessoa remota. */
+export type Opponent = 'target' | 'bot' | 'remote'
 
 /** Resultado de uma rodada ou da partida, do ponto de vista do jogador. */
 export type Outcome = 'win' | 'draw' | 'loss'
@@ -238,7 +238,7 @@ export function createMatch(overrides: Partial<MatchConfig> & Pick<MatchConfig, 
             return
         }
 
-        if (phase === 'bot-turn') {
+        if (phase === 'opponent-turn') {
             // A sessão produz o tiro do bot pela fonte e entra em rolagem.
             session.advance(Number.MAX_SAFE_INTEGER)
             rollToRest()

@@ -31,7 +31,7 @@ import {
 export type MatchPhase =
     | 'choosing'
     | 'player-turn'
-    | 'bot-turn'
+    | 'opponent-turn'
     | 'rolling'
     | 'round-over'
     | 'match-over'
@@ -53,7 +53,9 @@ export interface MatchSnapshot {
     matchOutcome: Outcome | null
     /** De quem é a vez (`null` fora de uma partida em andamento). */
     turn: Competitor | null
-    /** Tiros restantes do jogador na rodada. */
+    /** Tiros restantes de cada competidor na rodada. */
+    shotsLeft: Record<Competitor, number>
+    /** @deprecated Use `shotsLeft.player`. Mantido durante a migração dos consumidores locais. */
     playerShotsLeft: number
     /** O que cada competidor rendeu NA RODADA corrente (capturas, covas). */
     roundYield: Record<Competitor, number>
@@ -69,8 +71,8 @@ export interface MatchSessionConfig {
     modeId: string
     mode: Mode
     opponent: Opponent
-    /** Fonte do tiro do bot (semente por partida); só usada contra o bot. */
-    bot: ShotSource
+    /** Fonte do tiro automático; usada somente contra o bot. */
+    bot?: ShotSource
     physics: PhysicsConfig
     /** Teto de passos por rolagem, trava contra rolagem infinita. */
     maxStepsPerShot: number
@@ -86,11 +88,17 @@ export interface MatchSession {
     shooter(): Vec | null
     /** `true` quando a tela deve alimentar a mão: vez do jogador, parado, à espera do tiro. */
     awaitingPlayerShot(): boolean
-    /** Dispara o tiro do jogador (vetor de velocidade vindo do controlador de mira). */
-    firePlayerShot(velocity: Vec): void
-    /** Avança a física em `dtMs`; anima a rolagem e, na vez do bot, dispara o tiro do bot. */
+    /** Dispara somente quando `competitor` é quem está na vez; devolve se foi aceito. */
+    fireShot(competitor: Competitor, velocity: Vec): boolean
+    /** Consome a vez sem lançar uma bolinha, usado quando o bot não tem alvo válido. */
+    passShot(competitor: Competitor): boolean
+    /** Compatibilidade do fluxo local: delega para `fireShot('player', velocity)`. */
+    firePlayerShot(velocity: Vec): boolean
+    /** Avança a física e, somente contra bot com fonte configurada, produz o tiro automático. */
     advance(dtMs: number): void
     /** Começa a próxima rodada após `round-over` (a tela decide quando, depois de mostrar o resultado). */
+    /** Próxima vez se a rodada continuar; após round-over, quem abre a próxima. */
+    nextCompetitor(): Competitor | null
     beginNextRound(): void
     /** Tiros gastos na rodada que acabou de encerrar (para provar o encerramento antecipado). */
     shotsSpentInPreviousRound(): number
@@ -107,7 +115,7 @@ const other = (c: Competitor): Competitor => (c === 'player' ? 'opponent' : 'pla
  */
 export function createMatchSession(
     overrides: Partial<MatchSessionConfig> &
-        Pick<MatchSessionConfig, 'modeId' | 'mode' | 'opponent' | 'bot'>,
+        Pick<MatchSessionConfig, 'modeId' | 'mode' | 'opponent'>,
 ): MatchSession {
     const cfg: MatchSessionConfig = {
         physics: DEFAULT_PHYSICS,
@@ -149,9 +157,9 @@ export function createMatchSession(
         return limitReached('player') && limitReached('opponent')
     }
 
-    /** A fase de espera da vez corrente (quem atira é o jogador ou o bot). */
+    /** A fase de espera da vez corrente (primeiro ou segundo competidor). */
     function turnPhase(): MatchPhase {
-        return turn === 'player' ? 'player-turn' : 'bot-turn'
+        return turn === 'player' ? 'player-turn' : 'opponent-turn'
     }
 
     /** Garante que o campo foi preparado para o competidor da vez antes de ele atirar. */
@@ -218,6 +226,17 @@ export function createMatchSession(
         phase = 'rolling'
     }
 
+    /** Consome a tentativa corrente sem alterar o campo. */
+    function pass(): void {
+        shotsSpent[turn]++
+        if (roundExhausted()) {
+            endRound('loss')
+            return
+        }
+        turn = nextTurnAfter()
+        settleTurn()
+    }
+
     /** Avalia o campo em repouso e decide a próxima vez ou o fim da rodada. */
     function resolveRoll(): void {
         const competitor = rollingBy ?? turn
@@ -273,9 +292,19 @@ export function createMatchSession(
                 lastRoundOutcome,
                 matchOutcome: phase === 'match-over' ? computeMatchOutcome(outcomes) : null,
                 turn:
-                    phase === 'player-turn' || phase === 'bot-turn' || phase === 'rolling'
+                    phase === 'player-turn' || phase === 'opponent-turn' || phase === 'rolling'
                         ? (rollingBy ?? turn)
                         : null,
+                shotsLeft: {
+                    player: Math.max(
+                        0,
+                        mode.shotLimit('player', opponent) - shotsSpent.player,
+                    ),
+                    opponent: Math.max(
+                        0,
+                        mode.shotLimit('opponent', opponent) - shotsSpent.opponent,
+                    ),
+                },
                 playerShotsLeft: Math.max(
                     0,
                     mode.shotLimit('player', opponent) - shotsSpent.player,
@@ -291,8 +320,17 @@ export function createMatchSession(
             }
         },
 
+        nextCompetitor(): Competitor | null {
+            if (phase === 'match-over') return null
+            if (phase === 'round-over') return startsRound(round)
+            const candidate = opponent === 'target' ? 'player' : other(turn)
+            if (!limitReached(candidate)) return candidate
+            const spentAfterShot = shotsSpent[turn] + (phase === 'rolling' ? 0 : 1)
+            return spentAfterShot < mode.shotLimit(turn, opponent) && !mode.isFinished?.(turn) ? turn : null
+        },
+
         shooter(): Vec | null {
-            if (phase !== 'player-turn' && phase !== 'bot-turn') return null
+            if (phase !== 'player-turn' && phase !== 'opponent-turn') return null
             prepareForTurn()
             return field.length > 0 ? { ...field[0].pos } : null
         },
@@ -301,27 +339,36 @@ export function createMatchSession(
             return phase === 'player-turn'
         },
 
-        firePlayerShot(velocity: Vec): void {
-            if (phase !== 'player-turn') return
+        fireShot(competitor: Competitor, velocity: Vec): boolean {
+            if (phase !== turnPhase() || competitor !== turn) return false
+            if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.y)) return false
             fire(velocity)
+            return true
+        },
+
+        passShot(competitor: Competitor): boolean {
+            if (phase !== turnPhase() || competitor !== turn) return false
+            pass()
+            return true
+        },
+
+        firePlayerShot(velocity: Vec): boolean {
+            if (phase !== 'player-turn' || turn !== 'player') return false
+            if (!Number.isFinite(velocity.x) || !Number.isFinite(velocity.y)) return false
+            fire(velocity)
+            return true
         },
 
         advance(dtMs: number): void {
             if (phase === 'round-over' || phase === 'match-over') return
 
-            // Vez do bot: produz o tiro e entra em rolagem (a física anima a seguir).
-            if (phase === 'bot-turn') {
+            // Só o bot produz tiro automático. Uma pessoa remota espera `fireShot`.
+            if (phase === 'opponent-turn') {
+                if (opponent !== 'bot' || !cfg.bot) return
                 prepareForTurn()
                 const shot = cfg.bot.nextShot(field)
                 if (!shot) {
-                    // Sem tiro: conta como esgotado e segue.
-                    shotsSpent[turn]++
-                    if (roundExhausted()) {
-                        endRound('loss')
-                        return
-                    }
-                    turn = nextTurnAfter()
-                    settleTurn()
+                    pass()
                     return
                 }
                 fire(shot)

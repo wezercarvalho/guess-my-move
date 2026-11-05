@@ -65,6 +65,8 @@ export interface FieldDraw {
     field: readonly Body[]
     decor: FieldDecor | null
     aim: AimDraw | null
+    /** Tiro anunciado do adversário antes de ser aplicado. */
+    opponentIntent?: { velocity: Vec; power: number } | null
     hand: HandCursor | null
     /** Dono da bolinha de tiro (índice 0): define a cor. Ausente = o jogador. */
     shooterOwner?: Competitor
@@ -108,7 +110,7 @@ export function drawField(canvas: HTMLCanvasElement, draw: FieldDraw): void {
     const context = canvas.getContext('2d')
     if (!context) return
     const { width, height } = DEFAULT_PHYSICS
-    const { field, decor, aim, hand, shooterOwner = 'player' } = draw
+    const { field, decor, aim, opponentIntent, hand, shooterOwner = 'player' } = draw
 
     context.clearRect(0, 0, width, height)
     context.fillStyle = '#b98f5e'
@@ -129,12 +131,29 @@ export function drawField(canvas: HTMLCanvasElement, draw: FieldDraw): void {
             index === 0 ? SHOOTER_COLOR[shooterOwner] : '#e5533d',
         )
     })
-    // Bolinhas paradas de quem não está na vez, na cor do dono (Cova contra o bot).
+    if (shooterOwner === 'opponent' && field[0]) {
+        context.lineWidth = 3
+        context.strokeStyle = '#ffffff'
+        ring(context, field[0].pos.x, field[0].pos.y, field[0].radius + 5, [4, 4])
+    }
+    // Bolinhas paradas de quem não está na vez, na cor do dono (Cova competitiva).
     decor?.resting?.forEach((rest) => {
         marble(context, rest.pos.x, rest.pos.y, rest.radius, SHOOTER_COLOR[rest.owner])
+        if (rest.owner === 'opponent') {
+            context.lineWidth = 3
+            context.strokeStyle = '#ffffff'
+            ring(context, rest.pos.x, rest.pos.y, rest.radius + 5, [4, 4])
+        }
     })
 
     const shooter = field.length > 0 ? field[0].pos : { x: 0, y: 0 }
+
+    if (opponentIntent) {
+        context.lineCap = 'round'
+        context.lineWidth = 4
+        context.strokeStyle = '#f2c14e'
+        arrow(context, shooter, opponentIntent.velocity, opponentIntent.power)
+    }
 
     if (aim?.direction) {
         context.lineCap = 'round'
