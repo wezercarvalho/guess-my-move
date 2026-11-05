@@ -273,3 +273,47 @@
     margin: 0;
     min-height: 0;
 }
+
+.marbles-lobby,
+.marbles-lobby form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.marbles-lobby {
+    padding: var(--space-4);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius);
+}
+
+.marbles-lobby p {
+    margin: 0;
+}
+
+.marbles-lobby input {
+    min-width: 0;
+    max-width: 12rem;
+    padding: var(--space-2) var(--space-3);
+    color: var(--paper);
+    background: var(--surface);
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius);
+    font: inherit;
+    text-transform: uppercase;
+}
+
+/* Identidade e estado ficam visíveis durante toda a partida, sem cobrir o campo. */
+.marbles-lobby { display: grid; gap: var(--space-3); }
+.marbles-lobby__header, .marbles-lobby__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.marbles-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); list-style: none; padding: 0; margin: 0; }
+.marbles-player { display: grid; align-content: start; gap: var(--space-1); min-width: 0; padding: var(--space-3); background: var(--surface); border: 1px solid var(--control-border); border-left: 4px solid #3b82f6; overflow-wrap: anywhere; }
+.marbles-player--opponent { border-left-color: #8b5cf6; border-left-style: dashed; }
+.marbles-player[aria-current="true"] { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.marbles-player span { font-size: .875rem; }
+.marbles-nickname { display: grid; gap: var(--space-2); }
+.marbles-nickname small, .marbles-lobby__hint { color: var(--muted); font-size: .875rem; }
+.marbles-lobby #marbles-nickname { text-transform: none; max-width: 20rem; width: 100%; box-sizing: border-box; }
+.marbles-next-turn { border-top: 1px solid var(--control-border); padding-top: var(--space-3); }
+@media (max-width: 540px) { .marbles-players { grid-template-columns: 1fr; } }

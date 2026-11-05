@@ -41,3 +41,9 @@ Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha e
 | `yarn docs:format:fix`       | Prettier `--write` nos mesmos documentos (escreve arquivos; nunca roda no CI). |
 | `yarn test:gates`            | Testes do hook, do auditor de dependências e da estrutura dos workflows.       |
 | `yarn security:dependencies` | Auditoria de dependências (usa rede).                                          |
+
+## Bolinhas multiplayer em desenvolvimento
+
+Execute `yarn dev:server` e `yarn dev:web` em terminais separados. O servidor usa `PORT=3000`, `MAX_ROOMS=100` e `SERVER_TICK_MS=33` por padrão; o proxy Vite de `/socket.io` (WebSocket) e `/api` aponta para `127.0.0.1:3000`. Se alterar `PORT`, alinhe o proxy local. Abra `/marbles.html` em dois contextos de navegador: Online → criar/entrar por código → prontidão. Cada aba guarda a credencial de retomada em `sessionStorage`; sair da sala a limpa. Queda pausa por 60 s, reload retoma; reiniciar o servidor perde as salas.
+
+Para executar o compilado: `yarn build` e `yarn workspace @guess-my-move/server start`. O build não inicia nem publica o servidor. Teste a rede local antes de expor uma instância; nenhuma imagem ou landmark deve aparecer nos frames WebSocket. O modo local independe do servidor.

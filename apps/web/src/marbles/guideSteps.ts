@@ -37,7 +37,8 @@ export function currentStep({ shotControl, ready, aiming, flickPhase, shotReady 
 
 /** Regras curtas do modo para o adversário escolhido (no máximo 2 frases). */
 export function rulesText(mode: Mode, opponent: Opponent): string {
-    return mode.rules ? mode.rules[opponent] : mode.helpText
+    if (!mode.rules) return mode.helpText
+    return mode.rules[opponent === 'remote' ? 'bot' : opponent]
 }
 
 const FLICK_HINTS: Partial<Record<FlickOutcome, string>> = {

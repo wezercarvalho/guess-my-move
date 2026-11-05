@@ -186,3 +186,23 @@ describe('drawField', () => {
         })
     })
 })
+
+
+describe('drawField: intenção e distinção do adversário', () => {
+    it('desenha a seta da intenção mesmo sem mira local', () => {
+        const { canvas, context } = stubCanvas()
+        drawField(canvas, {
+            ...base,
+            opponentIntent: { velocity: { x: 600, y: 0 }, power: 0.5 },
+        })
+        expect(context.lineTo).toHaveBeenCalled()
+    })
+
+    it('adiciona um anel tracejado à bolinha do adversário', () => {
+        const { canvas, context } = stubCanvas()
+        drawField(canvas, { ...base, shooterOwner: 'opponent' })
+        const arcs = (context.arc.mock.calls as unknown as number[][]).map(([x, y, r]) => [x, y, r])
+        expect(arcs).toContainEqual([150, 300, 19])
+        expect(context.setLineDash).toHaveBeenCalledWith([4, 4])
+    })
+})

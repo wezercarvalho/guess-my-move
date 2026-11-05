@@ -121,7 +121,7 @@ function runViaSession(entry: EquivMode, opponent: Opponent): Outcome[] {
             session.firePlayerShot(shot)
             continue
         }
-        // bot-turn / rolling: só o tempo precisa correr, quadro a quadro.
+        // opponent-turn / rolling: só o tempo precisa correr, quadro a quadro.
         session.advance(DT)
     }
     return session.snapshot().roundOutcomes

@@ -6,8 +6,8 @@ strategy: sdd
 domain: game
 capability: marbles-modes
 objective: build-single-player-matches
-summary: Transforma o bete solo das bolinhas de gude num jogo de partidas com três modos (Bete, Triângulo e Cova), jogáveis por um jogador contra a meta ou contra um bot. A leitura da mão (pinça e estalo) é separada das regras num controlador de mira reutilizável; um motor de partida puro conduz 3 rodadas, a vez, os tiros e o resultado (vitória, derrota ou empate) sobre um contrato de modo que cada jogo implementa; um bot determinístico mira por simulação com `stepBodies` e erro controlado por semente; e cada modo declara campo, limite de tiros, avaliação e texto de ajuda. O Bete migra para o motor, o Triângulo captura 6 bolinhas para fora de um círculo e a Cova percorre 3 covas em ordem com entrada por velocidade. A tela escolhe modo e adversário, conduz a partida e mostra placar, vez e resultado, e a ajuda de cada modo aparece na tela. Tudo é singleplayer — multiplayer, rede e câmeras separadas ficam para depois. A fonte do tiro é uma interface que admite um segundo jogador no futuro sem implementá-lo. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; a implementação é test-first e o Gate 3 fica para o fim, sem afirmar equilíbrio nem diversão sem uso real.
-status: implementing
+summary: Transforma o bete solo das bolinhas de gude num jogo de partidas com três modos (Bete, Triângulo e Cova), jogáveis por um jogador contra a meta ou contra um bot. A leitura da mão (pinça e estalo) é separada das regras num controlador de mira reutilizável; um motor de partida puro conduz 3 rodadas, a vez, os tiros e o resultado (vitória, derrota ou empate) sobre um contrato de modo que cada jogo implementa; um bot determinístico mira por simulação com `stepBodies` e erro controlado por semente; e cada modo declara campo, limite de tiros, avaliação e texto de ajuda. O Bete migra para o motor, o Triângulo captura 6 bolinhas para fora de um círculo e a Cova percorre 3 covas em ordem com entrada por velocidade. A tela escolhe modo e adversário, conduz a partida e mostra placar, vez e resultado, e a ajuda de cada modo aparece na tela. Tudo é singleplayer — multiplayer, rede e câmeras separadas ficam para depois. A fonte do tiro é uma interface que admite um segundo jogador no futuro sem implementá-lo. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; implementação test-first concluída; Gate 3 aprovado pelo maintainer em 2026-10-31 com risco aceito, sem afirmar equilíbrio nem diversão sem uso real.
+status: validated
 owners:
     - wezercarvalho
 reviewers:
@@ -43,7 +43,7 @@ supersedes: []
 branch: feat/86-modos-de-jogo-bolinhas
 constitution_version: 1.0.0
 created_at: 2026-10-29
-updated_at: 2026-10-29
+updated_at: 2026-10-31
 ---
 
 # Modos de jogo das bolinhas de gude, partidas de um jogador contra a meta e contra o bot

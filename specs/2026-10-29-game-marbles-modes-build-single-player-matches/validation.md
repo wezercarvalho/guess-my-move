@@ -3,10 +3,10 @@
 ## Estado
 
 - **Spec:** `spec.md`
-- **Status:** em andamento
+- **Status:** aprovado
 - **Constituição:** 1.0.0
 - **Data:** `2026-10-29`
-- **Executor/revisor:** kirocrew (agente), aguardando revisão do maintainer wezercarvalho
+- **Executor/revisor:** kirocrew (agente) e wezercarvalho (maintainer, Gate 3)
 - **Commit:** `ce6933a` (refactor da sessão única e docs; validação registrada neste commit seguinte)
 
 ## Resumo do resultado
@@ -29,16 +29,15 @@ menos tiros) e acumulava o rendimento. Corrigido test-first com `Mode.isFinished
 completou sai da disputa) e rendimento por tiro; título da página, cartão do menu e README
 passaram a descrever os três modos.
 
-Todos os cinco gates passam. **Veredito do agente: convergente, aguardando revisão do
-maintainer.** O Gate 3 fica PENDENTE do maintainer (não foi concedido pelo agente), com os
-riscos aceitos registrados abaixo: sem teste ao vivo com a mão real; valores de jogo iniciais
-a calibrar; faixa de acerto do bot como proteção de regressão, não equilíbrio medido; sem
-medição de fps.
+Todos os cinco gates passam. **Veredito: aprovado com risco aceito pelo maintainer em
+2026-10-31.** O aceite cobre os riscos registrados abaixo: sem teste ao vivo com a mão real;
+valores de jogo iniciais a calibrar; faixa de acerto do bot como proteção de regressão, não
+equilíbrio medido; sem medição de fps.
 
 ## Conclusão das tarefas
 
-- **Concluídas:** 30 (T001–T030)
-- **Pendentes:** 1 (T031 — fechamento do Gate 3 e promoção a `validated`, do maintainer)
+- **Concluídas:** 31 (T001–T031)
+- **Pendentes:** 0
 - **Evidência:** `tasks.md`
 
 ## Evidências por requisito
@@ -121,7 +120,7 @@ virar um laço fino sobre a sessão.
 | III. Núcleo puro e determinístico  | PASS      | `match/` sem DOM/MediaPipe/relógio (teste de pureza em `match.test.ts`); tempo entra por argumento. |
 | IV. Privacidade local              | PASS      | Nada gravado ou enviado; modelos fora do Git.                                                       |
 | V. Sem código órfão                | PASS      | `matchSession.ts` duplicado removido; `createMatch` reescrito sobre a sessão; sem helpers órfãos.   |
-| VI. Convergência (Gate 3)          | PENDENTE  | Aguardando revisão do maintainer; veredito do agente: convergente.                                  |
+| VI. Convergência (Gate 3)          | PASS      | Aprovado pelo maintainer em 2026-10-31 com os riscos abaixo aceitos.                                |
 
 ## Convergência
 
@@ -142,9 +141,9 @@ virar um laço fino sobre a sessão.
 
 ## Gate 3 — Convergência validada
 
-- **Veredito:** pendente (veredito do agente: convergente, aguardando revisão do maintainer)
-- **Aprovador:** wezercarvalho (maintainer) — pendente
-- **Data:** pendente
+- **Veredito:** aprovado com risco aceito
+- **Aprovador:** wezercarvalho (maintainer)
+- **Data:** `2026-10-31`
 - **Escopo aprovado:** modos de jogo das bolinhas (FR-001 a FR-014, NFR-001 a NFR-005, SC-001 a SC-006), issues #86 a #93
 - **Riscos aceitos:** sem teste ao vivo com a mão real; valores de jogo iniciais a calibrar; faixa de acerto do bot como proteção de regressão, não equilíbrio medido; sem medição de fps
-- **Observações:** o agente NÃO concede o Gate 3. Os cinco gates automatizados passam e o condutor de partida é único (equivalência provada). A promoção da spec a `validated` (T031) depende da aprovação do maintainer.
+- **Observações:** aprovação registrada na mensagem do maintainer de 2026-10-31 ("Pode considerar todos os gates aceitos"). Os cinco gates automatizados históricos passam e o condutor de partida é único; o aceite não transforma as limitações declaradas em medições.

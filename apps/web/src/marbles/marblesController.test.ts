@@ -1,9 +1,22 @@
-import { type BotLevel, type BotPlanner, createBotPlanner, modes } from '@guess-my-move/marbles'
+import {
+    type BotLevel,
+    type BotPlanner,
+    type Mode,
+    type ModeEntry,
+    type Vec,
+    createBotPlanner,
+    modes,
+} from '@guess-my-move/marbles'
 import { describe, expect, it, vi } from 'vitest'
 
 import { CLOSED_RATIO, OPEN_RATIO, pinchHand } from '../test-utils/fakeHand.js'
 import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
-import { MarblesController, shotControlFromSearch } from './marblesController.js'
+import {
+    MarblesController,
+    createBotShotSource,
+    shotControlFromSearch,
+} from './marblesController.js'
+import { type MultiplayerSnapshot } from './multiplayerClient.js'
 
 /** Relógio, quadros de vídeo e detector controlados pelo teste. */
 function harness(
@@ -94,12 +107,12 @@ function firePinch(h: ReturnType<typeof harness>) {
     h.run(open(250, 300))
 }
 
-/** Anima a rolagem até a partida sair de `rolling`/`bot-turn`. */
+/** Anima a rolagem até a partida sair de `rolling`/`opponent-turn`. */
 function settle(h: ReturnType<typeof harness>, maxTicks = 2000) {
     let ticks = 0
     while (ticks < maxTicks) {
         const phase = h.controller.getSnapshot().match?.phase
-        if (phase !== 'rolling' && phase !== 'bot-turn' && phase !== 'round-over') break
+        if (phase !== 'rolling' && phase !== 'opponent-turn' && phase !== 'round-over') break
         // Na vez do bot e na espera entre rodadas, só o tempo precisa correr.
         h.tick(1, 16)
         ticks++
@@ -279,13 +292,13 @@ describe('MarblesController: vez do bot', () => {
         settle(h)
         // Agora, se for a vez do bot, uma pinça fechada não deve disparar.
         let snap = h.controller.getSnapshot()
-        if (snap.match?.turn === 'opponent' && snap.match.phase === 'bot-turn') {
-            const shotsLeftBefore = snap.match.playerShotsLeft
+        if (snap.match?.turn === 'opponent' && snap.match.phase === 'opponent-turn') {
+            const shotsLeftBefore = snap.match.shotsLeft.player
             h.run(closed(300, 300), 3)
             snap = h.controller.getSnapshot()
             // O tiro do jogador não entrou: os tiros restantes do jogador não mudaram
             // por causa do gesto (o bot anima no tick, não na leitura da mão).
-            expect(snap.match?.playerShotsLeft).toBe(shotsLeftBefore)
+            expect(snap.match?.shotsLeft.player).toBe(shotsLeftBefore)
             expect(snap.aim).toBeNull()
         }
         expect(true).toBe(true)
@@ -319,7 +332,7 @@ describe('MarblesController: controle de tiro', () => {
         h.controller.setOpponent('target')
         h.controller.setShotControl('flick')
         h.controller.startMatch()
-        const before = h.controller.getSnapshot().match?.playerShotsLeft ?? 0
+        const before = h.controller.getSnapshot().match?.shotsLeft.player ?? 0
         const tucked = (ratio: number, x = 220) => pinchHand({ ratio, x, y: 300 })
         h.run(tucked(0.8, 300), 1, 67)
         h.run(tucked(0.8, 220), 2, 67)
@@ -327,7 +340,7 @@ describe('MarblesController: controle de tiro', () => {
         // O estalo disparou neste quadro (antes de a rolagem encerrar a rodada e zerar os tiros).
         const snap = h.controller.getSnapshot()
         expect(snap.debug.flick.lastResult).toBe('disparado')
-        expect((snap.match?.playerShotsLeft ?? before) < before || snap.match?.phase === 'rolling').toBe(
+        expect((snap.match?.shotsLeft.player ?? before) < before || snap.match?.phase === 'rolling').toBe(
             true,
         )
     })
@@ -385,5 +398,191 @@ describe('MarblesController: câmera e detector', () => {
             expect(h.controller.getSnapshot().trackerStatus).toBe('error')
         })
         expect(h.controller.getSnapshot().failureReason).toBe('modelo ausente')
+    })
+})
+
+
+describe('MarblesController: intenção do adversário', () => {
+    it('não inventa tiro quando o modo não oferece alvo', () => {
+        const mode: Mode = {
+            name: 'sem alvo',
+            helpText: 'Sem alvo. Vitória, empate ou derrota.',
+            roundsPerMatch: 1,
+            buildRound: () => [],
+            shotLimit: () => 1,
+            evaluate: () => ({ yield: 0, finished: false, outcome: null }),
+        }
+        const entry: Pick<ModeEntry, 'botAimPoint'> = {
+            botAimPoint: () => () => null,
+        }
+        const planShot = vi.fn(() => ({ x: 999, y: 0 }))
+        const planner: BotPlanner = { planShot }
+        const source = createBotShotSource(entry, mode, planner, 123)
+
+        expect(source.nextShot([{ pos: { x: 10, y: 10 }, vel: { x: 0, y: 0 }, radius: 14 }])).toBeNull()
+        expect(planShot).not.toHaveBeenCalled()
+    })
+
+    it('mostra a intenção do bot antes de disparar', async () => {
+        const h = harness()
+        await h.ready()
+        h.controller.setMode('bete')
+        h.controller.setOpponent('bot')
+        h.controller.startMatch()
+        firePinch(h)
+
+        let guard = 0
+        while (h.controller.getSnapshot().match?.phase === 'rolling' && guard++ < 2000) {
+            h.tick(1, 16)
+        }
+        expect(h.controller.getSnapshot().match?.phase).toBe('opponent-turn')
+
+        h.tick(1, 16)
+        const preview = h.controller.getSnapshot()
+        expect(preview.match?.phase).toBe('opponent-turn')
+        expect(preview.opponentIntent?.velocity).toBeDefined()
+
+        h.tick(1, 500)
+        expect(h.controller.getSnapshot().match?.phase).toBe('rolling')
+        expect(h.controller.getSnapshot().opponentIntent).toBeNull()
+    })
+})
+
+
+function remoteSnapshot(): MultiplayerSnapshot {
+    return {
+        connection: 'connected',
+        access: {
+            roomCode: 'ABCDEF',
+            role: 'player',
+            resumeToken: 'a'.repeat(32),
+        },
+        room: {
+            roomCode: 'ABCDEF',
+            modeId: 'bete',
+            status: 'playing',
+            version: 4,
+            players: {
+                player: { connected: true, ready: true },
+                opponent: { connected: true, ready: true },
+            },
+            match: {
+                modeId: 'bete',
+                opponent: 'remote',
+                phase: 'player-turn',
+                round: 0,
+                roundsPerMatch: 3,
+                roundOutcomes: [],
+                lastRoundOutcome: null,
+                matchOutcome: null,
+                turn: 'player',
+                shotsLeft: { player: 5, opponent: 5 },
+                roundYield: { player: 0, opponent: 0 },
+                scoreLabel: null,
+                field: [
+                    { pos: { x: 150, y: 300 }, vel: { x: 0, y: 0 }, radius: 14 },
+                    { pos: { x: 550, y: 300 }, vel: { x: 0, y: 0 }, radius: 24 },
+                ],
+                decor: null,
+            },
+            intent: null,
+            reconnectDeadlineMs: null,
+        },
+        error: null,
+    }
+}
+
+describe('MarblesController: driver remoto', () => {
+    it('consome o snapshot autoritativo sem criar sessão local', () => {
+        const h = harness()
+        h.controller.setPlayType('online')
+        h.controller.setMultiplayer(remoteSnapshot(), vi.fn())
+        expect(h.controller.getSnapshot()).toMatchObject({
+            playType: 'online',
+            choosing: false,
+            opponent: 'remote',
+            modeId: 'bete',
+            match: { phase: 'player-turn', turn: 'player' },
+        })
+    })
+
+    it('envia somente o vetor da mira na própria vez', async () => {
+        const h = harness()
+        const send = vi.fn<(velocity: Vec) => void>()
+        h.controller.setPlayType('online')
+        h.controller.setMultiplayer(remoteSnapshot(), send)
+        await h.ready()
+        firePinch(h)
+        expect(send).toHaveBeenCalledTimes(1)
+        const velocity = send.mock.calls[0]?.[0]
+        expect(Object.keys(velocity ?? {})).toEqual(['x', 'y'])
+        expect(typeof velocity?.x).toBe('number')
+        expect(typeof velocity?.y).toBe('number')
+
+        const waiting = remoteSnapshot()
+        if (!waiting.room?.match) throw new Error('fixture sem partida')
+        waiting.room.match.phase = 'opponent-turn'
+        waiting.room.match.turn = 'opponent'
+        waiting.room.version++
+        h.controller.setMultiplayer(waiting, send)
+        firePinch(h)
+        expect(send).toHaveBeenCalledTimes(1)
+    })
+})
+
+
+describe('MarblesController: autoridade da sala', () => {
+    for (const control of ['pinch', 'flick'] as const) {
+        for (const role of ['player', 'opponent'] as const) {
+            it(`${control}: só envia vetores na própria vez de ${role}`, async () => {
+                const h = harness()
+                const send = vi.fn<(velocity: Vec) => void>()
+                const remote = remoteSnapshot()
+                if (!remote.access || !remote.room?.match) throw new Error('fixture sem sala')
+                remote.access.role = role
+                remote.room.match.turn = role
+                remote.room.match.phase = role === 'player' ? 'player-turn' : 'opponent-turn'
+                h.controller.setShotControl(control)
+                h.controller.setMultiplayer(remote, send)
+                await h.ready()
+                function shoot() {
+                    if (control === 'pinch') firePinch(h)
+                    else {
+                        h.run(pinchHand({ ratio: 0.8, x: 300, y: 300 }), 1, 67)
+                        h.run(pinchHand({ ratio: 0.8, x: 220, y: 300 }), 2, 67)
+                        h.run(pinchHand({ ratio: 1.5, x: 220, y: 300 }), 3, 67)
+                    }
+                }
+                shoot()
+                expect(send).toHaveBeenCalledTimes(1)
+                remote.room.match.turn = role === 'player' ? 'opponent' : 'player'
+                remote.room.match.phase = role === 'player' ? 'opponent-turn' : 'player-turn'
+                h.controller.setMultiplayer(structuredClone(remote), send)
+                shoot()
+                expect(send).toHaveBeenCalledTimes(1)
+                remote.room.match.turn = role
+                remote.room.match.phase = role === 'player' ? 'player-turn' : 'opponent-turn'
+                remote.connection = 'disconnected'
+                h.controller.setMultiplayer(structuredClone(remote), send)
+                shoot()
+                expect(send).toHaveBeenCalledTimes(1)
+            })
+        }
+    }
+})
+
+
+describe('MarblesController: recuperação do detector', () => {
+    it('permite tentar novamente desligando e ativando a câmera após falha de carga', async () => {
+        let attempts = 0
+        const tracker: HandTracker = { delegate: 'CPU', detect: () => null, close: vi.fn() }
+        const h = harness({ createTracker: () => ++attempts === 1 ? Promise.reject(new Error('falha transitória')) : Promise.resolve(tracker) })
+        h.controller.setCamera(true, false)
+        await vi.waitFor(() => expect(h.controller.getSnapshot().trackerStatus).toBe('error'))
+        h.controller.setCamera(false, false)
+        h.controller.setCamera(true, false)
+        await vi.waitFor(() => expect(h.controller.getSnapshot().trackerStatus).toBe('ready'))
+        expect(attempts).toBe(2)
+        expect(h.controller.getSnapshot().failureReason).toBeNull()
     })
 })

@@ -119,7 +119,7 @@ export function createBeteMode(overrides: Partial<BeteConfig> = {}): Mode {
             else opponentHit = true
         }
 
-        if (opponent === 'bot') {
+        if (opponent !== 'target') {
             // Os dois atiram o mesmo número de vezes: com o par de tiros completo, quem acertou vence;
             // se os dois acertaram no mesmo número de tiro, empata.
             if (playerShots === opponentShots && (playerHit || opponentHit)) {

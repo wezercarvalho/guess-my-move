@@ -19,6 +19,9 @@
         "build": "tsc --build tsconfig.build.json",
         "test": "vitest run"
     },
+    "dependencies": {
+        "zod": "4.6.7"
+    },
     "devDependencies": {
         "typescript": "7.0.2",
         "vite": "8.3.4",
