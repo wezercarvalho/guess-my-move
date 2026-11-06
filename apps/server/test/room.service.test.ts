@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { RoomError, RoomService } from '../src/multiplayer/room.service.js'
 
-function harness(options: { maxRooms?: number } = {}) {
+function harness(options: { maxRooms?: number; finishedTimeoutMs?: number } = {}) {
     let now = 10_000
     const codes = ['ABCDEF', 'GHJKMN', 'PQRSTU']
     const tokens = ['a'.repeat(32), 'b'.repeat(32), 'c'.repeat(32), 'd'.repeat(32)]
@@ -12,6 +12,7 @@ function harness(options: { maxRooms?: number } = {}) {
         code: () => codes.shift() ?? 'VWXYZ2',
         token: () => tokens.shift() ?? 'z'.repeat(32),
         maxRooms: options.maxRooms ?? 10,
+        finishedTimeoutMs: options.finishedTimeoutMs ?? 300_000,
         shotPreviewMs: 450,
         roundDwellMs: 900,
     })
@@ -243,10 +244,12 @@ describe('RoomService: partida completa por modo', () => {
             expect(final?.status).toBe('finished')
             expect(final?.match?.phase).toBe('match-over')
             expect(final?.match?.roundOutcomes).toHaveLength(3)
+            expect(h.advanceClock(299_999).expired).toEqual([])
             h.service.setRematchReady('host',{ready:true,matchNumber:1})
             const replay=h.service.setRematchReady('guest',{ready:true,matchNumber:1})
             expect(replay).toMatchObject({modeId,matchNumber:2,status:'playing',match:{round:0,roundOutcomes:[]}})
             expect(replay.match?.field).toEqual(initial.match?.field)
+            expect(h.advanceClock(2).expired).toEqual([])
         })
     }
 })

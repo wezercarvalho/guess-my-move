@@ -221,3 +221,14 @@ O maintainer solicitou identificação por nickname, participantes visíveis, ve
 - FR-018: listar duas vagas com apelidos, marca Você, presença e prontidão/espera. Mostrar Agora e Na sequência com nomes, tiros por jogador e rótulos sem depender apenas de cores. Próxima vez vem do motor autoritativo; antes do fim do tiro é condicional à continuação da rodada, nunca promessa de uma vez que pode não acontecer.
 - FR-019: após o resultado, permitir que cada jogador confirme/cancele uma revanche na mesma sala. Preservar código, papéis e nomes; iniciar uma única partida nova quando ambos confirmarem conectados. Não aceitar revanche durante partida/pausa, nem comandos atrasados de outra partida. Preservar resultado até ambos confirmarem e manter sair disponível.
 - SC-008: testes de protocolo, sala, motor, cliente e tela mais demonstração com dois contextos provam identidade, turnos, pausas e revanche; modo local permanece funcional.
+
+## Revisão de robustez — 2026-11-06
+
+Escopo autorizado pelo maintainer nesta conversa: “na verdade é tratar esses pontos aí que tu me trouxe” e “Segue no que tu estava fazendo, sim”. Preserva-se o aceite de câmera real da entrega anterior.
+
+- **FR-020:** salas em espera, em jogo sem atividade e finalizadas expiram por prazos configuráveis (padrões: 5, 15 e 5 minutos). Comandos idempotentes e tráfego de conexão não renovam o prazo. Movimento de uma jogada e ações válidas renovam atividade. A pausa preserva a janela de reconexão; retomada válida renova o prazo. Revanche continua bilateral.
+- **FR-021:** admissão valida a origem do WebSocket; padrões de desenvolvimento permitem localhost e 127.0.0.1 na porta 5173. Clientes sem origem são recusados por padrão, com opção explícita para habilitá-los. Conexões têm teto global e por endereço; criação/entrada/retomada têm orçamento agregado por endereço, preservado entre reconexões, com expiração e armazenamento limitado. IP encaminhado só é considerado quando os proxies intermediários são explicitamente confiáveis.
+- **FR-022:** falhas inesperadas geram diagnóstico estruturado sem mídia, apelidos, tokens, endereços ou payloads; contadores agregados registram admissão, recusas e expirações. Resposta pública continua genérica. Health permanece apenas liveness.
+- **FR-023:** desenvolvimento compila a dependência interna antes do servidor e acompanha ambos; iniciar a partir de clone sem builds deve funcionar sem passo manual oculto.
+- **NFR-006:** sem novas dependências de produção, contas, banco, publicação ou alteração de regras dos jogos. Limites e proxy confiável são validados no boot; documentar a configuração e as limitações. Nenhuma afirmação de proteção contra abuso distribuído.
+- **SC-009:** testes de prazo, reconexão, revanche, origem, capacidade, orçamento entre sockets, proxy e privacidade de logs; inicialização sem builds; gates oficiais verdes.

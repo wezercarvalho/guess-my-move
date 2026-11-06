@@ -11,16 +11,27 @@ import {
 import { type INestApplication } from '@nestjs/common'
 import { type AddressInfo } from 'node:net'
 import { io, type Socket } from 'socket.io-client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createServerApp } from '../src/app.setup.js'
-import { type CommandAck } from '../src/multiplayer/multiplayer.gateway.js'
+import {
+    MultiplayerGateway,
+    type CommandAck,
+} from '../src/multiplayer/multiplayer.gateway.js'
 
 const sockets: Socket[] = []
 let app: INestApplication | null = null
 
-async function connect(url: string): Promise<Socket> {
-    const socket = io(url, { transports: ['websocket'], reconnection: false, forceNew: true })
+async function connect(url: string, forwarded?: string): Promise<Socket> {
+    const socket = io(url, {
+        transports: ['websocket'],
+        reconnection: false,
+        forceNew: true,
+        extraHeaders: {
+            Origin: 'http://localhost:5173',
+            ...(forwarded ? { 'X-Forwarded-For': forwarded } : {}),
+        },
+    })
     sockets.push(socket)
     await new Promise<void>((resolve, reject) => {
         socket.once('connect', resolve)
@@ -29,13 +40,22 @@ async function connect(url: string): Promise<Socket> {
     return socket
 }
 
-function emitAck(socket: Socket, event: string, payload: unknown): Promise<CommandAck> {
+function emitAck(
+    socket: Socket,
+    event: string,
+    payload: unknown,
+): Promise<CommandAck> {
     return new Promise((resolve) =>
-        socket.emit(event, payload, (ack: unknown) => resolve(ack as CommandAck)),
+        socket.emit(event, payload, (ack: unknown) =>
+            resolve(ack as CommandAck),
+        ),
     )
 }
 
-async function eventually<T>(read: () => T | undefined, timeoutMs = 2000): Promise<T> {
+async function eventually<T>(
+    read: () => T | undefined,
+    timeoutMs = 2000,
+): Promise<T> {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
         const value = read()
@@ -45,7 +65,10 @@ async function eventually<T>(read: () => T | undefined, timeoutMs = 2000): Promi
     throw new Error('estado esperado não chegou')
 }
 
-function lastWhere<T>(values: readonly T[], predicate: (value: T) => boolean): T | undefined {
+function lastWhere<T>(
+    values: readonly T[],
+    predicate: (value: T) => boolean,
+): T | undefined {
     for (let index = values.length - 1; index >= 0; index--) {
         if (predicate(values[index])) return values[index]
     }
@@ -69,9 +92,12 @@ function collectErrors(target: ProtocolError[]): (value: unknown) => void {
 async function startServer(): Promise<string> {
     app = await createServerApp({ logger: false })
     await app.listen(0, '127.0.0.1')
-    const server = app.getHttpServer() as { address(): AddressInfo | string | null }
+    const server = app.getHttpServer() as {
+        address(): AddressInfo | string | null
+    }
     const address = server.address()
-    if (!address || typeof address === 'string') throw new Error('porta efêmera indisponível')
+    if (!address || typeof address === 'string')
+        throw new Error('porta efêmera indisponível')
     return `http://127.0.0.1:${address.port}`
 }
 
@@ -84,15 +110,21 @@ afterEach(async () => {
     for (const socket of sockets.splice(0)) socket.disconnect()
     await app?.close()
     app = null
+    vi.unstubAllEnvs()
 })
 
 describe('servidor multiplayer e2e', () => {
     it('responde health e mantém duas conexões no mesmo estado autoritativo', async () => {
         const url = await startServer()
-        await expect(fetch(`${url}/api/health`).then((response) => response.json())).resolves.toEqual({
+        await expect(
+            fetch(`${url}/api/health`).then((response) => response.json()),
+        ).resolves.toEqual({
             status: 'ok',
         })
 
+        const health = await fetch(`${url}/api/health`)
+        expect(health.headers.get('x-powered-by')).toBeNull()
+        expect(health.headers.get('x-content-type-options')).toBe('nosniff')
         const host = await connect(url)
         const guest = await connect(url)
         const hostStates: RoomState[] = []
@@ -100,9 +132,17 @@ describe('servidor multiplayer e2e', () => {
         host.on(SERVER_EVENTS.state, collectStates(hostStates))
         guest.on(SERVER_EVENTS.state, collectStates(guestStates))
 
-        const created = accessOf(await emitAck(host, CLIENT_EVENTS.create, { modeId: 'bete', nickname: 'Ana' }))
+        const created = accessOf(
+            await emitAck(host, CLIENT_EVENTS.create, {
+                modeId: 'bete',
+                nickname: 'Ana',
+            }),
+        )
         const joined = accessOf(
-            await emitAck(guest, CLIENT_EVENTS.join, { roomCode: created.roomCode.toLowerCase(), nickname: 'Bia' }),
+            await emitAck(guest, CLIENT_EVENTS.join, {
+                roomCode: created.roomCode.toLowerCase(),
+                nickname: 'Bia',
+            }),
         )
         expect(joined.role).toBe('opponent')
         await emitAck(host, CLIENT_EVENTS.ready, { ready: true })
@@ -118,26 +158,48 @@ describe('servidor multiplayer e2e', () => {
         expect(hostPlaying.players.player.nickname).toBe('Ana')
         expect(hostPlaying.players.opponent.nickname).toBe('Bia')
         expect(hostPlaying.nextTurn).toBe('opponent')
-        expect(await emitAck(host,CLIENT_EVENTS.rematch,{ready:true,matchNumber:1})).toMatchObject({ok:false,error:{code:'NOT_READY'}})
-        expect(hostPlaying.match).toMatchObject({ opponent: 'remote', turn: 'player' })
+        expect(
+            await emitAck(host, CLIENT_EVENTS.rematch, {
+                ready: true,
+                matchNumber: 1,
+            }),
+        ).toMatchObject({ ok: false, error: { code: 'NOT_READY' } })
+        expect(hostPlaying.match).toMatchObject({
+            opponent: 'remote',
+            turn: 'player',
+        })
 
         const wrongTurn = await emitAck(guest, CLIENT_EVENTS.shot, {
             seq: 1,
             velocity: { x: 300, y: 0 },
         })
-        expect(wrongTurn).toMatchObject({ ok: false, error: { code: 'NOT_YOUR_TURN' } })
+        expect(wrongTurn).toMatchObject({
+            ok: false,
+            error: { code: 'NOT_YOUR_TURN' },
+        })
 
-        expect(await emitAck(host, CLIENT_EVENTS.shot, { seq: 1, velocity: { x: 300, y: 0 } })).toEqual({
+        expect(
+            await emitAck(host, CLIENT_EVENTS.shot, {
+                seq: 1,
+                velocity: { x: 300, y: 0 },
+            }),
+        ).toEqual({
             ok: true,
         })
         const duplicate = await emitAck(host, CLIENT_EVENTS.shot, {
             seq: 1,
             velocity: { x: 300, y: 0 },
         })
-        expect(duplicate).toMatchObject({ ok: false, error: { code: 'DUPLICATE_COMMAND' } })
+        expect(duplicate).toMatchObject({
+            ok: false,
+            error: { code: 'DUPLICATE_COMMAND' },
+        })
 
         const announced = await eventually(() =>
-            lastWhere(hostStates, (state) => state.intent?.competitor === 'player'),
+            lastWhere(
+                hostStates,
+                (state) => state.intent?.competitor === 'player',
+            ),
         )
         expect(announced.version).toBeGreaterThan(hostPlaying.version)
         const rolling = await eventually(() =>
@@ -145,7 +207,10 @@ describe('servidor multiplayer e2e', () => {
         )
         expect(rolling.intent).toBeNull()
         await eventually(() =>
-            lastWhere(guestStates, (state) => state.version === rolling.version),
+            lastWhere(
+                guestStates,
+                (state) => state.version === rolling.version,
+            ),
         )
     })
 
@@ -155,16 +220,24 @@ describe('servidor multiplayer e2e', () => {
         const guest = await connect(url)
         const states: RoomState[] = []
         host.on(SERVER_EVENTS.state, collectStates(states))
-        const created = accessOf(await emitAck(host, CLIENT_EVENTS.create, { modeId: 'hole' }))
+        const created = accessOf(
+            await emitAck(host, CLIENT_EVENTS.create, { modeId: 'hole' }),
+        )
         const joined = accessOf(
-            await emitAck(guest, CLIENT_EVENTS.join, { roomCode: created.roomCode }),
+            await emitAck(guest, CLIENT_EVENTS.join, {
+                roomCode: created.roomCode,
+            }),
         )
         await emitAck(host, CLIENT_EVENTS.ready, { ready: true })
         await emitAck(guest, CLIENT_EVENTS.ready, { ready: true })
-        await eventually(() => lastWhere(states, (state) => state.status === 'playing'))
+        await eventually(() =>
+            lastWhere(states, (state) => state.status === 'playing'),
+        )
 
         guest.disconnect()
-        await eventually(() => lastWhere(states, (state) => state.status === 'paused'))
+        await eventually(() =>
+            lastWhere(states, (state) => state.status === 'paused'),
+        )
         const returned = await connect(url)
         const resumed = await emitAck(returned, CLIENT_EVENTS.resume, {
             roomCode: created.roomCode,
@@ -174,7 +247,9 @@ describe('servidor multiplayer e2e', () => {
         const resumedState = await eventually(() =>
             lastWhere(
                 states,
-                (state) => state.status === 'playing' && state.players.opponent.connected,
+                (state) =>
+                    state.status === 'playing' &&
+                    state.players.opponent.connected,
             ),
         )
         expect(resumedState.reconnectDeadlineMs).toBeNull()
@@ -194,7 +269,9 @@ describe('servidor multiplayer e2e', () => {
             error: { code: 'INVALID_PAYLOAD', message: 'Comando inválido.' },
         })
         expect(JSON.stringify({ ack, errors })).not.toContain('SEGREDO')
-        expect(JSON.stringify({ ack, errors })).not.toMatch(/stack|landmarks|data:image/i)
+        expect(JSON.stringify({ ack, errors })).not.toMatch(
+            /stack|landmarks|data:image/i,
+        )
     })
 
     it('desconecta somente quem excede 8 KiB e continua aceitando outra sala', async () => {
@@ -210,7 +287,79 @@ describe('servidor multiplayer e2e', () => {
         await disconnected
 
         const healthy = await connect(url)
-        const ack = await emitAck(healthy, CLIENT_EVENTS.create, { modeId: 'triangle' })
+        const ack = await emitAck(healthy, CLIENT_EVENTS.create, {
+            modeId: 'triangle',
+        })
         expect(ack).toMatchObject({ ok: true, access: { role: 'player' } })
+    })
+})
+
+describe('origem do handshake', () => {
+    it('recusa uma origem não permitida e aceita outra conexão permitida', async () => {
+        const url = await startServer()
+        const denied = io(url, {
+            transports: ['websocket'],
+            reconnection: false,
+            forceNew: true,
+            extraHeaders: { Origin: 'https://other.invalid' },
+        })
+        sockets.push(denied)
+        await new Promise<void>((resolve, reject) => {
+            denied.once('connect_error', () => resolve())
+            denied.once('connect', () =>
+                reject(new Error('origem indevida aceita')),
+            )
+        })
+        expect((await connect(url)).connected).toBe(true)
+    })
+})
+
+describe('capacidade e orçamento entre conexões reais', () => {
+    it('recusa conexão extra e libera vaga após desconectar', async () => {
+        vi.stubEnv('MAX_CONNECTIONS_PER_IP', '1')
+        const url = await startServer()
+        const first = await connect(url)
+        await expect(connect(url)).rejects.toThrow(/Capacidade/)
+        first.disconnect()
+        await eventually(() =>
+            app!.get(MultiplayerGateway).metrics().activeConnections === 0
+                ? true
+                : undefined,
+        )
+        expect((await connect(url)).connected).toBe(true)
+    })
+
+    it('não permite renovar orçamento por reconexão ou cabeçalho forjado', async () => {
+        vi.stubEnv('ROOM_ATTEMPTS_PER_MINUTE', '1')
+        const url = await startServer()
+        const first = await connect(url, '203.0.113.1')
+        expect(
+            await emitAck(first, CLIENT_EVENTS.create, { modeId: 'bete' }),
+        ).toMatchObject({ ok: true })
+        await emitAck(first, CLIENT_EVENTS.leave, {})
+        first.disconnect()
+        const second = await connect(url, '203.0.113.2')
+        expect(
+            await emitAck(second, CLIENT_EVENTS.create, { modeId: 'bete' }),
+        ).toMatchObject({ ok: false, error: { code: 'RATE_LIMITED' } })
+    })
+
+    it('avisa expiração aos participantes e libera a capacidade da sala', async () => {
+        vi.stubEnv('ROOM_WAITING_TIMEOUT_MS', '1000')
+        vi.stubEnv('MAX_ROOMS', '1')
+        const url = await startServer()
+        const first = await connect(url)
+        const errors: ProtocolError[] = []
+        first.on(SERVER_EVENTS.error, collectErrors(errors))
+        expect(
+            await emitAck(first, CLIENT_EVENTS.create, { modeId: 'bete' }),
+        ).toMatchObject({ ok: true })
+        await eventually(
+            () => errors.find((error) => error.code === 'ROOM_NOT_FOUND'),
+            3000,
+        )
+        expect(
+            await emitAck(first, CLIENT_EVENTS.create, { modeId: 'bete' }),
+        ).toMatchObject({ ok: true })
     })
 })

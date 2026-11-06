@@ -53,6 +53,7 @@ interface PendingShot {
 
 interface Room {
     readonly code: string
+    lastActivityAt: number
     readonly modeId: ModeId
     readonly slots: Record<Competitor, Slot>
     status: RoomState['status']
@@ -75,6 +76,9 @@ export interface RoomServiceOptions {
     maxRooms?: number
     shotPreviewMs?: number
     roundDwellMs?: number
+    waitingTimeoutMs?: number
+    idleTimeoutMs?: number
+    finishedTimeoutMs?: number
 }
 
 export interface RoomMutation {
@@ -89,7 +93,10 @@ export interface TickResult {
 
 function randomCode(): string {
     const bytes = randomBytes(6)
-    return Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join('')
+    return Array.from(
+        bytes,
+        (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length],
+    ).join('')
 }
 
 function randomToken(): string {
@@ -109,6 +116,11 @@ export class RoomService {
     private readonly maxRooms: number
     private readonly shotPreviewMs: number
     private readonly roundDwellMs: number
+    private readonly timeouts: {
+        waiting: number
+        idle: number
+        finished: number
+    }
 
     constructor(options: RoomServiceOptions = {}) {
         this.now = options.now ?? Date.now
@@ -117,12 +129,20 @@ export class RoomService {
         this.maxRooms = options.maxRooms ?? DEFAULT_MAX_ROOMS
         this.shotPreviewMs = options.shotPreviewMs ?? DEFAULT_SHOT_PREVIEW_MS
         this.roundDwellMs = options.roundDwellMs ?? DEFAULT_ROUND_DWELL_MS
+        this.timeouts = {
+            waiting: options.waitingTimeoutMs ?? 300_000,
+            idle: options.idleTimeoutMs ?? 900_000,
+            finished: options.finishedTimeoutMs ?? 300_000,
+        }
     }
 
     create(socketId: string, command: CreateRoomCommand): RoomMutation {
         this.assertSocketFree(socketId)
         if (this.rooms.size >= this.maxRooms) {
-            throw new RoomError('ROOM_LIMIT', 'O limite de salas ativas foi atingido.')
+            throw new RoomError(
+                'ROOM_LIMIT',
+                'O limite de salas ativas foi atingido.',
+            )
         }
         const code = this.uniqueCode()
         const player: Slot = {
@@ -136,6 +156,7 @@ export class RoomService {
         }
         const room: Room = {
             code,
+            lastActivityAt: this.now(),
             modeId: command.modeId,
             slots: {
                 player,
@@ -158,45 +179,73 @@ export class RoomService {
         }
         this.rooms.set(code, room)
         this.sockets.set(socketId, { roomCode: code, role: 'player' })
-        return { access: this.access(room, 'player'), state: this.toState(room) }
+        return {
+            access: this.access(room, 'player'),
+            state: this.toState(room),
+        }
     }
 
     join(socketId: string, command: JoinRoomCommand): RoomMutation {
         this.assertSocketFree(socketId)
         const room = this.getRoom(command.roomCode)
-        if (room.session || room.status === 'playing' || room.status === 'paused') {
-            throw new RoomError('ROOM_STARTED', 'A partida desta sala já começou.')
+        if (
+            room.session ||
+            room.status === 'playing' ||
+            room.status === 'paused'
+        ) {
+            throw new RoomError(
+                'ROOM_STARTED',
+                'A partida desta sala já começou.',
+            )
         }
         const slot = room.slots.opponent
         if (slot.socketId || slot.disconnectedAt !== null) {
             throw new RoomError('ROOM_FULL', 'A sala já tem duas pessoas.')
         }
         const nickname = this.nickname(command.nickname, 'Jogador 2')
-        if (nickname.toLocaleLowerCase('pt-BR') === room.slots.player.nickname?.toLocaleLowerCase('pt-BR')) {
-            throw new RoomError('NICKNAME_TAKEN', 'Esse apelido já está na sala. Escolha outro.')
+        if (
+            nickname.toLocaleLowerCase('pt-BR') ===
+            room.slots.player.nickname?.toLocaleLowerCase('pt-BR')
+        ) {
+            throw new RoomError(
+                'NICKNAME_TAKEN',
+                'Esse apelido já está na sala. Escolha outro.',
+            )
         }
+        room.lastActivityAt = this.now()
         slot.nickname = nickname
         slot.socketId = socketId
         room.status = 'ready'
         room.version++
         this.sockets.set(socketId, { roomCode: room.code, role: 'opponent' })
-        return { access: this.access(room, 'opponent'), state: this.toState(room) }
+        return {
+            access: this.access(room, 'opponent'),
+            state: this.toState(room),
+        }
     }
 
     resume(socketId: string, command: ResumeRoomCommand): RoomMutation {
         this.assertSocketFree(socketId)
         const room = this.getRoom(command.roomCode)
         const role = this.roleForToken(room, command.resumeToken)
-        if (!role) throw new RoomError('RESUME_DENIED', 'Não foi possível retomar esta vaga.')
+        if (!role)
+            throw new RoomError(
+                'RESUME_DENIED',
+                'Não foi possível retomar esta vaga.',
+            )
         const slot = room.slots[role]
         if (slot.socketId || slot.disconnectedAt === null) {
             throw new RoomError('RESUME_DENIED', 'Esta vaga já está conectada.')
         }
         if (this.now() > slot.disconnectedAt + RECONNECT_GRACE_MS) {
-            throw new RoomError('RESUME_DENIED', 'O tempo para retomar a sala terminou.')
+            throw new RoomError(
+                'RESUME_DENIED',
+                'O tempo para retomar a sala terminou.',
+            )
         }
         slot.socketId = socketId
         slot.disconnectedAt = null
+        room.lastActivityAt = this.now()
         this.sockets.set(socketId, { roomCode: room.code, role })
         room.status = this.connectedStatus(room)
         room.version++
@@ -206,9 +255,14 @@ export class RoomService {
     setReady(socketId: string, command: ReadyRoomCommand): RoomState {
         const { room, role } = this.membership(socketId)
         if (room.session) return this.toState(room)
-        if (room.status === 'paused') throw new RoomError('NOT_READY', 'Aguarde a reconexão antes de ficar pronto.')
+        if (room.status === 'paused')
+            throw new RoomError(
+                'NOT_READY',
+                'Aguarde a reconexão antes de ficar pronto.',
+            )
         const slot = room.slots[role]
         if (slot.ready === command.ready) return this.toState(room)
+        room.lastActivityAt = this.now()
         slot.ready = command.ready
         if (
             room.slots.player.socketId &&
@@ -218,7 +272,10 @@ export class RoomService {
         ) {
             this.startMatch(room)
         } else {
-            room.status = room.slots.player.socketId && room.slots.opponent.socketId ? 'ready' : 'waiting'
+            room.status =
+                room.slots.player.socketId && room.slots.opponent.socketId
+                    ? 'ready'
+                    : 'waiting'
         }
         room.version++
         return this.toState(room)
@@ -226,13 +283,29 @@ export class RoomService {
 
     setRematchReady(socketId: string, command: RematchRoomCommand): RoomState {
         const { room, role } = this.membership(socketId)
-        if (command.matchNumber !== room.matchNumber) throw new RoomError('STALE_MATCH', 'Este comando é de outra partida.')
-        if (room.status !== 'finished' || room.session?.snapshot().phase !== 'match-over') {
-            throw new RoomError('NOT_READY', 'Aguarde o fim da partida e as duas conexões para jogar novamente.')
+        if (command.matchNumber !== room.matchNumber)
+            throw new RoomError(
+                'STALE_MATCH',
+                'Este comando é de outra partida.',
+            )
+        if (
+            room.status !== 'finished' ||
+            room.session?.snapshot().phase !== 'match-over'
+        ) {
+            throw new RoomError(
+                'NOT_READY',
+                'Aguarde o fim da partida e as duas conexões para jogar novamente.',
+            )
         }
-        if (room.slots[role].rematchReady === command.ready) return this.toState(room)
+        if (room.slots[role].rematchReady === command.ready)
+            return this.toState(room)
+        room.lastActivityAt = this.now()
         room.slots[role].rematchReady = command.ready
-        if (Object.values(room.slots).every(slot => slot.socketId && slot.rematchReady)) {
+        if (
+            Object.values(room.slots).every(
+                (slot) => slot.socketId && slot.rematchReady,
+            )
+        ) {
             room.matchNumber++
             this.startMatch(room)
         }
@@ -242,8 +315,13 @@ export class RoomService {
 
     private startMatch(room: Room): void {
         const entry = modes.find(({ id }) => id === room.modeId)
-        if (!entry) throw new RoomError('INVALID_PAYLOAD', 'Modo de jogo inválido.')
-        room.session = createMatchSession({ modeId: room.modeId, mode: entry.create(), opponent: 'remote' })
+        if (!entry)
+            throw new RoomError('INVALID_PAYLOAD', 'Modo de jogo inválido.')
+        room.session = createMatchSession({
+            modeId: room.modeId,
+            mode: entry.create(),
+            opponent: 'remote',
+        })
         room.pendingShot = null
         room.roundDwellMs = null
         for (const slot of Object.values(room.slots)) slot.rematchReady = false
@@ -252,31 +330,53 @@ export class RoomService {
 
     private nickname(value: string | undefined, fallback: string): string {
         const parsed = nicknameSchema.safeParse(value ?? fallback)
-        if (!parsed.success) throw new RoomError('INVALID_PAYLOAD', 'Use um apelido de 2 a 20 caracteres: letras, números, espaço, ponto, hífen ou sublinhado.')
+        if (!parsed.success)
+            throw new RoomError(
+                'INVALID_PAYLOAD',
+                'Use um apelido de 2 a 20 caracteres: letras, números, espaço, ponto, hífen ou sublinhado.',
+            )
         return parsed.data
     }
 
     submitShot(socketId: string, command: ShotCommand): RoomState {
         const { room, role } = this.membership(socketId)
         const slot = room.slots[role]
-        if ((command.matchNumber ?? 1) !== room.matchNumber) throw new RoomError('STALE_MATCH', 'Este tiro é de outra partida.')
+        if ((command.matchNumber ?? 1) !== room.matchNumber)
+            throw new RoomError('STALE_MATCH', 'Este tiro é de outra partida.')
         if (command.seq <= slot.lastSeq) {
-            throw new RoomError('DUPLICATE_COMMAND', 'Este comando de tiro já foi recebido.')
+            throw new RoomError(
+                'DUPLICATE_COMMAND',
+                'Este comando de tiro já foi recebido.',
+            )
         }
         if (room.status !== 'playing' || !room.session || room.pendingShot) {
-            throw new RoomError('NOT_READY', 'A partida não está pronta para outro tiro.')
+            throw new RoomError(
+                'NOT_READY',
+                'A partida não está pronta para outro tiro.',
+            )
         }
         const snapshot = room.session.snapshot()
-        const expectedPhase = role === 'player' ? 'player-turn' : 'opponent-turn'
+        const expectedPhase =
+            role === 'player' ? 'player-turn' : 'opponent-turn'
         if (snapshot.phase !== expectedPhase) {
             if (snapshot.turn === role) {
-                throw new RoomError('NOT_READY', 'Aguarde a bolinha parar para atirar de novo.')
+                throw new RoomError(
+                    'NOT_READY',
+                    'Aguarde a bolinha parar para atirar de novo.',
+                )
             }
-            throw new RoomError('NOT_YOUR_TURN', 'Aguarde a sua vez para atirar.')
+            throw new RoomError(
+                'NOT_YOUR_TURN',
+                'Aguarde a sua vez para atirar.',
+            )
         }
         if (snapshot.turn !== role) {
-            throw new RoomError('NOT_YOUR_TURN', 'Aguarde a sua vez para atirar.')
+            throw new RoomError(
+                'NOT_YOUR_TURN',
+                'Aguarde a sua vez para atirar.',
+            )
         }
+        room.lastActivityAt = this.now()
         slot.lastSeq = command.seq
         room.pendingShot = {
             competitor: role,
@@ -330,7 +430,7 @@ export class RoomService {
         const safeDt = Math.min(elapsedMs, 250)
 
         for (const room of [...this.rooms.values()]) {
-            if (this.hasExpiredSlot(room)) {
+            if (this.hasExpiredSlot(room) || this.isInactive(room)) {
                 expired.push(room.code)
                 this.removeRoom(room.code)
                 continue
@@ -364,10 +464,12 @@ export class RoomService {
                 } else {
                     room.roundDwellMs = null
                 }
-                if (room.session.snapshot().phase === 'match-over') room.status = 'finished'
+                if (room.session.snapshot().phase === 'match-over')
+                    room.status = 'finished'
             }
 
             if (changed) {
+                room.lastActivityAt = this.now()
                 room.version++
                 updated.push(this.toState(room))
             }
@@ -376,7 +478,11 @@ export class RoomService {
     }
 
     private access(room: Room, role: Competitor): RoomAccess {
-        return { roomCode: room.code, role, resumeToken: room.slots[role].token }
+        return {
+            roomCode: room.code,
+            role,
+            resumeToken: room.slots[role].token,
+        }
     }
 
     private toState(room: Room): RoomState {
@@ -401,7 +507,9 @@ export class RoomService {
                     rematchReady: room.slots.opponent.rematchReady,
                 },
             },
-            match: room.session ? this.toWireSnapshot(room.modeId, room.session) : null,
+            match: room.session
+                ? this.toWireSnapshot(room.modeId, room.session)
+                : null,
             intent: room.pendingShot
                 ? {
                       competitor: room.pendingShot.competitor,
@@ -412,7 +520,10 @@ export class RoomService {
         }
     }
 
-    private toWireSnapshot(modeId: ModeId, session: MatchSession): WireMatchSnapshot {
+    private toWireSnapshot(
+        modeId: ModeId,
+        session: MatchSession,
+    ): WireMatchSnapshot {
         // Cada modo prepara a bolinha da pessoa da vez antes de o cliente calcular a mira.
         session.shooter()
         const snapshot = session.snapshot()
@@ -442,9 +553,12 @@ export class RoomService {
                       ...(snapshot.decor.holes
                           ? {
                                 holes: {
-                                    positions: snapshot.decor.holes.positions.map((point) => ({
-                                        ...point,
-                                    })),
+                                    positions:
+                                        snapshot.decor.holes.positions.map(
+                                            (point) => ({
+                                                ...point,
+                                            }),
+                                        ),
                                     radius: snapshot.decor.holes.radius,
                                     active: snapshot.decor.holes.active,
                                 },
@@ -465,8 +579,14 @@ export class RoomService {
     }
 
     private connectedStatus(room: Room): RoomState['status'] {
-        if (Object.values(room.slots).some(slot => slot.disconnectedAt !== null)) return 'paused'
-        if (!room.session) return room.slots.opponent.socketId ? 'ready' : 'waiting'
+        if (
+            Object.values(room.slots).some(
+                (slot) => slot.disconnectedAt !== null,
+            )
+        )
+            return 'paused'
+        if (!room.session)
+            return room.slots.opponent.socketId ? 'ready' : 'waiting'
         if (room.session.snapshot().phase === 'match-over') return 'finished'
         return 'playing'
     }
@@ -474,17 +594,36 @@ export class RoomService {
     private reconnectDeadline(room: Room): number | null {
         const deadlines = Object.values(room.slots)
             .map((slot) =>
-                slot.disconnectedAt === null ? null : slot.disconnectedAt + RECONNECT_GRACE_MS,
+                slot.disconnectedAt === null
+                    ? null
+                    : slot.disconnectedAt + RECONNECT_GRACE_MS,
             )
             .filter((value): value is number => value !== null)
         return deadlines.length > 0 ? Math.min(...deadlines) : null
+    }
+
+    private isInactive(room: Room): boolean {
+        // A pausa conserva integralmente a janela de reconexão.
+        if (room.status === 'paused') return false
+        const timeout =
+            room.status === 'finished'
+                ? this.timeouts.finished
+                : room.status === 'playing'
+                  ? this.timeouts.idle
+                  : this.timeouts.waiting
+        return this.now() - room.lastActivityAt >= timeout
+    }
+
+    get activeRooms(): number {
+        return this.rooms.size
     }
 
     private hasExpiredSlot(room: Room): boolean {
         const now = this.now()
         return Object.values(room.slots).some(
             (slot) =>
-                slot.disconnectedAt !== null && now > slot.disconnectedAt + RECONNECT_GRACE_MS,
+                slot.disconnectedAt !== null &&
+                now > slot.disconnectedAt + RECONNECT_GRACE_MS,
         )
     }
 
@@ -496,7 +635,8 @@ export class RoomService {
 
     private membership(socketId: string): { room: Room; role: Competitor } {
         const membership = this.sockets.get(socketId)
-        if (!membership) throw new RoomError('NOT_IN_ROOM', 'Entre numa sala primeiro.')
+        if (!membership)
+            throw new RoomError('NOT_IN_ROOM', 'Entre numa sala primeiro.')
         const room = this.rooms.get(membership.roomCode)
         if (!room) throw new RoomError('ROOM_NOT_FOUND', 'Sala não encontrada.')
         return { room, role: membership.role }
@@ -510,7 +650,10 @@ export class RoomService {
 
     private assertSocketFree(socketId: string): void {
         if (this.sockets.has(socketId)) {
-            throw new RoomError('NOT_READY', 'Esta conexão já está em uma sala.')
+            throw new RoomError(
+                'NOT_READY',
+                'Esta conexão já está em uma sala.',
+            )
         }
     }
 
@@ -519,7 +662,10 @@ export class RoomService {
             const candidate = this.code()
             if (!this.rooms.has(candidate)) return candidate
         }
-        throw new RoomError('ROOM_LIMIT', 'Não foi possível reservar um código de sala.')
+        throw new RoomError(
+            'ROOM_LIMIT',
+            'Não foi possível reservar um código de sala.',
+        )
     }
 
     private removeRoom(code: string): void {
