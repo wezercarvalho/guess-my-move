@@ -113,3 +113,13 @@ T023 tem capturas e demonstração automatizada em duas páginas; o teste com c�
 - [x] T031 [FR-017] [FR-018] [FR-019] [SC-008] Integração, demonstração em dois contextos, gates e PR atualizada; aceite humano continua T023/T027.
 
 Análise de consistência: FR-017–FR-019 cobertos por T028–T031; sem antecipar fila para mais de duas pessoas ou trocar modo dentro da sala. Aprovação do escopo e execução: maintainer nesta conversa em 2026-11-04 ao solicitar a revisão dos pontos observados. Bolinhas é a frente ativa enquanto o maintainer retesta Arranha-Teia.
+
+## Robustez — 2026-11-06
+
+- [x] T032 [FR-020] [SC-009] Testes de expiração, atividade, reconexão e revanche; implementar prazos por fase.
+- [x] T033 [FR-021] [NFR-006] [SC-009] Testes de origem, proxy, capacidade e orçamento por endereço; implementar admissão limitada.
+- [x] T034 [FR-022] [SC-009] Testes de erro seguro e contadores; implementar diagnóstico sem dados pessoais.
+- [x] T035 [FR-023] [SC-009] Reproduzir clone sem builds, corrigir preparação/observação e verificar inicialização.
+- [x] T036 [FR-020] [FR-021] [FR-022] [FR-023] [NFR-006] [SC-009] Atualizar documentação e executar regressões/gates.
+
+Análise de consistência: requisitos cobertos por T032–T036; preservação de câmera, protocolo de tiro, regras e revanche. Autorização: pedido do maintainer de tratar os pontos da revisão, confirmado por “Segue no que tu estava fazendo, sim”.

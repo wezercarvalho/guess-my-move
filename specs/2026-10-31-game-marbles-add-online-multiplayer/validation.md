@@ -207,3 +207,23 @@ Limites: loopback, sem internet/câmera real nem avaliação por pessoa nova. As
 ### Roteiro de aceite
 
 Atualizar servidor e web juntos na branch `feat/111-marbles-multiplayer` e reiniciar ambos. Escolher Online, informar apelidos diferentes e entrar na mesma sala. Conferir quem entrou/prontidão, Agora/Na sequência, contadores e placar por nome. Jogar os três modos, interromper/recarregar uma conexão e conferir a identidade restaurada. Ao fim, uma pessoa confirma Jogar novamente; o resultado deve permanecer e a outra deve ver quem quer revanche. Testar cancelar e confirmar de ambos: nova partida na mesma sala, sem perder nomes nem precisar criar código novo. Câmera real e avaliação de compreensão por pessoa nova continuam com o maintainer (T023/T027).
+
+## Robustez do backend — 2026-11-06
+
+Escopo FR-020–FR-023, NFR-006 e SC-009. Sem mudança nas regras, câmera ou contrato de tiro. Tarefas T032–T036 concluídas com evidências abaixo. O aceite de câmera real e Gate 3 da entrega anterior continuam pendentes.
+
+- Test-first: nova suíte de segurança falhou inicialmente por inexistência da política de admissão; a reprodução anterior já demonstrava sala conectada sem expiração e origem diferente aceita.
+- `yarn workspace @guess-my-move/server test`: 41 testes aprovados em cinco arquivos, incluindo duas conexões reais, limite de admissão, origem recusada, limite agregado preservado entre conexões com cabeçalho de IP forjado, expiração com aviso, janela de revanche, retomada e logs sem dados brutos.
+- Demonstração isolada sem builds: removidos somente os artefatos gerados do servidor e das bolinhas no ambiente descartável; `yarn dev:server` compilou os dois e `/api/health` respondeu 200. Alteração temporária na dependência foi recompilada automaticamente pelo observador; fonte restaurada e processos encerrados após a demonstração.
+- `yarn check:static`: aprovado no host com Node 26.12.1.
+- `yarn install --immutable`: aprovado no host, sem mudança de manifesto/lockfile; hook já instalado.
+- O módulo nativo do transformador não aceita o cache desta montagem do host; testes executados com a suíte oficial no ambiente isolado. A instalação nesse ambiente sem rede não conseguiu consultar o registry; foram usadas as dependências conferidas pela instalação imutável no host, copiadas para esse ambiente. Isso não foi tratado como instalação isolada aprovada.
+
+Limites: não houve teste de carga público, deploy ou avaliação de proxy de produção. Admissão limita o namespace; conexões de transporte, TLS e abuso distribuído ainda exigem proteção proporcional na borda. IPs compartilhados precisam de dimensionamento e proxies confiáveis devem ser explicitamente configurados. A versão fixada do Node conserva a pendência do pacote de segurança anunciado para novembro; esta revisão não afirma corrigir falhas ainda sem patch disponível.
+
+Gates finais desta revisão:
+
+- `yarn check:all`: aprovado em Node 26.12.1 no ambiente isolado, com tipos, lint, testes e build. Testes: core 68, bolinhas 174, servidor 41, Arranha-Teia 232, web 453 e 79 testes de scripts web.
+- `yarn test:sdd`, `yarn sdd:check` e `yarn docs:format:check`: aprovados. `git diff --check` sem erros.
+- O build mantém os avisos existentes de tamanho do chunk 3D; os testes web usam doubles de canvas e não comprovam desempenho ou precisão com câmera real.
+- A entrega segue para PR em rascunho, conforme pedido atual do maintainer. O gate remoto fica ignorado enquanto a PR estiver em rascunho; não confundir essa política com CI aprovado. Não houve merge nem deploy.

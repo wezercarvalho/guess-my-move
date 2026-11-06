@@ -48,7 +48,9 @@ yarn dev:server
 3. Ambas confirmam **Estou pronto**. A interface indica quem joga e quem será o próximo; a câmera é usada para atirar na própria vez.
 4. Ao terminar, ambas confirmam a revanche para jogar novamente na mesma sala.
 
-Para testar em uma máquina, use dois contextos de navegador separados. Salas comportam duas pessoas e ficam na memória de uma única instância do servidor. Uma desconexão pausa a partida por até 60 segundos; a credencial temporária da aba permite retomá-la após reconectar ou recarregar. Sair da sala a encerra; reiniciar o servidor perde as salas.
+Para testar em uma máquina, use dois contextos de navegador separados. Salas comportam duas pessoas e ficam na memória de uma única instância do servidor. Uma desconexão pausa a partida por até 60 segundos; a credencial temporária da aba permite retomá-la após reconectar ou recarregar. Sair da sala a encerra; reiniciar o servidor perde as salas. Salas sem atividade expiram: por padrão, após 5 minutos em espera, 15 minutos durante a partida ou 5 minutos após o resultado. A janela de reconexão continua sendo de 60 segundos.
+
+O servidor aceita, por padrão, as origens locais da porta 5173. Se o Vite usar outra porta ou você configurar hospedagem, ajuste `ALLOWED_ORIGINS`; confira os [limites e a configuração de proxy](docs/development-context/operations/local-development.md#limites-e-operação-do-multiplayer).
 
 O Vite encaminha `/socket.io` e `/api` para `127.0.0.1:3000`. Para acesso em outros dispositivos, é necessário configurar HTTPS, a origem compartilhada entre web e servidor e suporte a WebSocket. Os comandos acima iniciam o ambiente local; não publicam uma instância na internet. Veja o [guia de desenvolvimento local](docs/development-context/operations/local-development.md).
 
