@@ -41,3 +41,7 @@ T001–T003 demonstradas; intenção, testes, extração e ADR convergem. Privac
 - Veredito: pendente de revisão final da PR.
 - Aprovador: maintainer.
 - Escopo técnico demonstrado: FR-001–FR-003, NFR-001–NFR-002 e SC-001.
+
+## Integração da sequência
+
+A branch incorpora localmente #133, #139 e #140, sem merge no GitHub. O catálogo contém todas as entradas, sem marcadores de conflito. A revalidação integrada aprovou **98 testes de servidor**, três contratos conferidos e tipos/lint. Isso exercita os mappers/objetivos junto da admissão e da recuperação reais. Integrar as PRs anteriores primeiro mantém o diff do refactor delimitado e evita conflito posterior de documentação.
