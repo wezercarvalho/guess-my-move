@@ -1,3 +1,5 @@
+import type { ClientSocket } from '../realtime/clientSocket.js'
+export type { ClientSocket } from '../realtime/clientSocket.js'
 import {
     CLIENT_EVENTS,
     SERVER_EVENTS,
@@ -25,15 +27,6 @@ export interface MultiplayerSnapshot {
     access: RoomAccess | null
     room: RoomState | null
     error: ProtocolError | null
-}
-
-export interface ClientSocket {
-    readonly connected: boolean
-    connect(): void
-    disconnect(): void
-    on(event: string, listener: (...args: unknown[]) => void): this
-    off(event: string, listener: (...args: unknown[]) => void): this
-    emit(event: string, payload: unknown, ack?: (value: unknown) => void): this
 }
 
 export interface MultiplayerStore {
@@ -83,10 +76,16 @@ export class MultiplayerClient {
     private listening = false
     private roomGeneration = 0
     private destroyed = false
+    private entry: {
+        generation: number
+        roomCode: string | null
+        state: RoomState | null
+    } | null = null
     private readonly pendingCommands = new Set<() => void>()
     private readonly pendingConnections = new Set<() => void>()
     private invalidate(): void {
         this.roomGeneration++
+        this.entry = null
         for (const cancel of this.pendingCommands) cancel()
         for (const cancel of this.pendingConnections) cancel()
     }
@@ -114,7 +113,10 @@ export class MultiplayerClient {
 
     private readonly onDisconnect = () => {
         this.invalidate()
-        this.patch({ connection: 'disconnected' })
+        this.patch({
+            connection: 'disconnected',
+            room: this.snapshot.access ? this.snapshot.room : null,
+        })
     }
 
     private readonly onConnectError = () => {
@@ -123,7 +125,25 @@ export class MultiplayerClient {
 
     private readonly onState = (value: unknown) => {
         const parsed = roomStateSchema.safeParse(value)
-        if (!parsed.success) return
+        if (!parsed.success || !this.socket.connected) return
+        const room = parsed.data
+        if (!this.snapshot.access) {
+            const entry = this.entry
+            if (
+                !entry ||
+                entry.generation !== this.roomGeneration ||
+                (entry.roomCode && entry.roomCode !== room.roomCode)
+            )
+                return
+            if (
+                !entry.state ||
+                entry.state.roomCode !== room.roomCode ||
+                room.version >= entry.state.version
+            )
+                entry.state = room
+            return
+        }
+        if (room.roomCode !== this.snapshot.access.roomCode) return
         if (
             this.snapshot.room?.roomCode === parsed.data.roomCode &&
             parsed.data.version < this.snapshot.room.version
@@ -211,26 +231,63 @@ export class MultiplayerClient {
         await this.resumePromise
     }
 
-    async createRoom(modeId: ModeId, nickname?: string): Promise<boolean> {
-        const generation = ++this.roomGeneration
-        await this.connect()
-        if (generation !== this.roomGeneration) return false
-        const ack = await this.emitAck(CLIENT_EVENTS.create, {
-            modeId,
-            ...(nickname === undefined ? {} : { nickname }),
-        })
-        return generation === this.roomGeneration && this.acceptAccess(ack)
+    createRoom(modeId: ModeId, nickname?: string): Promise<boolean> {
+        return this.enter(
+            CLIENT_EVENTS.create,
+            {
+                modeId,
+                ...(nickname === undefined ? {} : { nickname }),
+            },
+            null,
+        )
     }
 
-    async joinRoom(roomCode: string, nickname?: string): Promise<boolean> {
+    joinRoom(roomCode: string, nickname?: string): Promise<boolean> {
+        const code = normalizeRoomCode(roomCode)
+        return this.enter(
+            CLIENT_EVENTS.join,
+            {
+                roomCode: code,
+                ...(nickname === undefined ? {} : { nickname }),
+            },
+            code,
+        )
+    }
+
+    private async enter(
+        event: string,
+        payload: unknown,
+        roomCode: string | null,
+    ): Promise<boolean> {
+        if (this.entry) return false
         const generation = ++this.roomGeneration
+        this.entry = { generation, roomCode, state: null }
         await this.connect()
         if (generation !== this.roomGeneration) return false
-        const ack = await this.emitAck(CLIENT_EVENTS.join, {
-            roomCode: normalizeRoomCode(roomCode),
-            ...(nickname === undefined ? {} : { nickname }),
-        })
-        return generation === this.roomGeneration && this.acceptAccess(ack)
+        if (this.snapshot.access) {
+            this.entry = null
+            return false
+        }
+        const ack = await this.emitAck(event, payload)
+        if (generation !== this.roomGeneration) return false
+        const accepted = this.acceptAccess(ack)
+        this.entry = null
+        if (!accepted) {
+            this.patch({ room: null })
+            const error = protocolErrorSchema.safeParse(ack.error)
+            if (
+                ack.ok ||
+                !error.success ||
+                error.data.code === 'INTERNAL_ERROR'
+            ) {
+                // The server may have bound a slot before its ACK was lost. Never repeat create.
+                if (this.socket.connected)
+                    this.socket.emit(CLIENT_EVENTS.leave, {})
+                this.socket.disconnect()
+                this.patch({ error: connectionError })
+            }
+        }
+        return accepted
     }
 
     async setReady(ready: boolean): Promise<boolean> {
@@ -270,10 +327,6 @@ export class MultiplayerClient {
     async leave(): Promise<void> {
         this.invalidate()
         const generation = this.roomGeneration
-        if (this.socket.connected) {
-            await this.emitAck(CLIENT_EVENTS.leave, {})
-        }
-        if (generation !== this.roomGeneration) return
         this.clearAccess()
         this.nextSeq = 1
         this.patch({
@@ -282,6 +335,11 @@ export class MultiplayerClient {
             error: null,
             connection: this.socket.connected ? 'connected' : 'disconnected',
         })
+        if (this.socket.connected) {
+            const ack = await this.emitAck(CLIENT_EVENTS.leave, {})
+            if (generation === this.roomGeneration && !ack.ok)
+                this.socket.disconnect()
+        }
     }
 
     destroy(): void {
@@ -347,7 +405,17 @@ export class MultiplayerClient {
               )
             : 1
         this.writeStorage(SEQUENCE_STORAGE_KEY, String(this.nextSeq))
-        this.patch({ access: parsed.data, error: null })
+        const provisional = this.entry?.state
+        this.patch({
+            access: parsed.data,
+            room:
+                provisional?.roomCode === parsed.data.roomCode
+                    ? provisional
+                    : this.snapshot.room?.roomCode === parsed.data.roomCode
+                      ? this.snapshot.room
+                      : null,
+            error: null,
+        })
         return true
     }
 
