@@ -13,6 +13,12 @@ export class AsyncTrackerResource<T extends Closable> {
     private state: TrackerResourceStatus = 'idle'
     private failure: string | null = null
     private generation = 0
+    constructor(
+        private readonly messageOf: (error: unknown) => string = (error) =>
+            error instanceof Error && error.message
+                ? error.message
+                : 'Falha desconhecida.',
+    ) {}
     get value(): T | null {
         return this.instance
     }
@@ -36,10 +42,7 @@ export class AsyncTrackerResource<T extends Closable> {
                 return
             }
             this.state = 'error'
-            this.failure =
-                error instanceof Error && error.message
-                    ? error.message
-                    : 'Falha desconhecida.'
+            this.failure = this.messageOf(error)
             options.onError?.(error)
         }
         let loading: Promise<T>
@@ -71,9 +74,6 @@ export class AsyncTrackerResource<T extends Closable> {
     fail(error: unknown): void {
         this.release()
         this.state = 'error'
-        this.failure =
-            error instanceof Error && error.message
-                ? error.message
-                : 'Falha desconhecida.'
+        this.failure = this.messageOf(error)
     }
 }
