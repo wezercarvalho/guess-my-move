@@ -159,3 +159,7 @@ Mantemos validação explícita com ACK sanitizado no transporte: um pipe/filtro
 O serviço de bolinhas prepara a bolinha da próxima vez na mutação de início/transição, antes de publicar. `multiplayer/public-room.ts` projeta jogadores e snapshots de partida por whitelist e cópia dos campos; não recebe a sessão nem chama métodos que mudem o domínio. Serialização não prepara a partida.
 
 No Swing, `swing/cooperative-objectives.ts` recebe cidade indexada e origem e executa a busca determinística limitada; `SwingRoomService` conserva apenas o ciclo de sala e a delegação. A [decisão sobre composição realtime](decisions/2026-11-06-realtime-policy-composition.md) explica os pontos compartilhados e por que não criamos uma superclasse ou pipeline genérico dos dois gateways.
+
+## Composição da captura e da sessão Swing
+
+`capture/AsyncTrackerResource` possui a carga e o descarte do detector; `capture/VideoFrameGate` controla apenas a sinalização de quadros, sem solicitar ou gravar câmera. O Swing adota ambos e conserva calibração e regras na fachada. `swing/OnlineSwingSession` recebe a bridge e o mundo, coordena snapshots/intents e devolve dados de apresentação sem conhecer câmera ou renderer. Derivação de sinais de mão e contratos públicos ficam em módulos próprios; os tipos continuam disponíveis pelo caminho antigo do controlador. Adoções são incrementos por jogo, sem superclasse compartilhando regras distintas.

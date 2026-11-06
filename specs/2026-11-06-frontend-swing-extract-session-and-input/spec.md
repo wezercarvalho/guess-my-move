@@ -7,7 +7,7 @@ strategy: sdd
 domain: frontend
 capability: swing
 objective: extract-session-and-input
-status: implementing
+status: validating
 owners:
     - wezercarvalho
 reviewers: []
