@@ -153,3 +153,9 @@ O backend usa o adaptador HTTP nativo do Nest. A configuração é fornecida por
 No swing, o servidor executa o núcleo puro com inputs estritos e passo fixo. Publica snapshots a 10 Hz, valida partida/sequência e neutraliza comandos sem atualização por 350 ms. O navegador acumula deltas do olhar, envia intents a 10 Hz e usa previsão limitada/reconciliação; o avatar remoto é interpolado. Objetivos são escolhidos num componente caminhável da cidade, coletados uma vez no servidor e reiniciados por confirmação bilateral. O gerador de Aurora é compartilhado entre servidor e web; os três mapas reais vêm dos mesmos arquivos versionados, identificados pelo catálogo fixo.
 
 Mantemos validação explícita com ACK sanitizado no transporte: um pipe/filtro padrão de WebSocket mudaria o canal de erro e poderia ecoar payload rejeitado. As recomendações consultadas e decisões estão no [plano da entrega](../../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/plan.md).
+
+## Projeções e geração de objetivos
+
+O serviço de bolinhas prepara a bolinha da próxima vez na mutação de início/transição, antes de publicar. `multiplayer/public-room.ts` projeta jogadores e snapshots de partida por whitelist e cópia dos campos; não recebe a sessão nem chama métodos que mudem o domínio. Serialização não prepara a partida.
+
+No Swing, `swing/cooperative-objectives.ts` recebe cidade indexada e origem e executa a busca determinística limitada; `SwingRoomService` conserva apenas o ciclo de sala e a delegação. A [decisão sobre composição realtime](decisions/2026-11-06-realtime-policy-composition.md) explica os pontos compartilhados e por que não criamos uma superclasse ou pipeline genérico dos dois gateways.

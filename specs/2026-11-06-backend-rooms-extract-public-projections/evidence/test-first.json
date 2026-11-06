@@ -1,0 +1,6 @@
+{
+  "date": "2026-11-06",
+  "before": {"failedSuites": 2, "passedTests": 76, "reason": "Novos módulos de projeção e objetivos ainda não existiam."},
+  "after": {"passedTests": 86, "command": "yarn workspace @guess-my-move/server test --config ../../specs/2026-11-06-backend-rooms-extract-public-projections/evidence/compiled-vitest.mjs"},
+  "environment": "Docker disponível para o vermelho; daemon indisponível depois. Verde sobre produção recém-compilada por TypeScript, com config explícita de resolução dos imports do servidor. Config padrão não alterada."
+}
