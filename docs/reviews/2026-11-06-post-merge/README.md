@@ -74,3 +74,7 @@ Revisão exploratória, não certificação de ausência de bugs ou pentest comp
 ## Correção do diagnóstico sobre contratos
 
 Durante a revisão para desenvolvimento, a issue #130 foi encerrada como `not planned`: `apps/server/test/native-platform.test.ts` já compara os três contratos versionados aos geradores e roda no `check:all`. Na implementação da #124, acrescentar uma métrica fez essa comparação falhar até regenerar o OpenAPI, confirmando a proteção existente. A ausência de chamada literal a `contracts:check` no CI não significava ausência de conferência. O diagnóstico original era incorreto e foi corrigido sem implementar gate redundante.
+
+## Revisão adicional e próximos passos
+
+A [revisão de manutenção](MAINTENANCE.md) registra a adequação final do isolamento de salas, a organização das fronteiras de código e o backlog priorizado, com responsável, aceite e checklist de câmera real. O relatório original acima documenta os achados anteriores às correções; os resultados finais e as limitações ficam nas specs/PRs de cada incremento.
