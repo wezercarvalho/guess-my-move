@@ -260,7 +260,7 @@ describe('SwingController cooperativo', () => {
     it('sends processed keyboard intent at 10Hz, reconciles snapshots and freezes during reconnection without resetting locally', async () => {
         const state = createSwingState({ x: 10, y: 90, z: -10 })
         const room: SwingRoomState = { roomCode: 'ABC123', cityId: 'aurora', cityVersion: 1, round: 1, tick: 1, status: 'playing', players: [{ id: 'one', nickname: 'Ana', connected: true, ready: true, rematchReady: false, state }], objectives: [] }
-        let snapshot: SwingOnlineSnapshot = { connection: 'connected', room, access: { roomCode: 'ABC123', playerId: 'one', resumeToken: 'private' }, error: null, pending: false }
+        let snapshot: SwingOnlineSnapshot = { connection: 'connected', room, access: { roomCode: 'ABC123', playerId: 'one', resumeToken: 'private' }, error: null, pending: false, stale: false }
         const sendInput = vi.fn<(input: SwingInput) => void>()
         const setOnline = vi.fn()
         const renderer = { resize: vi.fn(), render: vi.fn<(state: SwingState) => void>(), dispose: vi.fn(), setOnline }

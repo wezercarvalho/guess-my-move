@@ -63,6 +63,10 @@ Como mantenedor, quero domínios separados no NestJS 12, proteção compartilhad
 - **FR-007:** capacidades HTTP, schemas Socket.IO e métricas incluem o novo domínio de maneira compatível, com exportação determinística e conferência de divergência.
 - **FR-008:** registrar issues segmentadas com dependências e entregar PRs em rascunho, evidências e decisões para revisão humana, sem merge.
 
+- **FR-009:** desconexão invalida comandos em andamento e ACKs atrasados de conexões anteriores; não permite que sobrescrevam a nova sessão, incluindo retomada.
+- **FR-010:** conexão ativa sem progresso de snapshots por 2 segundos mostra espera pelo servidor, preserva sala e câmera e recupera automaticamente após snapshot novo. Quadros repetidos/obsoletos não simulam progresso.
+- **FR-011:** disponibilizar e executar medição exploratória reprodutível de 2, 10 e 20 salas simultâneas, com métricas de memória, CPU, atraso e falhas; registrar condições, limites e resultados sem inferir capacidade de produção.
+
 ## Requisitos não funcionais
 
 - **NFR-001:** não transmitir nem persistir câmera, imagem, vídeo ou landmarks. Tokens de retomada somente em memória e ACK privado; logs e telemetria não contêm apelidos, tokens ou payloads.

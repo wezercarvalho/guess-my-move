@@ -82,5 +82,23 @@ Não foram testados câmera real, GPU física, rede móvel real ou múltiplas in
 
 - Veredito: pendente de revisão final da PR.
 - Aprovador: maintainer.
-- Escopo técnico demonstrado: FR-001–FR-008, NFR-001–NFR-003 e SC-001–SC-004.
+- Escopo técnico demonstrado: FR-001–FR-011, NFR-001–NFR-003 e SC-001–SC-004.
 - Observações: os gates de desenvolvimento foram aprovados previamente pelo maintainer; não presumir aceite final, merge ou aceite dos limites acima.
+
+## Complemento — recuperação e medição local
+
+Escopo adicional autorizado pelo maintainer em “Pode fazer então”: FR-009–FR-011, sem alteração dos limites ou das regras de partida.
+
+| Requisito | Evidência                                                                                                                                                                                                                            | Resultado |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| FR-009    | Testes de desconexão durante criação e ACK de retomada atrasado: gerações anteriores não alteram a nova sessão; timers pendentes são cancelados imediatamente.                                                                       | PASS      |
+| FR-010    | Watchdog de 2 segundos, snapshots repetidos/obsoletos, pausa, expiração e descarte. Teste de UI preserva montagem; navegador real bloqueia somente snapshots, mantém transporte conectado e comprova recuperação com o mesmo canvas. | PASS      |
+| FR-011    | Seis perfis concluídos (duas réplicas para 2/10/20 salas). Hash do roteiro confere com JSON. [Método, números e limites](load-results.md), incluindo máximos e execução preliminar.                                                  | PASS      |
+
+Os novos testes foram executados antes da implementação: cinco falhas e 25 aprovações na suíte focada. Após a correção, `yarn workspace @guess-my-move/web test:swing-network` aprovou os 30 testes. O script oficial evita encaminhar argumentos ao teste Node que acompanha a suíte web completa.
+
+A execução exploratória do navegador foi repetida com duas sessões, teclado, perda/retomada de conexão e interrupção apenas dos snapshots. O [registro atualizado](evidence/browser-smoke.json) confirma `stalledServerFeedback` e `recoversWithoutRemount`. A [captura de espera](evidence/cooperative-waiting-server.png) mostra o feedback visível. Câmera real continua pendente de validação pelo maintainer.
+
+Decisões: o watchdog mede progresso da simulação e só atua na fase de jogo; não tenta abrir outra sala nem reiniciar câmera/renderer. Ao aguardar, para de enviar controles; o servidor já neutraliza controles antigos. Credenciais continuam somente em memória. O benchmark inicia exclusivamente um servidor filho em loopback e não aceita destino externo; ajustes de admissão são exclusivos desse processo. Medição curta não justifica elevar limites de produção.
+
+Verificação final deste complemento: `yarn check:all` aprovado em cópia isolada sem rede, com tipos, lint, builds e core 68, marbles 174, swing 234, servidor 76, web 470 e scripts web 79 testes. `yarn install --immutable`, instalação do hook, `yarn test:sdd` (109), `yarn test:gates` (231) e `yarn security:dependencies` (zero achados) também aprovados. Um primeiro lint apontou quatro assertions desnecessárias nos novos testes; foram removidas antes do agregado aprovado. Não houve alteração de produção depois dessa execução. Permanecem os avisos conhecidos de canvas/React no DOM simulado e tamanho de bundle.

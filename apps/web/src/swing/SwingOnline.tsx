@@ -18,9 +18,9 @@ export function SwingOnline({ catalog, onBack, deps, client: injected }: { catal
     const maps = [TRAINING_MAP, ...catalog.maps.filter((map) => map.id !== TRAINING_MAP.id)]
     const map = maps.find((candidate) => candidate.id === room?.cityId)
     const connected = view.connection === 'connected'
-    const busy = view.pending || !connected
+    const busy = view.pending || !connected || view.stale
     const exit = () => { client.leave(); onBack() }
-    const status = view.connection === 'connecting' ? 'Conectando à sala…' : !connected ? 'Conexão interrompida. Tentando reconectar à mesma sala…' : room?.status === 'paused' ? 'Partida pausada. Aguardando a outra pessoa reconectar.' : room?.status === 'finished' ? 'Objetivos concluídos! Confirmem uma nova partida para continuar na mesma sala.' : room?.status === 'playing' ? 'Coletem juntos os sinais luminosos pela cidade.' : 'A partida começa quando as duas pessoas estiverem prontas.'
+    const status = view.connection === 'connecting' ? 'Conectando à sala…' : !connected ? 'Conexão interrompida. Tentando reconectar à mesma sala…' : view.stale ? 'Aguardando atualização do servidor. A partida será retomada automaticamente.' : room?.status === 'paused' ? 'Partida pausada. Aguardando a outra pessoa reconectar.' : room?.status === 'finished' ? 'Objetivos concluídos! Confirmem uma nova partida para continuar na mesma sala.' : room?.status === 'playing' ? 'Coletem juntos os sinais luminosos pela cidade.' : 'A partida começa quando as duas pessoas estiverem prontas.'
     const feedback = <Panel raised aria-label="Sala cooperativa" className="swing-online-feedback">
         <h2 className="swing-online-feedback__title">Cooperativo online{room ? ` · Sala ${room.roomCode}` : ''}</h2>
         <p className="swing-online-feedback__status" role="status" aria-live="polite">{room || !connected ? status : 'Conectado. Crie ou entre em uma sala.'}</p>

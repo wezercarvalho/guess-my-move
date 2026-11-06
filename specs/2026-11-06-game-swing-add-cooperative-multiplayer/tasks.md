@@ -6,6 +6,10 @@
 - [x] T004 [FR-007] [NFR-001] [SC-004] Capacidades, exportação de eventos, métricas e inspeção de privacidade.
 - [x] T005 [FR-008] [NFR-003] [SC-001] [SC-004] Issues, integração, documentação, gates e PRs em rascunho.
 
+- [x] T006 [FR-009] [SC-003] Reproduzir ACK tardio após queda e retomada; invalidar gerações e cancelar pendências.
+- [x] T007 [FR-010] [NFR-002] [SC-003] Testar watchdog de progresso e feedback de espera/recuperação, com limpeza de timers.
+- [x] T008 [FR-011] [SC-004] Instrumentar medição local isolada, executar perfis de carga e registrar resultados/limites.
+
 ## Análise de consistência
 
 - Status: aprovada

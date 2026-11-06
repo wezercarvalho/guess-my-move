@@ -86,3 +86,9 @@ Erros inesperados geram apenas evento, operação conhecida e correlação aleat
 Veja [API e observabilidade](../contracts/backend-api.md) para os scripts de contratos, `ENABLE_API_DOCS`, `METRICS_TOKEN` e as opções `OBSERVE_*`. Métricas locais exigem token próprio; o SDK externo fica desativado por padrão.
 
 `MAX_ROOMS` é um orçamento agregado entre bolinhas e Arranha-Teia. Conexões e tentativas também são agregadas entre namespaces. O máximo não é uma medição de capacidade: valide carga e uso de memória no ambiente real antes de dimensionar produção.
+
+## Medição exploratória de carga cooperativa
+
+`yarn load:swing` compila as dependências e inicia um backend isolado em porta aleatória de loopback, com clientes Socket.IO locais. Não recebe URL de servidor externo nem mede uma instância de produção. O padrão usa 2/10/20 salas, duas pessoas por sala, duas réplicas, aquecimento de 3 s e medição de 15 s por rodada. `yarn workspace @guess-my-move/server load:swing --output /tmp/swing-load.json` pode salvar agregados após os builds.
+
+O experimento desativa o SDK externo e ajusta limites por IP somente no processo filho porque todos os participantes simulados usam loopback. Não modifica defaults de produção. Inclui CPU/RSS do servidor, atraso do event loop, intervalo de snapshots, ACKs e falhas; exclui câmera, WebGL, internet e cidades reais. Consulte o [resultado e as condições da amostra](../../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/load-results.md) antes de interpretar números como capacidade.

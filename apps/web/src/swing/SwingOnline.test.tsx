@@ -9,7 +9,7 @@ vi.mock('./SwingScreen.js', () => ({ SwingScreen: () => <div data-testid="online
 const player = (id: string, nickname: string) => ({ id, nickname, connected: true, ready: false, rematchReady: false, state: createSwingState({ x: 0, y: 90, z: 0 }) })
 const room: SwingRoomState = { roomCode: 'ABC123', cityId: 'aurora', cityVersion: 1, round: 1, tick: 0, status: 'waiting', players: [player('one', 'Ana'), player('two', 'Bia')], objectives: [{ id: 'light', position: { x: 0, y: 90, z: 0 }, collectedBy: null }] }
 function setup() {
-    let snapshot: SwingOnlineSnapshot = { connection: 'connected', access: null, room: null, pending: false, error: null }
+    let snapshot: SwingOnlineSnapshot = { connection: 'connected', access: null, room: null, pending: false, error: null, stale: false }
     const listeners = new Set<() => void>()
     const client = { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }, connect: vi.fn(), destroy: vi.fn(), create: vi.fn(), join: vi.fn(), ready: vi.fn(), rematch: vi.fn(), leave: vi.fn() }
     const back = vi.fn()
@@ -17,6 +17,18 @@ function setup() {
     return { client, back, update: (value: Partial<SwingOnlineSnapshot>) => act(() => { snapshot = { ...snapshot, ...value }; listeners.forEach((listener) => listener()) }) }
 }
 describe('Cooperativo Arranha-Teia', () => {
+    it('distinguishes a stalled server from disconnection and keeps the world/camera mounted during recovery', () => {
+        const game = setup()
+        game.update({ room: { ...room, status: 'playing' }, access: { roomCode: 'ABC123', playerId: 'one', resumeToken: 'private' } })
+        const world = screen.getByTestId('online-world')
+        game.update({ stale: true })
+        expect(screen.getByRole('status')).toHaveTextContent('Aguardando atualização do servidor')
+        expect(screen.getByTestId('online-world')).toBe(world)
+        game.update({ stale: false, room: { ...room, status: 'playing', tick: 3 } })
+        expect(screen.getByRole('status')).toHaveTextContent('Coletem juntos')
+        expect(screen.getByTestId('online-world')).toBe(world)
+    })
+
     it('remains usable after StrictMode repeats the connection effect', async () => {
         const listeners = new Map<string, Set<(...args: unknown[]) => void>>()
         const socket: ClientSocket = {

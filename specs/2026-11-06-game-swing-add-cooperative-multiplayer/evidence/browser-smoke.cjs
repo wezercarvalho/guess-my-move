@@ -60,6 +60,17 @@ const wait = async (fn, ms = 20000) => {
                     } catch {}
                 })
             })
+            await p.addInitScript(() => {
+                const NativeSocket = window.WebSocket
+                window.WebSocket = class extends NativeSocket {
+                    constructor(...args) {
+                        super(...args)
+                        this.addEventListener('message', (event) => {
+                            if (window.__holdGameSnapshots && String(event.data).includes('"swing:state"')) event.stopImmediatePropagation()
+                        })
+                    }
+                }
+            })
             await p.goto(base + '/swing.html')
             await p
                 .getByRole('button', {
@@ -126,6 +137,14 @@ const wait = async (fn, ms = 20000) => {
             fullPage: true,
         })
         await pages[0].setViewportSize({ width: 1440, height: 1000 })
+        await pages[0].evaluate(() => { window.__sceneBeforeStall = document.querySelector('.swing-scene'); window.__holdGameSnapshots = true })
+        await pages[0].getByText('Aguardando atualização do servidor. A partida será retomada automaticamente.', { exact: true }).waitFor()
+        assert(states[0].players.every(player => player.connected), 'Transport remains connected while snapshots are withheld')
+        assert(await pages[0].evaluate(() => document.querySelector('.swing-scene') === window.__sceneBeforeStall))
+        await pages[0].screenshot({ path: evidence + '/cooperative-waiting-server.png' })
+        await pages[0].evaluate(() => { window.__holdGameSnapshots = false })
+        await pages[0].getByText('Coletem juntos os sinais luminosos pela cidade.', { exact: true }).waitFor()
+        assert(await pages[0].evaluate(() => document.querySelector('.swing-scene') === window.__sceneBeforeStall))
         await contexts[1].setOffline(true)
         await wait(() => states[0]?.status === 'paused')
         await pages[0]
@@ -151,6 +170,8 @@ const wait = async (fn, ms = 20000) => {
         const results = {
             layout,
             twoIndependentContexts: true,
+            stalledServerFeedback: true,
+            recoversWithoutRemount: true,
             webglLoaded: true,
             nicknames: ['Ana', 'Bia'],
             sameCity: states[0].cityId,

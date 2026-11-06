@@ -42,6 +42,8 @@ Abra `/swing.html` e escolha uma experiência:
 4. Alcancem os sinais luminosos próximos ao chão; cada sinal é coletado uma vez por qualquer participante. A contagem é coletiva e o servidor confirma a conclusão.
 5. Ao concluir, as duas pessoas confirmam **Nova partida** na mesma sala. A câmera e o mundo permanecem montados.
 
+Se a conexão continuar aberta mas a partida ficar sem progresso por dois segundos, a tela mostra **Aguardando atualização do servidor**. Os controles param de enviar comandos até chegar um snapshot novo; sala e câmera são preservadas e a retomada é automática. Isso é diferente da mensagem de desconexão.
+
 A sessão pausa quando alguém desconecta. A vaga fica reservada por 60 segundos e a reconexão acontece automaticamente. Recarregar a página perde a credencial mantida só em memória; sair libera a vaga. Salas expiradas retornam ao lobby com uma mensagem. A interface aceita teclado e gestos; imagens, vídeo e landmarks continuam locais. Reiniciar o servidor perde as salas.
 
 ### Mãos e teias

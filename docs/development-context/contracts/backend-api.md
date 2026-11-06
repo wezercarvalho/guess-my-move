@@ -95,3 +95,9 @@ Filas, outbox, workflows duráveis e locks distribuídos precisam de uma demanda
 Eventos `swing:create/join/resume/ready/input/rematch/leave` recebem schemas estritos; `swing:state` publica o snapshot e `swing:error` comunica expiração. Inputs contêm partida, sequência e controles; o cliente não envia posições ou resultados. ACKs de acesso são privados. O servidor neutraliza input antigo após 350 ms; snapshots são publicados a 10 Hz e há limite de 20 comandos/s. Atualizações de lobby podem ser imediatas. Operações `swing:*` entram na lista limitada de métricas e na instrumentação revisada do gateway; a inspeção de batches inclui esse domínio.
 
 A credencial do swing permanece só em memória, diferentemente do armazenamento por aba usado pelas bolinhas. Clientes devem ignorar snapshots de outra sala, partida anterior ou tick anterior; após expiração devem limpar acesso e voltar ao lobby. Não tratar o schema de estado como autorização para transmitir estado: somente o servidor publica `swing:state`.
+
+### Recuperação do cliente cooperativo
+
+Desconexões invalidam a geração de comandos em andamento e cancelam seus timers; ACKs de conexões anteriores não podem restaurar acesso ou sobrescrever uma retomada nova. Um snapshot recebido antes do ACK de criação/entrada ainda não confirma acesso: se houver queda, esse estado provisório é descartado. Credenciais já confirmadas permanecem somente em memória para a retomada.
+
+Enquanto conectado e jogando, o cliente observa progresso de partida/tick. Após 2 s sem progresso, mostra espera pelo servidor e suspende intents; snapshots duplicados, obsoletos ou de outra sala não renovam essa janela. Um estado novo remove o aviso e retoma o envio. Pausa, saída, expiração e desmontagem limpam o watchdog. Esse prazo é um limiar de feedback, não SLA de rede nem medição de latência.

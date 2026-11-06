@@ -30,3 +30,9 @@ PASS: módulos separados, nenhuma mídia no transporte, autoridade no servidor, 
 ## Resultado da revisão de versões e estrutura
 
 A consulta ao registro npm oficial via `yarn npm info @nestjs/core @nestjs/platform-node @nestjs/observe --fields version`, em 2026-11-06, confirmou core/plataforma 12.3.3 e SDK 0.3.24, já adotados pela base. A evolução necessária é estrutural: encapsular domínios, compartilhar proteção e desacoplar métricas. Não há ganho demonstrado em acrescentar CQRS, microserviços, Redis ou providers por conexão. Mantemos singleton, HTTP nativo, serialização Standard Schema nos controllers HTTP e ACK sanitizado no Socket.IO.
+
+## Emenda aprovada — FR-009–FR-011
+
+Invalidar a geração de comandos e cancelar timers antes de mudar o estado de transporte. Respostas antigas não podem alterar a sessão seguinte. Adicionar watchdog de progresso, baseado em snapshots aceitos com avanço de partida/tick, ativo apenas durante jogo conectado: após 2 s sem progresso, mostrar espera e suspender envio de intents; snapshot novo retoma automaticamente. Limpar watchdog em pausa, saída, expiração e desmontagem. Testar primeiro com timers e ACKs controlados, depois integrar UI.
+
+Medir backend em processo isolado e somente loopback, com 2/10/20 salas e dois participantes por sala. Ajustes de limites por IP pertencem exclusivamente ao experimento local. Registrar métricas agregadas, configuração e limites da amostra; nenhuma mudança de capacidade de produção automática. Autorização: resposta do maintainer “Pode fazer então” à proposta nesta conversa; sem exceção nova de privacidade.
