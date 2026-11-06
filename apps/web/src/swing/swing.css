@@ -602,3 +602,86 @@ ul.swing-keys kbd {
 .swing-training ul { list-style: none; padding: 0; font-size: .85rem; }
 .swing-training li { margin-block: .55rem; }
 .swing-training li[data-done="true"] { color: #7df2d6; }
+
+.swing-online-lobby {
+    width: min(100%, 52rem);
+    margin: auto;
+    display: grid;
+    gap: var(--space-4, 1rem);
+    padding: var(--space-4, 1rem);
+}
+.swing-online-lobby label {
+    display: grid;
+    gap: 0.4rem;
+    margin-block: 0.8rem;
+}
+.swing-online-lobby input,
+.swing-online-lobby select {
+    font: inherit;
+    color: inherit;
+    background: var(--color-surface, #202020);
+    border: 1px solid currentColor;
+    border-radius: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.5rem;
+}
+.swing-online-lobby form + form {
+    margin-top: 1.5rem;
+}
+
+/* Room feedback keeps its natural height; the live city receives the remaining space. */
+.swing-online-feedback {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+}
+.swing-online-feedback > p,
+.swing-online-feedback > ul {
+    margin: 0;
+}
+.swing-online-feedback__title {
+    font-size: var(--size-body, 1rem);
+    line-height: 1.4;
+}
+.swing-online-feedback__players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: 0;
+    list-style: none;
+}
+.swing-online-feedback__players li {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 0.2rem 0.5rem;
+    font-size: var(--size-small);
+}
+.swing-online-feedback__progress {
+    white-space: nowrap;
+    font-size: var(--size-small);
+}
+.swing-online-feedback__leave {
+    margin-left: auto;
+}
+.swing-online-feedback__status,
+.swing-online-feedback__hint,
+.swing-online-feedback__error {
+    flex: 1 0 100%;
+    order: 1;
+    font-size: var(--size-small);
+    line-height: 1.4;
+}
+.swing-online-feedback__error {
+    color: var(--danger);
+}
+@media (min-width: 960px) and (min-height: 560px) {
+    .swing-online-session > .swing-online-feedback {
+        padding-left: 6.5rem;
+    }
+    body.swing-playing .swing-online-session .swing-header__title {
+        padding-left: 0;
+    }
+}

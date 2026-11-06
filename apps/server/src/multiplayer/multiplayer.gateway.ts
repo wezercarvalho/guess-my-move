@@ -1,3 +1,4 @@
+import { RealtimePolicy } from '../realtime/realtime-policy.service.js'
 import { randomUUID } from 'node:crypto'
 import {
     Inject,
@@ -33,11 +34,7 @@ import {
 import { type Server, type Socket } from 'socket.io'
 
 import { SERVER_CONFIG, type ServerConfig } from '../server-config.js'
-import {
-    ConnectionAdmission,
-    clientAddress,
-    isAllowedOrigin,
-} from './admission.js'
+import { ConnectionAdmission, clientAddress } from './admission.js'
 import { BackendTelemetry } from '../observability/backend-telemetry.service.js'
 import { SlidingWindowRateLimiter } from './rate-limit.js'
 import { RoomError, RoomService } from './room.service.js'
@@ -76,16 +73,12 @@ export class MultiplayerGateway
         @Optional()
         @Inject(BackendTelemetry)
         private readonly telemetry: BackendTelemetry = new BackendTelemetry(),
+        @Optional() @Inject(RealtimePolicy) policy?: RealtimePolicy,
     ) {
-        this.admission = new ConnectionAdmission(config)
+        this.admission = policy ?? new ConnectionAdmission(config)
     }
 
     afterInit(): void {
-        this.server.engine.opts.allowRequest = (request, callback) => {
-            const allowed = isAllowedOrigin(request.headers.origin, this.config)
-            if (!allowed) this.telemetry.counters.rejectedOrigins++
-            callback(null, allowed)
-        }
         this.server.use((client, next) => {
             if (!this.admission.connect(client.id, this.address(client))) {
                 this.telemetry.counters.rejectedConnections++

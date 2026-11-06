@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-06T12:48:58.828Z",
+  "scenario": "isolated-loopback-swing-aurora",
+  "runtime": {
+    "node": "v26.12.1",
+    "platform": "linux",
+    "kernel": "7.0.0-38-generic",
+    "architecture": "x64",
+    "availableParallelism": 2,
+    "cpuModel": "AMD EPYC 9354P 32-Core Processor",
+    "hostMemoryBytes": 8321175552,
+    "cgroupCpuMax": "200000 100000",
+    "cgroupMemoryMax": "2147483648"
+  },
+  "methodology": {
+    "profiles": [
+      2,
+      10,
+      20
+    ],
+    "replicas": 2,
+    "warmupMs": 3000,
+    "durationMs": 15000,
+    "inputHzPerPlayer": 10,
+    "nominalSnapshotHz": 10,
+    "serverProcessSeparateFromClients": true,
+    "rssSamplingMs": 50,
+    "eventLoopHistogramResolutionMs": 10,
+    "externalTelemetry": false,
+    "cameraOrWebGL": false,
+    "localAdmissionOverrides": {
+      "maxConnectionsPerIp": 100,
+      "roomAttemptsPerMinute": 1000
+    },
+    "globalLimits": {
+      "maxConnections": 200,
+      "maxRooms": 100
+    }
+  },
+  "results": [
+    {
+      "rooms": 2,
+      "players": 4,
+      "replicate": 1,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15001.893,
+      "peakRssBytes": 140976128,
+      "cpuUserMs": 616.311,
+      "cpuSystemMs": 108.376,
+      "cpuPercentOneCore": 4.831,
+      "eventLoopDelayMs": {
+        "p95": 11.174,
+        "max": 254.28
+      },
+      "maxTickDelayMs": 221,
+      "activeRooms": 2,
+      "activeConnections": 4,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 596,
+        "snapshots": 588,
+        "latencyMs": {
+          "count": 596,
+          "p50": 1.305,
+          "p95": 3.956,
+          "max": 250.571
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 588,
+        "p50": 100.105,
+        "p95": 103.013,
+        "max": 308.607
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    },
+    {
+      "rooms": 2,
+      "players": 4,
+      "replicate": 2,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15001.427,
+      "peakRssBytes": 140701696,
+      "cpuUserMs": 614.6,
+      "cpuSystemMs": 109.296,
+      "cpuPercentOneCore": 4.826,
+      "eventLoopDelayMs": {
+        "p95": 10.822,
+        "max": 13.697
+      },
+      "maxTickDelayMs": 3,
+      "activeRooms": 2,
+      "activeConnections": 4,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 600,
+        "snapshots": 600,
+        "latencyMs": {
+          "count": 600,
+          "p50": 1.245,
+          "p95": 2.548,
+          "max": 5.092
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 600,
+        "p50": 100.127,
+        "p95": 101.931,
+        "max": 105.183
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    },
+    {
+      "rooms": 10,
+      "players": 20,
+      "replicate": 1,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15001.014,
+      "peakRssBytes": 142569472,
+      "cpuUserMs": 1369.517,
+      "cpuSystemMs": 208.413,
+      "cpuPercentOneCore": 10.519,
+      "eventLoopDelayMs": {
+        "p95": 11.592,
+        "max": 34.177
+      },
+      "maxTickDelayMs": 19,
+      "activeRooms": 10,
+      "activeConnections": 20,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 2994,
+        "snapshots": 3000,
+        "latencyMs": {
+          "count": 2994,
+          "p50": 0.832,
+          "p95": 2.534,
+          "max": 29.146
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 3000,
+        "p50": 100.121,
+        "p95": 103.05,
+        "max": 120.341
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    },
+    {
+      "rooms": 10,
+      "players": 20,
+      "replicate": 2,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15001.367,
+      "peakRssBytes": 142807040,
+      "cpuUserMs": 1515.542,
+      "cpuSystemMs": 218.722,
+      "cpuPercentOneCore": 11.561,
+      "eventLoopDelayMs": {
+        "p95": 11.846,
+        "max": 35.783
+      },
+      "maxTickDelayMs": 22,
+      "activeRooms": 10,
+      "activeConnections": 20,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 2991,
+        "snapshots": 2980,
+        "latencyMs": {
+          "count": 2991,
+          "p50": 1.083,
+          "p95": 3.942,
+          "max": 38.758
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 2980,
+        "p50": 100.005,
+        "p95": 102.682,
+        "max": 122.905
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    },
+    {
+      "rooms": 20,
+      "players": 40,
+      "replicate": 1,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15000.799,
+      "peakRssBytes": 146903040,
+      "cpuUserMs": 2374.002,
+      "cpuSystemMs": 375.82,
+      "cpuPercentOneCore": 18.331,
+      "eventLoopDelayMs": {
+        "p95": 12.132,
+        "max": 22.839
+      },
+      "maxTickDelayMs": 9,
+      "activeRooms": 20,
+      "activeConnections": 40,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 5984,
+        "snapshots": 6000,
+        "latencyMs": {
+          "count": 5984,
+          "p50": 0.753,
+          "p95": 2.265,
+          "max": 14.584
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 6000,
+        "p50": 100.179,
+        "p95": 102.553,
+        "max": 106.454
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    },
+    {
+      "rooms": 20,
+      "players": 40,
+      "replicate": 2,
+      "warmupMs": 3000,
+      "requestedDurationMs": 15000,
+      "elapsedMs": 15000.775,
+      "peakRssBytes": 146669568,
+      "cpuUserMs": 2380.72,
+      "cpuSystemMs": 382.859,
+      "cpuPercentOneCore": 18.423,
+      "eventLoopDelayMs": {
+        "p95": 12.665,
+        "max": 139.33
+      },
+      "maxTickDelayMs": 107,
+      "activeRooms": 20,
+      "activeConnections": 40,
+      "internalErrors": 0,
+      "invalidCommands": 0,
+      "rateLimited": 0,
+      "acknowledgements": {
+        "acks": 5970,
+        "snapshots": 5920,
+        "latencyMs": {
+          "count": 5970,
+          "p50": 0.979,
+          "p95": 5.243,
+          "max": 166.86
+        }
+      },
+      "snapshotIntervalMs": {
+        "count": 5920,
+        "p50": 100.096,
+        "p95": 105.514,
+        "max": 172.794
+      },
+      "failures": {
+        "acknowledgementTimeouts": 0,
+        "rejectedCommands": 0,
+        "disconnects": 0,
+        "serverErrors": 0
+      }
+    }
+  ]
+}

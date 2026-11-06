@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createObserveModule, type ObserveOptions } from '@nestjs/observe'
+import { SWING_CLIENT_EVENTS } from '@guess-my-move/swing'
 import { CLIENT_EVENTS } from '@guess-my-move/marbles'
 import type { ServerConfig } from '../server-config.js'
 
@@ -19,6 +20,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule({
                 'HealthController',
                 'ApiController',
                 'MultiplayerGateway',
+                'SwingGateway',
             ].includes(constructor.name)
         )
     },
@@ -54,9 +56,10 @@ export function observeOptions(config: ServerConfig): ObserveOptions {
         },
         ws: {
             ignore: (message) =>
-                !Object.values(CLIENT_EVENTS).includes(
-                    message.pattern as (typeof CLIENT_EVENTS)[keyof typeof CLIENT_EVENTS],
-                ),
+                ![
+                    ...Object.values(CLIENT_EVENTS),
+                    ...Object.values(SWING_CLIENT_EVENTS),
+                ].some((event) => event === message.pattern),
         },
         // Nenhum texto de erro arbitrário sai do processo; métricas e nomes fixos bastam.
         redaction: {

@@ -1,3 +1,6 @@
+import { RealtimeAdapter } from './realtime/realtime.adapter.js'
+import { RealtimePolicy } from './realtime/realtime-policy.service.js'
+import { BackendTelemetry } from './observability/backend-telemetry.service.js'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import {
     type INestApplication,
@@ -24,6 +27,13 @@ export async function createServerApp(
         ...options,
     })
     const config = app.get<ServerConfig>(SERVER_CONFIG)
+    app.useWebSocketAdapter(
+        new RealtimeAdapter(
+            app,
+            app.get(RealtimePolicy),
+            app.get(BackendTelemetry),
+        ),
+    )
     app.enableCors({
         origin: config.allowedOrigins,
         methods: ['GET', 'HEAD'],

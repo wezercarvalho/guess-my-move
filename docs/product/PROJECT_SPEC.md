@@ -261,3 +261,7 @@ A entrega atual está pronta quando a rodada completa roda no Chrome desktop do 
 ## 14. Próximo passo
 
 Executar o teste manual do maintainer no Chrome desktop, registrar latência e delegate em `validation.md` e ajustar os limiares da carta se necessário. A IA jogadora só começa depois, com spec própria.
+
+## Evolução: Arranha-Teia cooperativo
+
+O modo cooperativo permite duas pessoas na mesma cidade, com apelidos efêmeros, sala por código, confirmação de prontidão, avatares identificáveis e coleta compartilhada de sinais luminosos. O servidor NestJS simula os controles do núcleo swing, define os objetivos e confirma o término. A dupla pode retomar após uma queda de até 60 segundos ou confirmar uma nova partida sem recriar a sala. A câmera permanece opcional e local; somente comandos derivados dos controles são enviados. Treino e Viajante continuam locais. Implementação e evidências são acompanhadas pela [spec de cooperação](../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/spec.md) e pelas issues #119–#122; aceite final depende da revisão da entrega.

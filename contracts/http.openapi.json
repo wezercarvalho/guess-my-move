@@ -11,6 +11,55 @@
     }
   ],
   "paths": {
+    "/api/contracts/swing": {
+      "get": {
+        "operationId": "getSwingContract",
+        "summary": "Schemas do multiplayer cooperativo Arranha-Teia",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "getHealth",
@@ -114,6 +163,75 @@
                     "reconnectGraceMs": {
                       "type": "number",
                       "const": 60000
+                    },
+                    "games": {
+                      "type": "object",
+                      "properties": {
+                        "marbles": {
+                          "type": "object",
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "const": "/"
+                            },
+                            "contract": {
+                              "type": "string",
+                              "const": "/api/contracts/multiplayer"
+                            }
+                          },
+                          "required": [
+                            "namespace",
+                            "contract"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "swing": {
+                          "type": "object",
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "const": "/swing"
+                            },
+                            "contract": {
+                              "type": "string",
+                              "const": "/api/contracts/swing"
+                            },
+                            "maxPlayers": {
+                              "type": "number",
+                              "const": 2
+                            },
+                            "cooperative": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "cityIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "aurora",
+                                  "midtown",
+                                  "paulista",
+                                  "santa-maria"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "namespace",
+                            "contract",
+                            "maxPlayers",
+                            "cooperative",
+                            "cityIds"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "marbles",
+                        "swing"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -123,7 +241,8 @@
                     "path",
                     "namespace",
                     "modes",
-                    "reconnectGraceMs"
+                    "reconnectGraceMs",
+                    "games"
                   ],
                   "additionalProperties": false
                 }

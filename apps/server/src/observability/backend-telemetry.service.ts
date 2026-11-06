@@ -1,16 +1,19 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { TracerService } from '@nestjs/observe'
+import { SWING_CLIENT_EVENTS } from '@guess-my-move/swing'
 import { CLIENT_EVENTS } from '@guess-my-move/marbles'
 
 export const HTTP_OPERATIONS = [
     'HealthController:check',
     'ApiController:capabilities',
     'ApiController:multiplayer',
+    'ApiController:swing',
     'ApiController:openapi',
     'MetricsController:read',
 ] as const
 export const KNOWN_OPERATIONS: readonly string[] = [
     ...Object.values(CLIENT_EVENTS),
+    ...Object.values(SWING_CLIENT_EVENTS),
     ...HTTP_OPERATIONS,
 ]
 export const newCounters = () => ({

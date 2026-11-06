@@ -8,11 +8,11 @@ Use a webcam para jogar cartas de gestos, bolinhas de gude e se movimentar entre
 
 ## Jogos disponíveis
 
-| Jogo                 | Experiência                                                                                                                                                           | Página          |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| **Cartas de gestos** | Faça o gesto pedido pela carta antes de acabar a rodada. O gesto disponível é **Acenar**.                                                                             | `/cards.html`   |
-| **Bolinhas de gude** | Modos **Bete**, **Triângulo** e **Cova**, com tiro por pinça ou estalo experimental. Jogue localmente contra a meta ou o bot, ou online com outra pessoa.             | `/marbles.html` |
-| **Arranha-Teia**     | Lance teias, balance e escale usando mãos e cabeça. Aprenda no **Treino**, em Aurora, ou explore cidades reais no modo **Viajante**. Também há controles por teclado. | `/swing.html`   |
+| Jogo                 | Experiência                                                                                                                                                                                                        | Página          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| **Cartas de gestos** | Faça o gesto pedido pela carta antes de acabar a rodada. O gesto disponível é **Acenar**.                                                                                                                          | `/cards.html`   |
+| **Bolinhas de gude** | Modos **Bete**, **Triângulo** e **Cova**, com tiro por pinça ou estalo experimental. Jogue localmente contra a meta ou o bot, ou online com outra pessoa.                                                          | `/marbles.html` |
+| **Arranha-Teia**     | Lance teias, balance e escale usando mãos e cabeça. Aprenda no **Treino**, em Aurora, ou explore cidades reais no modo **Viajante**. Coopere online com outra pessoa na mesma cidade ou use controles por teclado. | `/swing.html`   |
 
 O menu inicial reúne os três jogos. No multiplayer de bolinhas, a sala mostra apelidos, participantes, prontidão, vez atual, próximo jogador e resultado. As duas pessoas podem confirmar uma nova partida na mesma sala.
 
@@ -54,12 +54,18 @@ O servidor aceita, por padrão, as origens locais da porta 5173. Se o Vite usar 
 
 O Vite encaminha `/socket.io` e `/api` para `127.0.0.1:3000`. Para acesso em outros dispositivos, é necessário configurar HTTPS, a origem compartilhada entre web e servidor e suporte a WebSocket. Os comandos acima iniciam o ambiente local; não publicam uma instância na internet. Veja o [guia de desenvolvimento local](docs/development-context/operations/local-development.md).
 
+### Jogar Arranha-Teia cooperativo
+
+Com `yarn dev:server` e `yarn dev:web` em execução, abra `/swing.html` em dois contextos de navegador. Escolha **Cooperativo online**, informe um apelido e crie uma sala em Aurora ou em uma das cidades do catálogo. A outra pessoa entra pelo código; ambas confirmam **Estou pronto**. Coletem os sinais luminosos juntos, usando mãos/cabeça ou teclado. O painel mostra os participantes e o progresso.
+
+O servidor simula os movimentos e os objetivos. Quedas pausam a sessão e reservam a vaga por 60 segundos; a retomada é automática enquanto a página permanece aberta. A credencial fica somente em memória: recarregar a página perde o acesso à vaga. Ao concluir, ambas confirmam **Nova partida** na mesma sala. Nenhuma imagem ou landmark é enviado. Consulte o [guia dos jogos](docs/games.md).
+
 ## Privacidade por arquitetura
 
 - **Mãos e rosto são processados no navegador.** Imagens, vídeos e landmarks não são enviados ao servidor, gravados ou registrados em logs.
 - A câmera depende da permissão explícita do navegador, com indicador de captura e opção de pará-la.
 - O modo local funciona sem o backend de multiplayer e sem chaves de provedores de IA.
-- No online, o servidor recebe apelidos efêmeros, acesso e comandos da sala, tiros e estado da partida. Não há contas nem banco de dados; a credencial de retomada fica em `sessionStorage`.
+- No online, o servidor recebe apelidos efêmeros, acesso e comandos da sala, tiros e estado da partida. Não há contas nem banco de dados; as bolinhas guardam a credencial de retomada em `sessionStorage`, enquanto o Arranha-Teia a mantém somente em memória da página.
 
 Detalhes: [privacidade e segredos](docs/development-context/security/privacy-and-secrets.md).
 
@@ -81,16 +87,16 @@ Antes do primeiro push, instale o hook local com `node scripts/git-hooks/install
 
 Contribuições com correções, documentação e relatos de testes são bem-vindas. Comece pelo [guia de contribuição](docs/contributing.md): ele explica como reportar problemas, preparar o ambiente e enviar uma PR.
 
-| Comando                      | Uso                                             |
-| ---------------------------- | ----------------------------------------------- |
-| `yarn dev:web`               | Preparar modelos e iniciar o frontend.          |
-| `yarn dev:server`            | Iniciar o servidor opcional de bolinhas online. |
-| `yarn check:static`          | Verificar tipos e lint.                         |
-| `yarn test`                  | Executar os testes dos workspaces.              |
-| `yarn build`                 | Compilar todos os workspaces.                   |
-| `yarn check:all`             | Executar tipos, lint, testes e build.           |
-| `yarn docs:format:check`     | Verificar a formatação da documentação.         |
-| `yarn security:dependencies` | Auditar dependências.                           |
+| Comando                      | Uso                                       |
+| ---------------------------- | ----------------------------------------- |
+| `yarn dev:web`               | Preparar modelos e iniciar o frontend.    |
+| `yarn dev:server`            | Iniciar o servidor dos dois jogos online. |
+| `yarn check:static`          | Verificar tipos e lint.                   |
+| `yarn test`                  | Executar os testes dos workspaces.        |
+| `yarn build`                 | Compilar todos os workspaces.             |
+| `yarn check:all`             | Executar tipos, lint, testes e build.     |
+| `yarn docs:format:check`     | Verificar a formatação da documentação.   |
+| `yarn security:dependencies` | Auditar dependências.                     |
 
 Para visualizar o frontend compilado, execute `yarn build` e depois `yarn workspace @guess-my-move/web preview`. O preview não inicia o servidor de multiplayer.
 

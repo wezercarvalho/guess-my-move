@@ -20,6 +20,10 @@ Aplica-se a qualquer mudança que toque câmera, quadros, landmarks, logs ou doc
 - No modo online, o servidor recebe código/acesso da sala, apelido efêmero, prontidão, confirmação de revanche e tiros (número da partida, sequência e vetor). Isso não altera o processamento local da câmera: nenhuma imagem, vídeo ou landmark é enviado.
 - Apelidos são texto público apenas para as duas pessoas da sala, limitado e validado; não exigem nome real, conta ou perfil. Ficam nos slots em memória e são descartados ao encerrar/expirar a sala. Não registrar apelidos, credenciais ou payloads completos em logs. A retomada recupera o mesmo slot sem persistir o apelido no navegador.
 
+## Arranha-Teia cooperativo
+
+O navegador envia somente inputs numéricos/booleanos derivados dos controles (teias, puxar, agarrar, taxas/deltas do olhar e escalada), número da partida e sequência. O servidor simula posições e objetivos. Nenhum frame, imagem, vídeo, landmark ou dado bruto do detector é aceito pelo schema. Apelidos e posições do avatar são públicos apenas à dupla da sala em memória; o segredo de retomada só aparece no ACK privado e fica em memória da página, sem storage. Fechar/recarregar a página perde essa credencial. Logs e telemetria não incluem apelidos, tokens, posições ou payloads.
+
 ## Arquivos do detector
 
 - O `.wasm` do MediaPipe e os modelos `.task` (`hand_landmarker.task` no jogo de cartas e `gesture_recognizer.task` no jogo das bolinhas) são servidos pelo próprio app (sem CDN), preparados por `prepare:assets`.

@@ -55,7 +55,7 @@ Mudanças em `contracts/` selecionam o gate de código. Os testes do backend det
 
 Defina um token aleatório de pelo menos 32 caracteres no ambiente do processo e consulte `/api/metrics` com `Authorization: Bearer <token>`. A credencial pertence à operação, não ao frontend público ou ao jogador. Não a coloque em query string, código versionado, bundle web ou logs. Sem token configurado, o endpoint responde 404; token incorreto ou ausente responde 401 quando o endpoint está habilitado.
 
-O retrato contém conexões e salas ativas, recusas, expirações, falhas internas, maior atraso observado do ciclo e estatísticas por operação conhecida: quantidade, erros/recusas, soma das durações e duração máxima. São agregados desde o início do processo; não são histórico persistido nem uma promessa de latência. A lista de operações é limitada para impedir cardinalidade por dados do cliente. Não há nomes, códigos de sala, tokens, IPs, mídia ou landmarks.
+O retrato agrega os dois jogos e contém conexões e salas ativas, recusas, expirações, falhas internas, maior atraso observado do ciclo e estatísticas por operação conhecida: quantidade, erros/recusas, soma das durações e duração máxima. São agregados desde o início do processo; não são histórico persistido nem uma promessa de latência. A lista de operações é limitada para impedir cardinalidade por dados do cliente. Não há nomes, códigos de sala, tokens, IPs, mídia ou landmarks.
 
 Os resumos estruturados locais continuam funcionando com a coleta externa desativada. Dimensione limites com observação e testes de carga no ambiente real antes de publicar.
 
@@ -87,3 +87,17 @@ Os testes usam um coletor HTTP local simulado, inspecionam os batches descomprim
 | Encerramento HTTP            | Recusa de novas requisições durante fechamento e fechamento de conexões HTTP.        |
 
 Filas, outbox, workflows duráveis e locks distribuídos precisam de uma demanda de produto ou operação antes de entrar neste backend efêmero de uma instância. A troca do adaptador não constitui medição de desempenho nem correção de reconhecimento de câmera.
+
+## Contrato cooperativo do Arranha-Teia
+
+`GET /api/contracts/swing` e `contracts/swing.socketio.json` descrevem o namespace `/swing`. `GET /api/capabilities` mantém os campos legados de bolinhas e adiciona `games`, com namespace, contrato, cidades e cooperação de dois participantes. Os scripts de exportação/conferência incluem os três documentos.
+
+Eventos `swing:create/join/resume/ready/input/rematch/leave` recebem schemas estritos; `swing:state` publica o snapshot e `swing:error` comunica expiração. Inputs contêm partida, sequência e controles; o cliente não envia posições ou resultados. ACKs de acesso são privados. O servidor neutraliza input antigo após 350 ms; snapshots são publicados a 10 Hz e há limite de 20 comandos/s. Atualizações de lobby podem ser imediatas. Operações `swing:*` entram na lista limitada de métricas e na instrumentação revisada do gateway; a inspeção de batches inclui esse domínio.
+
+A credencial do swing permanece só em memória, diferentemente do armazenamento por aba usado pelas bolinhas. Clientes devem ignorar snapshots de outra sala, partida anterior ou tick anterior; após expiração devem limpar acesso e voltar ao lobby. Não tratar o schema de estado como autorização para transmitir estado: somente o servidor publica `swing:state`.
+
+### Recuperação do cliente cooperativo
+
+Desconexões invalidam a geração de comandos em andamento e cancelam seus timers; ACKs de conexões anteriores não podem restaurar acesso ou sobrescrever uma retomada nova. Um snapshot recebido antes do ACK de criação/entrada ainda não confirma acesso: se houver queda, esse estado provisório é descartado. Credenciais já confirmadas permanecem somente em memória para a retomada.
+
+Enquanto conectado e jogando, o cliente observa progresso de partida/tick. Após 2 s sem progresso, mostra espera pelo servidor e suspende intents; snapshots duplicados, obsoletos ou de outra sala não renovam essa janela. Um estado novo remove o aviso e retoma o envio. Pausa, saída, expiração e desmontagem limpam o watchdog. Esse prazo é um limiar de feedback, não SLA de rede nem medição de latência.

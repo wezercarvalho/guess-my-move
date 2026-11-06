@@ -1,3 +1,4 @@
+import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { advanceTraining, EMPTY_TRAINING, type TrainingProgress } from './training.js'
 import {
     type City,
@@ -67,6 +68,7 @@ export interface SwingHud {
 
 /** Dependências do controlador; em testes, a cidade, o 3D, o relógio e as teclas são simulados. */
 export interface SwingEnv {
+    online?: SwingOnlineBridge
     createTracker: CreateHandTracker
     /** Valores de jogo ajustáveis por mapa (ex.: altura inicial); ausente usa o padrão. */
     config?: SwingConfig
@@ -217,6 +219,11 @@ export class SwingController {
     private phase: SwingPhase = 'loading'
     private failure: string | null = null
     private city: City | null = null
+    private onlineTick = -1
+    private onlineRound = -1
+    private snapshotAt = -Infinity
+    private lastInputAt = -Infinity
+    private pendingLook = { yaw: 0, pitch: 0 }
     private world: SwingWorld | null = null
     private renderer: SwingRenderer | null = null
     private size = { width: 0, height: 0 }
@@ -392,6 +399,11 @@ export class SwingController {
 
     /** Volta ao ponto de partida. */
     readonly restart = (): void => {
+        if (this.env.online) return
+        this.resetRound()
+    }
+
+    private resetRound(): void {
         this.training = EMPTY_TRAINING
         this.world?.reset()
         this.triggers.left.reset()
@@ -612,7 +624,31 @@ export class SwingController {
             // A direção travada vira a nova frente: o acompanhamento automático mira o rumo mais ela.
             lookBias: head.bias,
         }
-        world.advance(input, dt)
+        const online = this.env.online
+        if (online) {
+            const view = online.getSnapshot()
+            const room = view.room
+            const local = room?.players.find((player) => player.id === view.access?.playerId)
+            if (room && local && (room.tick !== this.onlineTick || room.round !== this.onlineRound)) {
+                if (this.onlineRound >= 0 && room.round !== this.onlineRound) this.resetRound()
+                Object.assign(world.state, structuredClone(local.state))
+                this.snapshotAt = now
+                this.onlineTick = room.tick
+                this.onlineRound = room.round
+            }
+            if (view.connection === 'connected' && room?.status === 'playing') {
+                this.pendingLook.yaw += input.lookDelta?.yaw ?? 0
+                this.pendingLook.pitch += input.lookDelta?.pitch ?? 0
+                if (now - this.lastInputAt >= 100) {
+                    online.sendInput({ ...input, lookDelta: { yaw: Math.max(-Math.PI, Math.min(Math.PI, this.pendingLook.yaw)), pitch: Math.max(-Math.PI, Math.min(Math.PI, this.pendingLook.pitch)) } })
+                    this.pendingLook = { yaw: 0, pitch: 0 }
+                    this.lastInputAt = now
+                }
+                // Extrapolation is capped at one snapshot interval; a stalled connection freezes.
+                if (now - this.snapshotAt <= 100) world.advance(input, Math.min(dt, 0.1))
+            } else this.pendingLook = { yaw: 0, pitch: 0 }
+            renderer.setOnline?.(room, view.access?.playerId ?? null, Math.min(dt, 0.1))
+        } else world.advance(input, dt)
         this.training = advanceTraining(this.training, {
             webSides: world.state.webs.map((web) => web.side),
             pulling: world.state.webs.some((web) => web.side === -1 ? input.pull?.left : web.side === 1 ? input.pull?.right : input.pull?.center),

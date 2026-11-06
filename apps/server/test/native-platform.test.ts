@@ -13,6 +13,7 @@ import {
 import {
     buildOpenApiDocument,
     buildMultiplayerContract,
+    buildSwingContract,
 } from '../src/contracts/documents.js'
 
 describe('plataforma nativa e política de telemetria', () => {
@@ -61,6 +62,7 @@ describe('plataforma nativa e política de telemetria', () => {
 describe('contratos versionados', () => {
     for (const [name, build] of [
         ['http.openapi.json', buildOpenApiDocument],
+        ['swing.socketio.json', buildSwingContract],
         ['multiplayer.socketio.json', buildMultiplayerContract],
     ] as const) {
         it(`mantém ${name} sincronizado com a implementação`, () => {

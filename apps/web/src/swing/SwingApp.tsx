@@ -1,3 +1,4 @@
+import { SwingOnline } from './SwingOnline.js'
 import { TRAINING_MAP } from './training.js'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -39,6 +40,7 @@ export function SwingApp({
     loadCatalog = loadDefaultCatalog,
     deps,
 }: SwingAppProps) {
+    const [online, setOnline] = useState(false)
     const [traveler, setTraveler] = useState(false)
     const [attempt, setAttempt] = useState(0)
     const [catalog, setCatalog] = useState<CityCatalog | null>(null)
@@ -99,12 +101,14 @@ export function SwingApp({
             </main>
         )
     }
+    if (online) return <SwingOnline catalog={catalog} onBack={() => setOnline(false)} {...(deps ? { deps } : {})} />
     if (!selected && !traveler) return (
         <main className="app app-wide swing-map-select" aria-labelledby="mode-select-title">
             <header className="swing-map-select__header"><h1 id="mode-select-title">Escolha o modo</h1><p>Arranha-Teia · explore no seu ritmo.</p></header>
             <div className="swing-map-grid">
                 <Panel raised><h2>Treino</h2><p>Aprenda os comandos em Aurora, uma cidade futurista de néon. Sem tempo nem pontuação.</p><Button onClick={() => select(TRAINING_MAP)}>Treino</Button></Panel>
                 <Panel raised><h2>Viajante</h2><p>Escolha uma cidade real e admire a vista entre as teias.</p><Button onClick={() => setTraveler(true)}>Viajante</Button></Panel>
+                <Panel raised><h2>Cooperativo online</h2><p>Duas pessoas na mesma cidade, coletando objetivos juntas.</p><Button onClick={() => setOnline(true)}>Cooperativo online</Button></Panel>
             </div>
             <a className="swing-map-back" href="./">Voltar aos jogos</a>
         </main>
