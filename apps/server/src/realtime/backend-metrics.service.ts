@@ -14,6 +14,7 @@ export class BackendMetrics {
         return this.telemetry.snapshot(
             this.policy.activeConnections,
             this.budget.activeRooms,
+            this.policy.activeTransports,
         )
     }
 }

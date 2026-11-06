@@ -38,6 +38,7 @@ export const metricsResponseSchema = z.strictObject({
     expiredRooms: count(),
     maxTickDelayMs: z.number().nonnegative(),
     activeConnections: count(),
+    activeTransports: count(),
     activeRooms: count(),
     operations: z.record(
         z.string(),

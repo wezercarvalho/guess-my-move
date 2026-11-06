@@ -83,7 +83,11 @@ export class BackendTelemetry {
         }
     }
 
-    snapshot(activeConnections: number, activeRooms: number) {
+    snapshot(
+        activeConnections: number,
+        activeRooms: number,
+        activeTransports = 0,
+    ) {
         this.publish(() => {
             for (const [name, value] of Object.entries(this.counters))
                 this.tracer?.gauge(`backend_${name}`).setValue(value)
@@ -95,6 +99,7 @@ export class BackendTelemetry {
         return {
             ...this.counters,
             activeConnections,
+            activeTransports,
             activeRooms,
             operations: Object.fromEntries(
                 [...this.operations].map(([operation, stats]) => [
