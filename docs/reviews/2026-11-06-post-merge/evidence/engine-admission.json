@@ -1,0 +1,8 @@
+{
+  "commit": "889d7650582c5562ff9807c612748e15c15ab47e",
+  "configuredMaxConnections": 1,
+  "configuredMaxConnectionsPerIp": 1,
+  "rawEngineConnections": 8,
+  "admissionActiveConnections": 0,
+  "scope": "8 loopback handshakes only; no namespace CONNECT, no load or external target"
+}

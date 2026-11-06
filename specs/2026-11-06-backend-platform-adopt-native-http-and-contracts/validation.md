@@ -95,3 +95,14 @@ O teste de gates também detectou a ausência do comando literal de instalação
 - Escopo técnico disponível: FR-001–FR-006, NFR-001–NFR-002 e SC-001–SC-003.
 - Riscos aceitos: nenhum aceite humano presumido.
 - Observações: manter PR em rascunho; não mesclar nem ativar telemetria externa automaticamente.
+
+## Reconciliação do aceite após merge — issue #131
+
+- Situação: código integrado e gates dos PRs conferidos; Gate 3 formal continua pendente, sem promover a spec para validated.
+- Motivo: o merge informado pelo maintainer confirma a integração, mas não contém um veredito explícito sobre o conjunto de limitações de validação/operação.
+- Responsável pela decisão: wezercarvalho (maintainer).
+- Data da conferência: 2026-11-06.
+- Commit de referência: 889d7650582c5562ff9807c612748e15c15ab47e.
+- Escopo da decisão: HTTP nativo, contratos HTTP/Socket.IO e observabilidade opcional.
+- Riscos/limites a aceitar ou rejeitar: SDK externo permanece opt-in; publicação e operação real não foram validadas; não há nova persistência.
+- Próxima ação humana: registrar aprovado, aprovado com risco aceito, rejeitado ou bloqueado, com data/commit/escopo e justificativa; somente depois promover o estado conforme o guia SDD. A PR documental não fabrica essa decisão.
