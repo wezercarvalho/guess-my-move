@@ -54,3 +54,7 @@ Testes precederam produção; fonte/contrato/plano convergem; dados privados fic
 - Veredito: pendente de revisão final da PR.
 - Aprovador: maintainer.
 - Escopo técnico demonstrado: FR-001–FR-004, NFR-001–NFR-002 e SC-001.
+
+## Validação integrada com as bases
+
+As PRs #139 (admissão) e #133 (documentação/aceite pendente) foram incorporadas **localmente à branch**, sem merge no GitHub. A integração preservou ambas as seções da API e todas as entradas do catálogo; a suíte recompilada de servidor aprovou **88 testes**, incluindo admissão pré-namespace e recuperação no mesmo conjunto. As PRs da sequência continuam apontando a main; integrar #133 e #139 primeiro reduz os diffs e evita conflitos de catálogo/contrato na revisão posterior.
