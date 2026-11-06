@@ -142,7 +142,8 @@ describe('MultiplayerClient', () => {
             socket,
             storage: memoryStorage(),
         })
-        await client.connect()
+        socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+        await client.createRoom('bete')
         socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 2 })
         socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 1 })
         socket.serverEmit(SERVER_EVENTS.state, {
@@ -478,4 +479,142 @@ it('an old ready rejection cannot clear the newly resumed session', async () => 
         client.destroy()
         vi.useRealTimers()
     }
+})
+
+describe('isolamento dos estados de sala', () => {
+    it('não aceita broadcasts sem entrada nem de outra sala após confirmar acesso', async () => {
+        const socket = new FakeSocket(),
+            client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        await client.connect()
+        socket.serverEmit(SERVER_EVENTS.state, waiting)
+        expect(client.getSnapshot().room).toBeNull()
+        socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+        await client.createRoom('bete')
+        socket.serverEmit(SERVER_EVENTS.state, waiting)
+        socket.serverEmit(SERVER_EVENTS.state, {
+            ...waiting,
+            roomCode: 'ZZZZZZ',
+            version: 99,
+        })
+        expect(client.getSnapshot().room?.roomCode).toBe(access.roomCode)
+        client.destroy()
+    })
+    it('estado anterior ao ACK só aparece junto do acesso confirmado', async () => {
+        const socket = new FakeSocket(),
+            client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        socket.defer(CLIENT_EVENTS.create)
+        const creating = client.createRoom('bete')
+        await vi.waitFor(() =>
+            expect(
+                socket.emitted.some((e) => e.event === CLIENT_EVENTS.create),
+            ).toBe(true),
+        )
+        socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 2 })
+        socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 1 })
+        expect(client.getSnapshot().room).toBeNull()
+        socket.reply(CLIENT_EVENTS.create, { ok: true, access })
+        expect(await creating).toBe(true)
+        expect(client.getSnapshot()).toMatchObject({
+            access,
+            room: { version: 2 },
+        })
+        client.destroy()
+    })
+    it('sair limpa imediatamente e broadcasts/ACK antigos não reabrem a sala', async () => {
+        const socket = new FakeSocket(),
+            storage = memoryStorage(),
+            client = new MultiplayerClient({ socket, storage })
+        socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+        await client.createRoom('bete')
+        socket.serverEmit(SERVER_EVENTS.state, waiting)
+        socket.defer(CLIENT_EVENTS.leave)
+        const leaving = client.leave()
+        expect(client.getSnapshot().room).toBeNull()
+        expect(storage.getItem(MULTIPLAYER_STORAGE_KEY)).toBeNull()
+        socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 5 })
+        socket.reply(CLIENT_EVENTS.leave, { ok: true })
+        await leaving
+        socket.serverEmit(SERVER_EVENTS.state, { ...waiting, version: 6 })
+        expect(client.getSnapshot().room).toBeNull()
+        client.destroy()
+    })
+    it('ACK de criação perdido libera a participação incerta e permite nova tentativa explícita', async () => {
+        vi.useFakeTimers()
+        const socket = new FakeSocket(),
+            client = new MultiplayerClient({ socket, storage: memoryStorage() })
+        socket.defer(CLIENT_EVENTS.create)
+        try {
+            const creating = client.createRoom('bete')
+            await vi.advanceTimersByTimeAsync(0)
+            socket.serverEmit(SERVER_EVENTS.state, waiting)
+            await vi.advanceTimersByTimeAsync(5000)
+            expect(await creating).toBe(false)
+            expect(client.getSnapshot()).toMatchObject({
+                access: null,
+                room: null,
+                connection: 'disconnected',
+                error: { code: 'INTERNAL_ERROR' },
+            })
+            expect(socket.connected).toBe(false)
+            expect(
+                socket.emitted.some((e) => e.event === CLIENT_EVENTS.leave),
+            ).toBe(true)
+            expect(
+                socket.emitted.filter((e) => e.event === CLIENT_EVENTS.create),
+            ).toHaveLength(1)
+            socket.reply(CLIENT_EVENTS.create, { ok: true, access })
+            expect(client.getSnapshot().access).toBeNull()
+            const retry = client.createRoom('bete')
+            await vi.advanceTimersByTimeAsync(0)
+            socket.serverEmit(SERVER_EVENTS.state, waiting)
+            socket.reply(CLIENT_EVENTS.create, { ok: true, access })
+            expect(await retry).toBe(true)
+            expect(client.getSnapshot()).toMatchObject({
+                access,
+                room: waiting,
+            })
+        } finally {
+            client.destroy()
+            vi.useRealTimers()
+        }
+    })
+})
+
+it('sair sem ACK libera o transporte em vez de deixar vinculação desconhecida', async () => {
+    vi.useFakeTimers()
+    const socket = new FakeSocket(),
+        client = new MultiplayerClient({ socket, storage: memoryStorage() })
+    socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+    try {
+        await client.createRoom('bete')
+        socket.defer(CLIENT_EVENTS.leave)
+        const leaving = client.leave()
+        await vi.advanceTimersByTimeAsync(5000)
+        await leaving
+        expect(socket.connected).toBe(false)
+        expect(client.getSnapshot().access).toBeNull()
+        expect(vi.getTimerCount()).toBe(0)
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})
+it('ACK antigo de saída não desconecta a sala nova', async () => {
+    const socket = new FakeSocket(),
+        client = new MultiplayerClient({ socket, storage: memoryStorage() })
+    socket.respond(CLIENT_EVENTS.create, { ok: true, access })
+    await client.createRoom('bete')
+    socket.defer(CLIENT_EVENTS.leave)
+    const leaving = client.leave()
+    const next = { ...access, roomCode: 'ZZZZZZ' }
+    socket.respond(CLIENT_EVENTS.create, { ok: true, access: next })
+    await client.createRoom('bete')
+    socket.reply(CLIENT_EVENTS.leave, {
+        ok: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Old leave' },
+    })
+    await leaving
+    expect(socket.connected).toBe(true)
+    expect(client.getSnapshot().access).toEqual(next)
+    client.destroy()
 })

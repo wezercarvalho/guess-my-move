@@ -62,8 +62,8 @@ Como mantenedor, quero o comportamento descrito pelos requisitos para revisar e 
 
 - **FR-001:** Recuperar o acesso privado da participação já vinculada ao mesmo socket Swing após perda do ACK, sem criar outra sala nem expor credenciais em snapshots.
 - **FR-002:** Preservar credenciais em falhas transitórias de retomada, permitir repetição idempotente pelo mesmo socket e limitar retries com cancelamento no descarte.
-- **FR-003:** Invalidar comandos e esperas de conexão de bolinhas em desconexão ou destroy, sem escrita tardia no storage ou liberação prematura de tiros.
-- **FR-004:** Recuperar ou limpar estado provisório sem identidade após timeout de criação/entrada, com feedback e regressões de sessão/privacidade.
+- **FR-003:** Invalidar comandos e esperas de conexão de bolinhas em desconexão ou destroy, sem escrita tardia no storage, reexibição da sala após saída ou liberação prematura de tiros.
+- **FR-004:** Recuperar ou limpar estado provisório sem identidade após timeout de criação/entrada, com feedback e regressões de sessão/privacidade. Em bolinhas, o estado recebido antes do ACK fica provisório e só é publicado com acesso confirmado; uma confirmação perdida não deixa sala sem identidade nem repete criação automaticamente.
 
 ## Requisitos não funcionais
 

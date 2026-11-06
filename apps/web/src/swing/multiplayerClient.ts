@@ -9,7 +9,7 @@ import {
     type SwingRoomState,
 } from '@guess-my-move/swing'
 import { io } from 'socket.io-client'
-import { type ClientSocket } from '../marbles/multiplayerClient.js'
+import type { ClientSocket } from '../realtime/clientSocket.js'
 
 export interface SwingOnlineSnapshot {
     connection: 'connecting' | 'connected' | 'disconnected'
