@@ -102,3 +102,14 @@ A execução exploratória do navegador foi repetida com duas sessões, teclado,
 Decisões: o watchdog mede progresso da simulação e só atua na fase de jogo; não tenta abrir outra sala nem reiniciar câmera/renderer. Ao aguardar, para de enviar controles; o servidor já neutraliza controles antigos. Credenciais continuam somente em memória. O benchmark inicia exclusivamente um servidor filho em loopback e não aceita destino externo; ajustes de admissão são exclusivos desse processo. Medição curta não justifica elevar limites de produção.
 
 Verificação final deste complemento: `yarn check:all` aprovado em cópia isolada sem rede, com tipos, lint, builds e core 68, marbles 174, swing 234, servidor 76, web 470 e scripts web 79 testes. `yarn install --immutable`, instalação do hook, `yarn test:sdd` (109), `yarn test:gates` (231) e `yarn security:dependencies` (zero achados) também aprovados. Um primeiro lint apontou quatro assertions desnecessárias nos novos testes; foram removidas antes do agregado aprovado. Não houve alteração de produção depois dessa execução. Permanecem os avisos conhecidos de canvas/React no DOM simulado e tamanho de bundle.
+
+## Reconciliação do aceite após merge — issue #131
+
+- Situação: código integrado e gates dos PRs conferidos; Gate 3 formal continua pendente, sem promover a spec para validated.
+- Motivo: o merge informado pelo maintainer confirma a integração, mas não contém um veredito explícito sobre o conjunto de limitações de validação/operação.
+- Responsável pela decisão: wezercarvalho (maintainer).
+- Data da conferência: 2026-11-06.
+- Commit de referência: 5006f976f23f7f81ba88a3f07928af47073d1aae.
+- Escopo da decisão: Cooperação, modularização, recuperação e medição local (FR-001–FR-011).
+- Riscos/limites a aceitar ou rejeitar: Câmera/GPU física e rede real não testadas; carga local curta não define SLA; salas são efêmeras por instância e reload do Swing perde credencial em memória.
+- Próxima ação humana: registrar aprovado, aprovado com risco aceito, rejeitado ou bloqueado, com data/commit/escopo e justificativa; somente depois promover o estado conforme o guia SDD. A PR documental não fabrica essa decisão.

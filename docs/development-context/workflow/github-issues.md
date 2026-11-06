@@ -112,3 +112,7 @@ Selecione a estratégia no [roteador](../../development-strategies/README.md). P
 - [Referência Gherkin — Cucumber](https://cucumber.io/docs/gherkin/reference/)
 - [Templates de issues — GitHub](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository)
 - [Vínculo entre PR e issue — GitHub](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue)
+
+## Registro mínimo de aceite pendente
+
+Quando o código já foi integrado mas faltar a declaração formal do Gate 3, registrar na própria validation.md: situação comprovada, motivo da pendência, responsável nominal, data de conferência, commit integrado, escopo e riscos a decidir. Estado e veredito ficam pendentes até a decisão humana; não usar comentário de um agente como assinatura do maintainer. Esse registro resolve a rastreabilidade mesmo quando o aceite é deliberadamente posterior ao merge.
