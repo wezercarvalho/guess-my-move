@@ -11,7 +11,7 @@
 | Requisito | Tarefas | Evidência                                                                                                                                                                       | Resultado |
 | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | FR-001    | T001    | onlineSession.test.ts: 10 Hz, soma de deltas, cópia do snapshot, previsão limitada, pausa/desconexão/stale, nova partida e reaplicação após reset.                              | PASS      |
-| FR-002    | T002    | Recursos compartilhados com 7 testes e adoção efetiva; regressões de quadro único para mãos/rosto, carregamento, erro, liberação e câmera simulada.                             | PASS      |
+| FR-002    | T002    | Recursos compartilhados com 8 testes e adoção efetiva; regressões de quadro único para mãos/rosto, carregamento, erro, liberação e câmera simulada.                             | PASS      |
 | FR-003    | T003    | handInput.test.ts neutraliza perda de mãos; 73 testes dos controladores/gestos e suíte web completa mantêm contratos reexportados, calibração, espelhamento, teclado e cleanup. | PASS      |
 
 ## Test-first e comandos
@@ -35,3 +35,5 @@ NFR-001/NFR-002 preservadas: sem mídia externa, logs ou persistência nova, com
 - Veredito: pendente de revisão final da PR.
 - Aprovador: maintainer.
 - Escopo técnico demonstrado: FR-001–FR-003, NFR-001–NFR-002 e SC-001.
+
+Última integração da base de captura: callback que cancela a observação não rearma outro quadro. Revalidados 8 testes de captura, 6 de sessão/entrada e check:static; suíte web completa anterior permanece como evidência do incremento, com validação integrada final na adoção de bolinhas.
