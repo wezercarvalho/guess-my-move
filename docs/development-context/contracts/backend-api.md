@@ -101,3 +101,9 @@ A credencial do swing permanece só em memória, diferentemente do armazenamento
 Desconexões invalidam a geração de comandos em andamento e cancelam seus timers; ACKs de conexões anteriores não podem restaurar acesso ou sobrescrever uma retomada nova. Um snapshot recebido antes do ACK de criação/entrada ainda não confirma acesso: se houver queda, esse estado provisório é descartado. Credenciais já confirmadas permanecem somente em memória para a retomada.
 
 Enquanto conectado e jogando, o cliente observa progresso de partida/tick. Após 2 s sem progresso, mostra espera pelo servidor e suspende intents; snapshots duplicados, obsoletos ou de outra sala não renovam essa janela. Um estado novo remove o aviso e retoma o envio. Pausa, saída, expiração e desmontagem limpam o watchdog. Esse prazo é um limiar de feedback, não SLA de rede nem medição de latência.
+
+## Reconciliação de participação após perda de ACK
+
+`swing:recover` recebe `{}` estrito e devolve no ACK privado somente o acesso da participação já associada ao socket chamador. Não recebe código de sala nem token de outra pessoa, não cria sala e não renova inatividade. Estado público e métricas continuam sem credenciais. O cliente usa essa consulta após ACK perdido de create/join, sem repetir automaticamente a criação.
+
+Retomada pode ser repetida pelo mesmo socket com o mesmo token sem modificar a atividade; outro socket conectado ou token incorreto continuam recusados. Os clientes invalidam respostas de gerações anteriores e limitam as tentativas automáticas. Após falha persistente, o cooperativo mantém credencial conhecida e oferece retomada explícita; uma entrada sem identidade é abandonada com leave e encerramento do transporte, sujeita à janela normal de expiração se o abandono também não puder ser confirmado.

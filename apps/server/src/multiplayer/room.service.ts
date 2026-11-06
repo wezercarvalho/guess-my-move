@@ -229,6 +229,22 @@ export class RoomService {
     }
 
     resume(socketId: string, command: ResumeRoomCommand): RoomMutation {
+        const existing = this.sockets.get(socketId)
+        if (existing) {
+            const room = this.getRoom(existing.roomCode)
+            if (
+                room.code === command.roomCode &&
+                room.slots[existing.role].token === command.resumeToken
+            )
+                return {
+                    access: this.access(room, existing.role),
+                    state: this.toState(room),
+                }
+            throw new RoomError(
+                'RESUME_DENIED',
+                'Não foi possível retomar esta vaga.',
+            )
+        }
         this.assertSocketFree(socketId)
         const room = this.getRoom(command.roomCode)
         const role = this.roleForToken(room, command.resumeToken)

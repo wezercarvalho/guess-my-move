@@ -25,6 +25,7 @@ export function SwingOnline({ catalog, onBack, deps, client: injected }: { catal
         <h2 className="swing-online-feedback__title">Cooperativo online{room ? ` · Sala ${room.roomCode}` : ''}</h2>
         <p className="swing-online-feedback__status" role="status" aria-live="polite">{room || !connected ? status : 'Conectado. Crie ou entre em uma sala.'}</p>
         {view.error ? <p className="swing-online-feedback__error" role="alert">{view.error}</p> : null}
+        {view.connection === 'disconnected' && view.access ? <Button onClick={() => client.connect()}>Tentar retomar</Button> : null}
         {room ? <>
             <ul className="swing-online-feedback__players">{room.players.map((player, index) => <li key={player.id}><span style={{ color: index === 0 ? '#00d5ff' : '#ffb84d' }}>●</span> {player.nickname}{player.id === me?.id ? ' (você)' : ''} · {!player.connected ? 'desconectado' : room.status === 'finished' ? player.rematchReady ? 'nova partida confirmada' : 'aguardando confirmação' : player.ready ? 'pronto' : 'preparando'}</li>)}</ul>
             {room.players.length < 2 ? <p className="swing-online-feedback__hint">Aguardando a segunda pessoa. Compartilhe o código da sala.</p> : null}

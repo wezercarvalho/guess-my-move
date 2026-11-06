@@ -1,0 +1,20 @@
+{
+  "base": "889d7650582c5562ff9807c612748e15c15ab47e",
+  "date": "2026-11-06",
+  "webBefore": {
+    "failed": 6,
+    "passed": 28,
+    "command": "yarn workspace @guess-my-move/web test:multiplayer-clients"
+  },
+  "serverBefore": {
+    "failed": 3,
+    "passed": 76,
+    "command": "yarn workspace @guess-my-move/server test"
+  },
+  "after": {
+    "web": 480,
+    "webScripts": 79,
+    "server": 80
+  },
+  "limits": "Backend red/default ran in Docker; final server tests also repeated against freshly TypeScript-compiled production after Docker became unavailable. Final web execution serial after concurrent runs hit resource/time limits."
+}

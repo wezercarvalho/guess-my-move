@@ -76,3 +76,13 @@ describe('Cooperativo Arranha-Teia', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Sair do cooperativo' })); expect(game.client.leave).toHaveBeenCalledOnce(); expect(game.back).toHaveBeenCalledOnce()
     })
 })
+
+it('offers explicit resumption without remounting a world after retries fail',()=>{
+    const game=setup()
+    game.update({room:{...room,status:'playing'},access:{roomCode:'ABC123',playerId:'one',resumeToken:'private'}})
+    const world=screen.getByTestId('online-world')
+    game.update({connection:'disconnected',error:'Retomada não confirmada.'})
+    fireEvent.click(screen.getByRole('button',{name:'Tentar retomar'}))
+    expect(game.client.connect).toHaveBeenCalledTimes(2)
+    expect(screen.getByTestId('online-world')).toBe(world)
+})

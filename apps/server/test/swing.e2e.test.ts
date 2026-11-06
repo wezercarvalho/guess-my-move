@@ -383,3 +383,40 @@ describe('cooperative Socket.IO namespace', () => {
         ).rejects.toThrow('Capacidade')
     })
 })
+
+it('recovers only its own private membership after the creation ACK is dropped', async () => {
+    const url = await start(),
+        one = await connect(url),
+        stranger = await connect(url)
+    const states: SwingRoomState[] = []
+    one.on(SWING_SERVER_EVENTS.state, (raw: unknown) =>
+        states.push(swingRoomStateSchema.parse(raw)),
+    )
+    one.emit(events.create, { cityId: 'aurora', nickname: 'Ana' })
+    await eventually(() => states.length > 0)
+    const recovered = await ack(one, events.recover, {})
+    expect(recovered.ok).toBe(true)
+    if (!recovered.ok || !recovered.access)
+        throw new Error('Acesso recuperado ausente.')
+    expect(app!.get(SwingRoomService).activeRooms).toBe(1)
+    expect(JSON.stringify(states)).not.toContain(recovered.access.resumeToken)
+    expect(await ack(stranger, events.recover, {})).toMatchObject({
+        ok: false,
+        error: { code: 'not-in-room' },
+    })
+    expect(
+        await ack(stranger, events.recover, {
+            roomCode: recovered.access.roomCode,
+        }),
+    ).toMatchObject({ ok: false, error: { code: 'invalid-command' } })
+    expect(await ack(one, events.resume, recovered.access)).toMatchObject({
+        ok: false,
+        error: { code: 'invalid-command' },
+    })
+    expect(
+        await ack(one, events.resume, {
+            roomCode: recovered.access.roomCode,
+            resumeToken: recovered.access.resumeToken,
+        }),
+    ).toMatchObject({ ok: true, access: recovered.access })
+})

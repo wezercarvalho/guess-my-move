@@ -3,10 +3,17 @@ import { describe, expect, it } from 'vitest'
 
 import { RoomError, RoomService } from '../src/multiplayer/room.service.js'
 
-function harness(options: { maxRooms?: number; finishedTimeoutMs?: number } = {}) {
+function harness(
+    options: { maxRooms?: number; finishedTimeoutMs?: number } = {},
+) {
     let now = 10_000
     const codes = ['ABCDEF', 'GHJKMN', 'PQRSTU']
-    const tokens = ['a'.repeat(32), 'b'.repeat(32), 'c'.repeat(32), 'd'.repeat(32)]
+    const tokens = [
+        'a'.repeat(32),
+        'b'.repeat(32),
+        'c'.repeat(32),
+        'd'.repeat(32),
+    ]
     const service = new RoomService({
         now: () => now,
         code: () => codes.shift() ?? 'VWXYZ2',
@@ -67,15 +74,24 @@ describe('RoomService: ciclo da sala', () => {
     it('recusa código ausente, sala iniciada e limite global de salas', () => {
         const limited = harness({ maxRooms: 1 }).service
         limited.create('one', { modeId: 'triangle' })
-        expectRoomError(() => limited.create('two', { modeId: 'hole' }), 'ROOM_LIMIT')
-        expectRoomError(() => limited.join('three', { roomCode: 'ZZZZZZ' }), 'ROOM_NOT_FOUND')
+        expectRoomError(
+            () => limited.create('two', { modeId: 'hole' }),
+            'ROOM_LIMIT',
+        )
+        expectRoomError(
+            () => limited.join('three', { roomCode: 'ZZZZZZ' }),
+            'ROOM_NOT_FOUND',
+        )
 
         const { service } = harness()
         service.create('host', { modeId: 'bete' })
         service.join('guest', { roomCode: 'ABCDEF' })
         service.setReady('host', { ready: true })
         service.setReady('guest', { ready: true })
-        expectRoomError(() => service.join('late', { roomCode: 'ABCDEF' }), 'ROOM_STARTED')
+        expectRoomError(
+            () => service.join('late', { roomCode: 'ABCDEF' }),
+            'ROOM_STARTED',
+        )
     })
 
     it('começa uma única sessão remota quando as duas pessoas ficam prontas', () => {
@@ -91,7 +107,9 @@ describe('RoomService: ciclo da sala', () => {
             phase: 'player-turn',
             turn: 'player',
         })
-        expect(service.setReady('guest', { ready: true }).match).toEqual(started.match)
+        expect(service.setReady('guest', { ready: true }).match).toEqual(
+            started.match,
+        )
     })
 })
 
@@ -108,7 +126,11 @@ describe('RoomService: autoridade e sequência', () => {
     it('aceita uma vez, anuncia e só aplica o tiro de quem está na vez', () => {
         const h = started()
         expectRoomError(
-            () => h.service.submitShot('guest', { seq: 1, velocity: { x: 300, y: 0 } }),
+            () =>
+                h.service.submitShot('guest', {
+                    seq: 1,
+                    velocity: { x: 300, y: 0 },
+                }),
             'NOT_YOUR_TURN',
         )
 
@@ -122,7 +144,11 @@ describe('RoomService: autoridade e sequência', () => {
         })
         expect(announced.match?.phase).toBe('player-turn')
         expectRoomError(
-            () => h.service.submitShot('host', { seq: 1, velocity: { x: 300, y: 0 } }),
+            () =>
+                h.service.submitShot('host', {
+                    seq: 1,
+                    velocity: { x: 300, y: 0 },
+                }),
             'DUPLICATE_COMMAND',
         )
 
@@ -139,12 +165,20 @@ describe('RoomService: autoridade e sequência', () => {
         const h = started()
         h.service.submitShot('host', { seq: 1, velocity: { x: 300, y: 0 } })
         expectRoomError(
-            () => h.service.submitShot('host', { seq: 2, velocity: { x: 300, y: 0 } }),
+            () =>
+                h.service.submitShot('host', {
+                    seq: 2,
+                    velocity: { x: 300, y: 0 },
+                }),
             'NOT_READY',
         )
         h.advanceClock(450)
         expectRoomError(
-            () => h.service.submitShot('host', { seq: 2, velocity: { x: 300, y: 0 } }),
+            () =>
+                h.service.submitShot('host', {
+                    seq: 2,
+                    velocity: { x: 300, y: 0 },
+                }),
             'NOT_READY',
         )
     })
@@ -154,7 +188,9 @@ describe('RoomService: desconexão e retomada', () => {
     function started() {
         const h = harness()
         const host = h.service.create('host', { modeId: 'hole' })
-        const guest = h.service.join('guest', { roomCode: host.access.roomCode })
+        const guest = h.service.join('guest', {
+            roomCode: host.access.roomCode,
+        })
         h.service.setReady('host', { ready: true })
         h.service.setReady('guest', { ready: true })
         return { ...h, host, guest }
@@ -245,9 +281,17 @@ describe('RoomService: partida completa por modo', () => {
             expect(final?.match?.phase).toBe('match-over')
             expect(final?.match?.roundOutcomes).toHaveLength(3)
             expect(h.advanceClock(299_999).expired).toEqual([])
-            h.service.setRematchReady('host',{ready:true,matchNumber:1})
-            const replay=h.service.setRematchReady('guest',{ready:true,matchNumber:1})
-            expect(replay).toMatchObject({modeId,matchNumber:2,status:'playing',match:{round:0,roundOutcomes:[]}})
+            h.service.setRematchReady('host', { ready: true, matchNumber: 1 })
+            const replay = h.service.setRematchReady('guest', {
+                ready: true,
+                matchNumber: 1,
+            })
+            expect(replay).toMatchObject({
+                modeId,
+                matchNumber: 2,
+                status: 'playing',
+                match: { round: 0, roundOutcomes: [] },
+            })
             expect(replay.match?.field).toEqual(initial.match?.field)
             expect(h.advanceClock(2).expired).toEqual([])
         })
@@ -259,9 +303,15 @@ describe('RoomService: regressões antes do teste com câmera', () => {
         const { service } = harness()
         const host = service.create('host', { modeId: 'bete' })
         service.disconnect('host')
-        const resumed = service.resume('host-new', { roomCode: host.access.roomCode, resumeToken: host.access.resumeToken })
+        const resumed = service.resume('host-new', {
+            roomCode: host.access.roomCode,
+            resumeToken: host.access.resumeToken,
+        })
         expect(resumed.state.status).toBe('waiting')
-        expect(service.join('guest', { roomCode: host.access.roomCode }).state.status).toBe('ready')
+        expect(
+            service.join('guest', { roomCode: host.access.roomCode }).state
+                .status,
+        ).toBe('ready')
         service.setReady('host-new', { ready: true })
         expect(service.setReady('guest', { ready: true }).match).not.toBeNull()
     })
@@ -272,8 +322,14 @@ describe('RoomService: regressões antes do teste com câmera', () => {
         service.join('guest', { roomCode: 'ABCDEF' })
         service.setReady('host', { ready: true })
         service.disconnect('host')
-        expectRoomError(() => service.setReady('guest', { ready: true }), 'NOT_READY')
-        expect(service.state('ABCDEF')).toMatchObject({ status: 'paused', players: { opponent: { ready: false } } })
+        expectRoomError(
+            () => service.setReady('guest', { ready: true }),
+            'NOT_READY',
+        )
+        expect(service.state('ABCDEF')).toMatchObject({
+            status: 'paused',
+            players: { opponent: { ready: false } },
+        })
     })
 
     it('publica a bolinha do competidor da vez na Cova antes da mira', () => {
@@ -281,7 +337,8 @@ describe('RoomService: regressões antes do teste com câmera', () => {
         h.service.create('host', { modeId: 'hole' })
         h.service.join('guest', { roomCode: 'ABCDEF' })
         h.service.setReady('host', { ready: true })
-        const initial = h.service.setReady('guest', { ready: true }).match?.field[0]?.pos
+        const initial = h.service.setReady('guest', { ready: true }).match
+            ?.field[0]?.pos
         h.service.submitShot('host', { seq: 1, velocity: { x: 150, y: 0 } })
         h.advanceClock(450)
         let moved: { x: number; y: number } | undefined
@@ -295,54 +352,148 @@ describe('RoomService: regressões antes do teste com câmera', () => {
         expect(guestTurn?.match?.turn).toBe('opponent')
         expect(moved).not.toEqual(initial)
         expect(guestTurn?.match?.field[0]?.pos).toEqual(initial)
-        expect(guestTurn?.match?.decor?.resting).toContainEqual(expect.objectContaining({ owner: 'player' }))
+        expect(guestTurn?.match?.decor?.resting).toContainEqual(
+            expect.objectContaining({ owner: 'player' }),
+        )
     })
 })
 
-
 describe('RoomService: identidade e revanche', () => {
     it('preserva nomes e recusa apelido repetido sem ocupar a vaga', () => {
-        const h=harness()
-        h.service.create('host',{modeId:'bete',nickname:'Ana'})
-        expectRoomError(()=>h.service.join('duplicate',{roomCode:'ABCDEF',nickname:'ana'}),'NICKNAME_TAKEN')
-        const guest=h.service.join('guest',{roomCode:'ABCDEF',nickname:'Bia'})
+        const h = harness()
+        h.service.create('host', { modeId: 'bete', nickname: 'Ana' })
+        expectRoomError(
+            () =>
+                h.service.join('duplicate', {
+                    roomCode: 'ABCDEF',
+                    nickname: 'ana',
+                }),
+            'NICKNAME_TAKEN',
+        )
+        const guest = h.service.join('guest', {
+            roomCode: 'ABCDEF',
+            nickname: 'Bia',
+        })
         expect(guest.state.players.player.nickname).toBe('Ana')
         expect(guest.state.players.opponent.nickname).toBe('Bia')
         h.service.disconnect('guest')
-        expect(h.service.resume('guest-new',{roomCode:'ABCDEF',resumeToken:guest.access.resumeToken}).state.players.opponent.nickname).toBe('Bia')
+        expect(
+            h.service.resume('guest-new', {
+                roomCode: 'ABCDEF',
+                resumeToken: guest.access.resumeToken,
+            }).state.players.opponent.nickname,
+        ).toBe('Bia')
     })
 
     it('nova partida exige ambos, aceita cancelamento e rejeita comandos da partida anterior', () => {
-        const h=harness()
-        h.service.create('host',{modeId:'bete',nickname:'Ana'})
-        h.service.join('guest',{roomCode:'ABCDEF',nickname:'Bia'})
-        expectRoomError(()=>h.service.setRematchReady('host',{ready:true,matchNumber:1}),'NOT_READY')
-        h.service.setReady('host',{ready:true});h.service.setReady('guest',{ready:true})
-        let seq=0
-        for(let guard=0;guard<20000;guard++) {
-            const state=h.service.state('ABCDEF')!
-            if(state.status==='finished')break
-            const match=state.match!
-            if(match.phase==='player-turn'||match.phase==='opponent-turn') {
-                h.service.submitShot(match.turn==='player'?'host':'guest',{seq:++seq,velocity:{x:150,y:0}})
+        const h = harness()
+        h.service.create('host', { modeId: 'bete', nickname: 'Ana' })
+        h.service.join('guest', { roomCode: 'ABCDEF', nickname: 'Bia' })
+        expectRoomError(
+            () =>
+                h.service.setRematchReady('host', {
+                    ready: true,
+                    matchNumber: 1,
+                }),
+            'NOT_READY',
+        )
+        h.service.setReady('host', { ready: true })
+        h.service.setReady('guest', { ready: true })
+        let seq = 0
+        for (let guard = 0; guard < 20000; guard++) {
+            const state = h.service.state('ABCDEF')!
+            if (state.status === 'finished') break
+            const match = state.match!
+            if (
+                match.phase === 'player-turn' ||
+                match.phase === 'opponent-turn'
+            ) {
+                h.service.submitShot(
+                    match.turn === 'player' ? 'host' : 'guest',
+                    { seq: ++seq, velocity: { x: 150, y: 0 } },
+                )
                 h.advanceClock(450)
-            } else h.advanceClock(match.phase==='round-over'?950:50)
+            } else h.advanceClock(match.phase === 'round-over' ? 950 : 50)
         }
-        const final=h.service.state('ABCDEF')!
+        const final = h.service.state('ABCDEF')!
         expect(final.status).toBe('finished')
-        const first=h.service.setRematchReady('host',{ready:true,matchNumber:1})
+        const first = h.service.setRematchReady('host', {
+            ready: true,
+            matchNumber: 1,
+        })
         expect(first.match).toEqual(final.match)
         expect(first.players.player.rematchReady).toBe(true)
-        expect(h.service.setRematchReady('host',{ready:false,matchNumber:1}).players.player.rematchReady).toBe(false)
-        h.service.setRematchReady('host',{ready:true,matchNumber:1})
+        expect(
+            h.service.setRematchReady('host', { ready: false, matchNumber: 1 })
+                .players.player.rematchReady,
+        ).toBe(false)
+        h.service.setRematchReady('host', { ready: true, matchNumber: 1 })
         h.service.disconnect('guest')
-        expectRoomError(()=>h.service.setRematchReady('host',{ready:false,matchNumber:1}),'NOT_READY')
-        h.service.resume('guest-new',{roomCode:'ABCDEF',resumeToken:'b'.repeat(32)})
-        const replay=h.service.setRematchReady('guest-new',{ready:true,matchNumber:1})
-        expect(replay).toMatchObject({roomCode:'ABCDEF',status:'playing',matchNumber:2,nextTurn:'opponent',players:{player:{nickname:'Ana',rematchReady:false},opponent:{nickname:'Bia',rematchReady:false}},match:{round:0,turn:'player',roundOutcomes:[]}})
+        expectRoomError(
+            () =>
+                h.service.setRematchReady('host', {
+                    ready: false,
+                    matchNumber: 1,
+                }),
+            'NOT_READY',
+        )
+        h.service.resume('guest-new', {
+            roomCode: 'ABCDEF',
+            resumeToken: 'b'.repeat(32),
+        })
+        const replay = h.service.setRematchReady('guest-new', {
+            ready: true,
+            matchNumber: 1,
+        })
+        expect(replay).toMatchObject({
+            roomCode: 'ABCDEF',
+            status: 'playing',
+            matchNumber: 2,
+            nextTurn: 'opponent',
+            players: {
+                player: { nickname: 'Ana', rematchReady: false },
+                opponent: { nickname: 'Bia', rematchReady: false },
+            },
+            match: { round: 0, turn: 'player', roundOutcomes: [] },
+        })
         expect(replay.version).toBeGreaterThan(final.version)
-        expectRoomError(()=>h.service.setRematchReady('host',{ready:true,matchNumber:1}),'STALE_MATCH')
-        expectRoomError(()=>h.service.submitShot('host',{seq:++seq,matchNumber:1,velocity:{x:150,y:0}}),'STALE_MATCH')
-        expect(h.service.submitShot('host',{seq:++seq,matchNumber:2,velocity:{x:150,y:0}}).intent).not.toBeNull()
+        expectRoomError(
+            () =>
+                h.service.setRematchReady('host', {
+                    ready: true,
+                    matchNumber: 1,
+                }),
+            'STALE_MATCH',
+        )
+        expectRoomError(
+            () =>
+                h.service.submitShot('host', {
+                    seq: ++seq,
+                    matchNumber: 1,
+                    velocity: { x: 150, y: 0 },
+                }),
+            'STALE_MATCH',
+        )
+        expect(
+            h.service.submitShot('host', {
+                seq: ++seq,
+                matchNumber: 2,
+                velocity: { x: 150, y: 0 },
+            }).intent,
+        ).not.toBeNull()
     })
+})
+
+it('allows a lost resume ACK to be repeated on the same socket without refreshing activity', () => {
+    let now = 0
+    const service = new RoomService({ now: () => now, waitingTimeoutMs: 1000 })
+    const { access, state } = service.create('one', { modeId: 'bete' })
+    now = 500
+    expect(service.resume('one', access)).toEqual({ access, state })
+    expect(() => service.resume('other', access)).toThrow()
+    expect(() =>
+        service.resume('one', { ...access, resumeToken: 'x'.repeat(32) }),
+    ).toThrow()
+    now = 1000
+    expect(service.tick(33).expired).toEqual([access.roomCode])
 })
