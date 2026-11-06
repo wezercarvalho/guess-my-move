@@ -7,7 +7,7 @@ strategy: sdd
 domain: frontend
 capability: capture
 objective: share-resource-lifecycle
-status: implementing
+status: validating
 owners:
     - wezercarvalho
 reviewers: []
