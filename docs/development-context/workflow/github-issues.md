@@ -87,6 +87,21 @@ Declare na descrição da PR se ela conclui a issue ou entrega só uma parte. No
 
 Quando usar `Refs`, registre quais critérios ainda impedem o encerramento, quem acompanha e onde as evidências serão publicadas. `Closes` configura o efeito de um merge futuro e não autoriza o agente a executá-lo. Criar ou atribuir uma PR não autoriza merge. Após o merge, confirme a integração e o aceite antes de encerrar a issue e sincronizar o status.
 
+## Reconciliação após merge e PRs encadeadas
+
+Palavras como `Closes` só produzem o vínculo automático quando a PR aponta para a branch padrão. Uma PR mesclada numa branch intermediária pode entregar código posteriormente à `main` sem encerrar suas issues. Não use o estado `merged` dessa PR isoladamente como prova de integração final.
+
+Após o merge feito pelo maintainer:
+
+1. Confirme a branch padrão, o destino real das PRs e a presença do commit/conteúdo na `main`. Para merges com squash/rebase, compare conteúdo e não dependa só de ancestralidade.
+2. Confira os critérios de cada issue, a revisão do maintainer, os gates finais e as limitações. Separe novos bugs e trabalho futuro; mantenha issues parciais abertas com responsável e evidência faltante.
+3. Quando uma PR intermediária usa `Closes`, redirecione a PR ainda aberta para `main` antes da integração final, se esse for o fluxo escolhido, ou transfira os vínculos de fechamento para a PR que efetivamente chega à branch padrão. Depois confirme o resultado no GitHub.
+4. Se a entrega já chegou à `main` e o fechamento não ocorreu, registre um comentário com PRs, commit integrado e aceite conferido; encerre manualmente apenas as issues concluídas e substitua a label de status por `status:done`. Preserve metadados alheios. Não acrescente palavras de fechamento retroativamente esperando que um evento de merge seja reexecutado.
+5. Verifique separadamente o Gate 3 da spec. Merge não preenche aprovador, data, commit, escopo e riscos aceitos. Registre o veredito explícito do maintainer antes de promover a spec para `validated`; se faltar esse registro, mantenha o estado real e uma pendência rastreável.
+6. Confirme por leitura no GitHub os estados finais de PRs e issues. Não encerre iniciativas em standby, de prazo futuro ou sem aceite completo.
+
+Este checklist é compartilhado por humanos e agentes por meio de `AGENTS.md`; uma skill que apenas copie as mesmas regras não é necessária. Automação futura de reconciliação deve ser idempotente, distinguir entrega de aceite e nunca aprovar gates em nome do maintainer.
+
 ## Relação com o SDD e validação
 
 Selecione a estratégia no [roteador](../../development-strategies/README.md). Para SDD, a spec é a fonte do comportamento e a issue registra demanda e acompanhamento. Valide com os [scripts oficiais](../quality/quality-gates.md) e registre resultados e limitações reais.
