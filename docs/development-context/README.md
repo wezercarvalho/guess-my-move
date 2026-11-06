@@ -15,3 +15,7 @@ Contexto técnico reutilizável, carregado sob demanda. Estratégias (como condu
 | Pesquisa    | [Mapas de cidades para o Arranha-Teia](../research/city-maps-for-arranha-teia.md) | Fontes de dados de prédios e renderização para levar cidades reais ao cenário. |
 
 Regra: carregue apenas o que a mudança exige e confirme a realidade na configuração do repositório antes de confiar em exemplos documentais.
+
+## Contratos de integração
+
+[API HTTP, eventos Socket.IO e observabilidade](contracts/backend-api.md): documentos exportáveis, métricas protegidas e coleta externa opcional.

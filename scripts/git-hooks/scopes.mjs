@@ -17,7 +17,7 @@ export const PATH_PATTERNS = {
         '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$',
     // Código da aplicação (apps/, packages/), manifesto/lockfile, tsconfig*, config do Oxlint e
     // o .env.example; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
-    code: '^apps/|^packages/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$',
+    code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$',
     // Auditoria de dependências: só o que muda o veredito (manifesto, lockfile, auditor, exceções
     // e os workflows que a executam); `AUDIT_PATTERN` do gate.
     audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs)$|^\\.github/workflows/(pr-gate|dependency-audit)\\.yml$',

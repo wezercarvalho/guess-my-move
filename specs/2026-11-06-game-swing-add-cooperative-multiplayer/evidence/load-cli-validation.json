@@ -1,0 +1,32 @@
+{
+  "node": "26.12.1",
+  "cases": [
+    {
+      "args": [
+        "--url",
+        "https://example.invalid"
+      ],
+      "exitCode": 1,
+      "stderr": "Unknown benchmark option; external URLs are never accepted.",
+      "failsBeforeServerFork": true
+    },
+    {
+      "args": [
+        "--replicas",
+        "nope"
+      ],
+      "exitCode": 1,
+      "stderr": "Invalid bounded benchmark settings.",
+      "failsBeforeServerFork": true
+    },
+    {
+      "args": [
+        "--duration-ms",
+        "NaN"
+      ],
+      "exitCode": 1,
+      "stderr": "Invalid bounded benchmark settings.",
+      "failsBeforeServerFork": true
+    }
+  ]
+}

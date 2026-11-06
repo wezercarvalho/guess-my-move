@@ -1,6 +1,6 @@
 # Guia de arquitetura
 
-Princípio: **núcleo puro e determinístico, processamento local no navegador**, com servidor autoritativo apenas no multiplayer de bolinhas. Este guia complementa a seção 7 do [`PROJECT_SPEC.md`](../../product/PROJECT_SPEC.md); em divergência, a spec aprovada prevalece.
+Princípio: **núcleo puro e determinístico, processamento local no navegador**, com servidor autoritativo no multiplayer de bolinhas e no cooperativo do Arranha-Teia. Este guia complementa a seção 7 do [`PROJECT_SPEC.md`](../../product/PROJECT_SPEC.md); em divergência, a spec aprovada prevalece.
 
 ## Camadas
 
@@ -10,7 +10,7 @@ Princípio: **núcleo puro e determinístico, processamento local no navegador**
 | Aplicação web (React + Vite + TS) | Carta pública, câmera, detector de mão, laço por quadro, desenho do esqueleto e painel de depuração.             | Persistir, logar ou enviar quadros; expor a avaliação da carta. |
 | Detector (`src/tracker`)          | Carregar e executar o MediaPipe Hand Landmarker atrás da interface `HandTracker`; devolver landmarks por quadro. | Conter lógica de critério; sair do navegador.                   |
 
-Cartas, Arranha-Teia e bolinhas locais rodam no navegador. O multiplayer de bolinhas usa `apps/server`; não há adaptador de provedor de IA.
+Cartas, Arranha-Teia e bolinhas locais rodam no navegador. Os modos online de bolinhas e do Arranha-Teia usam `apps/server`; não há adaptador de provedor de IA.
 
 ## Bolinhas de gude (modos de partida: Bete, Triângulo e Cova)
 
@@ -141,3 +141,15 @@ A implementação do MediaPipe (`src/tracker/mediapipeTracker.ts`) tenta o deleg
 - **Fonte única:** os schemas da carta vivem em `packages/core/src/schemas/` e usam Zod Mini (`zod/mini`), a API funcional e tree-shakable do Zod, por causa do bundle do navegador. Os tipos TypeScript são derivados dos schemas (`z.infer`); não duplique tipos à mão.
 - **Objetos estritos:** um campo não declarado invalida a carta, o que reforça a fronteira de informação entre `public` e `evaluation`.
 - **Critério do Acenar:** `hand-angle-oscillation` com `amplitudeDeg`, `minReversals`, `windowMs` e `minSamples` positivos; o schema rejeita valores não positivos.
+
+## Plataforma HTTP e contratos
+
+O backend usa o adaptador HTTP nativo do Nest. A configuração é fornecida por um módulo próprio; a observabilidade fica em um módulo separado, com métricas agregadas e coleta externa desativada por padrão. HTTP usa serialização Standard Schema e contratos OpenAPI 3.1 versionados; eventos Socket.IO têm schemas próprios derivados do pacote de bolinhas. Consulte [API e observabilidade](../contracts/backend-api.md).
+
+## Domínios multiplayer no NestJS 12
+
+`AppModule` compõe `MarblesMultiplayerModule` e `SwingMultiplayerModule`, com serviços de domínio próprios. Bolinhas preservam o namespace `/`; cooperação usa `/swing`. `RealtimeModule` contém admissão, orçamento agregado de salas, rate limiter e snapshot de métricas, com providers singleton. O adaptador Socket.IO valida a origem no handshake Engine.IO. Teto de conexões, conexões por IP, tentativas por endereço e `MAX_ROOMS` são compartilhados pelos jogos; abrir outro namespace não multiplica capacidade.
+
+No swing, o servidor executa o núcleo puro com inputs estritos e passo fixo. Publica snapshots a 10 Hz, valida partida/sequência e neutraliza comandos sem atualização por 350 ms. O navegador acumula deltas do olhar, envia intents a 10 Hz e usa previsão limitada/reconciliação; o avatar remoto é interpolado. Objetivos são escolhidos num componente caminhável da cidade, coletados uma vez no servidor e reiniciados por confirmação bilateral. O gerador de Aurora é compartilhado entre servidor e web; os três mapas reais vêm dos mesmos arquivos versionados, identificados pelo catálogo fixo.
+
+Mantemos validação explícita com ACK sanitizado no transporte: um pipe/filtro padrão de WebSocket mudaria o canal de erro e poderia ecoar payload rejeitado. As recomendações consultadas e decisões estão no [plano da entrega](../../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/plan.md).

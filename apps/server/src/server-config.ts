@@ -21,6 +21,37 @@ const ip = z
     )
 const configSchema = z
     .object({
+        enableApiDocs: z
+            .enum(['true', 'false'])
+            .default('false')
+            .transform((value) => value === 'true'),
+        metricsToken: z.string().min(32).max(512).optional(),
+        observeEnabled: z
+            .enum(['true', 'false'])
+            .default('false')
+            .transform((value) => value === 'true'),
+        observeAppKey: z.string().max(512).default(''),
+        observeAppSecret: z.string().max(512).default(''),
+        observeSampleRate: z.coerce.number().min(0.001).max(1).default(0.1),
+        observeEndpoint: z
+            .string()
+            .url()
+            .default('https://observe-api.nestjs.com')
+            .refine((value) => {
+                const url = new URL(value)
+                return (
+                    !url.username &&
+                    !url.password &&
+                    !url.search &&
+                    !url.hash &&
+                    url.pathname === '/' &&
+                    (url.protocol === 'https:' ||
+                        (url.protocol === 'http:' &&
+                            ['localhost', '127.0.0.1', '[::1]'].includes(
+                                url.hostname,
+                            )))
+                )
+            }, 'Coletor exige HTTPS; HTTP apenas em loopback para testes.'),
         port: integer(3000, 1, 65_535),
         maxRooms: integer(100, 1, 10_000),
         tickMs: integer(33, 15, 1000),
@@ -42,6 +73,19 @@ const configSchema = z
             .transform((value) => value === 'true'),
     })
     .strict()
+    .superRefine((config, context) => {
+        if (
+            config.observeEnabled &&
+            (!config.observeAppKey || !config.observeAppSecret)
+        ) {
+            context.addIssue({
+                code: 'custom',
+                message:
+                    'Observe habilitado exige chave e segredo configurados.',
+                path: ['observeEnabled'],
+            })
+        }
+    })
 
 export type ServerConfig = z.infer<typeof configSchema>
 const list = (value: string | undefined) =>
@@ -51,6 +95,13 @@ export function loadServerConfig(
     env: NodeJS.ProcessEnv | Record<string, string | undefined>,
 ): ServerConfig {
     return configSchema.parse({
+        enableApiDocs: env.ENABLE_API_DOCS,
+        metricsToken: env.METRICS_TOKEN,
+        observeEnabled: env.OBSERVE_ENABLED,
+        observeAppKey: env.OBSERVE_APP_KEY,
+        observeAppSecret: env.OBSERVE_APP_SECRET,
+        observeEndpoint: env.OBSERVE_ENDPOINT,
+        observeSampleRate: env.OBSERVE_SAMPLE_RATE,
         port: env.PORT,
         maxRooms: env.MAX_ROOMS,
         tickMs: env.SERVER_TICK_MS,

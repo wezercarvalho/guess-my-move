@@ -1,5 +1,11 @@
+import { RealtimePolicy } from '../realtime/realtime-policy.service.js'
 import { randomUUID } from 'node:crypto'
-import { Inject, Logger, type OnApplicationShutdown } from '@nestjs/common'
+import {
+    Inject,
+    Logger,
+    Optional,
+    type OnApplicationShutdown,
+} from '@nestjs/common'
 import {
     ConnectedSocket,
     MessageBody,
@@ -28,11 +34,8 @@ import {
 import { type Server, type Socket } from 'socket.io'
 
 import { SERVER_CONFIG, type ServerConfig } from '../server-config.js'
-import {
-    ConnectionAdmission,
-    clientAddress,
-    isAllowedOrigin,
-} from './admission.js'
+import { ConnectionAdmission, clientAddress } from './admission.js'
+import { BackendTelemetry } from '../observability/backend-telemetry.service.js'
 import { SlidingWindowRateLimiter } from './rate-limit.js'
 import { RoomError, RoomService } from './room.service.js'
 
@@ -61,35 +64,24 @@ export class MultiplayerGateway
     private ticker: NodeJS.Timeout | null = null
     private readonly logger = new Logger('MultiplayerGateway')
     private readonly admission: ConnectionAdmission
-    private readonly counters = {
-        acceptedConnections: 0,
-        rejectedConnections: 0,
-        rejectedOrigins: 0,
-        rateLimited: 0,
-        invalidCommands: 0,
-        internalErrors: 0,
-        expiredRooms: 0,
-        maxTickDelayMs: 0,
-    }
     private lastSummary = Date.now()
     private lastTick = Date.now()
 
     constructor(
         private readonly rooms: RoomService,
         @Inject(SERVER_CONFIG) private readonly config: ServerConfig,
+        @Optional()
+        @Inject(BackendTelemetry)
+        private readonly telemetry: BackendTelemetry = new BackendTelemetry(),
+        @Optional() @Inject(RealtimePolicy) policy?: RealtimePolicy,
     ) {
-        this.admission = new ConnectionAdmission(config)
+        this.admission = policy ?? new ConnectionAdmission(config)
     }
 
     afterInit(): void {
-        this.server.engine.opts.allowRequest = (request, callback) => {
-            const allowed = isAllowedOrigin(request.headers.origin, this.config)
-            if (!allowed) this.counters.rejectedOrigins++
-            callback(null, allowed)
-        }
         this.server.use((client, next) => {
             if (!this.admission.connect(client.id, this.address(client))) {
-                this.counters.rejectedConnections++
+                this.telemetry.counters.rejectedConnections++
                 next(
                     new Error(
                         'Capacidade de conexões atingida. Tente novamente mais tarde.',
@@ -97,18 +89,18 @@ export class MultiplayerGateway
                 )
                 return
             }
-            this.counters.acceptedConnections++
+            this.telemetry.counters.acceptedConnections++
             next()
         })
         this.ticker = setInterval(() => {
             const now = Date.now()
-            this.counters.maxTickDelayMs = Math.max(
-                this.counters.maxTickDelayMs,
+            this.telemetry.counters.maxTickDelayMs = Math.max(
+                this.telemetry.counters.maxTickDelayMs,
                 now - this.lastTick - this.config.tickMs,
             )
             this.lastTick = now
             const result = this.rooms.tick(this.config.tickMs)
-            this.counters.expiredRooms += result.expired.length
+            this.telemetry.counters.expiredRooms += result.expired.length
             if (now - this.lastSummary >= 60_000) {
                 this.logger.log(
                     JSON.stringify({
@@ -292,6 +284,25 @@ export class MultiplayerGateway
         raw: unknown,
         action: (command: T) => CommandAck | Promise<CommandAck>,
     ): Promise<CommandAck> {
+        const started = performance.now()
+        const ack = await this.runCommand(
+            client,
+            operation,
+            schema,
+            raw,
+            action,
+        )
+        this.telemetry.record(operation, !ack.ok, performance.now() - started)
+        return ack
+    }
+
+    private async runCommand<T>(
+        client: Socket,
+        operation: string,
+        schema: Schema<T>,
+        raw: unknown,
+        action: (command: T) => CommandAck | Promise<CommandAck>,
+    ): Promise<CommandAck> {
         const roomOperation =
             operation === CLIENT_EVENTS.create ||
             operation === CLIENT_EVENTS.join ||
@@ -301,7 +312,7 @@ export class MultiplayerGateway
             (roomOperation &&
                 !this.admission.acceptRoomAttempt(this.address(client)))
         ) {
-            this.counters.rateLimited++
+            this.telemetry.counters.rateLimited++
             return this.fail(client, {
                 code: 'RATE_LIMITED',
                 message: 'Muitos comandos. Aguarde um instante.',
@@ -309,7 +320,7 @@ export class MultiplayerGateway
         }
         const parsed = schema.safeParse(raw)
         if (!parsed.success) {
-            this.counters.invalidCommands++
+            this.telemetry.counters.invalidCommands++
             return this.fail(client, {
                 code: 'INVALID_PAYLOAD',
                 message: 'Comando inválido.',
@@ -324,7 +335,7 @@ export class MultiplayerGateway
                     message: error.message,
                 })
             }
-            this.counters.internalErrors++
+            this.telemetry.counters.internalErrors++
             this.logger.error(
                 JSON.stringify({
                     event: 'multiplayer_internal_error',
@@ -339,15 +350,11 @@ export class MultiplayerGateway
         }
     }
 
-    metrics(): Readonly<typeof this.counters> & {
-        activeConnections: number
-        activeRooms: number
-    } {
-        return {
-            ...this.counters,
-            activeConnections: this.admission.activeConnections,
-            activeRooms: this.rooms.activeRooms,
-        }
+    metrics() {
+        return this.telemetry.snapshot(
+            this.admission.activeConnections,
+            this.rooms.activeRooms,
+        )
     }
 
     private address(client: Socket): string {

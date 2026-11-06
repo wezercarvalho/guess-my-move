@@ -1,3 +1,4 @@
+import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { DEFAULT_SWING, type City } from '@guess-my-move/swing'
 import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
 
@@ -19,6 +20,7 @@ export type SwingDeps = Omit<Partial<SwingEnv>, 'loadCity'> & {
 }
 
 export interface UseSwingGameOptions {
+    online?: SwingOnlineBridge
     map: CityMap
     cameraActive: boolean
     videoRef: RefObject<HTMLVideoElement | null>
@@ -63,7 +65,7 @@ function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
 /** Camada fina sobre o `SwingController`: cria o controlador uma vez e assina as mudanças. */
 export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
     const { map, cameraActive, videoRef, overlayRef, sceneRef, effectsRef, deps } = options
-    const [controller] = useState(() => new SwingController(resolveEnv(map, deps)))
+    const [controller] = useState(() => new SwingController({ ...resolveEnv(map, deps), ...(options.online ? { online: options.online } : {}) }))
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
 
     useEffect(() => {

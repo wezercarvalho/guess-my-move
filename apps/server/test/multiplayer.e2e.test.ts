@@ -363,3 +363,69 @@ describe('capacidade e orçamento entre conexões reais', () => {
         ).toMatchObject({ ok: true })
     })
 })
+
+describe('HTTP público e métricas protegidas', () => {
+    it('publica capacidades, valida a resposta e restringe leitura cross-origin', async () => {
+        const url = await startServer()
+        const allowed = await fetch(`${url}/api/capabilities`, {
+            headers: { Origin: 'http://localhost:5173' },
+        })
+        expect(allowed.headers.get('access-control-allow-origin')).toBe(
+            'http://localhost:5173',
+        )
+        expect(await allowed.json()).toMatchObject({
+            protocolVersion: 1,
+            transport: 'socket.io',
+            socketIoMajor: 4,
+            modes: ['bete', 'triangle', 'hole'],
+        })
+        const other = await fetch(`${url}/api/capabilities`, {
+            headers: { Origin: 'https://other.invalid' },
+        })
+        expect(other.headers.get('access-control-allow-origin')).toBeNull()
+        expect((await fetch(`${url}/api/openapi.json`)).status).toBe(404)
+        expect((await fetch(`${url}/api/metrics`)).status).toBe(404)
+    })
+    it('protege métricas por token próprio e publica somente agregados', async () => {
+        const token = 'metrics-private-credential-for-test'
+        vi.stubEnv('METRICS_TOKEN', token)
+        vi.stubEnv('ENABLE_API_DOCS', 'true')
+        const url = await startServer()
+        expect((await fetch(`${url}/api/metrics`)).status).toBe(401)
+        expect(
+            (
+                await fetch(`${url}/api/metrics`, {
+                    headers: { Authorization: 'Bearer wrong' },
+                })
+            ).status,
+        ).toBe(401)
+        const host = await connect(url)
+        const access = accessOf(
+            await emitAck(host, CLIENT_EVENTS.create, {
+                modeId: 'bete',
+                nickname: 'PrivateNickname',
+            }),
+        )
+        const response = await fetch(`${url}/api/metrics`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        expect(response.status).toBe(200)
+        const text = await response.text()
+        expect(JSON.parse(text)).toMatchObject({
+            activeConnections: 1,
+            activeRooms: 1,
+            operations: { 'room:create': { count: 1, errors: 0 } },
+        })
+        expect(text).not.toContain('PrivateNickname')
+        expect(text).not.toContain(access.resumeToken)
+        expect(text).not.toContain(token)
+        expect(text).not.toContain('127.0.0.1')
+        const document = await fetch(`${url}/api/openapi.json`).then((result) =>
+            result.json(),
+        )
+        expect(document).toMatchObject({ openapi: '3.1.0' })
+        expect((await fetch(`${url}/api/contracts/multiplayer`)).status).toBe(
+            200,
+        )
+    })
+})
