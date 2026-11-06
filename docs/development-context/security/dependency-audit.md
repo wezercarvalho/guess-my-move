@@ -45,3 +45,7 @@ O alcance (`produção` vs `tooling`) agora vem de `--environment`: o auditor ro
 ## Workspaces
 
 O auditor roda a partir da raiz (`--recursive` cobre todos os workspaces do monorepo com um só lockfile). O `package.json` da raiz não precisa mais declarar o objeto `dependencies`: o alcance de produção e de tooling é decidido pelo Yarn via `--environment`, não pela leitura do manifesto. Dependências de produção que tocam frames de webcam ou chaves de provedor seguem também o guia de [privacidade e segredos](privacy-and-secrets.md).
+
+## Runtime Node
+
+Esta auditoria npm não cobre o binário Node. O job audit e o hook também executam security:runtime, selecionado por alterações no pin/auditor de runtime e workflows associados. A [política de runtime](runtime-node.md) descreve a rotina diária, falha fechada e aplicação manual dos patches.
