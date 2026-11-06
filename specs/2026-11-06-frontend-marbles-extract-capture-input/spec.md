@@ -7,7 +7,7 @@ strategy: sdd
 domain: frontend
 capability: marbles
 objective: extract-capture-input
-status: implementing
+status: validating
 owners:
     - wezercarvalho
 reviewers: []

@@ -2,7 +2,7 @@
 
 - [x] T001 [FR-001] [NFR-001] [SC-001] Demonstrar e implementar o requisito em ciclo test-first.
 - [x] T002 [FR-002] [NFR-001] [SC-001] Demonstrar e implementar o requisito em ciclo test-first.
-- [ ] T003 [FR-003] [NFR-001] [SC-001] Demonstrar e implementar o requisito em ciclo test-first.
+- [x] T003 [FR-003] [NFR-001] [SC-001] Demonstrar e implementar o requisito em ciclo test-first.
 
 ## Análise de consistência
 

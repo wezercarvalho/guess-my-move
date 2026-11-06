@@ -163,3 +163,16 @@ No Swing, `swing/cooperative-objectives.ts` recebe cidade indexada e origem e ex
 ## Composição da captura e da sessão Swing
 
 `capture/AsyncTrackerResource` possui a carga e o descarte do detector; `capture/VideoFrameGate` controla apenas a sinalização de quadros, sem solicitar ou gravar câmera. O Swing adota ambos e conserva calibração e regras na fachada. `swing/OnlineSwingSession` recebe a bridge e o mundo, coordena snapshots/intents e devolve dados de apresentação sem conhecer câmera ou renderer. Derivação de sinais de mão e contratos públicos ficam em módulos próprios; os tipos continuam disponíveis pelo caminho antigo do controlador. Adoções são incrementos por jogo, sem superclasse compartilhando regras distintas.
+
+## Responsabilidades web após a extração
+
+| Responsabilidade               | Antes                                  | Componente atual e motivo de mudança                                                                                               |
+| ------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Posse/cancelamento de detector | Duplicada nos controladores            | `AsyncTrackerResource`: carga, estados, liberação e fechamento de resultados atrasados. Swing usa mãos/rosto; bolinhas usa gestos. |
+| Sinalização de quadro          | Callbacks e fallback nos controladores | `VideoFrameGate`: quadro nativo uma vez, fallback por currentTime e invalidação de callback. Nenhum acesso à mídia.                |
+| Sincronização Swing            | Misturada com câmera/calibração        | `OnlineSwingSession`: cadência, previsão, reconciliação e resets de sessão; pode ser alterada sem editar captura.                  |
+| Sinais Swing                   | Geometria no controlador               | `handInput`: derivação local de mãos/intenções, sem efeitos ou limiares novos.                                                     |
+| Entrada bolinhas               | Pinça, estalo e mira no controlador    | `MarblesHandInput`: traduz leituras em vetor/feedback; resets de turno e sessão têm políticas explícitas.                          |
+| Fachadas e contratos           | Tipos e orquestração juntos            | Tipos em `swingTypes`/`marblesTypes`, reexportados pelos caminhos antigos. Fachadas conservam regras, renderer e integração.       |
+
+A extração de bolinhas não cria outra estratégia de sessão: o cliente multiplayer existente conserva os contratos de rede, enquanto a entrada/captura fica independente dele. Uma hierarquia local/online entre jogos foi rejeitada: física, autoridade e atualização são diferentes. Ambos compõem as mesmas duas utilidades sem compartilhar regras de domínio. A derivação de feedback de mira/estalo e sinais de mão foi retirada das fachadas; renderizadores e HUD final permanecem compatíveis. Regressões dirigidas verificam comportamentos visíveis (disparo, vez, pausa, retomada, perda de mãos e cleanup), sem testar só chamadas privadas.
