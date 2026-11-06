@@ -80,3 +80,12 @@ it('ignores an asynchronous failure after its consumer releases the load', async
     expect(resource.error).toBeNull()
     expect(failed).not.toHaveBeenCalled()
 })
+
+it('preserves domain-specific fallback messages through composition', async () => {
+    const resource = new AsyncTrackerResource<{ close: () => void }>(
+        () => 'Falha do domínio',
+    )
+    resource.load(() => Promise.reject('untyped failure'))
+    await Promise.resolve()
+    expect(resource.error).toBe('Falha do domínio')
+})
