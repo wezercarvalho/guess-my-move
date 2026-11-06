@@ -23,8 +23,17 @@ export class RealtimeAdapter extends IoAdapter {
             cors: { origin: false },
             allowRequest: (request, callback) => {
                 const allowed = this.policy.allowOrigin(request.headers.origin)
-                if (!allowed) this.telemetry.counters.rejectedOrigins++
-                callback(null, allowed)
+                if (!allowed) {
+                    this.telemetry.counters.rejectedOrigins++
+                    callback(null, false)
+                    return
+                }
+                if (!this.policy.admitTransport(request)) {
+                    this.telemetry.counters.rejectedConnections++
+                    callback(null, false)
+                    return
+                }
+                callback(null, true)
             },
         })
     }

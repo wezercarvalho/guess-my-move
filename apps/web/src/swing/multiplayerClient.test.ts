@@ -359,3 +359,152 @@ describe('Swing online client', () => {
         client.destroy()
     })
 })
+
+it('recovers private membership when create ACK is lost after a provisional snapshot', async () => {
+    vi.useFakeTimers()
+    const socket = new Socket(),
+        client = new SwingMultiplayerClient(socket)
+    const original = socket.emit.bind(socket)
+    socket.emit = (event, payload, ack) => {
+        if (event === E.create) {
+            socket.fire(S.state, room())
+            return socket
+        }
+        if (event === 'swing:recover') return original(E.resume, payload, ack)
+        return original(event, payload, ack)
+    }
+    try {
+        client.connect()
+        const creation = client.create('aurora', 'Ana')
+        await vi.advanceTimersByTimeAsync(5000)
+        expect(await creation).toBe(true)
+        expect(client.getSnapshot()).toMatchObject({
+            pending: false,
+            access: { playerId: 'one' },
+            room: { roomCode: 'ABC123' },
+        })
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})
+it('retains resume credentials and retries a lost ACK on the same connection', async () => {
+    vi.useFakeTimers()
+    const socket = new Socket(),
+        client = new SwingMultiplayerClient(socket)
+    try {
+        client.connect()
+        await client.create('aurora', 'Ana')
+        socket.fire(S.state, room())
+        const original = socket.emit.bind(socket)
+        let attempts = 0
+        socket.emit = (event, payload, ack) =>
+            event === E.resume && ++attempts === 1
+                ? socket
+                : original(event, payload, ack)
+        socket.connected = false
+        socket.fire('disconnect')
+        socket.connected = true
+        socket.fire('connect')
+        await vi.advanceTimersByTimeAsync(5000)
+        expect(client.getSnapshot().access?.playerId).toBe('one')
+        expect(client.getSnapshot().connection).toBe('connecting')
+        await vi.advanceTimersByTimeAsync(500)
+        expect(attempts).toBe(2)
+        expect(client.getSnapshot().connection).toBe('connected')
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})
+it('clears provisional membership after a definitive recovery refusal', async () => {
+    vi.useFakeTimers()
+    const socket = new Socket(),
+        client = new SwingMultiplayerClient(socket)
+    socket.emit = (event, _payload, ack) => {
+        if (event === 'swing:recover')
+            ack?.({
+                ok: false,
+                error: { code: 'not-in-room', message: 'Entre primeiro.' },
+            })
+        return socket
+    }
+    try {
+        client.connect()
+        const result = client.join('ABC123', 'Ana')
+        socket.fire(S.state, room())
+        await vi.advanceTimersByTimeAsync(5000)
+        expect(await result).toBe(false)
+        expect(client.getSnapshot()).toMatchObject({
+            pending: false,
+            room: null,
+            access: null,
+        })
+        expect(vi.getTimerCount()).toBe(0)
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})
+it('cancels recovery retry waits when destroyed', async () => {
+    vi.useFakeTimers()
+    const socket = new Socket(),
+        client = new SwingMultiplayerClient(socket)
+    socket.emit = () => socket
+    try {
+        client.connect()
+        const result = client.create('aurora', 'Ana')
+        await vi.advanceTimersByTimeAsync(10000)
+        client.destroy()
+        expect(await result).toBe(false)
+        expect(vi.getTimerCount()).toBe(0)
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})
+
+it('returns to an interactive lobby after bounded recovery attempts and permits an explicit resume retry', async () => {
+    vi.useFakeTimers()
+    const socket = new Socket(),
+        client = new SwingMultiplayerClient(socket)
+    const original = socket.emit.bind(socket)
+    let recoveries = 0
+    socket.emit = (event) => {
+        if (event === 'swing:recover') recoveries++
+        return socket
+    }
+    try {
+        client.connect()
+        const created = client.create('aurora', 'Ana')
+        socket.fire(S.state, room())
+        await vi.advanceTimersByTimeAsync(21000)
+        expect(await created).toBe(false)
+        expect(recoveries).toBe(3)
+        expect(client.getSnapshot()).toMatchObject({
+            connection: 'connected',
+            pending: false,
+            room: null,
+            access: null,
+        })
+        socket.emit = original
+        expect(await client.create('aurora', 'Ana')).toBe(true)
+        socket.connected = false
+        socket.fire('disconnect')
+        socket.connected = true
+        socket.emit = () => socket
+        socket.fire('connect')
+        await vi.advanceTimersByTimeAsync(16000)
+        expect(client.getSnapshot()).toMatchObject({
+            connection: 'disconnected',
+            access: { playerId: 'one' },
+        })
+        socket.emit = original
+        client.connect()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(client.getSnapshot().connection).toBe('connected')
+    } finally {
+        client.destroy()
+        vi.useRealTimers()
+    }
+})

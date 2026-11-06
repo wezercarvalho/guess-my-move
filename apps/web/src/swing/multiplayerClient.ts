@@ -76,7 +76,8 @@ export class SwingMultiplayerClient implements SwingOnlineBridge {
             this.destroyed = false
             this.bind()
         }
-        this.socket.connect()
+        if (this.socket.connected) this.onConnect()
+        else this.socket.connect()
     }
     private patch(value: Partial<SwingOnlineSnapshot>): void {
         if (this.destroyed) return
@@ -151,21 +152,29 @@ export class SwingMultiplayerClient implements SwingOnlineBridge {
         }
         const generation = this.generation
         this.patch({ connection: 'connecting' })
-        void this.command(EVENTS.resume, {
-            roomCode: access.roomCode,
-            resumeToken: access.resumeToken,
-        }).then((ack) => {
+        void this.retry(generation, () =>
+            this.command(EVENTS.resume, {
+                roomCode: access.roomCode,
+                resumeToken: access.resumeToken,
+            }),
+        ).then((ack) => {
             if (generation !== this.generation) return
             this.patch(
                 ack.ok
                     ? { connection: 'connected', error: null, stale: false }
-                    : {
-                          connection: 'connected',
-                          access: null,
-                          room: null,
-                          stale: false,
-                          error: ack.error.message,
-                      },
+                    : this.transient(ack)
+                      ? {
+                            connection: 'disconnected',
+                            stale: false,
+                            error: 'Não foi possível confirmar a retomada. Aguarde a reconexão ou saia da sala.',
+                        }
+                      : {
+                            connection: 'connected',
+                            access: null,
+                            room: null,
+                            stale: false,
+                            error: ack.error.message,
+                        },
             )
             this.watchUpdates(true)
         })
@@ -206,6 +215,42 @@ export class SwingMultiplayerClient implements SwingOnlineBridge {
         })
         this.watchUpdates(progress)
     }
+    private transient(ack: SwingAck): boolean {
+        return (
+            !ack.ok &&
+            [
+                'CONNECTION_ERROR',
+                'internal-error',
+                'rate-limited',
+                'already-connected',
+            ].includes(ack.error.code)
+        )
+    }
+    private pauseRetry(): Promise<void> {
+        return new Promise((resolve) => {
+            const finish = () => {
+                clearTimeout(timer)
+                this.pendingCommands.delete(finish)
+                resolve()
+            }
+            const timer = setTimeout(finish, 500)
+            this.pendingCommands.add(finish)
+        })
+    }
+    private async retry(
+        generation: number,
+        attempt: () => Promise<SwingAck>,
+    ): Promise<SwingAck> {
+        let ack: SwingAck = failed
+        for (let count = 0; count < 3; count++) {
+            if (generation !== this.generation || this.destroyed) return failed
+            if (count > 0) await this.pauseRetry()
+            if (generation !== this.generation || this.destroyed) return failed
+            ack = await attempt()
+            if (!this.transient(ack)) return ack
+        }
+        return ack
+    }
     private command(event: string, payload: unknown): Promise<SwingAck> {
         return new Promise((resolve) => {
             if (!this.socket.connected) {
@@ -231,8 +276,36 @@ export class SwingMultiplayerClient implements SwingOnlineBridge {
         if (this.snapshot.pending) return false
         const generation = this.generation
         this.patch({ pending: true, error: null })
-        const ack = await this.command(event, payload)
+        let ack = await this.command(event, payload)
         if (generation !== this.generation) return false
+        const entering = event === EVENTS.create || event === EVENTS.join
+        if (entering && this.transient(ack)) {
+            this.patch({
+                error: 'Confirmando sua participação com o servidor…',
+            })
+            ack = await this.retry(generation, async () => {
+                const recovered = await this.command(EVENTS.recover, {})
+                return recovered.ok && !recovered.access ? failed : recovered
+            })
+            if (generation !== this.generation) return false
+        }
+        if (entering && !ack.ok) {
+            // Do not automatically repeat a creation that may already have happened.
+            if (this.transient(ack) && this.socket.connected) {
+                this.socket.emit(EVENTS.leave, {})
+                this.socket.disconnect()
+                this.onDisconnect()
+                this.socket.connect()
+            }
+            this.patch({
+                pending: false,
+                room: null,
+                access: null,
+                stale: false,
+                error: 'Não foi possível confirmar sua participação. Tente entrar novamente.',
+            })
+            return false
+        }
         this.patch({
             pending: false,
             ...(ack.ok

@@ -319,10 +319,16 @@ describe('capacidade e orçamento entre conexões reais', () => {
         vi.stubEnv('MAX_CONNECTIONS_PER_IP', '1')
         const url = await startServer()
         const first = await connect(url)
-        await expect(connect(url)).rejects.toThrow(/Capacidade/)
+        // A recusa agora acontece no handshake Engine.IO, antes do erro de namespace.
+        await expect(connect(url)).rejects.toThrow('websocket error')
+        expect(app!.get(MultiplayerGateway).metrics()).toMatchObject({
+            activeConnections: 1,
+            activeTransports: 1,
+        })
         first.disconnect()
         await eventually(() =>
-            app!.get(MultiplayerGateway).metrics().activeConnections === 0
+            app!.get(MultiplayerGateway).metrics().activeConnections === 0 &&
+            app!.get(MultiplayerGateway).metrics().activeTransports === 0
                 ? true
                 : undefined,
         )

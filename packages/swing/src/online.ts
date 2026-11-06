@@ -8,6 +8,7 @@ export const SWING_CLIENT_EVENTS = {
     create: 'swing:create',
     join: 'swing:join',
     resume: 'swing:resume',
+    recover: 'swing:recover',
     ready: 'swing:ready',
     input: 'swing:input',
     rematch: 'swing:rematch',
@@ -106,6 +107,7 @@ export const swingRematchSchema = z
     .object({ round: z.number().int().positive() })
     .strict()
 export const swingLeaveSchema = z.object({}).strict()
+export const swingRecoverSchema = z.object({}).strict()
 export type SwingCommand = z.infer<typeof swingCommandSchema>
 export const NEUTRAL_SWING_INPUT: SwingInput = {
     held: {},

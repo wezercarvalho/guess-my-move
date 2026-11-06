@@ -180,12 +180,29 @@ export class SwingRoomService {
         this.membership.set(socketId, { room, player })
         return this.access(room, player)
     }
+    recover(socketId: string): SwingAccess {
+        this.expire()
+        const { room, player } = this.bound(socketId)
+        return this.access(room, player)
+    }
     resume(
         socketId: string,
         command: { roomCode: string; resumeToken: string },
     ): SwingAccess {
-        this.checkFree(socketId)
         this.expire()
+        const existing = this.membership.get(socketId)
+        if (existing) {
+            const stored = Buffer.from(existing.player.token)
+            const supplied = Buffer.from(command.resumeToken)
+            if (
+                existing.room.code === command.roomCode &&
+                stored.length === supplied.length &&
+                timingSafeEqual(stored, supplied)
+            )
+                return this.access(existing.room, existing.player)
+            fail('invalid-token', 'Não foi possível retomar esta vaga.')
+        }
+        this.checkFree(socketId)
         const room =
             this.rooms.get(command.roomCode) ??
             fail('room-not-found', 'Sala não encontrada ou expirada.')
