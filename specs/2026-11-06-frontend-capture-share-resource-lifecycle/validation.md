@@ -20,6 +20,8 @@
 
 ## Etapa de base
 
-As duas suítes foram escritas antes dos módulos e falharam por imports ainda inexistentes. Após implementação, sete testes de recursos/quadros aprovados por test:capture e tipos/lint aprovados. Adoção real (FR-003/T003) permanece em implementação nas branches dos dois controladores; a base isolada não encerra #142. Não houve captura real ou rede.
+As duas suítes foram escritas antes dos módulos e falharam por imports ainda inexistentes. Após implementação, oito testes de recursos/quadros aprovados por test:capture e tipos/lint aprovados. Adoção real (FR-003/T003) permanece em implementação nas branches dos dois controladores; a base isolada não encerra #142. Não houve captura real ou rede.
 
 A mensagem de fallback é injetável por domínio: teste adicional falhou antes da extensão e passou após o construtor aceitar o formatador. Isso preserva o texto de erro de bolinhas sem acoplar a utilidade ao jogo.
+
+Regressão adicional: cancelamento reentrante dentro do callback de quadro falhou com um reagendamento indevido. Guarda de geração após o callback corrigiu o caso; oito testes compartilhados aprovados.
