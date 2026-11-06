@@ -48,3 +48,11 @@ describe('quadros transitórios da câmera', () => {
         expect(gate.take(source, 13)).toBe(true)
     })
 })
+
+it('does not rearm when the consumer cancels while receiving a frame', () => {
+    const source = video(),
+        gate = new VideoFrameGate(() => gate.unwatch())
+    gate.watch(source.element)
+    source.callbacks[0]?.()
+    expect(source.callbacks).toHaveLength(1)
+})

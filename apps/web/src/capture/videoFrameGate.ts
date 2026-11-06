@@ -18,7 +18,8 @@ export class VideoFrameGate {
                     return
                 this.pending = true
                 this.onFrame()
-                arm()
+                if (generation === this.generation && this.video === video)
+                    arm()
             })
         }
         arm()
