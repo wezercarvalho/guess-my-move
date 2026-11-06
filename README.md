@@ -65,17 +65,19 @@ Detalhes: [privacidade e segredos](docs/development-context/security/privacy-and
 
 ## Estrutura e tecnologias
 
-| Diretório                              | Responsabilidade                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------- |
-| [`apps/web`](apps/web)                 | Interface React + Vite, visão local com MediaPipe e cena 3D com Three.js. |
-| [`apps/server`](apps/server)           | NestJS + Socket.IO: salas, estado autoritativo das partidas e reconexão.  |
-| [`packages/core`](packages/core)       | Contratos, cartas, avaliação de gestos e rodadas.                         |
-| [`packages/marbles`](packages/marbles) | Física 2D, tiros e regras das bolinhas.                                   |
-| [`packages/swing`](packages/swing)     | Física 3D, teias, escalada e lógica do olhar.                             |
+| Diretório                              | Responsabilidade                                                                         |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`apps/web`](apps/web)                 | Interface React + Vite, visão local com MediaPipe e cena 3D com Three.js.                |
+| [`apps/server`](apps/server)           | NestJS com HTTP nativo + Socket.IO: salas, estado autoritativo das partidas e reconexão. |
+| [`packages/core`](packages/core)       | Contratos, cartas, avaliação de gestos e rodadas.                                        |
+| [`packages/marbles`](packages/marbles) | Física 2D, tiros e regras das bolinhas.                                                  |
+| [`packages/swing`](packages/swing)     | Física 3D, teias, escalada e lógica do olhar.                                            |
 
 Os núcleos são TypeScript puro: não dependem de DOM, câmera ou rede. Essa separação permite testar regras e física sem acessar uma webcam. Consulte o [guia de arquitetura](docs/development-context/architecture/architecture-guide.md).
 
 ## Desenvolvimento e contribuição
+
+Antes do primeiro push, instale o hook local com `node scripts/git-hooks/install.mjs`.
 
 Contribuições com correções, documentação e relatos de testes são bem-vindas. Comece pelo [guia de contribuição](docs/contributing.md): ele explica como reportar problemas, preparar o ambiente e enviar uma PR.
 
@@ -95,6 +97,7 @@ Para visualizar o frontend compilado, execute `yarn build` e depois `yarn worksp
 ## Documentação
 
 - [Como jogar e ajustar a câmera](docs/games.md)
+- [Contratos HTTP/eventos e observabilidade](docs/development-context/contracts/backend-api.md)
 - [Como contribuir](docs/contributing.md)
 - [Produto e escopo](docs/product/PROJECT_SPEC.md)
 - [Contexto técnico: arquitetura, qualidade, CI e operações](docs/development-context/README.md)

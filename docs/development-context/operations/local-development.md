@@ -74,3 +74,7 @@ O limite por endereço pode afetar várias pessoas na mesma rede. Dimensione-o p
 A política de origem restringe navegadores; programas externos podem enviar uma origem permitida. Ela não substitui os limites de conexão, o orçamento de comandos nem proteção na borda. A capacidade é em memória e por instância: não é proteção contra abuso distribuído. Conexões de transporte antes da admissão do namespace também devem ser limitadas no proxy público. HTTPS, cabeçalhos da origem que serve o frontend e proteção de rede precisam ser configurados na hospedagem; esta entrega não publica uma instância.
 
 Erros inesperados geram apenas evento, operação conhecida e correlação aleatória; não incluem mensagem bruta, stack, mídia, apelidos, tokens, IP ou payload. Um resumo por minuto apresenta contadores agregados de conexões, recusas, expirações e maior atraso observado do ciclo. O endpoint `/api/health` segue sendo liveness, sem expor salas ou métricas; ele não comprova capacidade nem prontidão para tráfego público.
+
+## Contratos e observabilidade
+
+Veja [API e observabilidade](../contracts/backend-api.md) para os scripts de contratos, `ENABLE_API_DOCS`, `METRICS_TOKEN` e as opções `OBSERVE_*`. Métricas locais exigem token próprio; o SDK externo fica desativado por padrão.

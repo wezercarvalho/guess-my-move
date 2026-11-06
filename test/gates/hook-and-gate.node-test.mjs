@@ -302,6 +302,8 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'apps/web/src/App.tsx': ['code'],
         'apps/web/src/main.tsx': ['code'],
         'packages/core/src/index.ts': ['code'],
+        'contracts/http.openapi.json': ['code'],
+        'contracts/multiplayer.socketio.json': ['code'],
         'tsconfig.base.json': ['code'],
         '.oxlintrc.json': ['code'],
         '.env.example': ['code'],

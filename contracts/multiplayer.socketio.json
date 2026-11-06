@@ -1,0 +1,794 @@
+{
+  "protocolVersion": 1,
+  "transport": "socket.io",
+  "socketIoMajor": 4,
+  "path": "/socket.io",
+  "namespace": "/",
+  "description": "Usar cliente Socket.IO com transporte websocket, não WebSocket puro. access é privado no acknowledgement; nunca retransmitir resumeToken.",
+  "normalization": "Apelidos usam NFKC, trim e espaços colapsados; 2–20 caracteres após normalização. Códigos de sala aceitam normalização de espaços e caixa na entrada.",
+  "constraints": {
+    "shotSpeed": {
+      "metric": "hypot(x,y)",
+      "minimum": 150,
+      "maximum": 1100
+    },
+    "maxSocketPayloadBytes": 8192,
+    "maxCommandsPerSecond": 20,
+    "nicknameLengthAfterNormalization": {
+      "minimum": 2,
+      "maximum": 20
+    }
+  },
+  "clientEvents": {
+    "room:create": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "modeId": {
+          "type": "string",
+          "enum": [
+            "bete",
+            "triangle",
+            "hole"
+          ]
+        },
+        "nickname": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{M}\\p{N} ._-]+$"
+        }
+      },
+      "required": [
+        "modeId"
+      ],
+      "additionalProperties": false
+    },
+    "room:join": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-HJ-NP-Z2-9]{6}$"
+        },
+        "nickname": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{M}\\p{N} ._-]+$"
+        }
+      },
+      "required": [
+        "roomCode"
+      ],
+      "additionalProperties": false
+    },
+    "room:resume": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-HJ-NP-Z2-9]{6}$"
+        },
+        "resumeToken": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{32,128}$"
+        }
+      },
+      "required": [
+        "roomCode",
+        "resumeToken"
+      ],
+      "additionalProperties": false
+    },
+    "room:ready": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ready"
+      ],
+      "additionalProperties": false
+    },
+    "room:rematch": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "matchNumber": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "ready",
+        "matchNumber"
+      ],
+      "additionalProperties": false
+    },
+    "match:shot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "matchNumber": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "seq": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "velocity": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "seq",
+        "velocity"
+      ],
+      "additionalProperties": false
+    },
+    "room:leave": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  "acknowledgement": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "access": {
+            "type": "object",
+            "properties": {
+              "roomCode": {
+                "type": "string",
+                "pattern": "^[A-HJ-NP-Z2-9]{6}$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "player",
+                  "opponent"
+                ]
+              },
+              "resumeToken": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{32,128}$"
+              }
+            },
+            "required": [
+              "roomCode",
+              "role",
+              "resumeToken"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_PAYLOAD",
+                  "NICKNAME_TAKEN",
+                  "STALE_MATCH",
+                  "RATE_LIMITED",
+                  "ROOM_LIMIT",
+                  "ROOM_NOT_FOUND",
+                  "ROOM_FULL",
+                  "ROOM_STARTED",
+                  "NOT_IN_ROOM",
+                  "NOT_READY",
+                  "NOT_YOUR_TURN",
+                  "DUPLICATE_COMMAND",
+                  "RESUME_DENIED",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok",
+          "error"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "serverEvents": {
+    "room:state": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-HJ-NP-Z2-9]{6}$"
+        },
+        "modeId": {
+          "type": "string",
+          "enum": [
+            "bete",
+            "triangle",
+            "hole"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "waiting",
+            "ready",
+            "playing",
+            "paused",
+            "finished"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "matchNumber": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nextTurn": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "player",
+                "opponent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "players": {
+          "type": "object",
+          "properties": {
+            "player": {
+              "type": "object",
+              "properties": {
+                "connected": {
+                  "type": "boolean"
+                },
+                "ready": {
+                  "type": "boolean"
+                },
+                "nickname": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[\\p{L}\\p{M}\\p{N} ._-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rematchReady": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "connected",
+                "ready"
+              ],
+              "additionalProperties": false
+            },
+            "opponent": {
+              "type": "object",
+              "properties": {
+                "connected": {
+                  "type": "boolean"
+                },
+                "ready": {
+                  "type": "boolean"
+                },
+                "nickname": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[\\p{L}\\p{M}\\p{N} ._-]+$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rematchReady": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "connected",
+                "ready"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "player",
+            "opponent"
+          ],
+          "additionalProperties": false
+        },
+        "match": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "modeId": {
+                  "type": "string",
+                  "enum": [
+                    "bete",
+                    "triangle",
+                    "hole"
+                  ]
+                },
+                "opponent": {
+                  "type": "string",
+                  "const": "remote"
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": [
+                    "choosing",
+                    "player-turn",
+                    "opponent-turn",
+                    "rolling",
+                    "round-over",
+                    "match-over"
+                  ]
+                },
+                "round": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "roundsPerMatch": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "roundOutcomes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "win",
+                      "draw",
+                      "loss"
+                    ]
+                  }
+                },
+                "lastRoundOutcome": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "win",
+                        "draw",
+                        "loss"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "matchOutcome": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "win",
+                        "draw",
+                        "loss"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "turn": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "player",
+                        "opponent"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "shotsLeft": {
+                  "type": "object",
+                  "properties": {
+                    "player": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "opponent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "player",
+                    "opponent"
+                  ],
+                  "additionalProperties": false
+                },
+                "roundYield": {
+                  "type": "object",
+                  "properties": {
+                    "player": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "opponent": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "player",
+                    "opponent"
+                  ],
+                  "additionalProperties": false
+                },
+                "scoreLabel": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "field": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "pos": {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "vel": {
+                        "type": "object",
+                        "properties": {
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "x",
+                          "y"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "radius": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "pos",
+                      "vel",
+                      "radius"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "decor": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "circle": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            },
+                            "radius": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y",
+                            "radius"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "holes": {
+                          "type": "object",
+                          "properties": {
+                            "positions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "number"
+                                  },
+                                  "y": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "x",
+                                  "y"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "radius": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "active": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "positions",
+                            "radius",
+                            "active"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "resting": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pos": {
+                                "type": "object",
+                                "properties": {
+                                  "x": {
+                                    "type": "number"
+                                  },
+                                  "y": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "x",
+                                  "y"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "radius": {
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                              },
+                              "owner": {
+                                "type": "string",
+                                "enum": [
+                                  "player",
+                                  "opponent"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "pos",
+                              "radius",
+                              "owner"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "modeId",
+                "opponent",
+                "phase",
+                "round",
+                "roundsPerMatch",
+                "roundOutcomes",
+                "lastRoundOutcome",
+                "matchOutcome",
+                "turn",
+                "shotsLeft",
+                "roundYield",
+                "scoreLabel",
+                "field",
+                "decor"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intent": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "competitor": {
+                  "type": "string",
+                  "enum": [
+                    "player",
+                    "opponent"
+                  ]
+                },
+                "velocity": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number"
+                    },
+                    "y": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "competitor",
+                "velocity"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reconnectDeadlineMs": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "roomCode",
+        "modeId",
+        "status",
+        "version",
+        "players",
+        "match",
+        "intent",
+        "reconnectDeadlineMs"
+      ],
+      "additionalProperties": false
+    },
+    "protocol:error": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_PAYLOAD",
+            "NICKNAME_TAKEN",
+            "STALE_MATCH",
+            "RATE_LIMITED",
+            "ROOM_LIMIT",
+            "ROOM_NOT_FOUND",
+            "ROOM_FULL",
+            "ROOM_STARTED",
+            "NOT_IN_ROOM",
+            "NOT_READY",
+            "NOT_YOUR_TURN",
+            "DUPLICATE_COMMAND",
+            "RESUME_DENIED",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -141,3 +141,7 @@ A implementação do MediaPipe (`src/tracker/mediapipeTracker.ts`) tenta o deleg
 - **Fonte única:** os schemas da carta vivem em `packages/core/src/schemas/` e usam Zod Mini (`zod/mini`), a API funcional e tree-shakable do Zod, por causa do bundle do navegador. Os tipos TypeScript são derivados dos schemas (`z.infer`); não duplique tipos à mão.
 - **Objetos estritos:** um campo não declarado invalida a carta, o que reforça a fronteira de informação entre `public` e `evaluation`.
 - **Critério do Acenar:** `hand-angle-oscillation` com `amplitudeDeg`, `minReversals`, `windowMs` e `minSamples` positivos; o schema rejeita valores não positivos.
+
+## Plataforma HTTP e contratos
+
+O backend usa o adaptador HTTP nativo do Nest. A configuração é fornecida por um módulo próprio; a observabilidade fica em um módulo separado, com métricas agregadas e coleta externa desativada por padrão. HTTP usa serialização Standard Schema e contratos OpenAPI 3.1 versionados; eventos Socket.IO têm schemas próprios derivados do pacote de bolinhas. Consulte [API e observabilidade](../contracts/backend-api.md).

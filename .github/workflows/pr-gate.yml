@@ -74,7 +74,7 @@ jobs:
                   # Código da aplicação: workspaces (apps/, packages/), manifesto e lockfile,
                   # tsconfig*, config do Oxlint e o .env.example. Espelhado EXATAMENTE em
                   # scripts/git-hooks/scopes.mjs.
-                  CODE_PATTERN='^apps/|^packages/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$'
+                  CODE_PATTERN='^apps/|^packages/|^contracts/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$'
                   if echo "$CHANGED" | grep -qE "$CODE_PATTERN"; then
                     echo "code=true" >>"$GITHUB_OUTPUT"
                   else

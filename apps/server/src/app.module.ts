@@ -1,21 +1,21 @@
+import { RuntimeConfigModule } from './runtime-config.module.js'
+import { ObservabilityModule } from './observability/observability.module.js'
+import { HttpTimingInterceptor } from './observability/http-timing.interceptor.js'
+import { MetricsController } from './observability/metrics.controller.js'
+import { ApiController } from './contracts/api.controller.js'
 import { Module } from '@nestjs/common'
 
 import { HealthController } from './health/health.controller.js'
 import { MultiplayerGateway } from './multiplayer/multiplayer.gateway.js'
 import { RoomService } from './multiplayer/room.service.js'
-import {
-    SERVER_CONFIG,
-    type ServerConfig,
-    loadServerConfig,
-} from './server-config.js'
+import { SERVER_CONFIG, type ServerConfig } from './server-config.js'
 
 @Module({
-    controllers: [HealthController],
+    imports: [RuntimeConfigModule, ObservabilityModule],
+    controllers: [HealthController, ApiController, MetricsController],
     providers: [
-        {
-            provide: SERVER_CONFIG,
-            useFactory: (): ServerConfig => loadServerConfig(process.env),
-        },
+        // Interceptores HTTP pertencem aos controllers: não envolver eventos Socket.IO.
+        HttpTimingInterceptor,
         {
             provide: RoomService,
             inject: [SERVER_CONFIG],
