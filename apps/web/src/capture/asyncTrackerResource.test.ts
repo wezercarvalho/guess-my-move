@@ -85,7 +85,7 @@ it('preserves domain-specific fallback messages through composition', async () =
     const resource = new AsyncTrackerResource<{ close: () => void }>(
         () => 'Falha do domínio',
     )
-    resource.load(() => Promise.reject('untyped failure'))
+    resource.load(() => Promise.reject(new Error('raw failure')))
     await Promise.resolve()
     expect(resource.error).toBe('Falha do domínio')
 })
