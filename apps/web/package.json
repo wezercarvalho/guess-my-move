@@ -16,7 +16,9 @@
         "test:multiplayer-clients": "vitest run src/marbles/multiplayerClient.test.ts src/swing/multiplayerClient.test.ts src/swing/SwingOnline.test.tsx",
         "test:capture": "vitest run src/capture/asyncTrackerResource.test.ts src/capture/videoFrameGate.test.ts",
         "test:swing-session": "vitest run src/swing/onlineSession.test.ts src/swing/handInput.test.ts",
-        "test:swing-controls": "vitest run src/swing/swing*.test.ts"
+        "test:swing-controls": "vitest run src/swing/swing*.test.ts",
+        "test:marbles-input": "vitest run src/marbles/handInput.test.ts src/marbles/marblesController.test.ts",
+        "test:marbles-controls": "vitest run src/marbles/*.test.ts src/marbles/*.test.tsx"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",

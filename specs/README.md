@@ -47,3 +47,5 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 | [`2026-11-06-frontend-capture-share-resource-lifecycle`](2026-11-06-frontend-capture-share-resource-lifecycle/spec.md) | `implementing` | Fornecer recursos assíncronos e sinalização de quadros por composição, sem regras de jogo nem persistência de mídia. |
 
 | [`2026-11-06-frontend-swing-extract-session-and-input`](2026-11-06-frontend-swing-extract-session-and-input/spec.md) | `implementing` | Reduzir o controlador por composição de sincronização online, recursos de captura e derivação de sinais, preservando gestos e calibração. |
+
+| [`2026-11-06-frontend-marbles-extract-capture-input`](2026-11-06-frontend-marbles-extract-capture-input/spec.md) | `implementing` | Compor recursos de detector, quadros e tradução de pinça/estalo, preservando a fachada e as regras locais/online. |
