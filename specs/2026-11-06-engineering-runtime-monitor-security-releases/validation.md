@@ -31,3 +31,9 @@ A entrega satisfaz rotina e responsabilidade de #132, mas **Refs #132**: ainda f
 - Veredito: pendente de revisão final da PR.
 - Aprovador: maintainer.
 - Escopo técnico demonstrado: FR-001–FR-003, NFR-001–NFR-002 e SC-001; atualização futura do binário fora do incremento disponível.
+
+## Revalidação integrada após revisão adicional
+
+A composição em eb90b93 (aplicação igual à branch final de bolinhas) passou `VITEST_MAX_WORKERS=1 yarn check:all` completo no container Node 26.12.1, com configuração padrão: core 68, bolinhas 174, Swing 234, servidor 98, web **504 testes + 79 scripts**, tipos/lint e builds aprovados. Sem alteração de dependências, contratos, backend ou núcleos nesta revisão adicional. Os seis casos novos de bolinhas complementam as regressões de sessão; o contrato de transporte neutro e a formatação do lobby mantêm as fachadas.
+
+O aviso não bloqueante de tamanho do chunk 3D continua explícito; investigação e critérios estão em #147. Cobertura de frontend/servidor juntos foi organizada em #148. Ambas em triagem P2, com responsável e sem implementação futura presumida. Relatório/checklist em docs/reviews/2026-11-06-post-merge/MAINTENANCE.md, na PR #133. Câmera física, CI ao sair de draft, aceite Gate 3 e merges continuam com o maintainer. O patch futuro de #132 também permanece dependente da publicação.
