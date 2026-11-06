@@ -1,3 +1,4 @@
+import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { TrainingPanel } from './TrainingPanel.js'
 import { TRAINING_MAP } from './training.js'
 import { useEffect, useRef } from 'react'
@@ -25,6 +26,7 @@ import { SwingFeedback } from './SwingFeedback.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
+    online?: SwingOnlineBridge
     /** Mapa validado pelo catálogo. O default preserva usos/testes anteriores do Midtown. */
     map?: CityMap
     onChangeMap?: () => void
@@ -62,6 +64,7 @@ function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
  * sai do navegador.
  */
 export function SwingScreen({
+    online,
     map = DEFAULT_CITY_MAP,
     onChangeMap,
     cameraGetUserMedia,
@@ -78,6 +81,7 @@ export function SwingScreen({
     const debugDrawer = useDrawer()
     const game = useSwingGame({
         map,
+        ...(online ? { online } : {}),
         cameraActive: camera.isActive,
         videoRef,
         overlayRef,
@@ -157,9 +161,9 @@ export function SwingScreen({
                             Distância: {game.hud.distance} m
                         </span>
                     </p>
-                    <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
+                    {!online ? <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
                         Voltar ao início
-                    </Button>
+                    </Button> : null}
                     {onChangeMap ? (
                         <Button variant="text" onClick={onChangeMap}>
                             Trocar mapa
@@ -208,7 +212,7 @@ export function SwingScreen({
                 </Panel>
 
                 <div className="swing-side">
-                    {map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
+                    {!online && map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
                     <CameraPanel
                         camera={camera}
                         videoRef={videoRef}

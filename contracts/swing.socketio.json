@@ -1,0 +1,684 @@
+{
+  "protocolVersion": 1,
+  "transport": "socket.io",
+  "socketIoMajor": 4,
+  "namespace": "/swing",
+  "path": "/socket.io",
+  "description": "Cooperação para duas pessoas. Somente inputs derivados de gestos/teclado; posições, objetivos e resultados são autoritativos no servidor. Nunca enviar mídia ou landmarks. Credencial de retomada é privada no ACK e permanece em memória do próprio cliente.",
+  "constraints": {
+    "maxPlayers": 2,
+    "reconnectGraceMs": 60000,
+    "inputsPerSecond": 10,
+    "commandLimitPerSecond": 20,
+    "snapshotsPerSecond": 10,
+    "maxSocketPayloadBytes": 8192,
+    "inputTimeoutMs": 350
+  },
+  "clientEvents": {
+    "swing:create": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "cityId": {
+          "type": "string",
+          "enum": [
+            "aurora",
+            "midtown",
+            "paulista",
+            "santa-maria"
+          ]
+        },
+        "nickname": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 20,
+          "pattern": "^[\\p{L}\\p{N} _.-]+$"
+        }
+      },
+      "required": [
+        "cityId",
+        "nickname"
+      ],
+      "additionalProperties": false
+    },
+    "swing:join": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "nickname": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 20,
+          "pattern": "^[\\p{L}\\p{N} _.-]+$"
+        }
+      },
+      "required": [
+        "roomCode",
+        "nickname"
+      ],
+      "additionalProperties": false
+    },
+    "swing:resume": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "resumeToken": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "roomCode",
+        "resumeToken"
+      ],
+      "additionalProperties": false
+    },
+    "swing:ready": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ready"
+      ],
+      "additionalProperties": false
+    },
+    "swing:input": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "round": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "input": {
+          "type": "object",
+          "properties": {
+            "held": {
+              "type": "object",
+              "properties": {
+                "left": {
+                  "type": "boolean"
+                },
+                "center": {
+                  "type": "boolean"
+                },
+                "right": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "pull": {
+              "type": "object",
+              "properties": {
+                "left": {
+                  "type": "boolean"
+                },
+                "center": {
+                  "type": "boolean"
+                },
+                "right": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "grab": {
+              "type": "object",
+              "properties": {
+                "left": {
+                  "type": "boolean"
+                },
+                "center": {
+                  "type": "boolean"
+                },
+                "right": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "climb": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "releaseFist": {
+              "type": "boolean"
+            },
+            "yawRate": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "pitchRate": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "lookDelta": {
+              "type": "object",
+              "properties": {
+                "yaw": {
+                  "type": "number",
+                  "minimum": -3.141592653589793,
+                  "maximum": 3.141592653589793
+                },
+                "pitch": {
+                  "type": "number",
+                  "minimum": -3.141592653589793,
+                  "maximum": 3.141592653589793
+                }
+              },
+              "required": [
+                "yaw",
+                "pitch"
+              ],
+              "additionalProperties": false
+            },
+            "lookActive": {
+              "type": "boolean"
+            },
+            "lookBias": {
+              "type": "object",
+              "properties": {
+                "yaw": {
+                  "type": "number",
+                  "minimum": -3.141592653589793,
+                  "maximum": 3.141592653589793
+                },
+                "pitch": {
+                  "type": "number",
+                  "minimum": -3.141592653589793,
+                  "maximum": 3.141592653589793
+                }
+              },
+              "required": [
+                "yaw",
+                "pitch"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "held",
+            "yawRate",
+            "pitchRate"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "round",
+        "seq",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "swing:rematch": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "round": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "round"
+      ],
+      "additionalProperties": false
+    },
+    "swing:leave": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  "acknowledgement": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "access": {
+            "type": "object",
+            "properties": {
+              "roomCode": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{6}$"
+              },
+              "playerId": {
+                "type": "string"
+              },
+              "resumeToken": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "roomCode",
+              "playerId",
+              "resumeToken"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "ok",
+          "error"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "serverEvents": {
+    "swing:state": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "cityId": {
+          "type": "string"
+        },
+        "cityVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "round": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "waiting",
+            "playing",
+            "paused",
+            "finished"
+          ]
+        },
+        "players": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "nickname": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 20,
+                "pattern": "^[\\p{L}\\p{N} _.-]+$"
+              },
+              "connected": {
+                "type": "boolean"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "rematchReady": {
+                "type": "boolean"
+              },
+              "state": {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      },
+                      "z": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "velocity": {
+                    "type": "object",
+                    "properties": {
+                      "x": {
+                        "type": "number"
+                      },
+                      "y": {
+                        "type": "number"
+                      },
+                      "z": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "x",
+                      "y",
+                      "z"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "yaw": {
+                    "type": "number"
+                  },
+                  "pitch": {
+                    "type": "number"
+                  },
+                  "webs": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "anchor": {
+                          "type": "object",
+                          "properties": {
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            },
+                            "z": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "x",
+                            "y",
+                            "z"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "length": {
+                          "type": "number"
+                        },
+                        "side": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "const": -1
+                            },
+                            {
+                              "type": "number",
+                              "const": 0
+                            },
+                            {
+                              "type": "number",
+                              "const": 1
+                            }
+                          ]
+                        },
+                        "pulling": {
+                          "type": "boolean"
+                        },
+                        "virtual": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "anchor",
+                        "length",
+                        "side"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "grounded": {
+                    "type": "boolean"
+                  },
+                  "grip": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "normal": {
+                            "type": "object",
+                            "properties": {
+                              "x": {
+                                "type": "number"
+                              },
+                              "y": {
+                                "type": "number"
+                              },
+                              "z": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "x",
+                              "y",
+                              "z"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "wallTop": {
+                            "type": "number"
+                          },
+                          "graceMs": {
+                            "type": "number"
+                          },
+                          "fistMs": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "normal",
+                          "wallTop",
+                          "graceMs",
+                          "fistMs"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "touchingWall": {
+                    "type": "boolean"
+                  },
+                  "started": {
+                    "type": "boolean"
+                  },
+                  "stats": {
+                    "type": "object",
+                    "properties": {
+                      "distance": {
+                        "type": "number"
+                      },
+                      "webs": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "misses": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "topSpeed": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "distance",
+                      "webs",
+                      "misses",
+                      "topSpeed"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "position",
+                  "velocity",
+                  "yaw",
+                  "pitch",
+                  "webs",
+                  "grounded",
+                  "grip",
+                  "touchingWall",
+                  "started",
+                  "stats"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "nickname",
+              "connected",
+              "ready",
+              "rematchReady",
+              "state"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "objectives": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "z": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "additionalProperties": false
+              },
+              "collectedBy": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "position",
+              "collectedBy"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "roomCode",
+        "cityId",
+        "cityVersion",
+        "round",
+        "tick",
+        "status",
+        "players",
+        "objectives"
+      ],
+      "additionalProperties": false
+    },
+    "swing:error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

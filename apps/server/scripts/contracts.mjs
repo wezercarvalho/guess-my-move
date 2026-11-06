@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import {
     buildOpenApiDocument,
     buildMultiplayerContract,
+    buildSwingContract,
 } from '../dist/contracts/documents.js'
 
 const check = process.argv.includes('--check')
@@ -11,6 +12,7 @@ const directory = new URL('../../../contracts/', import.meta.url)
 if (!check) await mkdir(directory, { recursive: true })
 for (const [name, document] of [
     ['http.openapi.json', buildOpenApiDocument()],
+    ['swing.socketio.json', buildSwingContract()],
     ['multiplayer.socketio.json', buildMultiplayerContract()],
 ]) {
     const file = new URL(name, directory)

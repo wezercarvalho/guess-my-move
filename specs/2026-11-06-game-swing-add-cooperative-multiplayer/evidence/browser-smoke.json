@@ -1,0 +1,27 @@
+{
+    "layout": {
+        "stageHeight": 751.21875,
+        "barHeight": 97.59375,
+        "viewportHeight": 1000
+    },
+    "twoIndependentContexts": true,
+    "webglLoaded": true,
+    "nicknames": ["Ana", "Bia"],
+    "sameCity": "aurora",
+    "objectives": 5,
+    "keyboardChangesAuthoritativePosition": true,
+    "disconnectPauses": true,
+    "reconnectResumesSameRoom": true,
+    "leavingReleasesSlot": true,
+    "noPageErrors": true,
+    "noThirdPartyRequests": true,
+    "noMediaOrLandmarksInCommands": true,
+    "sentEvents": {
+        "swing:create": 1,
+        "swing:join": 1,
+        "swing:ready": 2,
+        "swing:input": 92,
+        "swing:resume": 1,
+        "swing:leave": 2
+    }
+}

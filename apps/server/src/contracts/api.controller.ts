@@ -9,7 +9,11 @@ import {
     StandardSchemaSerializerInterceptor,
 } from '@nestjs/common'
 import { SERVER_CONFIG, type ServerConfig } from '../server-config.js'
-import { buildMultiplayerContract, buildOpenApiDocument } from './documents.js'
+import {
+    buildMultiplayerContract,
+    buildOpenApiDocument,
+    buildSwingContract,
+} from './documents.js'
 import { capabilities, capabilitiesResponseSchema } from './http-definitions.js'
 
 @UseInterceptors(HttpTimingInterceptor, StandardSchemaSerializerInterceptor)
@@ -24,6 +28,10 @@ export class ApiController {
     @Get('contracts/multiplayer')
     multiplayer() {
         return buildMultiplayerContract()
+    }
+    @Get('contracts/swing')
+    swing() {
+        return buildSwingContract()
     }
     @Get('openapi.json')
     openapi() {

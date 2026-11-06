@@ -1,3 +1,5 @@
+import { createOnlineScene } from './onlineScene.js'
+import { type SwingRoomState } from '@guess-my-move/swing'
 import {
     type City,
     DEFAULT_SWING,
@@ -42,6 +44,7 @@ import { createStreetSigns } from './streetSignsView.js'
 export interface SwingRenderer {
     resize(width: number, height: number): void
     render(state: SwingState): void
+    setOnline?(room: SwingRoomState | null, playerId: string | null, dt: number): void
     /** Onde um ponto do mundo cai no quadro atual (0 a 1), ou `null` antes do primeiro desenho. */
     project?(point: Vec3): ScreenPoint | null
     dispose(): void
@@ -317,6 +320,8 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         return rope
     })
 
+    const onlineScene = createOnlineScene(scene)
+
     const projected = new Vector3()
     const up = new Vector3(0, 1, 0)
     const from = new Vector3()
@@ -325,6 +330,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     const orientation = new Quaternion()
 
     return {
+        setOnline: (room, playerId, dt) => onlineScene.update(room, playerId, dt),
         resize(width, height) {
             renderer.setSize(width, height, false)
             camera.aspect = width / Math.max(1, height)
@@ -382,6 +388,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         },
 
         dispose() {
+            onlineScene.dispose()
             for (const item of disposables) item.dispose()
         },
     }

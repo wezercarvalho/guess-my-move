@@ -70,6 +70,7 @@ interface SocketMembership {
 }
 
 export interface RoomServiceOptions {
+    canCreateRoom?: () => boolean
     now?: () => number
     code?: () => string
     token?: () => string
@@ -122,7 +123,7 @@ export class RoomService {
         finished: number
     }
 
-    constructor(options: RoomServiceOptions = {}) {
+    constructor(private readonly options: RoomServiceOptions = {}) {
         this.now = options.now ?? Date.now
         this.code = options.code ?? randomCode
         this.token = options.token ?? randomToken
@@ -138,7 +139,10 @@ export class RoomService {
 
     create(socketId: string, command: CreateRoomCommand): RoomMutation {
         this.assertSocketFree(socketId)
-        if (this.rooms.size >= this.maxRooms) {
+        if (
+            this.rooms.size >= this.maxRooms ||
+            this.options.canCreateRoom?.() === false
+        ) {
             throw new RoomError(
                 'ROOM_LIMIT',
                 'O limite de salas ativas foi atingido.',

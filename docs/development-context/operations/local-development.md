@@ -48,6 +48,12 @@ Execute `yarn dev:server` e `yarn dev:web` em terminais separados. O servidor us
 
 Para executar o compilado: `yarn build` e `yarn workspace @guess-my-move/server start`. O build não inicia nem publica o servidor. Teste a rede local antes de expor uma instância; nenhuma imagem ou landmark deve aparecer nos frames WebSocket. O modo local independe do servidor.
 
+## Arranha-Teia cooperativo em desenvolvimento
+
+Os mesmos comandos e proxy atendem `/swing.html` → **Cooperativo online**. Use duas abas/contextos, crie uma sala com apelido/cidade e entre com código; ambas confirmam prontidão. Aurora e os três mapas reais estão disponíveis. Somente inputs derivados de controles são enviados; o servidor mantém física e objetivos. A credencial de retomada existe apenas em memória: reconnect automático funciona enquanto a página existe, reload não recupera a vaga. Prontidão repetida e inputs neutros não renovam o prazo de inatividade.
+
+`dev:server` compila e acompanha tanto marbles quanto swing antes de iniciar o servidor. O backend lê os JSON de cidades em `apps/web/public/swing`; preserve essa estrutura ao empacotar o monorepo. Não aceita paths fornecidos pelo cliente. Para verificar outra origem, configure `ALLOWED_ORIGINS`; Engine.IO valida inclusive a primeira conexão direta a `/swing`.
+
 ## Limites e operação do multiplayer
 
 `yarn dev:server` compila primeiro `packages/marbles` e o servidor, e acompanha alterações de ambos. Nenhum build anterior precisa existir. Se um compilador falhar no preparo, o comando encerra com erro; só o frontend continua independente do servidor.
@@ -78,3 +84,5 @@ Erros inesperados geram apenas evento, operação conhecida e correlação aleat
 ## Contratos e observabilidade
 
 Veja [API e observabilidade](../contracts/backend-api.md) para os scripts de contratos, `ENABLE_API_DOCS`, `METRICS_TOKEN` e as opções `OBSERVE_*`. Métricas locais exigem token próprio; o SDK externo fica desativado por padrão.
+
+`MAX_ROOMS` é um orçamento agregado entre bolinhas e Arranha-Teia. Conexões e tentativas também são agregadas entre namespaces. O máximo não é uma medição de capacidade: valide carga e uso de memória no ambiente real antes de dimensionar produção.

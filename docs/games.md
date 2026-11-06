@@ -31,7 +31,18 @@ Uma queda de conexão pausa o jogo por até 60 segundos. Recarregar a mesma aba 
 Abra `/swing.html` e escolha uma experiência:
 
 - **Treino:** Aurora, uma cidade procedural de néon, com exercícios de comandos sem tempo nem pontuação.
+- **Cooperativo online:** duas pessoas na mesma cidade, com avatares identificados e sinais luminosos para coletar em conjunto. Requer o servidor; câmera é opcional.
 - **Viajante:** cidades reais do catálogo, incluindo Midtown Manhattan, Avenida Paulista e Santa Maria, com dados do OpenStreetMap.
+
+### Cooperação online
+
+1. Inicie o servidor e a web conforme o README; escolha **Cooperativo online**.
+2. Informe um apelido, selecione a cidade e crie a sala. Compartilhe o código com a outra pessoa, que informa seu próprio apelido e entra na sala.
+3. Confiram os dois nomes e confirmem **Estou pronto**. Os avatares usam as cores da lista; o apelido identifica a outra pessoa no cenário.
+4. Alcancem os sinais luminosos próximos ao chão; cada sinal é coletado uma vez por qualquer participante. A contagem é coletiva e o servidor confirma a conclusão.
+5. Ao concluir, as duas pessoas confirmam **Nova partida** na mesma sala. A câmera e o mundo permanecem montados.
+
+A sessão pausa quando alguém desconecta. A vaga fica reservada por 60 segundos e a reconexão acontece automaticamente. Recarregar a página perde a credencial mantida só em memória; sair libera a vaga. Salas expiradas retornam ao lobby com uma mensagem. A interface aceita teclado e gestos; imagens, vídeo e landmarks continuam locais. Reiniciar o servidor perde as salas.
 
 ### Mãos e teias
 

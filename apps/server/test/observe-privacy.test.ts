@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import type { INestApplication } from '@nestjs/common'
 import { io, type Socket } from 'socket.io-client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { SWING_CLIENT_EVENTS } from '@guess-my-move/swing'
 import { CLIENT_EVENTS } from '@guess-my-move/marbles'
 import { RoomService } from '../src/multiplayer/room.service.js'
 import { createServerApp } from '../src/app.setup.js'
@@ -13,6 +14,7 @@ import { BackendTelemetry } from '../src/observability/backend-telemetry.service
 let collector: Server | undefined
 let app: INestApplication | undefined
 let client: Socket | undefined
+let swingClient: Socket | undefined
 const batches: string[] = []
 async function startCollector() {
     batches.length = 0
@@ -38,6 +40,8 @@ async function startCollector() {
     return `http://127.0.0.1:${(collector.address() as AddressInfo).port}`
 }
 afterEach(async () => {
+    swingClient?.disconnect()
+    swingClient = undefined
     client?.disconnect()
     client = undefined
     await app?.close()
@@ -127,12 +131,42 @@ describe('coleta externa opt-in', () => {
                     'Bearer MetricsPrivateSentinel-credential-32-chars',
             },
         })
+        swingClient = io(`${url}/swing`, {
+            transports: ['websocket'],
+            reconnection: false,
+            extraHeaders: { Origin: 'http://localhost:5173' },
+        })
+        await new Promise<void>((resolve, reject) => {
+            swingClient!.once('connect', resolve)
+            swingClient!.once('connect_error', reject)
+        })
+        const swingAccess: unknown = await new Promise((resolve) =>
+            swingClient!.emit(
+                SWING_CLIENT_EVENTS.create,
+                { cityId: 'aurora', nickname: 'SwingPrivateSentinel' },
+                resolve,
+            ),
+        )
+        expect(swingAccess).toMatchObject({ ok: true })
+        await new Promise((resolve) =>
+            swingClient!.emit(
+                SWING_CLIENT_EVENTS.input,
+                {
+                    round: 1,
+                    seq: 1,
+                    input: { held: {}, yawRate: 0, pitchRate: 0 },
+                    frame: 'SwingMediaPrivateSentinel',
+                },
+                resolve,
+            ),
+        )
         app.get(BackendTelemetry).record('room:create', false, 12)
         for (
             let i = 0;
             i < 40 &&
             !batches.some(
                 (body) =>
+                    body.includes('SwingGateway:swing:create') &&
                     body.includes('MultiplayerGateway:room:create') &&
                     body.includes('backend_operations_room_create'),
             );
@@ -148,9 +182,13 @@ describe('coleta externa opt-in', () => {
         ).toBe(true)
         const text = batches.join('\n')
         expect(text).toContain('MultiplayerGateway:room:create')
+        expect(text).toContain('SwingGateway:swing:create')
+        expect(text).toContain('backend_operations_swing_create')
         expect(text).toContain('HealthController')
         expect(text).toContain('/api/health')
         for (const sentinel of [
+            'SwingPrivateSentinel',
+            'SwingMediaPrivateSentinel',
             'QueryPrivateSentinel',
             'HeaderPrivateSentinel',
             'NicknameSentinel',
@@ -161,6 +199,16 @@ describe('coleta externa opt-in', () => {
             'private-secret-for-tests',
         ])
             expect(text).not.toContain(sentinel)
+        if (
+            swingAccess &&
+            typeof swingAccess === 'object' &&
+            'access' in swingAccess
+        ) {
+            const access = Reflect.get(swingAccess, 'access') as {
+                resumeToken: string
+            }
+            expect(text).not.toContain(access.resumeToken)
+        }
         if (ack && typeof ack === 'object' && 'access' in ack) {
             const access = Reflect.get(ack, 'access') as { resumeToken: string }
             expect(text).not.toContain(access.resumeToken)

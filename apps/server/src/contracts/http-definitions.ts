@@ -10,6 +10,21 @@ export const capabilitiesResponseSchema = z.strictObject({
     namespace: z.literal('/'),
     modes: z.array(z.enum(MODE_IDS)),
     reconnectGraceMs: z.literal(RECONNECT_GRACE_MS),
+    games: z.strictObject({
+        marbles: z.strictObject({
+            namespace: z.literal('/'),
+            contract: z.literal('/api/contracts/multiplayer'),
+        }),
+        swing: z.strictObject({
+            namespace: z.literal('/swing'),
+            contract: z.literal('/api/contracts/swing'),
+            maxPlayers: z.literal(2),
+            cooperative: z.literal(true),
+            cityIds: z.array(
+                z.enum(['aurora', 'midtown', 'paulista', 'santa-maria']),
+            ),
+        }),
+    }),
 })
 const count = () => z.number().int().nonnegative()
 export const metricsResponseSchema = z.strictObject({
@@ -42,9 +57,26 @@ export const capabilities = () =>
         path: '/socket.io',
         namespace: '/',
         modes: [...MODE_IDS],
+        games: {
+            marbles: { namespace: '/', contract: '/api/contracts/multiplayer' },
+            swing: {
+                namespace: '/swing',
+                contract: '/api/contracts/swing',
+                maxPlayers: 2,
+                cooperative: true,
+                cityIds: ['aurora', 'midtown', 'paulista', 'santa-maria'],
+            },
+        },
         reconnectGraceMs: RECONNECT_GRACE_MS,
     })
 export const httpDefinitions = [
+    {
+        path: '/api/contracts/swing',
+        operationId: 'getSwingContract',
+        summary: 'Schemas do multiplayer cooperativo Arranha-Teia',
+        schema: z.record(z.string(), z.unknown()),
+        protected: false,
+    },
     {
         path: '/api/health',
         operationId: 'getHealth',

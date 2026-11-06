@@ -12,7 +12,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common'
 import { SERVER_CONFIG, type ServerConfig } from '../server-config.js'
-import { MultiplayerGateway } from '../multiplayer/multiplayer.gateway.js'
+import { BackendMetrics } from '../realtime/backend-metrics.service.js'
 import { metricsResponseSchema } from '../contracts/http-definitions.js'
 
 @UseInterceptors(HttpTimingInterceptor, StandardSchemaSerializerInterceptor)
@@ -20,7 +20,7 @@ import { metricsResponseSchema } from '../contracts/http-definitions.js'
 export class MetricsController {
     constructor(
         @Inject(SERVER_CONFIG) private readonly config: ServerConfig,
-        private readonly multiplayer: MultiplayerGateway,
+        private readonly metrics: BackendMetrics,
     ) {}
     @Get()
     @SerializeOptions({ schema: metricsResponseSchema })
@@ -33,6 +33,6 @@ export class MetricsController {
             .digest()
         if (!timingSafeEqual(expected, received))
             throw new UnauthorizedException()
-        return this.multiplayer.metrics()
+        return this.metrics.snapshot()
     }
 }

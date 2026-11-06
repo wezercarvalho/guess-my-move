@@ -1,3 +1,16 @@
+import {
+    SWING_CLIENT_EVENTS,
+    SWING_SERVER_EVENTS,
+    swingCreateSchema,
+    swingJoinSchema,
+    swingResumeSchema,
+    swingReadySchema,
+    swingCommandSchema,
+    swingRematchSchema,
+    swingLeaveSchema,
+    swingRoomStateSchema,
+    swingAckSchema,
+} from '@guess-my-move/swing'
 import { z } from 'zod'
 import {
     MIN_SHOT_SPEED,
@@ -136,6 +149,49 @@ export function buildMultiplayerContract() {
         serverEvents: {
             [SERVER_EVENTS.state]: jsonSchema(roomStateSchema),
             [SERVER_EVENTS.error]: jsonSchema(protocolErrorSchema),
+        },
+    }
+}
+
+export function buildSwingContract() {
+    return {
+        protocolVersion: 1,
+        transport: 'socket.io',
+        socketIoMajor: 4,
+        namespace: '/swing',
+        path: '/socket.io',
+        description:
+            'Cooperação para duas pessoas. Somente inputs derivados de gestos/teclado; posições, objetivos e resultados são autoritativos no servidor. Nunca enviar mídia ou landmarks. Credencial de retomada é privada no ACK e permanece em memória do próprio cliente.',
+        constraints: {
+            maxPlayers: 2,
+            reconnectGraceMs: 60_000,
+            inputsPerSecond: 10,
+            commandLimitPerSecond: 20,
+            snapshotsPerSecond: 10,
+            maxSocketPayloadBytes: MAX_SOCKET_PAYLOAD_BYTES,
+            inputTimeoutMs: 350,
+        },
+        clientEvents: {
+            [SWING_CLIENT_EVENTS.create]: jsonSchema(swingCreateSchema),
+            [SWING_CLIENT_EVENTS.join]: jsonSchema(swingJoinSchema),
+            [SWING_CLIENT_EVENTS.resume]: jsonSchema(swingResumeSchema),
+            [SWING_CLIENT_EVENTS.ready]: jsonSchema(swingReadySchema),
+            [SWING_CLIENT_EVENTS.input]: jsonSchema(swingCommandSchema),
+            [SWING_CLIENT_EVENTS.rematch]: jsonSchema(swingRematchSchema),
+            [SWING_CLIENT_EVENTS.leave]: jsonSchema(swingLeaveSchema),
+        },
+        acknowledgement: jsonSchema(swingAckSchema),
+        serverEvents: {
+            [SWING_SERVER_EVENTS.state]: jsonSchema(swingRoomStateSchema),
+            [SWING_SERVER_EVENTS.error]: {
+                type: 'object',
+                properties: {
+                    code: { type: 'string' },
+                    message: { type: 'string' },
+                },
+                required: ['code', 'message'],
+                additionalProperties: false,
+            },
         },
     }
 }
