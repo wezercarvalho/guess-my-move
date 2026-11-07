@@ -73,9 +73,11 @@ export class MultiplayerGateway
         @Optional()
         @Inject(BackendTelemetry)
         private readonly telemetry: BackendTelemetry = new BackendTelemetry(),
-        @Optional() @Inject(RealtimePolicy) policy?: RealtimePolicy,
+        @Optional()
+        @Inject(RealtimePolicy)
+        private readonly policy?: RealtimePolicy,
     ) {
-        this.admission = policy ?? new ConnectionAdmission(config)
+        this.admission = this.policy ?? new ConnectionAdmission(config)
     }
 
     afterInit(): void {
@@ -354,6 +356,7 @@ export class MultiplayerGateway
         return this.telemetry.snapshot(
             this.admission.activeConnections,
             this.rooms.activeRooms,
+            this.policy?.activeTransports ?? 0,
         )
     }
 

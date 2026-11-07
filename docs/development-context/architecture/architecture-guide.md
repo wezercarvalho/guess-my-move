@@ -153,3 +153,26 @@ O backend usa o adaptador HTTP nativo do Nest. A configuração é fornecida por
 No swing, o servidor executa o núcleo puro com inputs estritos e passo fixo. Publica snapshots a 10 Hz, valida partida/sequência e neutraliza comandos sem atualização por 350 ms. O navegador acumula deltas do olhar, envia intents a 10 Hz e usa previsão limitada/reconciliação; o avatar remoto é interpolado. Objetivos são escolhidos num componente caminhável da cidade, coletados uma vez no servidor e reiniciados por confirmação bilateral. O gerador de Aurora é compartilhado entre servidor e web; os três mapas reais vêm dos mesmos arquivos versionados, identificados pelo catálogo fixo.
 
 Mantemos validação explícita com ACK sanitizado no transporte: um pipe/filtro padrão de WebSocket mudaria o canal de erro e poderia ecoar payload rejeitado. As recomendações consultadas e decisões estão no [plano da entrega](../../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/plan.md).
+
+## Projeções e geração de objetivos
+
+O serviço de bolinhas prepara a bolinha da próxima vez na mutação de início/transição, antes de publicar. `multiplayer/public-room.ts` projeta jogadores e snapshots de partida por whitelist e cópia dos campos; não recebe a sessão nem chama métodos que mudem o domínio. Serialização não prepara a partida.
+
+No Swing, `swing/cooperative-objectives.ts` recebe cidade indexada e origem e executa a busca determinística limitada; `SwingRoomService` conserva apenas o ciclo de sala e a delegação. A [decisão sobre composição realtime](decisions/2026-11-06-realtime-policy-composition.md) explica os pontos compartilhados e por que não criamos uma superclasse ou pipeline genérico dos dois gateways.
+
+## Composição da captura e da sessão Swing
+
+`capture/AsyncTrackerResource` possui a carga e o descarte do detector; `capture/VideoFrameGate` controla apenas a sinalização de quadros, sem solicitar ou gravar câmera. O Swing adota ambos e conserva calibração e regras na fachada. `swing/OnlineSwingSession` recebe a bridge e o mundo, coordena snapshots/intents e devolve dados de apresentação sem conhecer câmera ou renderer. Derivação de sinais de mão e contratos públicos ficam em módulos próprios; os tipos continuam disponíveis pelo caminho antigo do controlador. Adoções são incrementos por jogo, sem superclasse compartilhando regras distintas.
+
+## Responsabilidades web após a extração
+
+| Responsabilidade               | Antes                                  | Componente atual e motivo de mudança                                                                                               |
+| ------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Posse/cancelamento de detector | Duplicada nos controladores            | `AsyncTrackerResource`: carga, estados, liberação e fechamento de resultados atrasados. Swing usa mãos/rosto; bolinhas usa gestos. |
+| Sinalização de quadro          | Callbacks e fallback nos controladores | `VideoFrameGate`: quadro nativo uma vez, fallback por currentTime e invalidação de callback. Nenhum acesso à mídia.                |
+| Sincronização Swing            | Misturada com câmera/calibração        | `OnlineSwingSession`: cadência, previsão, reconciliação e resets de sessão; pode ser alterada sem editar captura.                  |
+| Sinais Swing                   | Geometria no controlador               | `handInput`: derivação local de mãos/intenções, sem efeitos ou limiares novos.                                                     |
+| Entrada bolinhas               | Pinça, estalo e mira no controlador    | `MarblesHandInput`: traduz leituras em vetor/feedback; resets de turno e sessão têm políticas explícitas.                          |
+| Fachadas e contratos           | Tipos e orquestração juntos            | Tipos em `swingTypes`/`marblesTypes`, reexportados pelos caminhos antigos. Fachadas conservam regras, renderer e integração.       |
+
+A extração de bolinhas não cria outra estratégia de sessão: o cliente multiplayer existente conserva os contratos de rede, enquanto a entrada/captura fica independente dele. Uma hierarquia local/online entre jogos foi rejeitada: física, autoridade e atualização são diferentes. Ambos compõem as mesmas duas utilidades sem compartilhar regras de domínio. A derivação de feedback de mira/estalo e sinais de mão foi retirada das fachadas; renderizadores e HUD final permanecem compatíveis. Regressões dirigidas verificam comportamentos visíveis (disparo, vez, pausa, retomada, perda de mãos e cleanup), sem testar só chamadas privadas.

@@ -1,3 +1,4 @@
+import { createCooperativeObjectives } from './cooperative-objectives.js'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import {
     createSwingWorld,
@@ -179,12 +180,29 @@ export class SwingRoomService {
         this.membership.set(socketId, { room, player })
         return this.access(room, player)
     }
+    recover(socketId: string): SwingAccess {
+        this.expire()
+        const { room, player } = this.bound(socketId)
+        return this.access(room, player)
+    }
     resume(
         socketId: string,
         command: { roomCode: string; resumeToken: string },
     ): SwingAccess {
-        this.checkFree(socketId)
         this.expire()
+        const existing = this.membership.get(socketId)
+        if (existing) {
+            const stored = Buffer.from(existing.player.token)
+            const supplied = Buffer.from(command.resumeToken)
+            if (
+                existing.room.code === command.roomCode &&
+                stored.length === supplied.length &&
+                timingSafeEqual(stored, supplied)
+            )
+                return this.access(existing.room, existing.player)
+            fail('invalid-token', 'Não foi possível retomar esta vaga.')
+        }
+        this.checkFree(socketId)
         const room =
             this.rooms.get(command.roomCode) ??
             fail('room-not-found', 'Sala não encontrada ou expirada.')
@@ -321,76 +339,7 @@ export class SwingRoomService {
             y: 90,
             z: 0,
         }
-        const candidates: Array<{ x: number; y: number; z: number }> = []
-        const bounds = room.city.index.playBounds
-        const queue = [{ x: origin.x, z: origin.z }]
-        const visited = new Set(['0:0'])
-        const stride = 4
-        // Ground-connected free space also remains accessible without mastering flight.
-        // The bounded search runs once per round; city collision indexes are cached.
-        for (
-            let cursor = 0;
-            cursor < queue.length && cursor < 12_000;
-            cursor++
-        ) {
-            const node = queue[cursor]
-            if (
-                Math.hypot(node.x - origin.x, node.z - origin.z) >= 22 &&
-                room.city.index.clearance(node.x, node.z, 8) >= 8 &&
-                candidates.every(
-                    (previous) =>
-                        Math.hypot(previous.x - node.x, previous.z - node.z) >=
-                        20,
-                )
-            ) {
-                candidates.push({
-                    x: node.x,
-                    y: room.city.config.eyeHeight + 2,
-                    z: node.z,
-                })
-                if (candidates.length === 5) break
-            }
-            for (const [dx, dz] of [
-                [0, -1],
-                [1, 0],
-                [0, 1],
-                [-1, 0],
-            ]) {
-                const x = node.x + dx * stride,
-                    z = node.z + dz * stride
-                const key = `${Math.round((x - origin.x) / stride)}:${Math.round((z - origin.z) / stride)}`
-                if (
-                    visited.has(key) ||
-                    Math.abs(x - origin.x) > 175 ||
-                    Math.abs(z - origin.z) > 175 ||
-                    x <= bounds.minX + 5 ||
-                    x >= bounds.maxX - 5 ||
-                    z <= bounds.minZ + 5 ||
-                    z >= bounds.maxZ - 5
-                )
-                    continue
-                visited.add(key)
-                if (
-                    room.city.index.clearance(x, z, 3.2) < 3.2 ||
-                    room.city.index.clearance(
-                        (x + node.x) / 2,
-                        (z + node.z) / 2,
-                        2,
-                    ) < 2
-                )
-                    continue
-                queue.push({ x, z })
-            }
-        }
-        if (candidates.length < 3)
-            throw new Error(
-                'Cidade sem área livre suficiente para os objetivos.',
-            )
-        return candidates.map((position, i) => ({
-            id: `objective-${i + 1}`,
-            position,
-            collectedBy: null,
-        }))
+        return createCooperativeObjectives(room.city, origin)
     }
     advance(elapsedMs: number): void {
         this.expire()

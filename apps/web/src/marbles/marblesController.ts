@@ -1,176 +1,69 @@
+import { AsyncTrackerResource } from '../capture/asyncTrackerResource.js'
+import { VideoFrameGate } from '../capture/videoFrameGate.js'
+import { MarblesHandInput } from './handInput.js'
+import type {
+    MarblesEnv,
+    MarblesSurfaces,
+    MarblesSnapshot,
+    PlayType,
+    ShotControl,
+    OpponentIntent,
+    MatchView,
+} from './marblesTypes.js'
+export type {
+    MarblesTrackerStatus,
+    ShotControl,
+    PlayType,
+    FlickOutcome,
+    MarblesEnv,
+    MarblesSurfaces,
+    MarblesDebug,
+    AimView,
+    OpponentIntent,
+    MatchView,
+    MarblesSnapshot,
+} from './marblesTypes.js'
 import {
-    type AimController,
     type Body,
     BOT_LEVELS,
     type BotLevel,
     type BotPlanner,
     DEFAULT_BOT_LEVEL,
     type Competitor,
-    type FlickDetector,
-    type FlickPhase,
-    type FlickReading,
-    type FlickRelease,
-    type FieldDecor,
-    type HandGesture,
     type Mode,
     type ModeEntry,
-    type MatchPhase,
     type MatchSession,
     type ModeId,
     type Opponent,
     type Outcome,
-    type PinchDetector,
-    type PinchReading,
     type ShotSource,
     type Vec,
     DEFAULT_PHYSICS,
-    createAimController,
     createBotPlanner,
-    createFlickDetector,
     createMatchSession,
-    createPinchDetector,
-    flickPower,
     modes,
 } from '@guess-my-move/marbles'
 
 import { drawHand } from '../round/handOverlay.js'
 import { summarizeLatency } from '../round/latency.js'
-import {
-    type CreateHandTracker,
-    type HandTracker,
-    type TrackerDelegate,
-} from '../tracker/handTracker.js'
+import { type HandTracker } from '../tracker/handTracker.js'
 import { type MultiplayerSnapshot } from './multiplayerClient.js'
-
-export type MarblesTrackerStatus = 'idle' | 'loading' | 'ready' | 'error'
-
-/** Modo de tiro: a pinça com arrasto (padrão) ou o estalo do polegar (alpha). */
-export type ShotControl = 'pinch' | 'flick'
-export type PlayType = 'local' | 'online'
 
 /** Lê `?mode=estalo` da URL; qualquer outro valor mantém a pinça. */
 export function shotControlFromSearch(search: string): ShotControl {
-    return new URLSearchParams(search).get('mode')?.toLowerCase() === 'estalo' ? 'flick' : 'pinch'
+    return new URLSearchParams(search).get('mode')?.toLowerCase() === 'estalo'
+        ? 'flick'
+        : 'pinch'
 }
 
-/** O que aconteceu no último estalo, para a depuração. */
-export type FlickOutcome =
-    | 'disparado'
-    | 'fraco demais'
-    | 'não sustentado'
-    | 'mão aberta'
-    | 'sem mira'
-
-function flickOutcome(release: FlickRelease, fired: boolean): FlickOutcome {
-    if (release.verdict === 'weak') return 'fraco demais'
-    if (release.verdict === 'unsustained') return 'não sustentado'
-    if (release.verdict === 'open_hand') return 'mão aberta'
-    return fired ? 'disparado' : 'sem mira'
-}
-
-function outcomeForRole(outcome: Outcome | null, role: Competitor | null): Outcome | null {
+function outcomeForRole(
+    outcome: Outcome | null,
+    role: Competitor | null,
+): Outcome | null {
     if (!outcome || role !== 'opponent') return outcome
     if (outcome === 'win') return 'loss'
     if (outcome === 'loss') return 'win'
     return 'draw'
-}
-
-/** Dependências do controlador; em testes, o relógio e os quadros são controlados. */
-export interface MarblesEnv {
-    createTracker: CreateHandTracker
-    requestFrame: (callback: () => void) => number
-    cancelFrame: (handle: number) => void
-    /** Relógio monotônico em ms. */
-    now: () => number
-    /** Planejador do bot (injetável para teste); por padrão, `DEFAULT_BOT`. */
-    createBot?: (level: BotLevel) => BotPlanner
-    /** Semente base da partida contra o bot (injetável para teste). */
-    seed?: number
-}
-
-/** Acesso aos elementos da tela, entregue na montagem (nunca durante a renderização). */
-export interface MarblesSurfaces {
-    getVideo: () => HTMLVideoElement | null
-    getOverlay: () => HTMLCanvasElement | null
-}
-
-/** Números do painel de depuração. */
-export interface MarblesDebug {
-    delegate: TrackerDelegate | null
-    ratio: number | null
-    pinchClosed: boolean
-    handVisible: boolean
-    frames: number
-    cameraFps: number | null
-    medianMs: number | null
-    p95Ms: number | null
-    flick: {
-        armed: boolean
-        phase: FlickPhase
-        gesture: HandGesture | null
-        lastOpenSpeed: number | null
-        lastRiseMs: number | null
-        lastPower: number | null
-        lastResult: FlickOutcome | null
-    }
-}
-
-/** Mira em andamento, exposta à tela para o campo desenhar o elástico/seta. */
-export interface AimView {
-    pinch: Vec
-    shot: { velocity: Vec; power: number } | null
-    direction: Vec | null
-}
-
-/** Próximo tiro anunciado do adversário antes de ser aplicado. */
-export interface OpponentIntent {
-    velocity: Vec
-    power: number
-}
-
-/** Estado da partida exposto à tela. */
-export interface MatchView {
-    modeId: string
-    opponent: Opponent
-    phase: MatchPhase
-    round: number
-    roundsPerMatch: number
-    roundOutcomes: Outcome[]
-    lastRoundOutcome: Outcome | null
-    matchOutcome: Outcome | null
-    turn: Competitor | null
-    shotsLeft: Record<Competitor, number>
-    roundYield: Record<Competitor, number>
-    scoreLabel: string | null
-    field: Body[]
-    decor: FieldDecor | null
-}
-
-/** Foto imutável do jogo, entregue à interface a cada mudança. */
-export interface MarblesSnapshot {
-    playType: PlayType
-    multiplayer: MultiplayerSnapshot
-    /** `true` antes de uma partida ou sala começar. */
-    choosing: boolean
-    modeId: ModeId
-    opponent: Opponent
-    /** Nível do bot escolhido (vale só contra o bot). */
-    botLevel: BotLevel
-    shotControl: ShotControl
-    trackerStatus: MarblesTrackerStatus
-    /** Câmera negada, indisponível ou falhou. */
-    cameraFailed: boolean
-    /** Motivo da falha do detector; `null` quando não há falha. */
-    failureReason: string | null
-    /** A partida em andamento; `null` enquanto na tela de escolha. */
-    match: MatchView | null
-    /** Mira em andamento (só na vez do jogador). */
-    aim: AimView | null
-    /** Próximo tiro do adversário enquanto a prévia curta está visível. */
-    opponentIntent: OpponentIntent | null
-    /** Posição da pinça no campo e se está fechada; `null` quando a mão não é vista. */
-    hand: { point: Vec; closed: boolean } | null
-    debug: MarblesDebug
 }
 
 const LATENCY_WINDOW = 300
@@ -183,7 +76,9 @@ const ROUND_DWELL_MS = 900
 const OPPONENT_INTENT_MS = 450
 
 const messageOf = (error: unknown) =>
-    error instanceof Error && error.message ? error.message : 'Falha ao usar o detector de mão.'
+    error instanceof Error && error.message
+        ? error.message
+        : 'Falha ao usar o detector de mão.'
 
 function modeEntry(modeId: string): ModeEntry {
     return modes.find((m) => m.id === modeId) ?? modes[0]
@@ -218,13 +113,19 @@ export function createBotShotSource(
 export class MarblesController {
     private readonly env: MarblesEnv
     private readonly listeners = new Set<() => void>()
-    private readonly pinch: PinchDetector = createPinchDetector()
-    private readonly flick: FlickDetector = createFlickDetector()
-    private readonly aim: AimController = createAimController({
-        width: DEFAULT_PHYSICS.width,
-        height: DEFAULT_PHYSICS.height,
-    })
-
+    private readonly handInput = new MarblesHandInput()
+    private get reading() {
+        return this.handInput.reading
+    }
+    private get flickReading() {
+        return this.handInput.flickReading
+    }
+    private get aimView() {
+        return this.handInput.aimView
+    }
+    private get lastFlick() {
+        return this.handInput.lastFlick
+    }
     // Escolha da tela inicial.
     private modeId: ModeId
     private opponent: Opponent = 'target'
@@ -242,40 +143,40 @@ export class MarblesController {
     // Partida em andamento.
     private session: MatchSession | null = null
     private botSource: ShotSource | null = null
-    private aimView: AimView | null = null
     private opponentIntent: OpponentIntent | null = null
     private opponentIntentDue: number | null = null
     private roundDwellUntil: number | null = null
 
-    private lastFlick: {
-        openSpeed: number
-        riseMs: number
-        power: number | null
-        result: FlickOutcome
-    } | null = null
-
-    private tracker: HandTracker | null = null
-    private trackerStatus: MarblesTrackerStatus = 'idle'
-    private failureReason: string | null = null
+    private readonly detector = new AsyncTrackerResource<HandTracker>(messageOf)
+    private get tracker() {
+        return this.detector.value
+    }
+    private get trackerStatus() {
+        return this.detector.status
+    }
+    private get failureReason() {
+        return this.detector.error
+    }
+    private get delegate() {
+        return this.tracker?.delegate ?? null
+    }
     private cameraActive = false
     private cameraFailed = false
     private attached = false
-    private surfaces: MarblesSurfaces = { getVideo: () => null, getOverlay: () => null }
-    private loadToken = 0
+    private surfaces: MarblesSurfaces = {
+        getVideo: () => null,
+        getOverlay: () => null,
+    }
     private loop: number | null = null
-    private lastVideoTime = -1
-    private cameraFrameHandle: number | null = null
-    private cameraFrameVideo: HTMLVideoElement | null = null
-    private cameraFramePending = false
+    private readonly cameraFrames = new VideoFrameGate((now) =>
+        this.countCameraFrame(now ?? this.env.now()),
+    )
     private cameraFps: number | null = null
     private cameraWindowStart: number | null = null
     private cameraWindowCount = 0
     private lastNow: number | null = null
     private frames = 0
     private latencies: number[] = []
-    private reading: PinchReading | null = null
-    private flickReading: FlickReading | null = null
-    private delegate: TrackerDelegate | null = null
     private summary = summarizeLatency([])
     private lastSummaryAt = 0
     private lastEmitAt = 0
@@ -305,11 +206,9 @@ export class MarblesController {
 
     detach(): void {
         this.attached = false
-        this.loadToken++
         this.stopLoop()
-        this.tracker?.close()
-        this.tracker = null
-        this.trackerStatus = 'idle'
+        this.detector.release()
+        this.handInput.clearReadings()
         this.snapshot = this.buildSnapshot()
     }
 
@@ -326,11 +225,14 @@ export class MarblesController {
         sendShot: ((velocity: Vec) => void) | null,
     ): void {
         const previous = this.multiplayer
-        if (previous.room?.matchNumber !== snapshot.room?.matchNumber || previous.room?.match?.turn !== snapshot.room?.match?.turn || previous.room?.status !== snapshot.room?.status || previous.connection !== snapshot.connection || snapshot.room?.intent) {
-            this.aim.reset()
-            this.pinch.reset()
-            this.flick.reset()
-            this.aimView = null
+        if (
+            previous.room?.matchNumber !== snapshot.room?.matchNumber ||
+            previous.room?.match?.turn !== snapshot.room?.match?.turn ||
+            previous.room?.status !== snapshot.room?.status ||
+            previous.connection !== snapshot.connection ||
+            snapshot.room?.intent
+        ) {
+            this.handInput.resetForTurn()
         }
         this.multiplayer = snapshot
         this.sendRemoteShot = sendShot
@@ -363,7 +265,8 @@ export class MarblesController {
 
     /** Escolhe o adversário na tela inicial (sem efeito durante a partida). */
     readonly setOpponent = (opponent: Opponent): void => {
-        if (this.playType !== 'local' || this.session || this.multiplayer.room) return
+        if (this.playType !== 'local' || this.session || this.multiplayer.room)
+            return
         if (opponent === 'remote') return
         this.opponent = opponent
         this.sync()
@@ -380,11 +283,7 @@ export class MarblesController {
     readonly setShotControl = (control: ShotControl): void => {
         if (control === this.shotControl) return
         this.shotControl = control
-        this.pinch.reset()
-        this.flick.reset()
-        this.aim.reset()
-        this.lastFlick = null
-        this.aimView = null
+        this.handInput.resetForSession()
         this.sync()
     }
 
@@ -393,17 +292,14 @@ export class MarblesController {
         if (this.playType !== 'local') return
         const entry = modeEntry(this.modeId)
         const mode: Mode = entry.create()
-        this.botSource = this.opponent === 'bot' ? this.makeBotSource(entry, mode) : null
+        this.botSource =
+            this.opponent === 'bot' ? this.makeBotSource(entry, mode) : null
         this.session = createMatchSession({
             modeId: entry.id,
             mode,
             opponent: this.opponent,
         })
-        this.aim.reset()
-        this.pinch.reset()
-        this.flick.reset()
-        this.lastFlick = null
-        this.aimView = null
+        this.handInput.resetForSession()
         this.opponentIntent = null
         this.opponentIntentDue = null
         this.roundDwellUntil = null
@@ -419,14 +315,10 @@ export class MarblesController {
     readonly changeMode = (): void => {
         this.session = null
         this.botSource = null
-        this.aimView = null
         this.opponentIntent = null
         this.opponentIntentDue = null
         this.roundDwellUntil = null
-        this.aim.reset()
-        this.pinch.reset()
-        this.flick.reset()
-        this.lastFlick = null
+        this.handInput.resetForSession()
         this.sync()
     }
 
@@ -436,16 +328,19 @@ export class MarblesController {
      * a sequência de acertos e erros do bot não se repetir de uma partida à outra.
      */
     private makeBotSource(entry: ModeEntry, mode: Mode): ShotSource {
-        const planner = (this.env.createBot ?? ((level) => createBotPlanner(BOT_LEVELS[level])))(
-            this.botLevel,
-        )
-        const seedBase = this.env.seed ?? Math.floor(Math.random() * 0x1_0000_0000)
+        const planner = (
+            this.env.createBot ??
+            ((level) => createBotPlanner(BOT_LEVELS[level]))
+        )(this.botLevel)
+        const seedBase =
+            this.env.seed ?? Math.floor(Math.random() * 0x1_0000_0000)
         return createBotShotSource(entry, mode, planner, seedBase)
     }
 
     private sync(): void {
         this.reconcile()
-        if (this.attached && this.cameraActive && this.trackerStatus === 'idle') this.loadTracker()
+        if (this.attached && this.cameraActive && this.trackerStatus === 'idle')
+            this.loadTracker()
         this.ensureLoop()
         this.emit()
     }
@@ -455,45 +350,23 @@ export class MarblesController {
             // Câmera desligada: o detector é liberado; a partida escolhida é preservada.
             if (this.trackerStatus !== 'idle') {
                 this.releaseTracker()
-                this.failureReason = null
             }
         }
     }
 
     private releaseTracker(): void {
-        this.loadToken++
         this.stopLoop()
-        this.tracker?.close()
-        this.tracker = null
-        this.trackerStatus = 'idle'
-        this.delegate = null
-        this.reading = null
-        this.flickReading = null
+        this.detector.release()
+        this.handInput.clearReadings()
     }
-
     private loadTracker(): void {
         if (this.cameraFailed) return
-        const token = ++this.loadToken
-        this.trackerStatus = 'loading'
-        this.failureReason = null
-        this.env.createTracker().then(
-            (tracker) => {
-                if (token !== this.loadToken || !this.attached) {
-                    tracker.close()
-                    return
-                }
-                this.tracker = tracker
-                this.delegate = tracker.delegate
-                this.trackerStatus = 'ready'
-                this.sync()
-            },
-            (error: unknown) => {
-                if (token !== this.loadToken || !this.attached) return
-                this.trackerStatus = 'error'
-                this.failureReason = messageOf(error)
-                this.sync()
-            },
-        )
+        this.detector.load(() => this.env.createTracker(), {
+            alive: () =>
+                this.attached && this.cameraActive && !this.cameraFailed,
+            onReady: () => this.sync(),
+            onError: () => this.sync(),
+        })
     }
 
     private ensureLoop(): void {
@@ -506,8 +379,6 @@ export class MarblesController {
         )
             return
         this.lastNow = null
-        this.lastVideoTime = -1
-        this.cameraFramePending = false
         this.cameraFps = null
         this.cameraWindowStart = null
         this.cameraWindowCount = 0
@@ -526,21 +397,25 @@ export class MarblesController {
         this.lastNow = now
         let processedFrame = false
 
-        if (video.readyState >= 2 && video.videoWidth > 0 && this.takeNewCameraFrame(video, now)) {
+        if (
+            video.readyState >= 2 &&
+            video.videoWidth > 0 &&
+            this.takeNewCameraFrame(video, now)
+        ) {
             processedFrame = true
             try {
                 const hand = tracker.detect(video, now)
                 this.latencies.push(env.now() - now)
-                if (this.latencies.length > LATENCY_WINDOW) this.latencies.shift()
+                if (this.latencies.length > LATENCY_WINDOW)
+                    this.latencies.shift()
                 this.frames++
                 const aspect = video.videoWidth / video.videoHeight
                 this.readHand(hand, aspect, now)
                 const canvas = this.surfaces.getOverlay()
                 if (canvas) drawHand(canvas, video, hand?.landmarks ?? null)
             } catch (error) {
-                this.trackerStatus = 'error'
-                this.failureReason = messageOf(error)
                 this.releaseTracker()
+                this.detector.fail(error)
                 this.clearOverlay()
                 this.emit()
                 return
@@ -564,9 +439,17 @@ export class MarblesController {
         if (this.playType === 'online') {
             const room = this.multiplayer.room
             const role = this.multiplayer.access?.role
-            if (!room?.match || !role || room.status !== 'playing' || room.intent || this.multiplayer.connection !== 'connected') return null
+            if (
+                !room?.match ||
+                !role ||
+                room.status !== 'playing' ||
+                room.intent ||
+                this.multiplayer.connection !== 'connected'
+            )
+                return null
             const phase = role === 'player' ? 'player-turn' : 'opponent-turn'
-            if (room.match.turn !== role || room.match.phase !== phase) return null
+            if (room.match.turn !== role || room.match.phase !== phase)
+                return null
             const shooter = room.match.field[0]
             return shooter ? { ...shooter.pos } : null
         }
@@ -587,58 +470,20 @@ export class MarblesController {
     }
 
     /** Lê a mão no quadro e, na própria vez, alimenta o controlador de mira. */
-    private readHand(hand: ReturnType<HandTracker['detect']>, aspect: number, now: number): void {
-        const shooter = this.currentShooter()
-        const awaiting = this.awaitingOwnShot()
-
-        if (this.shotControl === 'flick') {
-            const reading = this.flick.update(
-                hand?.landmarks ?? null,
-                aspect,
-                now,
-                hand?.gesture ?? null,
-            )
-            this.reading = reading
-            this.flickReading = reading
-            if (awaiting && shooter) this.feedFlick(shooter, reading, now)
-            else if (reading.release) this.aim.reset()
-        } else {
-            this.flickReading = null
-            const reading = this.pinch.update(hand?.landmarks ?? null, aspect)
-            this.reading = reading
-            if (awaiting && shooter) this.feedPinch(shooter, reading, now)
-        }
-    }
-
-    private feedPinch(shooter: Vec, reading: PinchReading, now: number): void {
-        const out = this.aim.observePinch(shooter, reading, now)
-        this.aimView = out.aiming
-            ? { pinch: out.aiming.pinch, shot: out.aiming.shot, direction: null }
-            : null
-        if (out.fired) {
-            this.fireCurrentShot(out.fired)
-            this.aimView = null
-        }
-    }
-
-    private feedFlick(shooter: Vec, reading: FlickReading, now: number): void {
-        const out = this.aim.observeFlick(shooter, reading, now)
-        this.aimView = out.aiming
-            ? { pinch: out.aiming.pinch, shot: null, direction: out.aiming.direction }
-            : null
-        if (reading.release) {
-            const fired = out.fired !== null
-            this.lastFlick = {
-                openSpeed: reading.release.openSpeed,
-                riseMs: reading.release.riseMs,
-                power: fired ? (flickPower(reading.release)?.power ?? null) : null,
-                result: flickOutcome(reading.release, fired),
-            }
-        }
-        if (out.fired) {
-            this.fireCurrentShot(out.fired)
-            this.aimView = null
-        }
+    private readHand(
+        hand: ReturnType<HandTracker['detect']>,
+        aspect: number,
+        now: number,
+    ): void {
+        const shot = this.handInput.update(
+            hand,
+            aspect,
+            now,
+            this.currentShooter(),
+            this.awaitingOwnShot(),
+            this.shotControl,
+        )
+        if (shot) this.fireCurrentShot(shot)
     }
 
     /** Avança a partida: mostra a intenção do bot, anima a rolagem e troca a rodada. */
@@ -649,11 +494,12 @@ export class MarblesController {
         const snap = session.snapshot()
         if (snap.phase === 'round-over') {
             this.clearOpponentIntent()
-            if (this.roundDwellUntil === null) this.roundDwellUntil = now + ROUND_DWELL_MS
+            if (this.roundDwellUntil === null)
+                this.roundDwellUntil = now + ROUND_DWELL_MS
             else if (now >= this.roundDwellUntil) {
                 this.roundDwellUntil = null
                 session.beginNextRound()
-                this.aim.reset()
+                this.handInput.resetAim()
             }
             return
         }
@@ -662,19 +508,26 @@ export class MarblesController {
         if (snap.phase === 'opponent-turn' && snap.opponent === 'bot') {
             if (!this.opponentIntent) {
                 session.shooter()
-                const velocity = this.botSource?.nextShot(session.snapshot().field) ?? null
+                const velocity =
+                    this.botSource?.nextShot(session.snapshot().field) ?? null
                 if (!velocity) {
                     session.passShot('opponent')
                     return
                 }
                 this.opponentIntent = {
                     velocity,
-                    power: Math.min(1, Math.hypot(velocity.x, velocity.y) / 1100),
+                    power: Math.min(
+                        1,
+                        Math.hypot(velocity.x, velocity.y) / 1100,
+                    ),
                 }
                 this.opponentIntentDue = now + OPPONENT_INTENT_MS
                 return
             }
-            if (this.opponentIntentDue !== null && now >= this.opponentIntentDue) {
+            if (
+                this.opponentIntentDue !== null &&
+                now >= this.opponentIntentDue
+            ) {
                 session.fireShot('opponent', this.opponentIntent.velocity)
                 this.clearOpponentIntent()
             }
@@ -697,40 +550,13 @@ export class MarblesController {
     }
 
     private watchCameraFrames(): void {
-        const video = this.surfaces.getVideo()
-        this.unwatchCameraFrames()
-        if (!video || typeof video.requestVideoFrameCallback !== 'function') return
-        this.cameraFrameVideo = video
-        const arm = (): void => {
-            this.cameraFrameHandle = video.requestVideoFrameCallback(() => {
-                this.cameraFramePending = true
-                this.countCameraFrame(this.env.now())
-                arm()
-            })
-        }
-        arm()
+        this.cameraFrames.watch(this.surfaces.getVideo())
     }
-
     private unwatchCameraFrames(): void {
-        const video = this.cameraFrameVideo
-        if (video && this.cameraFrameHandle !== null) {
-            video.cancelVideoFrameCallback(this.cameraFrameHandle)
-        }
-        this.cameraFrameHandle = null
-        this.cameraFrameVideo = null
-        this.cameraFramePending = false
+        this.cameraFrames.unwatch()
     }
-
     private takeNewCameraFrame(video: HTMLVideoElement, now: number): boolean {
-        if (this.cameraFrameVideo === video) {
-            if (!this.cameraFramePending) return false
-            this.cameraFramePending = false
-            return true
-        }
-        if (video.currentTime === this.lastVideoTime) return false
-        this.lastVideoTime = video.currentTime
-        this.countCameraFrame(now)
-        return true
+        return this.cameraFrames.take(video, now)
     }
 
     private countCameraFrame(now: number): void {
@@ -767,8 +593,10 @@ export class MarblesController {
     }
 
     private matchView(): MatchView | null {
-        const remote = this.playType === 'online' ? this.multiplayer.room?.match : null
-        const snap = this.playType === 'online' ? remote : this.session?.snapshot()
+        const remote =
+            this.playType === 'online' ? this.multiplayer.room?.match : null
+        const snap =
+            this.playType === 'online' ? remote : this.session?.snapshot()
         if (!snap) return null
         const role = remote ? (this.multiplayer.access?.role ?? null) : null
         return {
@@ -777,7 +605,9 @@ export class MarblesController {
             phase: snap.phase,
             round: snap.round,
             roundsPerMatch: snap.roundsPerMatch,
-            roundOutcomes: snap.roundOutcomes.map((outcome) => outcomeForRole(outcome, role) ?? outcome),
+            roundOutcomes: snap.roundOutcomes.map(
+                (outcome) => outcomeForRole(outcome, role) ?? outcome,
+            ),
             lastRoundOutcome: outcomeForRole(snap.lastRoundOutcome, role),
             matchOutcome: outcomeForRole(snap.matchOutcome, role),
             turn: snap.turn,
@@ -802,7 +632,8 @@ export class MarblesController {
             this.summary = summarizeLatency(this.latencies)
             this.lastSummaryAt = now
         }
-        const remoteRoom = this.playType === 'online' ? this.multiplayer.room : null
+        const remoteRoom =
+            this.playType === 'online' ? this.multiplayer.room : null
         const remoteRole = this.multiplayer.access?.role ?? null
         const localOwnTurn = this.session?.snapshot().phase === 'player-turn'
         const remoteOwnTurn =
@@ -812,7 +643,8 @@ export class MarblesController {
             remoteRoom.match?.turn === remoteRole &&
             remoteRoom.match.phase ===
                 (remoteRole === 'opponent' ? 'opponent-turn' : 'player-turn')
-        const ownTurn = this.playType === 'online' ? remoteOwnTurn : localOwnTurn
+        const ownTurn =
+            this.playType === 'online' ? remoteOwnTurn : localOwnTurn
         const remoteIntent = remoteRoom?.intent
             ? {
                   velocity: { ...remoteRoom.intent.velocity },
@@ -854,9 +686,17 @@ export class MarblesController {
                 pinchClosed: this.reading?.closed ?? false,
                 handVisible: this.reading?.handVisible ?? false,
                 flick: {
-                    armed: this.shotControl === 'flick' && (this.reading?.closed ?? false),
-                    phase: this.shotControl === 'flick' ? (this.flickReading?.phase ?? 'idle') : 'idle',
-                    gesture: this.shotControl === 'flick' ? (this.flickReading?.gesture ?? null) : null,
+                    armed:
+                        this.shotControl === 'flick' &&
+                        (this.reading?.closed ?? false),
+                    phase:
+                        this.shotControl === 'flick'
+                            ? (this.flickReading?.phase ?? 'idle')
+                            : 'idle',
+                    gesture:
+                        this.shotControl === 'flick'
+                            ? (this.flickReading?.gesture ?? null)
+                            : null,
                     lastOpenSpeed: this.lastFlick?.openSpeed ?? null,
                     lastRiseMs: this.lastFlick?.riseMs ?? null,
                     lastPower: this.lastFlick?.power ?? null,

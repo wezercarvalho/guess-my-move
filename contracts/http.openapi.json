@@ -393,6 +393,11 @@
                       "minimum": 0,
                       "maximum": 9007199254740991
                     },
+                    "activeTransports": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "activeRooms": {
                       "type": "integer",
                       "minimum": 0,
@@ -446,6 +451,7 @@
                     "expiredRooms",
                     "maxTickDelayMs",
                     "activeConnections",
+                    "activeTransports",
                     "activeRooms",
                     "operations"
                   ],

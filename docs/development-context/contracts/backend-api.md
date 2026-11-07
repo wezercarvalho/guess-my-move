@@ -101,3 +101,15 @@ A credencial do swing permanece só em memória, diferentemente do armazenamento
 Desconexões invalidam a geração de comandos em andamento e cancelam seus timers; ACKs de conexões anteriores não podem restaurar acesso ou sobrescrever uma retomada nova. Um snapshot recebido antes do ACK de criação/entrada ainda não confirma acesso: se houver queda, esse estado provisório é descartado. Credenciais já confirmadas permanecem somente em memória para a retomada.
 
 Enquanto conectado e jogando, o cliente observa progresso de partida/tick. Após 2 s sem progresso, mostra espera pelo servidor e suspende intents; snapshots duplicados, obsoletos ou de outra sala não renovam essa janela. Um estado novo remove o aviso e retoma o envio. Pausa, saída, expiração e desmontagem limpam o watchdog. Esse prazo é um limiar de feedback, não SLA de rede nem medição de latência.
+
+## Reconciliação de participação após perda de ACK
+
+`swing:recover` recebe `{}` estrito e devolve no ACK privado somente o acesso da participação já associada ao socket chamador. Não recebe código de sala nem token de outra pessoa, não cria sala e não renova inatividade. Estado público e métricas continuam sem credenciais. O cliente usa essa consulta após ACK perdido de create/join, sem repetir automaticamente a criação.
+
+Retomada pode ser repetida pelo mesmo socket com o mesmo token sem modificar a atividade; outro socket conectado ou token incorreto continuam recusados. Os clientes invalidam respostas de gerações anteriores e limitam as tentativas automáticas. Após falha persistente, o cooperativo mantém credencial conhecida e oferece retomada explícita; uma entrada sem identidade é abandonada com leave e encerramento do transporte, sujeita à janela normal de expiração se o abandono também não puder ser confirmado.
+
+## Capacidade do transporte e dos namespaces
+
+O handshake Engine.IO reserva capacidade antes de autorizar o WebSocket. `MAX_CONNECTIONS` e `MAX_CONNECTIONS_PER_IP` limitam, separadamente, transportes físicos e sessões de namespace, com os mesmos valores configurados. `activeTransports` conta conexões físicas, inclusive as que ainda não enviaram CONNECT; `activeConnections` preserva o significado de sessões admitidas nos namespaces. Um transporte multiplexado nos dois jogos conta uma vez em `activeTransports` e duas em `activeConnections`. `acceptedConnections` continua contando admissões de namespace; recusas de capacidade no handshake também incrementam `rejectedConnections`.
+
+O fechamento físico libera a reserva, inclusive após falha de upgrade e timeout. Socket.IO encerra transportes que não entram em namespace em 45 segundos; esse prazo não é a janela de reconexão de 60 segundos da sala. Cabeçalhos de endereço só são considerados quando o peer é proxy explicitamente confiável. WebSocket é exclusivo; habilitar polling exigirá revisar a reserva por socket TCP. Esses tetos são por processo e não protegem TCP anterior ao handshake nem abuso distribuído.

@@ -148,6 +148,10 @@ describe('coleta externa opt-in', () => {
             ),
         )
         expect(swingAccess).toMatchObject({ ok: true })
+        const recovered = await new Promise((resolve) =>
+            swingClient!.emit(SWING_CLIENT_EVENTS.recover, {}, resolve),
+        )
+        expect(recovered).toEqual(swingAccess)
         await new Promise((resolve) =>
             swingClient!.emit(
                 SWING_CLIENT_EVENTS.input,
@@ -183,6 +187,7 @@ describe('coleta externa opt-in', () => {
         const text = batches.join('\n')
         expect(text).toContain('MultiplayerGateway:room:create')
         expect(text).toContain('SwingGateway:swing:create')
+        expect(text).toContain('SwingGateway:swing:recover')
         expect(text).toContain('backend_operations_swing_create')
         expect(text).toContain('HealthController')
         expect(text).toContain('/api/health')

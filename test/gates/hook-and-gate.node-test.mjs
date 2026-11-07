@@ -203,6 +203,7 @@ test('planChecks ordena sdd, root-docs, tooling, code e auditoria (leves primeir
         'tooling',
         'code',
         'audit',
+        'runtime',
     ])
 })
 
@@ -230,6 +231,7 @@ test('planChecks aceita escopos explícitos e valida o modo', () => {
         'tooling',
         'code',
         'audit',
+        'runtime',
     ])
     assert.deepEqual(ids(planChecks([], { scopes: ['tooling'], exists: allExist })), ['tooling'])
     // Fora do escopo code, os modos static e full produzem o mesmo plano.
@@ -285,7 +287,7 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'CLAUDE.md': ['root-docs'],
         'README.md': ['root-docs'],
         '.prettierrc': ['root-docs', 'tooling'],
-        '.node-version': ['tooling'],
+        '.node-version': ['tooling', 'code', 'audit'],
         'package.json': ['sdd', 'tooling', 'code', 'audit'],
         'yarn.lock': ['sdd', 'tooling', 'code', 'audit'],
         '.github/workflows/pr-gate.yml': ['sdd', 'root-docs', 'tooling', 'audit'],

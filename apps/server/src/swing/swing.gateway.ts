@@ -14,6 +14,7 @@ import {
     swingCreateSchema,
     swingJoinSchema,
     swingResumeSchema,
+    swingRecoverSchema,
     swingReadySchema,
     swingCommandSchema,
     swingRematchSchema,
@@ -216,6 +217,19 @@ export class SwingGateway
                 await client.join(access.roomCode)
                 return { ok: true, access }
             },
+        )
+    }
+    @SubscribeMessage(SWING_CLIENT_EVENTS.recover)
+    recover(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() raw: unknown,
+    ): Promise<SwingAck> {
+        return this.command(
+            client,
+            SWING_CLIENT_EVENTS.recover,
+            raw,
+            swingRecoverSchema,
+            () => ({ ok: true, access: this.rooms.recover(client.id) }),
         )
     }
     @SubscribeMessage(SWING_CLIENT_EVENTS.ready)

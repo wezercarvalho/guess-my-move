@@ -14,13 +14,13 @@ export const PATH_PATTERNS = {
         '^(AGENTS\\.md|CLAUDE\\.md|README\\.md|\\.prettierrc|docs/|specs/|\\.github/workflows/pr-gate\\.yml$)',
     // Testes dos próprios gates: hook local, auditor de dependências e workflows.
     tooling:
-        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$',
+        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|audit-runtime\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$',
     // Código da aplicação (apps/, packages/), manifesto/lockfile, tsconfig*, config do Oxlint e
-    // o .env.example; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
-    code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$',
+    // .env.example e .node-version; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
+    code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$|^\\.node-version$',
     // Auditoria de dependências: só o que muda o veredito (manifesto, lockfile, auditor, exceções
     // e os workflows que a executam); `AUDIT_PATTERN` do gate.
-    audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs)$|^\\.github/workflows/(pr-gate|dependency-audit)\\.yml$',
+    audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs|scripts/audit-runtime\\.mjs|scripts/lib/runtime-audit\\.mjs|\\.node-version)$|^\\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\\.yml$',
 }
 
 // Ordem de execução: leves primeiro, para falhar rápido; o escopo de código roda os gates da
@@ -122,6 +122,13 @@ function stepsFor(scope, { changedFiles, exists, mode }) {
                     command: yarn,
                     args: ['security:dependencies'],
                     kind: 'audit',
+                },
+                {
+                    id: 'runtime',
+                    label: 'Runtime Node (yarn security:runtime)',
+                    cwd: '.',
+                    command: yarn,
+                    args: ['security:runtime'],
                 },
             ]
     }

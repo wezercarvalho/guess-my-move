@@ -82,6 +82,12 @@
       ],
       "additionalProperties": false
     },
+    "swing:recover": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
     "swing:ready": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",

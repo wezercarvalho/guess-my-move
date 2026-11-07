@@ -19,3 +19,5 @@ Regra: carregue apenas o que a mudança exige e confirme a realidade na configur
 ## Contratos de integração
 
 [API HTTP, eventos Socket.IO e observabilidade](contracts/backend-api.md): documentos exportáveis, métricas protegidas e coleta externa opcional.
+
+[Segurança do runtime Node](security/runtime-node.md): monitor de releases, atualização e responsabilidade.

@@ -279,3 +279,36 @@ describe('authoritative cooperative rooms', () => {
             ).toBeGreaterThanOrEqual(8)
     })
 })
+
+it('recovers only the private access already bound to the requesting socket without renewing inactivity', () => {
+    let now = 0
+    const rooms = new SwingRoomService({
+        now: () => now,
+        waitingTimeoutMs: 1000,
+    })
+    const access = rooms.create('one', { cityId: 'aurora', nickname: 'Ana' })
+    now = 500
+    expect(rooms.recover('one')).toEqual(access)
+    expect(() => rooms.recover('stranger')).toThrow()
+    expect(JSON.stringify(rooms.snapshot(access.roomCode))).not.toContain(
+        access.resumeToken,
+    )
+    now = 1000
+    expect(rooms.expire()).toBe(1)
+})
+it('repeating resume is idempotent only for the same socket and token and does not renew activity', () => {
+    let now = 0
+    const rooms = new SwingRoomService({
+        now: () => now,
+        waitingTimeoutMs: 1000,
+    })
+    const access = rooms.create('one', { cityId: 'aurora', nickname: 'Ana' })
+    now = 500
+    expect(rooms.resume('one', access)).toEqual(access)
+    expect(() => rooms.resume('other', access)).toThrow()
+    expect(() =>
+        rooms.resume('one', { ...access, resumeToken: 'x'.repeat(64) }),
+    ).toThrow()
+    now = 1000
+    expect(rooms.expire()).toBe(1)
+})

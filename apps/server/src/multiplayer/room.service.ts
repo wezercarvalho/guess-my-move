@@ -1,3 +1,4 @@
+import { projectMatch, projectPlayers } from './public-room.js'
 import { randomBytes } from 'node:crypto'
 
 import {
@@ -15,7 +16,6 @@ import {
     type RoomAccess,
     type RoomState,
     type ShotCommand,
-    type WireMatchSnapshot,
     createMatchSession,
     modes,
 } from '@guess-my-move/marbles'
@@ -229,6 +229,22 @@ export class RoomService {
     }
 
     resume(socketId: string, command: ResumeRoomCommand): RoomMutation {
+        const existing = this.sockets.get(socketId)
+        if (existing) {
+            const room = this.getRoom(existing.roomCode)
+            if (
+                room.code === command.roomCode &&
+                room.slots[existing.role].token === command.resumeToken
+            )
+                return {
+                    access: this.access(room, existing.role),
+                    state: this.toState(room),
+                }
+            throw new RoomError(
+                'RESUME_DENIED',
+                'Não foi possível retomar esta vaga.',
+            )
+        }
         this.assertSocketFree(socketId)
         const room = this.getRoom(command.roomCode)
         const role = this.roleForToken(room, command.resumeToken)
@@ -326,6 +342,7 @@ export class RoomService {
             mode: entry.create(),
             opponent: 'remote',
         })
+        room.session.shooter()
         room.pendingShot = null
         room.roundDwellMs = null
         for (const slot of Object.values(room.slots)) slot.rematchReady = false
@@ -473,6 +490,8 @@ export class RoomService {
             }
 
             if (changed) {
+                // Preparing the next turn is a mutation, never a serialization side effect.
+                room.session.shooter()
                 room.lastActivityAt = this.now()
                 room.version++
                 updated.push(this.toState(room))
@@ -497,22 +516,9 @@ export class RoomService {
             version: room.version,
             matchNumber: room.matchNumber,
             nextTurn: room.session?.nextCompetitor() ?? null,
-            players: {
-                player: {
-                    connected: room.slots.player.socketId !== null,
-                    ready: room.slots.player.ready,
-                    nickname: room.slots.player.nickname,
-                    rematchReady: room.slots.player.rematchReady,
-                },
-                opponent: {
-                    connected: room.slots.opponent.socketId !== null,
-                    ready: room.slots.opponent.ready,
-                    nickname: room.slots.opponent.nickname,
-                    rematchReady: room.slots.opponent.rematchReady,
-                },
-            },
+            players: projectPlayers(room.slots),
             match: room.session
-                ? this.toWireSnapshot(room.modeId, room.session)
+                ? projectMatch(room.modeId, room.session.snapshot())
                 : null,
             intent: room.pendingShot
                 ? {
@@ -521,64 +527,6 @@ export class RoomService {
                   }
                 : null,
             reconnectDeadlineMs: this.reconnectDeadline(room),
-        }
-    }
-
-    private toWireSnapshot(
-        modeId: ModeId,
-        session: MatchSession,
-    ): WireMatchSnapshot {
-        // Cada modo prepara a bolinha da pessoa da vez antes de o cliente calcular a mira.
-        session.shooter()
-        const snapshot = session.snapshot()
-        return {
-            modeId,
-            opponent: 'remote',
-            phase: snapshot.phase,
-            round: snapshot.round,
-            roundsPerMatch: snapshot.roundsPerMatch,
-            roundOutcomes: [...snapshot.roundOutcomes],
-            lastRoundOutcome: snapshot.lastRoundOutcome,
-            matchOutcome: snapshot.matchOutcome,
-            turn: snapshot.turn,
-            shotsLeft: { ...snapshot.shotsLeft },
-            roundYield: { ...snapshot.roundYield },
-            scoreLabel: snapshot.scoreLabel,
-            field: snapshot.field.map((body) => ({
-                pos: { ...body.pos },
-                vel: { ...body.vel },
-                radius: body.radius,
-            })),
-            decor: snapshot.decor
-                ? {
-                      ...(snapshot.decor.circle
-                          ? { circle: { ...snapshot.decor.circle } }
-                          : {}),
-                      ...(snapshot.decor.holes
-                          ? {
-                                holes: {
-                                    positions:
-                                        snapshot.decor.holes.positions.map(
-                                            (point) => ({
-                                                ...point,
-                                            }),
-                                        ),
-                                    radius: snapshot.decor.holes.radius,
-                                    active: snapshot.decor.holes.active,
-                                },
-                            }
-                          : {}),
-                      ...(snapshot.decor.resting
-                          ? {
-                                resting: snapshot.decor.resting.map((rest) => ({
-                                    pos: { ...rest.pos },
-                                    radius: rest.radius,
-                                    owner: rest.owner,
-                                })),
-                            }
-                          : {}),
-                  }
-                : null,
         }
     }
 
