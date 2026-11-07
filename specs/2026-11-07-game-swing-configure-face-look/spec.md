@@ -7,7 +7,7 @@ strategy: sdd
 domain: game
 capability: swing
 objective: configure-face-look
-status: implementing
+status: validating
 owners:
     - wezercarvalho
 reviewers: []
@@ -53,9 +53,9 @@ Teste independente: mesmo movimento com fatores diferentes produz giros proporci
 - **FR-001:** Disponibilizar controle acessível de sensibilidade do rosto de 0,5× a 3×, passo 0,1, padrão 1× equivalente ao atual; mostrar valor e explicar o efeito. Ajustar yaw/pitch ao vivo sem recarregar detectores e preservar valor durante reinício/alternância de modo na mesma tela. Valores não finitos são ignorados e fora do intervalo limitados. Sem storage.
 - **FR-002:** Depois de perda de rosto/orientação inválida já calibrada, a primeira nova amostra válida define o neutro automaticamente. Convergir suavemente à centralização, sem refazê-la em amostras seguintes, nem usar renders repetidos como nova amostra. Calibração inicial estável permanece.
 - **FR-003:** Ao começar a trava, recalibrar o neutro e preservar a direção escolhida pelo histórico. Enquanto travado, pose/recuperação/sensibilidade não mudam a direção congelada. Ao liberar o gesto, a pose válida atual vira neutro para evitar aplicar o movimento feito durante a trava. Sem pose válida, a recuperação seguinte resolve o neutro.
-- **FR-006:** Permitir âncora virtual no céu até 500 m de altura do personagem, inclusive; acima disso, conservar somente as âncoras válidas em prédios. Preservar alcance, distância/elevação da âncora virtual e demais critérios da mira.
-- **FR-005:** O indicador de velocidade e a velocidade máxima registrada incluem subida/descida agarrado, com a magnitude do deslocamento vertical efetivo por segundo. Parado ou bloqueado pelo limite não anuncia movimento; soltar ou chegar ao telhado não herda impulso de escalada. Sem novo campo no contrato online.
 - **FR-004:** Centralização manual redefine também a orientação efetiva: converge suavemente ao horizonte (pitch zero), mirando a parede se agarrado, o rumo horizontal se em movimento ou a direção inicial se parado. Neutraliza offsets/trava sem mover o personagem; modo automático, teclado, escalada e limites de yaw/pitch permanecem. Sensibilidade só altera o giro da câmera, sem alterar limiares da escalada ou adicionar campos/mídia ao protocolo online; mesma tela local/online. Deltas angulares são consumidos uma vez por atualização física e acumulados se o render não produz subpasso; reset descarta o acumulado. Testes cobrem núcleo, controlador e UI.
+- **FR-005:** O indicador de velocidade e a velocidade máxima registrada incluem subida/descida agarrado, com a magnitude do deslocamento vertical efetivo por segundo. Parado ou bloqueado pelo limite não anuncia movimento; soltar ou chegar ao telhado não herda impulso de escalada. Sem novo campo no contrato online.
+- **FR-006:** Permitir âncora virtual no céu até 500 m de altura do personagem, inclusive; acima disso, conservar somente as âncoras válidas em prédios. Preservar alcance, distância/elevação da âncora virtual e demais critérios da mira.
 
 ## Requisitos não funcionais
 
