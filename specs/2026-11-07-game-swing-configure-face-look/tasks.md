@@ -1,9 +1,9 @@
 # Tarefas
 
-- [ ] T001 [FR-001] [NFR-001] [NFR-002] [SC-001] Demonstrar sensibilidade/limites e UI; implementar setter, aplicação e controle acessível, com regressões.
-- [ ] T002 [FR-002] [NFR-001] [NFR-002] [SC-001] Demonstrar recuperação de amostra perdida e implementar recalibração sem repetição ou salto.
-- [ ] T003 [FR-003] [NFR-002] [SC-001] Demonstrar trava/release/recuperação e implementar neutro nas transições preservando direção congelada.
-- [ ] T004 [FR-004] [NFR-001] [NFR-002] [SC-001] Demonstrar controles preservados, validar composição e documentar limites/decisões para draft.
+- [x] T001 [FR-001] [NFR-001] [NFR-002] [SC-001] Demonstrar sensibilidade/limites e UI; implementar setter, aplicação e controle acessível, com regressões.
+- [x] T002 [FR-002] [NFR-001] [NFR-002] [SC-001] Demonstrar recuperação de amostra perdida e implementar recalibração sem repetição ou salto.
+- [x] T003 [FR-003] [NFR-002] [SC-001] Demonstrar trava/release/recuperação e implementar neutro nas transições preservando direção congelada.
+- [x] T004 [FR-004] [NFR-001] [NFR-002] [SC-001] Demonstrar controles preservados, validar composição e documentar limites/decisões para draft.
 
 ## Análise de consistência
 
