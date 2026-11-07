@@ -29,3 +29,5 @@ T001: testes núcleo de recuperação/trava e frame repetido, controlador de gan
 ## Descoberta na demonstração de sensibilidade
 
 Os testes de limites e proporção revelaram que world.advance aplicava o mesmo lookDelta em cada subpasso físico, duplicando o giro em um render de 16 ms (dois passos de 1/120 s). Isso impede respeitar a sensibilidade/limites de forma consistente. Acrescentar testes vermelhos para múltiplos subpassos, renders sem passo e reset; acumular deltas pendentes e consumi-los uma única vez no primeiro passo. World.step permanece igual e o servidor já retira lookDelta após o primeiro passo. Nenhuma regra física ou taxa de teclado é alterada. A expectativa antiga de giro duplicado após soltar a trava é substituída pelo novo neutro, conforme FR-003.
+
+Alta sensibilidade e travas sucessivas podem acumular um viés de yaw acima de meia volta. Demonstrar o contrato online e a centralização por caminho curto: normalizar somente a representação angular de bias/delta enviada à simulação e o offset ao centralizar, mantendo formatos/limites do protocolo e a direção equivalente. Evita rejeição de input cooperativo e giros longos ao redefinir o neutro.

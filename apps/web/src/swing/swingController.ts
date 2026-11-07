@@ -45,6 +45,7 @@ import {
     createCityIndex,
     createHeadClimb,
     createHeadLook,
+    normalizeYaw,
     createLockGesture,
     createSwingWorld,
     createWebTrigger,
@@ -626,7 +627,7 @@ export class SwingController {
         )
         this.faceSamplePending = false
         const delta = {
-            yaw: this.headState.yawOffset - this.appliedHead.yaw,
+            yaw: normalizeYaw(this.headState.yawOffset - this.appliedHead.yaw),
             pitch: this.headState.pitchOffset - this.appliedHead.pitch,
         }
         this.appliedHead = {
@@ -647,7 +648,7 @@ export class SwingController {
             delta,
             active,
             bias: {
-                yaw: this.headState.lockedYaw,
+                yaw: normalizeYaw(this.headState.lockedYaw),
                 pitch: this.headState.lockedPitch,
             },
         }

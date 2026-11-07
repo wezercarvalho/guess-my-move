@@ -122,6 +122,11 @@ export interface HeadLook {
     reset(): void
 }
 
+/** Representa a mesma direção sem voltas completas, compatível com os limites do protocolo. */
+export function normalizeYaw(yaw: number): number {
+    return Math.atan2(Math.sin(yaw), Math.cos(yaw))
+}
+
 /**
  * Lê a guinada e a inclinação de uma matriz de transformação facial 4x4 do MediaPipe
  * (16 números em ordem de coluna). A guinada é o giro em torno do eixo vertical e a
@@ -226,6 +231,7 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
                 else if (recenterOnRecovery) {
                     neutral = { ...orientation }
                     if (mode !== 'locked') {
+                        yawOffset = normalizeYaw(yawOffset)
                         baseYaw = 0
                         basePitch = 0
                         history = []
@@ -318,6 +324,7 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
         recenter() {
             if (!last) return
             neutral = { ...last }
+            yawOffset = normalizeYaw(yawOffset)
             calibrated = true
             stableFrames = config.calibrationFrames
             // Encerra a trava e zera a direção travada: o olhar volta suave ao acompanhamento.

@@ -541,3 +541,20 @@ it('a sensibilidade muda o giro visual, preservando os sinais de escalada', () =
     expect(stronger.gestureYaw).toBeCloseTo(normal.gestureYaw, 3)
     expect(stronger.gesturePitch).toBeCloseTo(normal.gesturePitch, 3)
 })
+
+it('centraliza pelo caminho angular curto após acumular mais de meia volta em travas', () => {
+    const look = calibrated()
+    look.setSensitivity(3)
+    let state = run(look, CENTER, 0.5)
+    for (const degrees of [20, 40, 60]) {
+        const pose = {yaw: degrees * Math.PI / 180, pitch:0}
+        run(look, pose, 2)
+        run(look, pose, 1, true)
+        state = run(look, pose, 1)
+    }
+    expect(state.yawOffset).toBeGreaterThan(Math.PI)
+    const before = Math.abs(Math.atan2(Math.sin(state.yawOffset), Math.cos(state.yawOffset)))
+    look.recenter()
+    const next = look.update({yaw:Math.PI/3,pitch:0},1/60)
+    expect(Math.abs(Math.atan2(Math.sin(next.yawOffset),Math.cos(next.yawOffset)))).toBeLessThan(before)
+})

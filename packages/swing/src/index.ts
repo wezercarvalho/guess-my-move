@@ -38,6 +38,7 @@ export {
     type HeadOrientation,
     createHeadLook,
     headOrientationFromMatrix,
+    normalizeYaw,
 } from './headLook.js'
 export {
     DEFAULT_HEAD_CLIMB,

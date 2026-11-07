@@ -14,8 +14,9 @@ reviewers: []
 aliases: []
 code_paths:
     - apps/web/src/swing/
-    - packages/swing/src/headLook.ts
-    - packages/swing/test/headLook.test.ts
+    - apps/web/package.json
+    - packages/swing/
+    - docs/games.md
 related_specs: []
 supersedes: []
 branch: feat/swing-face-sensitivity
@@ -51,7 +52,7 @@ Teste independente: mesmo movimento com fatores diferentes produz giros proporci
 - **FR-001:** Disponibilizar controle acessível de sensibilidade do rosto de 0,5× a 3×, passo 0,1, padrão 1× equivalente ao atual; mostrar valor e explicar o efeito. Ajustar yaw/pitch ao vivo sem recarregar detectores e preservar valor durante reinício/alternância de modo na mesma tela. Valores não finitos são ignorados e fora do intervalo limitados. Sem storage.
 - **FR-002:** Depois de perda de rosto/orientação inválida já calibrada, a primeira nova amostra válida define o neutro automaticamente. Convergir suavemente à centralização, sem refazê-la em amostras seguintes, nem usar renders repetidos como nova amostra. Calibração inicial estável permanece.
 - **FR-003:** Ao começar a trava, recalibrar o neutro e preservar a direção escolhida pelo histórico. Enquanto travado, pose/recuperação/sensibilidade não mudam a direção congelada. Ao liberar o gesto, a pose válida atual vira neutro para evitar aplicar o movimento feito durante a trava. Sem pose válida, a recuperação seguinte resolve o neutro.
-- **FR-004:** Centralização manual, modo automático, teclado, escalada e limites de yaw/pitch permanecem. Sensibilidade só altera o giro da câmera, sem alterar limiares da escalada ou dados/protocolo enviados ao servidor; mesma tela local/online. Deltas angulares são consumidos uma vez por atualização física e acumulados se o render não produz subpasso; reset descarta o acumulado. Testes cobrem núcleo, controlador e UI.
+- **FR-004:** Centralização manual, modo automático, teclado, escalada e limites de yaw/pitch permanecem. Sensibilidade só altera o giro da câmera, sem alterar limiares da escalada ou adicionar campos/mídia ao protocolo online; mesma tela local/online. Deltas angulares são consumidos uma vez por atualização física e acumulados se o render não produz subpasso; reset descarta o acumulado. Testes cobrem núcleo, controlador e UI.
 
 ## Requisitos não funcionais
 

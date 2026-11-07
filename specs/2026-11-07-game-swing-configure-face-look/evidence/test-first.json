@@ -1,0 +1,46 @@
+{
+  "baseline": "2e4088cabf326b4ade26a215f94812323e10f05f",
+  "runtime": "Node 26.12.1 / Yarn 4.18.1",
+  "cycles": [
+    {
+      "scope": "núcleo: recuperação e neutro na trava",
+      "before": "4 falhas novas; 236 aprovações",
+      "after": "casos aprovados na suíte de 245 testes",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "controlador: sensibilidade e recuperação",
+      "before": "4 falhas; 73 aprovações",
+      "after": "incluído no agregado dirigido final de 65 testes",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "UI: opção acessível",
+      "before": "slider Sensibilidade do rosto ausente",
+      "after": "UI local/cooperativa aprovada no agregado dirigido",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "acumulador de giro",
+      "before": "dois casos falharam por reaplicar delta ou perder delta sem passo; havia também uma expectativa antiga de trava a atualizar",
+      "after": "subpassos, acúmulo e reset aprovados",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "sensibilidade durante trava",
+      "before": "direção girava de 0,47 para 1,22 rad após soltar; uma falha e 62 aprovações",
+      "after": "direção preservada, ganho no núcleo e sinais de escalada independentes",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "travas sucessivas e centralização curta",
+      "before": "núcleo: 1 falha / 244 aprovações; controlador online: contrato rejeitava bias acima de meia volta",
+      "after": "245 casos do núcleo e 65 casos dirigidos aprovados; representação angular normalizada sem mudar formato do protocolo",
+      "command": "yarn workspace @guess-my-move/swing test e yarn workspace @guess-my-move/web test:swing-look"
+    }
+  ],
+  "limits": [
+    "Dados sintéticos; nenhuma câmera física, mídia, nickname ou token registrado.",
+    "Expectativa antiga de somar de novo a pose ao liberar a trava foi alterada intencionalmente conforme FR-003."
+  ]
+}

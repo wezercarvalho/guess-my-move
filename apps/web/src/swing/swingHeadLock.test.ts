@@ -1,4 +1,4 @@
-import { type City, type FaceReading, type SwingState } from '@guess-my-move/swing'
+import { createSwingState, swingInputSchema, type SwingInput, type City, type FaceReading, type SwingState } from '@guess-my-move/swing'
 import { describe, expect, it, vi } from 'vitest'
 
 import { type FaceTracker } from '../tracker/faceTracker.js'
@@ -56,7 +56,7 @@ const face = (yaw: number, pitch = 0): FaceReading => ({
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-async function playing() {
+async function playing(online?: SwingEnv['online']) {
     let time = 0
     let pending: (() => void) | null = null
     const renderer = {
@@ -77,6 +77,7 @@ async function playing() {
     const detectFace = vi.fn<FaceTracker['detect']>(() => null)
     const faceTracker: FaceTracker = { delegate: 'CPU', detect: detectFace, close: vi.fn() }
     const env: SwingEnv = {
+        ...(online ? { online } : {}),
         createTracker: vi.fn(() => Promise.resolve(handTracker)),
         createFaceTracker: vi.fn(() => Promise.resolve(faceTracker)),
         loadCity: vi.fn(() => Promise.resolve(city)),
@@ -376,5 +377,31 @@ it.each([0.5, 3])('sensibilidade %s não altera o comando de escalada pelo olhar
     run(game.tick, 3000)
     expect(game.controller.getSnapshot().headClimb.intent).toBe('up')
     expect(game.controller.getSnapshot().headClimb.climbing).toBe(true)
+    game.controller.detach()
+})
+
+it('sensibilidade alta e travas sucessivas mantêm os comandos cooperativos dentro do contrato', async () => {
+    const sent: SwingInput[] = []
+    const state = createSwingState({x:0,y:90,z:0})
+    const online = {
+        getSnapshot: () => ({connection:'connected' as const, access:{roomCode:'ABC123',playerId:'one',resumeToken:'private'}, pending:false, stale:false, error:null, room:{roomCode:'ABC123',cityId:'aurora',cityVersion:1 as const,round:1,tick:1,status:'playing' as const,players:[{id:'one',nickname:'Teste',connected:true,ready:true,rematchReady:false,state}],objectives:[]}}),
+        sendInput: (input: SwingInput) => { sent.push(input) },
+    }
+    const game = await playing(online)
+    game.controller.setFaceSensitivity(3)
+    game.detectFace.mockReturnValue(face(0))
+    run(game.tick, 400)
+    for (const degrees of [20,40,60]) {
+        game.detectFace.mockReturnValue(face(degrees))
+        run(game.tick,2000)
+        game.detectAll.mockReturnValue([thumbDown()])
+        run(game.tick,800)
+        game.detectAll.mockReturnValue([])
+        run(game.tick,800)
+    }
+    game.controller.recenterHead()
+    run(game.tick,1000)
+    expect(sent.length).toBeGreaterThan(10)
+    expect(sent.every(input => swingInputSchema.safeParse(input).success)).toBe(true)
     game.controller.detach()
 })
