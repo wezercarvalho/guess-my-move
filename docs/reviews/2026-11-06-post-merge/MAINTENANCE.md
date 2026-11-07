@@ -1,6 +1,6 @@
 # Revisão final e manutenção
 
-Conjunto em revisão: PRs #133, #139, #140, #141, #143, #144, #145 e #146, todas para main, em rascunho. Base integrada antes destes incrementos: 889d7650582c5562ff9807c612748e15c15ab47e. Revisão adicional autorizada pelo maintainer em 06/11/2026: revisar, adequar e organizar aperfeiçoamentos. Nenhum merge, deploy ou aceite humano foi executado pelo agente.
+Entrega consolidada em revisão: PR #146 para main, em rascunho. A pedido do maintainer, as PRs #133, #139, #140, #141, #143, #144 e #145 foram substituídas pela consolidada, preservando branches, commits e evidências. Não é mais necessário integrar em sequência. Base integrada antes destes incrementos: 889d7650582c5562ff9807c612748e15c15ab47e. Revisão adicional autorizada pelo maintainer em 06/11/2026: revisar, adequar e organizar aperfeiçoamentos. Nenhum merge, deploy ou aceite humano foi executado pelo agente.
 
 ## O que foi conferido e adequado
 
@@ -15,13 +15,13 @@ Conjunto em revisão: PRs #133, #139, #140, #141, #143, #144, #145 e #146, todas
 
 A entrada de bolinhas passa a guardar o broadcast anterior ao ACK em estado privado e só o publica junto do acesso confirmado. Saída limpa a apresentação e o storage imediatamente; ACK/estado antigos não reabrem uma sala nem desconectam outra sessão. Entrada incerta tenta sair e fecha o transporte sem repetir criação automaticamente. Se o pacote de saída também se perder, a reserva desconectada segue o prazo do servidor; não há promessa de remoção instantânea nesse caso.
 
-As evidências e comandos da correção ficam na spec 2026-11-06-frontend-multiplayer-recover-membership e na PR #140. A composição final é revalidada na última branch, incluindo os controladores extraídos. CI remoto fica pendente até as PRs saírem de draft; teste automatizado com detector simulado não equivale a câmera/GPU física ou medição de fluidez.
+As evidências e comandos da correção ficam na spec 2026-11-06-frontend-multiplayer-recover-membership e na PR #140. A composição final é revalidada na última branch, incluindo os controladores extraídos. CI remoto fica pendente até a PR consolidada sair de draft; teste automatizado com detector simulado não equivale a câmera/GPU física ou medição de fluidez.
 
 ## Pendências organizadas
 
 | Prioridade e natureza          | Resultado esperado                                                                                                                                                                                                       | Responsável / referência                                                           |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Aceite desta entrega           | Revisão das PRs, CI ao sair de draft e decisão explícita do Gate 3; só então merges pelo maintainer.                                                                                                                     | @wezercarvalho, PRs #133 → #139 → #140 → #141 → #143 → #144 → #145 → #146.         |
+| Aceite desta entrega           | Revisão da PR consolidada, CI ao sair de draft e decisão explícita do Gate 3; só então merge pelo maintainer.                                                                                                            | @wezercarvalho, PR #146 consolidada.                                               |
 | Validação física desta entrega | Conferir pontos/espelhamento, olhar vertical, calibração e comportamento em partida com câmera real. Registrar ambiente e reprodução se houver falha.                                                                    | Maintainer, checklist abaixo.                                                      |
 | P1, dependência de publicação  | Conferir patch Node anunciado para 11/11/2026 ou após, ler CVEs e aplicar/testar a versão real. Monitor/procedimento entregues não encerram a atualização do binário.                                                    | @wezercarvalho, [#132](https://github.com/wezercarvalho/guess-my-move/issues/132). |
 | P2, aperfeiçoamento em triagem | Cobrir lobby/retomada/revanche de bolinhas com duas instâncias reais do cliente e servidor, complementando os transportes simulados. Escopo/aceite e limitações definidos, sem iniciar outra implementação do protocolo. | @wezercarvalho, [#148](https://github.com/wezercarvalho/guess-my-move/issues/148). |
@@ -36,3 +36,16 @@ As duas melhorias P2 têm objetivo, escopo e critérios observáveis nas issues;
 - Desligar e religar a câmera, inclusive durante carga do detector; navegar para fora e voltar. Não deve haver detector/callback antigo controlando a nova sessão.
 - Online com duas pessoas: apelidos, presença e prontidão; pausa por queda, retomada da mesma vaga e nova partida na mesma sala. Em bolinhas, conferir a própria vez e ausência de disparo ao reconectar.
 - Se houver engasgo, registrar jogo/modo, navegador, dispositivo, delegate, resolução e cenário, sem capturar/persistir mídia por padrão. Separar carregamento inicial, inferência e renderização antes de atribuir causa.
+
+## Teste local da entrega consolidada
+
+A PR #146 reaproveita a branch chore/node-runtime-monitor, que já contém todos os heads das sete entregas anteriores. O nome da branch é preservado para evitar cópias e manter rastreabilidade. Para baixar usando GitHub CLI, execute na raiz do clone, preservando antes qualquer alteração local:
+
+```sh
+git fetch origin
+gh pr checkout 146
+```
+
+Usar o Node fixado em .node-version, instalar com yarn install --immutable e seguir docs/development-context/operations/local-development.md para iniciar web/servidor. Os comandos de referência para testar o multiplayer são yarn build, yarn dev:server e, em outro terminal, yarn dev:web. A API usa a porta 3000 e o Vite encaminha /api e /socket.io; conferir configuração de origens para outros dispositivos. Para câmera fora de localhost, o navegador exige contexto seguro. Não descartar mudanças locais nem usar reset/clean para trocar de branch.
+
+As PRs anteriores são encerradas como substituídas, não como mescladas; suas branches são preservadas. Isso não depende do modo de merge da consolidada (merge commit, squash ou rebase). A descrição da PR #146 reúne os vínculos Closes das issues concluídas. #132, #147 e #148 continuam abertas; aceite formal SDD e validação física permanecem com o maintainer.
