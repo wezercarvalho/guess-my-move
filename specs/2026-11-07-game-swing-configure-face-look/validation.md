@@ -15,9 +15,8 @@
 | FR-002    | T002       | headLook.test.ts: nova pose neutra após ausência/orientação inválida, amostras seguintes e renders repetidos; swingHeadLook.test.ts: composição no controlador.                                                                                                                                               | PASS      |
 | FR-003    | T003       | headLook.test.ts e swingHeadLock.test.ts: lookback, neutro no início/liberação, recuperação e alteração de ganho enquanto travado, centralização curta após travas sucessivas.                                                                                                                                | PASS      |
 | FR-004    | T004, T005 | world.test.ts: consumo único por atualização, acúmulo sem passo e reset; testes de escalada com ganhos extremos; controlador cooperativo com inputs validados no schema real; centralização suave da câmera inteira em repouso/movimento/agarre sem reposicionar o personagem; suíte completa e documentação. | PASS      |
-
-| FR-005 | T006 | climb.test.ts: velocidade vertical efetiva, parada, topSpeed, saída sem impulso, topo e limite inferior; swingHeadLock.test.ts: HUD durante escalada. | PASS |
-| FR-006 | T007 | world.test.ts: âncora virtual disponível a 500 m, ausente a 500,01 m; prédio válido a 510 m. DEFAULT_SWING compartilhado por cliente e catálogo do servidor. | PASS |
+| FR-005    | T006       | climb.test.ts: velocidade vertical efetiva, parada, topSpeed, saída sem impulso, topo e limite inferior; swingHeadLock.test.ts: HUD durante escalada.                                                                                                                                                         | PASS      |
+| FR-006    | T007       | world.test.ts: âncora virtual disponível a 500 m, ausente a 500,01 m; prédio válido a 510 m. DEFAULT_SWING compartilhado por cliente e catálogo do servidor.                                                                                                                                                  | PASS      |
 
 ## Decisões e regressões
 
