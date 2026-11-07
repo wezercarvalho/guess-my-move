@@ -349,3 +349,26 @@ describe('sensibilidade do rosto configurável', () => {
         h.controller.detach()
     })
 })
+
+it.each([
+    { name: 'parado', velocity: {x:0,y:0,z:0}, yaw: 0 },
+    { name: 'em movimento', velocity: {x:10,y:0,z:0}, yaw: Math.PI / 2 },
+])('Centralizar nivela a câmera inteira $name sem deslocar o personagem', async ({velocity, yaw}) => {
+    const game = await playingWithFace()
+    game.detectFace.mockReturnValue(face(0))
+    settle(game.tick, 20)
+    const state = game.lastState()
+    state.yaw = 2.5
+    state.pitch = 0.9
+    state.velocity = velocity
+    const position = {...state.position}
+    game.controller.recenterHead()
+    game.tick()
+    expect(Math.abs(state.pitch - 0.9)).toBeLessThan(0.15)
+    expect(Math.abs(state.yaw - 2.5)).toBeLessThan(0.35)
+    settle(game.tick, 150)
+    expect(state.pitch).toBeCloseTo(0, 3)
+    expect(state.yaw).toBeCloseTo(yaw, 3)
+    expect(state.position).toEqual(position)
+    game.controller.detach()
+})

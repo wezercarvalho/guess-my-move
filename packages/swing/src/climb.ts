@@ -112,6 +112,11 @@ export function stepGrip(
         return { gripped: false, toppedOut: false }
     }
 
+    // O movimento de escalada é comandado, sem inércia ao sair do regime de agarre.
+    state.velocity.x = 0
+    state.velocity.y = 0
+    state.velocity.z = 0
+
     // Lançar uma teia encerra o agarre na hora (um regime por vez).
     if (input.hasWeb) {
         state.grip = null
@@ -147,9 +152,9 @@ export function stepGrip(
     // Mover ao longo da vertical; colado à parede (quem chama resolve a posição horizontal).
     // Parado agarrado é permitido: segurar a mão (ou a tecla) é o pedido deliberado de ficar.
     const climb = Math.max(-1, Math.min(1, input.climb))
-    state.velocity = { x: 0, y: 0, z: 0 }
     if (Math.abs(climb) >= config.climbDeadzone) {
-        state.position.y += climb * config.climbSpeed * dt
+        state.velocity.y = climb * config.climbSpeed
+        state.position.y += state.velocity.y * dt
     }
 
     // Saída por topo: passou da altura do prédio agarrado — sai em pé no telhado.
@@ -159,6 +164,7 @@ export function stepGrip(
         state.position.x -= normal.x * (radius + 0.5)
         state.position.z -= normal.z * (radius + 0.5)
         state.position.y = state.grip.wallTop
+        state.velocity.y = 0
         state.grip = null
         state.grounded = true
         return { gripped: false, toppedOut: true }

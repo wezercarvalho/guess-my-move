@@ -285,8 +285,18 @@ export class SwingController {
 
     /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
     readonly recenterHead = (): void => {
-        if (!this.lastFace?.orientation) return
-        this.headLook.recenter()
+        const state = this.world?.state
+        if (!this.lastFace?.orientation || !state) return
+        const normal = state.grip?.normal
+        const heading = normal
+            ? Math.atan2(-normal.x, normal.z)
+            : Math.hypot(state.velocity.x, state.velocity.z) >= DEFAULT_SWING.headingMinSpeed
+              ? Math.atan2(state.velocity.x, -state.velocity.z)
+              : 0
+        const offset = { yaw: normalizeYaw(state.yaw - heading), pitch: state.pitch }
+        this.headLook.recenter(offset)
+        // A próxima variação remove o resíduo da câmera inteira, sem aplicar um salto no clique.
+        this.appliedHead = offset
         // Encerra também o gesto em andamento: "Centralizar" sempre sai da trava.
         this.lockGesture.reset()
         this.emit()

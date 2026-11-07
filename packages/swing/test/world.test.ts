@@ -248,3 +248,16 @@ describe('deltas do olhar no acumulador físico', () => {
         expect(world.state.yaw).toBe(0)
     })
 })
+
+it('limita só a âncora virtual a 500 m, mantendo prédios válidos acima desse nível', () => {
+    const open = createSwingWorld(createCityIndex(cityOf()))
+    open.state.position.y = 500
+    expect(open.aim(0)).not.toBeNull()
+    open.state.position.y = 500.01
+    expect(open.aim(0)).toBeNull()
+    const tall = createSwingWorld(createCityIndex(cityOf(box(-30, -90, 30, -40, 800))))
+    tall.state.position = {x:0,y:510,z:0}
+    tall.state.yaw = 0
+    tall.state.pitch = 0
+    expect(tall.aim(0)).not.toBeNull()
+})

@@ -193,6 +193,7 @@ describe('sair do agarre', () => {
         expect(state.grip).toBeNull()
         expect(state.grounded).toBe(true)
         expect(state.position.y).toBeGreaterThan(89)
+        expect(state.velocity.y).toBe(0)
     })
 })
 
@@ -254,4 +255,37 @@ describe('propriedade: nunca fica preso no agarre', () => {
             ).toBe(true)
         }
     })
+})
+
+it.each([1, -1])('registra velocidade vertical real ao escalar com sinal %s', (climb) => {
+    const { index, state } = againstWall()
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+    const before = state.position.y
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb }))
+    const actual = (state.position.y - before) / DT
+    expect(Math.abs(actual)).toBeCloseTo(DEFAULT_SWING.grip.climbSpeed)
+    expect(state.velocity.y).toBeCloseTo(actual)
+    expect(state.stats.topSpeed).toBeGreaterThanOrEqual(Math.abs(actual) - 1e-8)
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+    expect(state.velocity.y).toBe(0)
+})
+
+it('soltar depois de escalar não conserva impulso vertical', () => {
+    const { index, state } = againstWall()
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+    for (let i = 0; i < 10; i++) stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: 1 }))
+    // Libera imediatamente pela expiração da tolerância, após subir.
+    state.grip!.graceMs = DEFAULT_SWING.grip.grabGraceMs + 1
+    stepPlayer(index, state, DT, DEFAULT_SWING, input())
+    expect(state.grip).toBeNull()
+    expect(state.velocity.y).toBeLessThanOrEqual(0)
+})
+
+it('no limite inferior, velocidade vertical efetiva não anuncia descida sem deslocamento', () => {
+    const { index, state } = againstWall(DEFAULT_SWING.eyeHeight)
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true } }))
+    // Usa a parede já agarrada, na altura mínima permitida.
+    state.position.y = DEFAULT_SWING.eyeHeight
+    stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: -1 }))
+    expect(state.velocity.y).toBeCloseTo(0)
 })

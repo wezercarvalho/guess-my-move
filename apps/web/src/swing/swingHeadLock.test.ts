@@ -405,3 +405,32 @@ it('sensibilidade alta e travas sucessivas mantêm os comandos cooperativos dent
     expect(sent.every(input => swingInputSchema.safeParse(input).success)).toBe(true)
     game.controller.detach()
 })
+
+it('Centralizar agarrado nivela o horizonte e mira a fachada sem mover o personagem', async () => {
+    const game = await playing()
+    gripWall(game)
+    const state = game.lastState()
+    const normal = state.grip!.normal
+    const heading = Math.atan2(-normal.x, normal.z)
+    const position = {...state.position}
+    state.yaw = heading + 1
+    state.pitch = 0.8
+    game.controller.recenterHead()
+    run(game.tick, 3000)
+    expect(state.pitch).toBeCloseTo(0, 3)
+    expect(state.yaw).toBeCloseTo(heading, 3)
+    expect(state.position.x).toBeCloseTo(position.x, 4)
+    expect(state.position.y).toBeCloseTo(position.y, 4)
+    expect(state.position.z).toBeCloseTo(position.z, 4)
+    game.controller.detach()
+})
+
+it('o indicador conta a velocidade vertical enquanto escala agarrado', async () => {
+    const game = await playing()
+    gripWall(game)
+    game.detectFace.mockReturnValue(face(0, 20))
+    run(game.tick, 3000)
+    expect(game.controller.getSnapshot().headClimb.climbing).toBe(true)
+    expect(game.controller.getSnapshot().hud.speedKmh).toBeGreaterThan(0)
+    game.controller.detach()
+})

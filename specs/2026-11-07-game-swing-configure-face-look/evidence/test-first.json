@@ -37,6 +37,24 @@
       "before": "núcleo: 1 falha / 244 aprovações; controlador online: contrato rejeitava bias acima de meia volta",
       "after": "245 casos do núcleo e 65 casos dirigidos aprovados; representação angular normalizada sem mudar formato do protocolo",
       "command": "yarn workspace @guess-my-move/swing test e yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "emenda: velocidade de escalada",
+      "before": "2 falhas novas / 246 aprovações; velocity permanecia zero apesar do deslocamento vertical",
+      "after": "250 casos do núcleo aprovados; subida/descida, parada, saída sem impulso e limite inferior cobertos",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "emenda: alinhamento efetivo e indicador",
+      "before": "4 falhas novas / 65 aprovações: pitch residual não zerava em repouso/movimento/agarre e HUD permanecia zero",
+      "after": "69 casos dirigidos aprovados; correção suave, personagem preservado e velocidade indicada",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "emenda: âncora virtual a 500 m",
+      "before": "1 falha / 249 aprovações: mira sem âncora a 500 m com limite anterior de 220 m",
+      "after": "teste de fronteira confirma 500 m inclusive, recusa acima e prédio válido acima do limite virtual",
+      "command": "yarn workspace @guess-my-move/swing test"
     }
   ],
   "limits": [

@@ -20,3 +20,12 @@
 - Artefatos aprovados: plan.md, tasks.md
 - Referência: Autorização explícita do maintainer nesta conversa: abrir a issue, colocar em Ready, implementar, considerar os gates aprovados e avisar com PR em draft. Autoriza fases de execução; revisão final e merge continuam com o maintainer.
 - Exceções: nenhuma.
+
+## Emenda autorizada após teste
+
+- [ ] T005 [FR-004] [NFR-002] [SC-001] Demonstrar inclinação residual e implementar centralização efetiva suave nos rumos parado/em movimento/agarrado, preservando personagem e protocolo.
+- [ ] T006 [FR-005] [NFR-001] [SC-001] Demonstrar velocidade ausente na escalada; reportar velocidade efetiva e topSpeed, sem impulso ao soltar/topo; cobrir limites e indicador.
+
+Autorização de Gates 1 e 2 da emenda: pedido explícito do maintainer nesta conversa para adequar a centralização e observação de velocidade durante o teste. Mantém Gate 3 humano pendente. Análise de consistência: aprovada pelo agente implementador, sem campos de rede adicionais ou captura de mídia.
+
+- [ ] T007 [FR-006] [SC-001] Demonstrar limite inclusivo de 500 m e lançamento em prédios acima do limite; ampliar somente maxAltitude e documentar o pedido explícito do maintainer.

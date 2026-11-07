@@ -116,8 +116,8 @@ export interface HeadLook {
      * novamente na calibração (a tela pode desenhar mais rápido que a câmera).
      */
     update(orientation: HeadOrientation | null, dt: number, lock?: boolean, newSample?: boolean): HeadLookState
-    /** Trata a orientação atual como o novo neutro e encerra a trava (botão "Centralizar"). */
-    recenter(): void
+    /** Redefine o neutro e encerra a trava; cameraOffset permite nivelar a câmera inteira pela mesma suavização. */
+    recenter(cameraOffset?: HeadOrientation): void
     /** Volta ao estado inicial, sem calibração, preservando a preferência de sensibilidade. */
     reset(): void
 }
@@ -321,10 +321,11 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             remember()
             return state(orientation !== null)
         },
-        recenter() {
+        recenter(cameraOffset) {
             if (!last) return
             neutral = { ...last }
-            yawOffset = normalizeYaw(yawOffset)
+            yawOffset = normalizeYaw(cameraOffset?.yaw ?? yawOffset)
+            pitchOffset = cameraOffset?.pitch ?? pitchOffset
             calibrated = true
             stableFrames = config.calibrationFrames
             // Encerra a trava e zera a direção travada: o olhar volta suave ao acompanhamento.

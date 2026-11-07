@@ -233,6 +233,7 @@ export function SwingScreen({
                                     <Button
                                         variant="secondary"
                                         onClick={game.recenterHead}
+                                        title="Nivelar a câmera ao horizonte e refazer o neutro do rosto"
                                         disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
                                     >
                                         Centralizar
