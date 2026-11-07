@@ -159,10 +159,10 @@ describe('headStatusLine', () => {
         )
     })
 
-    it('pede para centralizar quando o rosto some', () => {
+    it('explica a centralização automática quando o rosto retorna', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: false })
         expect(line).toMatch(/rosto fora do quadro/i)
-        expect(line).toMatch(/centralize/i)
+        expect(line).toMatch(/centralizar automaticamente/i)
     })
 
     it('fica vazia quando o rosto está à vista', () => {

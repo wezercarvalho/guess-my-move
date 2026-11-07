@@ -54,9 +54,9 @@ A mira escolhe automaticamente um ponto alcançável à frente; uma âncora no c
 
 ### Olhar e calibragem
 
-Em **Direção do olhar → Rosto**, vire a cabeça para ajustar a câmera nos lados, para cima e para baixo. Aguarde a detecção e a calibragem com a cabeça estável, olhando para o centro da tela. Use **Centralizar** para refazer o neutro; acompanhe as mensagens caso o rosto não esteja visível ou estável.
+Em **Direção do olhar → Rosto**, vire a cabeça para ajustar a câmera nos lados, para cima e para baixo. Aguarde a detecção e a calibragem com a cabeça estável, olhando para o centro da tela. Use **Sensibilidade do rosto** para ajustar quanto a câmera gira nos dois eixos: 1× mantém o ganho padrão, valores maiores respondem mais ao mesmo movimento e valores menores suavizam o giro (0,5×–3×). A alteração é aplicada suavemente, sem recarregar o detector, e não muda o esforço da escalada. A preferência vale nesta tela, inclusive ao reiniciar ou alternar a direção do olhar; ao abrir outra tela, volta ao padrão. Use **Centralizar** para refazer o neutro manualmente. Se o rosto sair do quadro, a primeira nova leitura válida define o neutro automaticamente, sem salto.
 
-Uma mão aberta com o dedão para baixo trava a direção enquanto a pose é mantida, permitindo voltar a olhar para o monitor. Soltar a pose libera a direção. No modo Rosto, enquanto estiver agarrado, olhar para cima ou para baixo por dois segundos inicia a subida ou descida; olhar para o lado interrompe o movimento. O modo **Automática** usa o acompanhamento do movimento sem carregar o detector de rosto.
+Uma mão aberta com o dedão para baixo trava a direção enquanto a pose é mantida, permitindo voltar a olhar para o monitor. O gesto recalibra o neutro; ao soltar, a pose atual vira o novo centro, sem somar de novo o movimento feito enquanto a direção estava travada. Recuperar o rosto durante a trava mantém a direção escolhida. No modo Rosto, enquanto estiver agarrado, olhar para cima ou para baixo por dois segundos inicia a subida ou descida; olhar para o lado interrompe o movimento. O modo **Automática** usa o acompanhamento do movimento sem carregar o detector de rosto.
 
 ### Teclado
 

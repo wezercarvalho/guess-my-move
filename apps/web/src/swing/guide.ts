@@ -135,8 +135,8 @@ export function headStatusLine({
     if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
     if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
     // Travada, perder o rosto não muda o olhar: o texto da trava vale.
-    if (lockMode === 'locked') return 'Direção travada. Tire a mão e olhe para a tela.'
-    if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
+    if (lockMode === 'locked') return 'Direção travada. Reposicione o rosto e tire a mão para centralizar.'
+    if (!faceVisible) return 'Rosto fora do quadro. Reenquadre o rosto para centralizar automaticamente.'
     if (!calibrated) return 'Olhe para a tela e mantenha a cabeça parada para calibrar.'
     return ''
 }

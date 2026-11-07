@@ -110,6 +110,8 @@ export interface SwingSnapshot {
     faceVisible: boolean
     /** Direção do olhar ativa: `auto` (sem rosto) ou `face` (câmera pela cabeça). */
     lookMode: LookMode
+    /** Multiplicador local do giro pelo rosto (0,5 a 3, padrão 1). */
+    faceSensitivity: number
     handVisible: boolean
     /** O gesto de teia está sendo segurado (não conta a tecla). */
     gestureHeld: boolean

@@ -222,7 +222,7 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(lastState().yaw).toBeCloseTo(before, 1)
     })
 
-    it('tirar a mão com a cabeça ainda virada: a câmera volta a seguir a cabeça, somando à direção travada', async () => {
+    it('ao soltar a trava, a pose atual vira neutro e novos movimentos somam à direção travada', async () => {
         const game = await playing()
         const { controller, detectAll, detectFace, tick, lastState } = game
         const turned = turnHead(game, 25)
@@ -232,6 +232,9 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         detectFace.mockReturnValue(face(40))
         run(tick, 2000)
         expect(controller.getSnapshot().headLock.mode).toBe('following')
+        expect(lastState().yaw).toBeCloseTo(turned, 2)
+        detectFace.mockReturnValue(face(55))
+        run(tick, 2000)
         expect(lastState().yaw).toBeGreaterThan(turned + 0.2)
     })
 
@@ -342,4 +345,36 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(controller.getSnapshot().hud.gripped).toBe(true)
         expect(Math.abs(lastState().position.y - y0)).toBeLessThan(0.5)
     })
+})
+
+it('alterar sensibilidade durante a trava preserva a direção também depois de soltar', async () => {
+    const game = await playing()
+    turnHead(game, 20)
+    game.detectAll.mockReturnValue([thumbDown()])
+    run(game.tick, 800)
+    const frozen = game.lastState().yaw
+    game.controller.setFaceSensitivity(3)
+    game.detectFace.mockReturnValue(face(40))
+    run(game.tick, 800)
+    expect(game.lastState().yaw).toBeCloseTo(frozen, 2)
+    game.detectAll.mockReturnValue([])
+    run(game.tick, 2000)
+    expect(game.lastState().yaw).toBeCloseTo(frozen, 2)
+    game.controller.recenterHead()
+    game.tick()
+    expect(Math.abs(game.lastState().yaw - frozen)).toBeLessThan(0.12)
+    run(game.tick, 2000)
+    expect(game.controller.getSnapshot().headDebug.yawDeg).toBe(0)
+    game.controller.detach()
+})
+
+it.each([0.5, 3])('sensibilidade %s não altera o comando de escalada pelo olhar', async (sensitivity) => {
+    const game = await playing()
+    gripWall(game)
+    game.controller.setFaceSensitivity(sensitivity)
+    game.detectFace.mockReturnValue(face(10, 20))
+    run(game.tick, 3000)
+    expect(game.controller.getSnapshot().headClimb.intent).toBe('up')
+    expect(game.controller.getSnapshot().headClimb.climbing).toBe(true)
+    game.controller.detach()
 })

@@ -28,6 +28,7 @@ export {
 export { type SwingCue, swingCue } from './cue.js'
 export {
     DEFAULT_HEAD_LOOK,
+    HEAD_LOOK_SENSITIVITY,
     type FaceLandmark,
     type FaceReading,
     type HeadLook,

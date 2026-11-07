@@ -309,14 +309,14 @@ describe('trava da direção (CQ-012)', () => {
         expect(done.liveYaw).toBeCloseTo(0, 3)
     })
 
-    it('tirar a mão com a cabeça ainda virada: a cabeça soma à direção travada (sem esperar o centro)', () => {
+    it('tirar a mão com a cabeça ainda virada: a pose vira neutro sem somar outro giro', () => {
         const look = calibrated()
         const turned = run(look, RIGHT, 1.5)
         run(look, RIGHT, 0.1, true)
         const after = run(look, RIGHT, 2)
         expect(after.mode).toBe('following')
-        expect(after.liveYaw).toBeGreaterThan(0.2)
-        expect(after.yawOffset).toBeGreaterThan(turned.yawOffset + 0.2)
+        expect(after.liveYaw).toBeCloseTo(0, 3)
+        expect(after.yawOffset).toBeCloseTo(turned.yawOffset, 3)
     })
 
     it('depois de tirar a mão, a cabeça soma a partir da direção travada, sem salto', () => {
@@ -465,4 +465,79 @@ describe('regressões de calibração e inclinação', () => {
         expect(headOrientationFromMatrix(Array(16).fill(NaN))).toBeNull()
         expect(headOrientationFromMatrix(Array(16).fill(0))).toBeNull()
     })
+})
+
+describe('recentralização automática do neutro', () => {
+    it('a pose recuperada vira neutro nos dois eixos, sem salto nem recalibrar os próximos movimentos', () => {
+        const look = calibrated()
+        run(look, RIGHT, 2)
+        run(look, null, 0.5)
+        const before = look.update(null, 1 / 60)
+        const recovered = look.update({ yaw: -ANGLE, pitch: ANGLE }, 1 / 60)
+        expect(Math.abs(recovered.yawOffset - before.yawOffset)).toBeLessThan(0.08)
+        const neutral = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2)
+        expect(neutral.yawOffset).toBeCloseTo(0, 3)
+        expect(neutral.pitchOffset).toBeCloseTo(0, 3)
+        const moved = run(look, { yaw: 0, pitch: 0 }, 2)
+        expect(moved.yawOffset).toBeGreaterThan(0.2)
+        expect(moved.pitchOffset).toBeLessThan(-0.2)
+    })
+    it('render repetido sem nova amostra não arma recuperação ou altera o neutro', () => {
+        const look = calibrated()
+        run(look, RIGHT, 2)
+        look.update(null, 1 / 60, false, false)
+        const same = run(look, RIGHT, 2)
+        expect(same.yawOffset).toBeGreaterThan(0.2)
+    })
+    it('orientação inválida seguida de nova amostra válida também recentraliza', () => {
+        const look = calibrated()
+        look.update({ yaw: NaN, pitch: Infinity }, 1 / 60)
+        const neutral = run(look, RIGHT, 2)
+        expect(neutral.yawOffset).toBeCloseTo(0, 3)
+    })
+    it('trava e liberação definem o neutro sem duplicar o giro, mesmo após reposicionar a cabeça', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 2)
+        run(look, RIGHT, 1, true)
+        const frozen = run(look, CENTER, 1, true)
+        expect(frozen.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        const released = run(look, CENTER, 2)
+        expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        expect(released.liveYaw).toBeCloseTo(0, 3)
+        const moved = run(look, RIGHT, 2)
+        expect(moved.yawOffset).toBeGreaterThan(released.yawOffset + 0.2)
+    })
+    it('recuperação durante trava preserva a direção, e soltar na pose recuperada não adiciona giro', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 2)
+        run(look, RIGHT, 1, true)
+        run(look, null, 3, true)
+        const recovered = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2, true)
+        expect(recovered.mode).toBe('locked')
+        expect(recovered.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        const released = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2)
+        expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        expect(released.livePitch).toBeCloseTo(0, 3)
+    })
+})
+
+it('soltar a trava na mesma pose não soma novamente a cabeça que definiu a direção', () => {
+    const look = calibrated()
+    const turned = run(look, RIGHT, 2)
+    run(look, RIGHT, 1, true)
+    const released = run(look, RIGHT, 2)
+    expect(released.liveYaw).toBeCloseTo(0, 3)
+    expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+})
+
+it('a sensibilidade muda o giro visual, preservando os sinais de escalada', () => {
+    const look = calibrated()
+    const pose = { yaw: ANGLE * 0.75, pitch: ANGLE * 0.75 }
+    const normal = run(look, pose, 2)
+    look.setSensitivity(2)
+    const stronger = run(look, pose, 2)
+    expect(stronger.yawOffset).toBeCloseTo(normal.yawOffset * 2, 3)
+    expect(stronger.pitchOffset).toBeCloseTo(normal.pitchOffset * 2, 3)
+    expect(stronger.gestureYaw).toBeCloseTo(normal.gestureYaw, 3)
+    expect(stronger.gesturePitch).toBeCloseTo(normal.gesturePitch, 3)
 })

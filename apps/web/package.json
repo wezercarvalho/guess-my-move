@@ -18,7 +18,8 @@
         "test:swing-session": "vitest run src/swing/onlineSession.test.ts src/swing/handInput.test.ts",
         "test:swing-controls": "vitest run src/swing/swing*.test.ts",
         "test:marbles-input": "vitest run src/marbles/handInput.test.ts src/marbles/marblesController.test.ts",
-        "test:marbles-controls": "vitest run src/marbles/*.test.ts src/marbles/*.test.tsx"
+        "test:marbles-controls": "vitest run src/marbles/*.test.ts src/marbles/*.test.tsx",
+        "test:swing-look": "vitest run src/swing/swingHeadLook.test.ts src/swing/swingHeadLock.test.ts src/swing/swingHeadClimb.test.ts src/swing/SwingScreen.test.tsx"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",

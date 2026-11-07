@@ -685,3 +685,20 @@ ul.swing-keys kbd {
         padding-left: 0;
     }
 }
+
+.swing-head__sensitivity {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+.swing-head__sensitivity-label {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+.swing-head__sensitivity input {
+    width: 100%;
+    min-height: 2.75rem;
+    margin: 0;
+    accent-color: var(--gold-bright);
+}

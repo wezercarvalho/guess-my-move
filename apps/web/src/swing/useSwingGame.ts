@@ -35,6 +35,7 @@ export interface SwingGameView extends SwingSnapshot {
     restart: () => void
     recenterHead: () => void
     setLookMode: (mode: 'auto' | 'face') => void
+    setFaceSensitivity: (value: number) => void
     resize: (width: number, height: number) => void
 }
 
@@ -89,6 +90,7 @@ export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
         restart: controller.restart,
         recenterHead: controller.recenterHead,
         setLookMode: controller.setLookMode,
+        setFaceSensitivity: controller.setFaceSensitivity,
         resize: controller.resize,
     }
 }

@@ -70,6 +70,8 @@ const INITIAL_HEAD: HeadLookState = {
     livePitch: 0,
     lockedYaw: 0,
     lockedPitch: 0,
+    gestureYaw: 0,
+    gesturePitch: 0,
 }
 
 const PUBLISH_INTERVAL_MS = 100
@@ -273,6 +275,11 @@ export class SwingController {
         this.cameraActive = active
         if (!active) this.dropHand()
         this.sync()
+    }
+
+    readonly setFaceSensitivity = (value: number): void => {
+        this.headLook.setSensitivity(value)
+        this.emit()
     }
 
     /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
@@ -500,8 +507,8 @@ export class SwingController {
         this.headClimbState = this.headClimb.update(
             {
                 // Só a parte viva da cabeça: a direção travada nunca conta como "olhar para cima".
-                pitch: this.headState.livePitch,
-                yaw: this.headState.liveYaw,
+                pitch: this.headState.gesturePitch,
+                yaw: this.headState.gestureYaw,
                 active:
                     gripped &&
                     this.headState.mode === 'following' &&
@@ -863,6 +870,7 @@ export class SwingController {
             faceTrackerFailure: this.faceTrackerFailure,
             faceVisible: this.headState.faceVisible,
             lookMode: this.lookMode,
+            faceSensitivity: this.headLook.sensitivity,
             handVisible: this.hand !== null,
             gestureHeld: this.held.left || this.held.right,
             held: { ...this.held },
