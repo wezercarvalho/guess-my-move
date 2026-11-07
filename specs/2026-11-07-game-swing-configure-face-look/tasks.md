@@ -30,6 +30,6 @@ Autorização de Gates 1 e 2 da emenda: pedido explícito do maintainer nesta co
 
 - [x] T007 [FR-006] [SC-001] Demonstrar limite inclusivo de 500 m e lançamento em prédios acima do limite; ampliar somente maxAltitude e documentar o pedido explícito do maintainer.
 
-- [ ] T008 [FR-005] [SC-001] Reproduzir perda do impulso ao lançar/puxar saindo da parede; preservar só o impulso deliberado, sem velocidade herdada nem campos de rede adicionais. Correção autorizada pela revisão solicitada pelo maintainer nesta conversa.
+- [x] T008 [FR-005] [SC-001] Reproduzir perda do impulso ao lançar/puxar saindo da parede; preservar só o impulso deliberado, sem velocidade herdada nem campos de rede adicionais. Correção autorizada pela revisão solicitada pelo maintainer nesta conversa.
 
-- [ ] T009 [FR-007] [NFR-001] [NFR-002] [SC-001] Demonstrar espera/giro/parada/renovação de amostras e integração de direção, implementar núcleo e feedback compartilhado, validar teclado, escalada, calibração, reset e protocolo. Pedido explícito do maintainer nesta conversa aprova a emenda e a execução.
+- [x] T009 [FR-007] [NFR-001] [NFR-002] [SC-001] Demonstrar espera/giro/parada/renovação de amostras e integração de direção, implementar núcleo e feedback compartilhado, validar teclado, escalada, calibração, reset e protocolo. Pedido explícito do maintainer nesta conversa aprova a emenda e a execução.

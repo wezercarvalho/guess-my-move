@@ -7,7 +7,7 @@ strategy: sdd
 domain: game
 capability: swing
 objective: configure-face-look
-status: implementing
+status: validating
 owners:
     - wezercarvalho
 reviewers: []
