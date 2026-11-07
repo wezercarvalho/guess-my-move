@@ -62,6 +62,8 @@ A velocidade exibida inclui a subida e a descida agarrado (até 6 m/s, ou 21,6 k
 
 A âncora virtual no céu é oferecida até **500 m de altura do personagem**, inclusive. Acima disso, a teia ainda pode prender em prédios: o alcance é **160 m**, e a âncora precisa estar pelo menos 12 m acima e 15 m afastada na horizontal. Sem uma âncora válida, o lançamento falha; não é um limite geral de altitude para toda teia.
 
+Para girar continuamente, mantenha o rosto virado para esquerda ou direita por **1 segundo**. O painel mostra a espera e a direção do giro; volte o rosto ao centro para parar. A taxa padrão é 30°/s e acompanha a sensibilidade (15–90°/s). Pequenos desvios ficam na zona neutra; trocar de lado reinicia a espera. Perder o rosto, ficar sem leitura nova por mais de 250 ms, travar a direção, usar setas horizontais, centralizar, reiniciar ou mudar o modo interrompe o giro contínuo. A direção acumulada é preservada ao voltar ao centro; o botão Centralizar nivela novamente a câmera. O giro vertical continua proporcional à pose, sem rotação contínua.
+
 ### Teclado
 
 | Tecla     | Ação                                                                            |

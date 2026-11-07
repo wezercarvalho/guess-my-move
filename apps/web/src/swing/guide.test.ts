@@ -227,3 +227,11 @@ describe('KEYS', () => {
         expect(KEYS.some((group) => /sobem|sobe/i.test(group.action))).toBe(true)
     })
 })
+
+it('informa espera e giro contínuo, mantendo precedência da perda e da trava', () => {
+    const base = {cameraActive:true,faceTrackerStatus:'ready' as const,faceVisible:true,calibrated:true}
+    expect(headStatusLine({...base,turn:{intent:'left',progress:0.5,turning:false}})).toContain('0,5 s')
+    expect(headStatusLine({...base,turn:{intent:'right',progress:1,turning:true}})).toContain('Girando para a direita')
+    expect(headStatusLine({...base,faceVisible:false,turn:{intent:'right',progress:1,turning:true}})).toContain('Rosto fora')
+    expect(headStatusLine({...base,lockMode:'locked',turn:{intent:'right',progress:1,turning:true}})).toContain('Direção travada')
+})

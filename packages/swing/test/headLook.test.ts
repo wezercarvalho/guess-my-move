@@ -558,3 +558,17 @@ it('centraliza pelo caminho angular curto após acumular mais de meia volta em t
     const next = look.update({yaw:Math.PI/3,pitch:0},1/60)
     expect(Math.abs(Math.atan2(Math.sin(next.yawOffset),Math.cos(next.yawOffset)))).toBeLessThan(before)
 })
+
+it('giro deliberado muda a nova frente e preserva sinais da cabeça; trava/perda impedem giro', () => {
+    const look = calibrated()
+    const before = run(look, RIGHT, 0.5)
+    const turned = look.turnYaw(0.5)
+    expect(turned.yawOffset - before.yawOffset).toBeCloseTo(0.5)
+    expect(turned.lockedYaw - before.lockedYaw).toBeCloseTo(0.5)
+    expect(turned.liveYaw).toBeCloseTo(before.liveYaw)
+    expect(turned.gestureYaw).toBeCloseTo(before.gestureYaw)
+    const frozen = run(look, RIGHT, 1, true)
+    expect(look.turnYaw(0.5).yawOffset).toBe(frozen.yawOffset)
+    look.update(null, 0.1, true)
+    expect(look.turnYaw(0.5).faceVisible).toBe(false)
+})

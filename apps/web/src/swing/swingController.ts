@@ -45,6 +45,8 @@ import {
     createCityIndex,
     createHeadClimb,
     createHeadLook,
+    createHeadTurn,
+    type HeadTurnState,
     normalizeYaw,
     createLockGesture,
     createSwingWorld,
@@ -71,6 +73,7 @@ const INITIAL_HEAD: HeadLookState = {
     livePitch: 0,
     lockedYaw: 0,
     lockedPitch: 0,
+    intentYaw: 0,
     gestureYaw: 0,
     gesturePitch: 0,
 }
@@ -148,6 +151,12 @@ export class SwingController {
         return this.faceResource.error
     }
     private readonly headLook: HeadLook = createHeadLook()
+    private readonly headTurn = createHeadTurn()
+    private headTurnState: HeadTurnState = {intent:null, progress:0, turning:false, yawDelta:0}
+    private resetHeadTurn(): void {
+        this.headTurn.reset()
+        this.headTurnState = {intent:null, progress:0, turning:false, yawDelta:0}
+    }
     /** Escalar olhando: segurar o olhar para cima/baixo agarrado, por ~2 s, escala. */
     private readonly headClimb: HeadClimb = createHeadClimb()
     private headClimbState: HeadClimbState = {
@@ -264,6 +273,7 @@ export class SwingController {
         this.handResource.release()
         this.faceResource.release()
         this.headLook.reset()
+        this.resetHeadTurn()
         this.headClimb.reset()
         this.lockGesture.reset()
         this.headState = INITIAL_HEAD
@@ -294,6 +304,7 @@ export class SwingController {
               ? Math.atan2(state.velocity.x, -state.velocity.z)
               : 0
         const offset = { yaw: normalizeYaw(state.yaw - heading), pitch: state.pitch }
+        this.resetHeadTurn()
         this.headLook.recenter(offset)
         // A próxima variação remove o resíduo da câmera inteira, sem aplicar um salto no clique.
         this.appliedHead = offset
@@ -314,6 +325,7 @@ export class SwingController {
         if (mode === 'auto' && this.faceTracker) this.releaseFaceTracker()
         // Em qualquer troca, zera o "já aplicado" para não somar/subtrair o desvio de uma vez.
         this.headLook.reset()
+        this.resetHeadTurn()
         this.headClimb.reset()
         this.lockGesture.reset()
         this.headState = INITIAL_HEAD
@@ -347,6 +359,12 @@ export class SwingController {
     }
 
     private resetRound(): void {
+        this.headLook.reset()
+        this.resetHeadTurn()
+        this.headClimb.reset()
+        this.lockGesture.reset()
+        this.headState = INITIAL_HEAD
+        this.appliedHead = {yaw:0, pitch:0}
         this.training = EMPTY_TRAINING
         this.world?.reset()
         this.triggers.left.reset()
@@ -424,6 +442,7 @@ export class SwingController {
                 this.attached && this.cameraActive && this.lookMode === 'face',
             onReady: () => {
                 this.headLook.reset()
+                this.resetHeadTurn()
                 this.headClimb.reset()
                 this.lockGesture.reset()
                 this.appliedHead = { yaw: 0, pitch: 0 }
@@ -436,6 +455,7 @@ export class SwingController {
     private releaseFaceTracker(): void {
         this.faceResource.release()
         this.headLook.reset()
+        this.resetHeadTurn()
         this.headClimb.reset()
         this.lockGesture.reset()
         this.headState = INITIAL_HEAD
@@ -519,7 +539,7 @@ export class SwingController {
             {
                 // Só a parte viva da cabeça: a direção travada nunca conta como "olhar para cima".
                 pitch: this.headState.gesturePitch,
-                yaw: this.headState.gestureYaw,
+                yaw: this.headState.intentYaw,
                 active:
                     gripped &&
                     this.headState.mode === 'following' &&
@@ -620,6 +640,7 @@ export class SwingController {
         bias: { yaw: number; pitch: number }
     } {
         if (this.faceTracker === null) {
+            this.resetHeadTurn()
             this.lockGesture.reset()
             return {
                 delta: { yaw: 0, pitch: 0 },
@@ -635,7 +656,18 @@ export class SwingController {
             lock,
             this.faceSamplePending,
         )
+        const fresh = this.faceSamplePending
         this.faceSamplePending = false
+        this.headTurnState = this.headTurn.update({
+            yaw: this.headState.intentYaw,
+            fresh,
+            sensitivity: this.headLook.sensitivity,
+            active: this.headState.calibrated && this.headState.faceVisible &&
+                this.headState.mode === 'following' && !this.lockPose &&
+                !this.keys.has('ArrowLeft') && !this.keys.has('ArrowRight'),
+        }, dt * 1000)
+        if (this.headTurnState.yawDelta !== 0)
+            this.headState = this.headLook.turnYaw(this.headTurnState.yawDelta)
         const delta = {
             yaw: normalizeYaw(this.headState.yawOffset - this.appliedHead.yaw),
             pitch: this.headState.pitchOffset - this.appliedHead.pitch,
@@ -907,6 +939,11 @@ export class SwingController {
                 lockPose: this.lockPose,
             },
             headLock: { mode: this.headState.mode },
+            headTurn: {
+                intent:this.headTurnState.intent,
+                progress:this.headTurnState.progress,
+                turning:this.headTurnState.turning,
+            },
             grabDebug: {
                 touchingWall: state?.touchingWall ?? false,
                 gripped: state?.grip != null,

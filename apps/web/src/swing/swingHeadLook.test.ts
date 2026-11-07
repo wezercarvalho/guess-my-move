@@ -61,10 +61,13 @@ async function playingWithFace() {
         keys,
     }
     const video = { readyState: 4, videoWidth: 640, videoHeight: 480, currentTime: 0 }
+    const overlay = document.createElement('canvas')
+    vi.spyOn(overlay, 'getContext').mockReturnValue(null)
+    const scene = document.createElement('canvas')
     const surfaces = {
         getVideo: () => video as HTMLVideoElement,
-        getOverlay: () => document.createElement('canvas'),
-        getScene: () => document.createElement('canvas'),
+        getOverlay: () => overlay,
+        getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)
@@ -84,7 +87,7 @@ async function playingWithFace() {
     await flush()
     controller.setCamera(true)
     await flush()
-    return { controller, env, detectFace, faceTracker, tick, lastState }
+    return { controller, env, detectFace, faceTracker, tick, lastState, keys }
 }
 
 /** Dá quadros para a calibração automática e a suavização estabilizarem. */
@@ -149,11 +152,13 @@ describe('SwingController com o rastreador de rosto', () => {
         detectFace.mockReturnValue(null)
         tick()
         expect(Math.abs(lastState().yaw - turned)).toBeLessThan(Math.abs(turned) * 0.5)
-        // Depois de vários quadros, o desvio da cabeça volta a perto de zero (sem rosto) e o
-        // snapshot (publicado no intervalo) marca o rosto ausente.
-        settle(tick, 120)
+        // O desvio posicional decai e o giro contínuo para; a frente acumulada é preservada.
+        settle(tick, 240)
         expect(controller.getSnapshot().faceVisible).toBe(false)
-        expect(Math.abs(controller.getSnapshot().headDebug.yawDeg)).toBeLessThan(5)
+        expect(controller.getSnapshot().headTurn.turning).toBe(false)
+        const stopped = lastState().yaw
+        settle(tick, 120)
+        expect(lastState().yaw).toBeCloseTo(stopped, 3)
     })
 
     it('expõe a leitura da cabeça para a depuração', async () => {
@@ -285,7 +290,7 @@ describe('sensibilidade do rosto configurável', () => {
         expect(h.controller.getSnapshot().faceSensitivity).toBe(1)
         const loads = (h.env.createFaceTracker as ReturnType<typeof vi.fn>).mock.calls.length
         const initial = {yaw: h.lastState().yaw, pitch: h.lastState().pitch}
-        h.detectFace.mockReturnValue(face(15, 15))
+        h.detectFace.mockReturnValue(face(10, 10))
         settle(h.tick, 120)
         const normal = { yaw: h.lastState().yaw, pitch: h.lastState().pitch }
         h.controller.setFaceSensitivity(2)
@@ -308,7 +313,8 @@ describe('sensibilidade do rosto configurável', () => {
         h.detectFace.mockReturnValue(face(0))
         settle(h.tick, 30)
         h.detectFace.mockReturnValue(face(70, 70))
-        settle(h.tick, 120)
+        settle(h.tick, 45)
+        expect(h.controller.getSnapshot().headTurn.turning).toBe(false)
         expect(Math.abs(h.lastState().yaw)).toBeLessThanOrEqual(70 * Math.PI / 180 + 0.001)
         expect(Math.abs(h.controller.getSnapshot().headDebug.pitchDeg)).toBeLessThanOrEqual(45)
         expect(Math.abs(h.lastState().pitch)).toBeLessThanOrEqual(55 * Math.PI / 180 + 0.001)
@@ -371,4 +377,47 @@ it.each([
     expect(state.yaw).toBeCloseTo(yaw, 3)
     expect(state.position).toEqual(position)
     game.controller.detach()
+})
+
+it.each([-1, 1])('segurar a cabeça de lado por 1 s mantém giro no sentido %s', async (direction) => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0))
+    settle(g.tick, 20)
+    g.detectFace.mockReturnValue(face(direction * 25))
+    settle(g.tick, 55)
+    const beforeDwell = g.lastState().yaw
+    settle(g.tick, 15)
+    const afterDwell = g.lastState().yaw
+    settle(g.tick, 60)
+    expect(direction * (g.lastState().yaw - afterDwell)).toBeGreaterThan(0.4)
+    expect(Math.abs(afterDwell - beforeDwell)).toBeLessThan(0.15)
+    g.detectFace.mockReturnValue(face(0))
+    settle(g.tick, 120)
+    const stopped = g.lastState().yaw
+    settle(g.tick, 120)
+    expect(g.lastState().yaw).toBeCloseTo(stopped, 3)
+    g.controller.detach()
+})
+
+it('interrompe giro por imagem congelada, teclado, centralização, modo e reinício', async () => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    g.detectFace.mockReturnValue(face(25)); settle(g.tick,150)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(true)
+    for(let i=0;i<30;i++) g.tick(16,false)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    settle(g.tick,150)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(true)
+    g.keys.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft'}))
+    settle(g.tick,10)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.keys.dispatchEvent(new KeyboardEvent('keyup',{key:'ArrowLeft'}))
+    settle(g.tick,150)
+    g.controller.recenterHead(); settle(g.tick,10)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.controller.restart(); settle(g.tick,30)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.controller.setLookMode('auto'); await flush()
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    g.controller.detach()
 })

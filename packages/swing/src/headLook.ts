@@ -102,11 +102,15 @@ export interface HeadLookState {
     /** Inclinação travada pelo gesto, em radianos; zero sem trava. */
     lockedPitch: number
     /** Sinais com ganho padrão, independentes da preferência visual, para escalada. */
+    /** Sinal horizontal sem suavização, para cancelar imediatamente a intenção ao centralizar. */
+    intentYaw: number
     gestureYaw: number
     gesturePitch: number
 }
 
 export interface HeadLook {
+    /** Incorpora giro deliberado na direção, sem alterar os sinais físicos da cabeça. */
+    turnYaw(delta: number): HeadLookState
     readonly sensitivity: number
     setSensitivity(value: number): void
     /**
@@ -157,6 +161,8 @@ function shape(relative: number, config: HeadLookConfig, limit: number, sensitiv
 
 export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): HeadLook {
     let sensitivity: number = HEAD_LOOK_SENSITIVITY.initial
+    let visible = false
+    let intentYaw = 0
     let gestureYaw = 0
     let gesturePitch = 0
     let calibrated = false
@@ -201,6 +207,7 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
     }
 
     function state(faceVisible: boolean): HeadLookState {
+        visible = faceVisible
         const following = mode === 'following'
         return {
             yawOffset,
@@ -212,12 +219,22 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             livePitch: following ? pitchOffset - basePitch : 0,
             lockedYaw: baseYaw,
             lockedPitch: basePitch,
+            intentYaw: following ? intentYaw : 0,
             gestureYaw: following ? gestureYaw : 0,
             gesturePitch: following ? gesturePitch : 0,
         }
     }
 
     return {
+        turnYaw(delta) {
+            if (calibrated && visible && mode === 'following' && Number.isFinite(delta)) {
+                baseYaw += delta
+                yawOffset += delta
+                const sample = history.at(-1)
+                if (sample) sample.yaw = yawOffset
+            }
+            return state(visible)
+        },
         get sensitivity() { return sensitivity },
         setSensitivity(value) {
             if (!Number.isFinite(value)) return
@@ -316,7 +333,8 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
 
             yawOffset = approach(yawOffset, targetYaw, dt)
             pitchOffset = approach(pitchOffset, targetPitch, dt)
-            gestureYaw = approach(gestureYaw, mode === 'following' && orientation ? shape(orientation.yaw - neutral.yaw, config, config.maxYaw) : 0, dt)
+            intentYaw = mode === 'following' && orientation ? shape(orientation.yaw - neutral.yaw, config, config.maxYaw) : 0
+            gestureYaw = approach(gestureYaw, intentYaw, dt)
             gesturePitch = approach(gesturePitch, mode === 'following' && orientation ? shape(orientation.pitch - neutral.pitch, config, config.maxPitch) : 0, dt)
             remember()
             return state(orientation !== null)
@@ -335,9 +353,14 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
             lostMs = 0
             history = []
             recenterOnRecovery = false
+            intentYaw = 0
+            gestureYaw = 0
+            gesturePitch = 0
         },
         reset() {
+            visible = false
             calibrated = false
+            intentYaw = 0
             gestureYaw = 0
             gesturePitch = 0
             neutral = { yaw: 0, pitch: 0 }

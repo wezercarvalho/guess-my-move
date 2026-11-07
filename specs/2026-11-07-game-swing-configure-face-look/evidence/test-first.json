@@ -61,6 +61,18 @@
       "before": "2 falhas / 250 aprovações: lançar e puxar ao sair da parede resultava em velocidade zero, em vez do impulso de 9 m/s",
       "after": "254 casos do núcleo aprovados; impulso preservado com velocidades anteriores 0/+6/-6, sem inércia ao lançar sem puxão",
       "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "giro contínuo após 1 s",
+      "before": "módulo ainda ausente; 2 testes de integração falharam / 69 aprovações, sem giro após a espera",
+      "after": "260 casos do núcleo e 72 casos dirigidos aprovados; espera simétrica, taxa, ganho, reset e amostra congelada",
+      "command": "yarn workspace @guess-my-move/swing test; yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "retorno ao centro junto ao fim da espera",
+      "before": "regressão detectada: 0,075 rad de giro após retornar ao centro devido à cauda de suavização",
+      "after": "intenção sem suavização cancela a espera imediatamente; regressão aprovada sem aumentar tolerância",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
     }
   ],
   "limits": [

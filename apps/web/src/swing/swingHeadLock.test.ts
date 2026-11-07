@@ -93,10 +93,13 @@ async function playing(online?: SwingEnv['online']) {
         keys,
     }
     const video = { readyState: 4, videoWidth: 640, videoHeight: 480, currentTime: 0 }
+    const overlay = document.createElement('canvas')
+    vi.spyOn(overlay, 'getContext').mockReturnValue(null)
+    const scene = document.createElement('canvas')
     const surfaces = {
         getVideo: () => video as HTMLVideoElement,
-        getOverlay: () => document.createElement('canvas'),
-        getScene: () => document.createElement('canvas'),
+        getOverlay: () => overlay,
+        getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)
@@ -127,12 +130,12 @@ const run = (tick: (ms?: number) => void, ms: number) => {
     for (let elapsed = 0; elapsed < ms; elapsed += 16) tick()
 }
 
-/** Calibra o rosto no neutro e vira a cabeça `yaw` graus até o olhar estabilizar; devolve o olhar. */
+/** Calibra o rosto no neutro e vira a cabeça `yaw` graus antes de iniciar o giro contínuo; devolve o olhar. */
 function turnHead({ detectFace, tick, lastState }: Playing, yaw: number): number {
     detectFace.mockReturnValue(face(0))
     run(tick, 400)
     detectFace.mockReturnValue(face(yaw))
-    run(tick, 2000)
+    run(tick, 1000)
     return lastState().yaw
 }
 

@@ -114,11 +114,12 @@ export interface HeadStatusInput {
     faceVisible: boolean
     calibrated?: boolean
     /** Trava da direção (CQ-012): seguindo a cabeça ou travada pelo gesto. */
+    turn?: {intent: 'left' | 'right' | null; progress:number; turning:boolean}
     lockMode?: HeadLookMode
 }
 
 /** Dica de uma linha do painel "Direção do olhar" quando tudo está certo: ensina o gesto de travar. */
-export const HEAD_IDLE_HINT = 'Vire a cabeça para olhar. Mão aberta com o dedão para baixo trava a direção.'
+export const HEAD_IDLE_HINT = 'Vire a cabeça para olhar. Segure de lado por 1 s para continuar girando; volte ao centro para parar. Mão aberta com o dedão para baixo trava a direção.'
 
 /**
  * Status de uma linha da câmera pela cabeça; vazia quando está tudo certo (rosto à vista)
@@ -130,6 +131,7 @@ export function headStatusLine({
     faceVisible,
     calibrated = true,
     lockMode = 'following',
+    turn,
 }: HeadStatusInput): string {
     if (!cameraActive || faceTrackerStatus === 'idle') return ''
     if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
@@ -138,6 +140,12 @@ export function headStatusLine({
     if (lockMode === 'locked') return 'Direção travada. Reposicione o rosto e tire a mão para centralizar.'
     if (!faceVisible) return 'Rosto fora do quadro. Reenquadre o rosto para centralizar automaticamente.'
     if (!calibrated) return 'Olhe para a tela e mantenha a cabeça parada para calibrar.'
+    if (turn?.intent) {
+        const direction = turn.intent === 'left' ? 'esquerda' : 'direita'
+        if (turn.turning) return `Girando para a ${direction}. Volte o rosto ao centro para parar.`
+        const remaining = (1 - turn.progress).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1})
+        return `Olhando para a ${direction}… ${remaining} s para girar.`
+    }
     return ''
 }
 

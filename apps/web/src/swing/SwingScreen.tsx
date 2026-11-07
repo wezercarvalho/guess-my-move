@@ -129,6 +129,7 @@ export function SwingScreen({
         faceVisible: game.faceVisible,
         calibrated: game.headDebug.calibrated,
         lockMode: game.headLock.mode,
+        turn: game.headTurn,
     })
 
     const feedbackInput: FeedbackInput = {
@@ -257,7 +258,7 @@ export function SwingScreen({
                                         aria-describedby="swing-face-sensitivity-hint"
                                         onChange={(event) => game.setFaceSensitivity(Number(event.currentTarget.value))}
                                     />
-                                    <p id="swing-face-sensitivity-hint" className="round-status">Maior sensibilidade: pequenos movimentos giram mais a câmera. Menor: movimentos mais suaves.</p>
+                                    <p id="swing-face-sensitivity-hint" className="round-status">Maior sensibilidade: pequenos movimentos giram mais a câmera. Menor: movimentos mais suaves. Também ajusta a velocidade do giro contínuo.</p>
                                 </div>
                             ) : null}
                             {game.lookMode === 'face' ? (
