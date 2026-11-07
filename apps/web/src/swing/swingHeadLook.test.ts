@@ -422,3 +422,24 @@ it('interrompe giro por imagem congelada, teclado, centralização, modo e rein�
     expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
     g.controller.detach()
 })
+
+it.each([-1, 1])('manter a intenção lateral acelera progressivamente o giro no sentido %s', async (direction) => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    g.detectFace.mockReturnValue(face(direction*25)); settle(g.tick,90)
+    let before=g.lastState().yaw
+    settle(g.tick,30)
+    const base=direction*(g.lastState().yaw-before)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(1)
+    settle(g.tick,135)
+    before=g.lastState().yaw
+    settle(g.tick,30)
+    expect(direction*(g.lastState().yaw-before)).toBeGreaterThan(base*1.5)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBeGreaterThan(1.5)
+    settle(g.tick,100)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(2)
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(1)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    g.controller.detach()
+})

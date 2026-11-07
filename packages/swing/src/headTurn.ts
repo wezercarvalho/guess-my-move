@@ -6,6 +6,9 @@ export const DEFAULT_HEAD_TURN = {
     yawStart: (12 * Math.PI) / 180,
     yawHold: (7 * Math.PI) / 180,
     rate: Math.PI / 6,
+    accelerationStartMs: 2500,
+    accelerationRampMs: 2500,
+    maxSpeedMultiplier: 2,
     maxSampleAgeMs: 250,
     maxFrameMs: 100,
 }
@@ -15,6 +18,7 @@ export interface HeadTurnState {
     progress: number
     turning: boolean
     yawDelta: number
+    speedMultiplier: number
 }
 
 export interface HeadTurnInput {
@@ -38,7 +42,17 @@ export function createHeadTurn(config = DEFAULT_HEAD_TURN): HeadTurn {
     function stop(): HeadTurnState {
         intent = null
         dwell = 0
-        return { intent: null, progress: 0, turning: false, yawDelta: 0 }
+        return { intent: null, progress: 0, turning: false, yawDelta: 0, speedMultiplier: 1 }
+    }
+
+    /** Integral da parcela extra da taxa, em ms equivalentes à velocidade base. */
+    function accelerationArea(heldMs: number): number {
+        const sinceStart = Math.max(0, heldMs - config.accelerationStartMs)
+        const ramp = Math.min(sinceStart, config.accelerationRampMs)
+        return (config.maxSpeedMultiplier - 1) * (
+            ramp * ramp / (2 * config.accelerationRampMs) +
+            Math.max(0, sinceStart - config.accelerationRampMs)
+        )
     }
 
     return {
@@ -70,6 +84,9 @@ export function createHeadTurn(config = DEFAULT_HEAD_TURN): HeadTurn {
             } else dwell += elapsed
 
             const turning = dwell >= config.dwellMs
+            const acceleration = Math.min(1, Math.max(0, dwell - config.accelerationStartMs) / config.accelerationRampMs)
+            const speedMultiplier = 1 + acceleration * (config.maxSpeedMultiplier - 1)
+            const weightedMs = elapsed + accelerationArea(dwell) - accelerationArea(dwell - elapsed)
             const gain = Number.isFinite(input.sensitivity)
                 ? Math.max(HEAD_LOOK_SENSITIVITY.min, Math.min(HEAD_LOOK_SENSITIVITY.max, input.sensitivity))
                 : HEAD_LOOK_SENSITIVITY.initial
@@ -77,8 +94,9 @@ export function createHeadTurn(config = DEFAULT_HEAD_TURN): HeadTurn {
                 intent,
                 progress: Math.min(1, dwell / config.dwellMs),
                 turning,
+                speedMultiplier,
                 yawDelta: turning
-                    ? (intent === 'right' ? 1 : -1) * config.rate * gain * elapsed / 1000
+                    ? (intent === 'right' ? 1 : -1) * config.rate * gain * weightedMs / 1000
                     : 0,
             }
         },

@@ -7,7 +7,7 @@ strategy: sdd
 domain: game
 capability: swing
 objective: configure-face-look
-status: validating
+status: implementing
 owners:
     - wezercarvalho
 reviewers: []
@@ -57,7 +57,9 @@ Teste independente: mesmo movimento com fatores diferentes produz giros proporci
 - **FR-005:** O indicador de velocidade e a velocidade máxima registrada incluem subida/descida agarrado, com a magnitude do deslocamento vertical efetivo por segundo. Parado ou bloqueado pelo limite não anuncia movimento; soltar ou chegar ao telhado não herda impulso de escalada. Lançar e puxar uma teia ao sair da parede preserva o impulso deliberado do punho, independente da velocidade de escalada anterior. Sem novo campo no contrato online.
 - **FR-006:** Permitir âncora virtual no céu até 500 m de altura do personagem, inclusive; acima disso, conservar somente as âncoras válidas em prédios. Preservar alcance, distância/elevação da âncora virtual e demais critérios da mira.
 
-- **FR-007:** No modo Rosto, manter a cabeça para esquerda/direita por 1 segundo inicia giro horizontal contínuo nesse sentido, além do acompanhamento posicional imediato existente. O ganho visual ajusta também a taxa, padrão 30°/s (15–90°/s conforme preferência); pitch continua posicional e limitado. Usar sinais com ganho padrão para a intenção (limiares de 12°/7° após zona morta/ganho), histerese, reiniciar espera ao trocar de lado e permitir voltas completas. Voltar ao centro, perder rosto, amostras sem renovação por mais de 250 ms, gesto de trava, teclado horizontal, centralização, modo/câmera/reinício encerram giro/espera. Não consumir um frame longo como permanência válida nem disparar giro a partir de uma imagem repetida. Preservar direção acumulada ao parar, integração com trava/recuperação/manual, esforço de escalada e contrato online; mostrar espera/direção e instrução de parada.
+- **FR-007:** No modo Rosto, manter a cabeça para esquerda/direita por 1 segundo inicia giro horizontal contínuo nesse sentido, além do acompanhamento posicional imediato existente. O ganho visual ajusta também a taxa, base padrão 30°/s (15–90°/s conforme preferência, antes da aceleração de FR-008); pitch continua posicional e limitado. Usar sinais com ganho padrão para a intenção (limiares de 12°/7° após zona morta/ganho), histerese, reiniciar espera ao trocar de lado e permitir voltas completas. Voltar ao centro, perder rosto, amostras sem renovação por mais de 250 ms, gesto de trava, teclado horizontal, centralização, modo/câmera/reinício encerram giro/espera. Não consumir um frame longo como permanência válida nem disparar giro a partir de uma imagem repetida. Preservar direção acumulada ao parar, integração com trava/recuperação/manual, esforço de escalada e contrato online; mostrar espera/direção e instrução de parada.
+
+- **FR-008:** Após mais de 2,5 s totais mantendo a mesma intenção lateral válida (incluindo o primeiro segundo de espera), aumentar gradualmente a taxa do giro. Rampa linear de 1× a 2× a taxa base nos 2,5 s seguintes; teto em 5 s totais, sem crescimento ilimitado (máximo 180°/s na sensibilidade 3×). Centro, troca de lado e todas as interrupções de FR-007 descartam a aceleração; retomar exige nova espera. Não acelerar por leitura congelada, frames longos ou mudança de preferência. Mesma duração contabilizada da intenção produz a mesma contribuição da aceleração com subdivisões de frames de até 100 ms; manter as proteções de tempo já existentes. Mostrar o multiplicador quando acelerado; manter pitch, escalada, calibragem e protocolo.
 
 ## Requisitos não funcionais
 
@@ -70,4 +72,4 @@ Teste independente: mesmo movimento com fatores diferentes produz giros proporci
 
 ## Critérios mensuráveis de sucesso
 
-- **SC-001:** FR-001–FR-007 demonstrados por testes observáveis e rastreados às tarefas/evidências; comandos oficiais aprovados, com câmera física explicitamente reservada ao maintainer.
+- **SC-001:** FR-001–FR-008 demonstrados por testes observáveis e rastreados às tarefas/evidências; comandos oficiais aprovados, com câmera física explicitamente reservada ao maintainer.

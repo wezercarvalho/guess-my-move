@@ -136,7 +136,7 @@ export interface SwingSnapshot {
     }
     /** Trava da direção do olhar: seguindo a cabeça ou travada pelo gesto. */
     headLock: { mode: HeadLookMode }
-    headTurn: Pick<HeadTurnState, 'intent' | 'progress' | 'turning'>
+    headTurn: Pick<HeadTurnState, 'intent' | 'progress' | 'turning' | 'speedMultiplier'>
     /** O próximo gesto a fazer, para as dicas da tela. */
     cue: SwingCue
     /** Resultado do último lançamento: prendeu, errou, ou `null` antes do primeiro. */

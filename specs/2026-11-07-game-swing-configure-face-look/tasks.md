@@ -33,3 +33,5 @@ Autorização de Gates 1 e 2 da emenda: pedido explícito do maintainer nesta co
 - [x] T008 [FR-005] [SC-001] Reproduzir perda do impulso ao lançar/puxar saindo da parede; preservar só o impulso deliberado, sem velocidade herdada nem campos de rede adicionais. Correção autorizada pela revisão solicitada pelo maintainer nesta conversa.
 
 - [x] T009 [FR-007] [NFR-001] [NFR-002] [SC-001] Demonstrar espera/giro/parada/renovação de amostras e integração de direção, implementar núcleo e feedback compartilhado, validar teclado, escalada, calibração, reset e protocolo. Pedido explícito do maintainer nesta conversa aprova a emenda e a execução.
+
+- [ ] T010 [FR-008] [NFR-001] [NFR-002] [SC-001] Demonstrar fronteira de 2,5 s, aceleração gradual/teto simétrico, reinício e independência da subdivisão; implementar no núcleo e feedback, validar integração/protocolo. Pedido explícito do maintainer aprova a emenda e execução.

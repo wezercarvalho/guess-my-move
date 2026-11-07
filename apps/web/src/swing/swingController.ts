@@ -152,10 +152,10 @@ export class SwingController {
     }
     private readonly headLook: HeadLook = createHeadLook()
     private readonly headTurn = createHeadTurn()
-    private headTurnState: HeadTurnState = {intent:null, progress:0, turning:false, yawDelta:0}
+    private headTurnState: HeadTurnState = {intent:null, progress:0, turning:false, yawDelta:0, speedMultiplier:1}
     private resetHeadTurn(): void {
         this.headTurn.reset()
-        this.headTurnState = {intent:null, progress:0, turning:false, yawDelta:0}
+        this.headTurnState = {intent:null, progress:0, turning:false, yawDelta:0, speedMultiplier:1}
     }
     /** Escalar olhando: segurar o olhar para cima/baixo agarrado, por ~2 s, escala. */
     private readonly headClimb: HeadClimb = createHeadClimb()
@@ -943,6 +943,7 @@ export class SwingController {
                 intent:this.headTurnState.intent,
                 progress:this.headTurnState.progress,
                 turning:this.headTurnState.turning,
+                speedMultiplier:this.headTurnState.speedMultiplier,
             },
             grabDebug: {
                 touchingWall: state?.touchingWall ?? false,

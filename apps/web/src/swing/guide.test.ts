@@ -235,3 +235,10 @@ it('informa espera e giro contínuo, mantendo precedência da perda e da trava',
     expect(headStatusLine({...base,faceVisible:false,turn:{intent:'right',progress:1,turning:true}})).toContain('Rosto fora')
     expect(headStatusLine({...base,lockMode:'locked',turn:{intent:'right',progress:1,turning:true}})).toContain('Direção travada')
 })
+
+it('informa o multiplicador do giro acelerado e preserva a instrução de parada', () => {
+    const message = headStatusLine({cameraActive:true,faceTrackerStatus:'ready',faceVisible:true,
+        turn:{intent:'left',progress:1,turning:true,speedMultiplier:1.4}})
+    expect(message).toContain('Velocidade 1,4×')
+    expect(message).toContain('Volte o rosto ao centro para parar')
+})

@@ -73,6 +73,12 @@
       "before": "regressão detectada: 0,075 rad de giro após retornar ao centro devido à cauda de suavização",
       "after": "intenção sem suavização cancela a espera imediatamente; regressão aprovada sem aumentar tolerância",
       "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "aceleração após 2,5 s de intenção lateral",
+      "before": "4 falhas novas / 260 aprovações: multiplicador ausente e rotação extra igual a zero",
+      "after": "264 casos do núcleo aprovados: fronteira de 2,5 s, rampa/teto em ambos os sentidos, resets e integral equivalente em frames de 20/100 ms",
+      "command": "yarn workspace @guess-my-move/swing test"
     }
   ],
   "limits": [
