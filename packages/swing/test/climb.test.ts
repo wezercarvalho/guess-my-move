@@ -289,3 +289,30 @@ it('no limite inferior, velocidade vertical efetiva não anuncia descida sem des
     stepPlayer(index, state, DT, DEFAULT_SWING, input({ grab: { left: true }, climb: -1 }))
     expect(state.velocity.y).toBeCloseTo(0)
 })
+
+it.each([0, 6, -6])('lançar e puxar ao sair do agarre conserva o impulso do punho, sem herdar velocidade de escalada %s', (climbVelocity) => {
+    const config = {...DEFAULT_SWING, gravity:0, drag:0, assist:0, pullAssist:0, reelSpeed:0, pullReel:0}
+    const world = createSwingWorld(createCityIndex(cityOf()), config)
+    world.state.position = {x:0,y:80,z:0}
+    world.state.started = true
+    world.state.grip = {normal:{x:0,y:0,z:1},wallTop:200,graceMs:0,fistMs:0}
+    world.state.velocity = {x:0,y:climbVelocity,z:0}
+    world.step(input({held:{center:true},pull:{center:true},lookActive:true}), DT)
+    expect(world.state.grip).toBeNull()
+    expect(world.state.webs).toHaveLength(1)
+    const speed = Math.hypot(world.state.velocity.x,world.state.velocity.y,world.state.velocity.z)
+    expect(speed).toBeCloseTo(config.pullImpulse, 5)
+})
+
+it('lançar sem puxar ao sair da parede não herda a velocidade da escalada', () => {
+    const config = {...DEFAULT_SWING, gravity:0, drag:0, assist:0, pullAssist:0, reelSpeed:0, pullReel:0}
+    const world = createSwingWorld(createCityIndex(cityOf()), config)
+    world.state.position = {x:0,y:80,z:0}
+    world.state.started = true
+    world.state.grip = {normal:{x:0,y:0,z:1},wallTop:200,graceMs:0,fistMs:0}
+    world.state.velocity = {x:0,y:6,z:0}
+    world.step(input({held:{center:true},lookActive:true}), DT)
+    expect(world.state.grip).toBeNull()
+    expect(world.state.webs).toHaveLength(1)
+    expect(world.state.velocity).toEqual({x:0,y:0,z:0})
+})

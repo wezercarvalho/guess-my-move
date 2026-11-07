@@ -213,6 +213,8 @@ export function createSwingWorld(
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
+        // Se sair da parede, só os impulsos deliberados deste passo devem atravessar a transição.
+        const grippedVelocity = state.grip ? { ...state.velocity } : null
         const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
         const anyGrab = SLOTS.some(({ slot }) => input.grab?.[slot])
         for (const { slot, side } of SLOTS) {
@@ -248,6 +250,11 @@ export function createSwingWorld(
             grab: input.grab,
             climb: input.climb,
             releaseFist: input.releaseFist,
+            gripReleaseImpulse: grippedVelocity ? {
+                x: state.velocity.x - grippedVelocity.x,
+                y: state.velocity.y - grippedVelocity.y,
+                z: state.velocity.z - grippedVelocity.z,
+            } : undefined,
         })
     }
 

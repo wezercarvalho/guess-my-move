@@ -29,3 +29,5 @@
 Autorização de Gates 1 e 2 da emenda: pedido explícito do maintainer nesta conversa para adequar a centralização e observação de velocidade durante o teste. Mantém Gate 3 humano pendente. Análise de consistência: aprovada pelo agente implementador, sem campos de rede adicionais ou captura de mídia.
 
 - [x] T007 [FR-006] [SC-001] Demonstrar limite inclusivo de 500 m e lançamento em prédios acima do limite; ampliar somente maxAltitude e documentar o pedido explícito do maintainer.
+
+- [ ] T008 [FR-005] [SC-001] Reproduzir perda do impulso ao lançar/puxar saindo da parede; preservar só o impulso deliberado, sem velocidade herdada nem campos de rede adicionais. Correção autorizada pela revisão solicitada pelo maintainer nesta conversa.

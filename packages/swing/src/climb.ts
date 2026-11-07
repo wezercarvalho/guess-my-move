@@ -71,6 +71,8 @@ export interface GripInput {
     releaseFist: boolean
     /** Há teia presa neste passo (lançar uma teia encerra o agarre). */
     hasWeb: boolean
+    /** Impulso deliberado calculado pelo mundo neste passo; nunca é a velocidade da escalada. */
+    releaseImpulse?: Vec3 | undefined
 }
 
 /** Resultado de um passo do agarre: se o jogador está agarrado e se saiu para o telhado. */
@@ -119,6 +121,9 @@ export function stepGrip(
 
     // Lançar uma teia encerra o agarre na hora (um regime por vez).
     if (input.hasWeb) {
+        state.velocity.x = input.releaseImpulse?.x ?? 0
+        state.velocity.y = input.releaseImpulse?.y ?? 0
+        state.velocity.z = input.releaseImpulse?.z ?? 0
         state.grip = null
         return { gripped: false, toppedOut: false }
     }

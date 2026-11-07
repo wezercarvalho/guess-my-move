@@ -205,7 +205,7 @@ export function stepPlayer(
     if (state.grip !== null) {
         const stepResult = stepGrip(
             state,
-            { grab, climb: input.climb ?? 0, releaseFist: Boolean(input.releaseFist), hasWeb: state.webs.length > 0 },
+            { grab, climb: input.climb ?? 0, releaseFist: Boolean(input.releaseFist), hasWeb: state.webs.length > 0, releaseImpulse: input.gripReleaseImpulse },
             dt,
             latestContact(index, state, config),
             config.grip,
@@ -355,12 +355,14 @@ export function stepPlayer(
     return { wallHit }
 }
 
-/** Pedido do jogador que o passo precisa para o agarre (subconjunto de SwingInput). */
+/** Controles do agarre e contexto interno calculado pelo mundo, sem novos campos de rede. */
 export interface PlayerStep {
     grab?: Partial<Record<'left' | 'center' | 'right', boolean>> | undefined
     climb?: number | undefined
     /** Punho fechado pedindo soltar da parede (solta ao segurar além de `fistReleaseMs`). */
     releaseFist?: boolean | undefined
+    /** Só a variação criada pelos comandos de teia neste passo, sem a velocidade anterior da escalada. */
+    gripReleaseImpulse?: Vec3 | undefined
 }
 
 const SLOT_KEYS = ['left', 'center', 'right'] as const
