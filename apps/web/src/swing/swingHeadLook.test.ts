@@ -35,7 +35,8 @@ async function playingWithFace() {
         dispose: vi.fn(),
         project: vi.fn(() => ({ x: 0.5, y: 0.3, behind: false })),
     }
-    const context = new Proxy({}, { get: () => vi.fn(), set: () => true })
+    const drawNoop = () => undefined
+    const context = new Proxy({}, { get: () => drawNoop, set: () => true })
     const keys = new EventTarget()
     const handTracker = {
         delegate: 'CPU' as const,
