@@ -50,7 +50,8 @@ async function playing() {
         dispose: vi.fn(),
         project: vi.fn(() => ({ x: 0.5, y: 0.3, behind: false })),
     }
-    const context = new Proxy({}, { get: () => vi.fn(), set: () => true })
+    const drawNoop = () => undefined
+    const context = new Proxy({}, { get: () => drawNoop, set: () => true })
     const keys = new EventTarget()
     const detectAll = vi.fn<NonNullable<HandTracker['detectAll']>>(() => [])
     const handTracker = {
@@ -77,10 +78,13 @@ async function playing() {
         keys,
     }
     const video = { readyState: 4, videoWidth: 640, videoHeight: 480, currentTime: 0 }
+    const overlay = document.createElement('canvas')
+    vi.spyOn(overlay, 'getContext').mockReturnValue(null)
+    const scene = document.createElement('canvas')
     const surfaces = {
         getVideo: () => video as HTMLVideoElement,
-        getOverlay: () => document.createElement('canvas'),
-        getScene: () => document.createElement('canvas'),
+        getOverlay: () => overlay,
+        getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)

@@ -28,6 +28,7 @@ export {
 export { type SwingCue, swingCue } from './cue.js'
 export {
     DEFAULT_HEAD_LOOK,
+    HEAD_LOOK_SENSITIVITY,
     type FaceLandmark,
     type FaceReading,
     type HeadLook,
@@ -37,6 +38,7 @@ export {
     type HeadOrientation,
     createHeadLook,
     headOrientationFromMatrix,
+    normalizeYaw,
 } from './headLook.js'
 export {
     DEFAULT_HEAD_CLIMB,
@@ -76,3 +78,5 @@ export { type Vec3, forwardFromAngles } from './vec.js'
 export { DEFAULT_WEB, type WebConfig, pickAnchor } from './web.js'
 export { type SlotFlags, type SwingInput, type SwingWorld, type WebSlot, createSwingWorld } from './world.js'
 export * from './online.js'
+
+export { createHeadTurn, DEFAULT_HEAD_TURN, type HeadTurn, type HeadTurnInput, type HeadTurnState } from './headTurn.js'

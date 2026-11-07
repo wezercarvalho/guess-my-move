@@ -1,3 +1,4 @@
+import { HEAD_LOOK_SENSITIVITY } from '@guess-my-move/swing'
 import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { TrainingPanel } from './TrainingPanel.js'
 import { TRAINING_MAP } from './training.js'
@@ -128,6 +129,7 @@ export function SwingScreen({
         faceVisible: game.faceVisible,
         calibrated: game.headDebug.calibrated,
         lockMode: game.headLock.mode,
+        turn: game.headTurn,
     })
 
     const feedbackInput: FeedbackInput = {
@@ -232,12 +234,33 @@ export function SwingScreen({
                                     <Button
                                         variant="secondary"
                                         onClick={game.recenterHead}
+                                        title="Nivelar a câmera ao horizonte e refazer o neutro do rosto"
                                         disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
                                     >
                                         Centralizar
                                     </Button>
                                 ) : null}
                             </div>
+                            {game.lookMode === 'face' ? (
+                                <div className="swing-head__sensitivity">
+                                    <div className="swing-head__sensitivity-label">
+                                        <label htmlFor="swing-face-sensitivity">Sensibilidade do rosto</label>
+                                        <output htmlFor="swing-face-sensitivity">{game.faceSensitivity.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×</output>
+                                    </div>
+                                    <input
+                                        id="swing-face-sensitivity"
+                                        type="range"
+                                        min={HEAD_LOOK_SENSITIVITY.min}
+                                        max={HEAD_LOOK_SENSITIVITY.max}
+                                        step={HEAD_LOOK_SENSITIVITY.step}
+                                        value={game.faceSensitivity}
+                                        aria-valuetext={`${game.faceSensitivity.toLocaleString('pt-BR')} vezes`}
+                                        aria-describedby="swing-face-sensitivity-hint"
+                                        onChange={(event) => game.setFaceSensitivity(Number(event.currentTarget.value))}
+                                    />
+                                    <p id="swing-face-sensitivity-hint" className="round-status">Maior sensibilidade: pequenos movimentos giram mais a câmera. Menor: movimentos mais suaves. Também ajusta a velocidade do giro contínuo.</p>
+                                </div>
+                            ) : null}
                             {game.lookMode === 'face' ? (
                                 <p aria-live="polite" className="round-status" data-testid="head-status">
                                     {headStatus || HEAD_IDLE_HINT}

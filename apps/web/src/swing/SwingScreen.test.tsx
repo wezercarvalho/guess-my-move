@@ -315,3 +315,29 @@ it('explica a calibração e só permite centralizar com orientação válida', 
     expect(screen.getByTestId('head-status')).toHaveTextContent(/cabeça parada para calibrar/)
     expect(screen.getByRole('button',{name:'Centralizar'})).toBeEnabled()
 })
+
+it.each([false, true])('oferece sensibilidade acessível e mantém valor (cooperativo=%s)', async (cooperative) => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    const h = harness({
+        createTracker: () => Promise.resolve({delegate:'CPU', detect:()=>null, close(){}}),
+        createFaceTracker: () => Promise.resolve({delegate:'CPU', detect:()=>null, close(){}}),
+    })
+    const online = cooperative ? {
+        getSnapshot: () => ({ connection: 'connected' as const, access: null, room: null, error: null, pending: false, stale: false }),
+        sendInput: () => undefined,
+    } : undefined
+    render(<SwingScreen {...(online ? { online } : {})} cameraGetUserMedia={() => Promise.resolve(createFakeStream().stream)} deps={h.deps} />)
+    await waitFor(() => expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i))
+    fireEvent.click(screen.getByRole('button', {name:'Ativar câmera'}))
+    const slider = await screen.findByRole('slider', {name:'Sensibilidade do rosto'})
+    expect(slider).toHaveValue('1')
+    expect(slider).toHaveAttribute('min','0.5')
+    expect(slider).toHaveAttribute('max','3')
+    fireEvent.change(slider, {target:{value:'2.5'}})
+    expect(slider).toHaveValue('2.5')
+    expect(screen.getByText('2,5×')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', {name:'Automática'}))
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', {name:'Rosto'}))
+    expect(screen.getByRole('slider', {name:'Sensibilidade do rosto'})).toHaveValue('2.5')
+})

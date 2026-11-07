@@ -222,3 +222,42 @@ describe('createSwingWorld', () => {
         expect(Math.abs(world.state.yaw)).toBeLessThan(0.05)
     })
 })
+
+describe('deltas do olhar no acumulador físico', () => {
+    it('consome o delta uma vez mesmo quando o quadro tem vários subpassos', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.state.pitch = 0
+        world.advance({held:{}, yawRate:0, pitchRate:0, lookActive:true, lookDelta:{yaw:0.3,pitch:0.1}}, DEFAULT_SWING.step * 4)
+        expect(world.state.yaw).toBeCloseTo(0.3, 8)
+        expect(world.state.pitch).toBeCloseTo(0.1, 8)
+    })
+    it('acumula deltas até existir um passo físico e não os reaplica', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.advance({held:{},yawRate:0,pitchRate:0,lookDelta:{yaw:0.1,pitch:0.05}}, DEFAULT_SWING.step / 4)
+        expect(world.state.yaw).toBe(0)
+        world.advance({held:{},yawRate:0,pitchRate:0,lookDelta:{yaw:0.2,pitch:0.05}}, DEFAULT_SWING.step * 0.75)
+        expect(world.state.yaw).toBeCloseTo(0.3,8)
+        world.advance({held:{},yawRate:0,pitchRate:0}, DEFAULT_SWING.step * 2)
+        expect(world.state.yaw).toBeCloseTo(0.3,8)
+    })
+    it('reset descarta delta acumulado de um quadro sem passo', () => {
+        const world = createSwingWorld(createCityIndex(cityOf()))
+        world.advance({held:{},yawRate:0,pitchRate:0,lookDelta:{yaw:0.4,pitch:0}}, DEFAULT_SWING.step / 4)
+        world.reset()
+        world.advance({held:{},yawRate:0,pitchRate:0}, DEFAULT_SWING.step)
+        expect(world.state.yaw).toBe(0)
+    })
+})
+
+it('limita só a âncora virtual a 500 m, mantendo prédios válidos acima desse nível', () => {
+    const open = createSwingWorld(createCityIndex(cityOf()))
+    open.state.position.y = 500
+    expect(open.aim(0)).not.toBeNull()
+    open.state.position.y = 500.01
+    expect(open.aim(0)).toBeNull()
+    const tall = createSwingWorld(createCityIndex(cityOf(box(-30, -90, 30, -40, 800))))
+    tall.state.position = {x:0,y:510,z:0}
+    tall.state.yaw = 0
+    tall.state.pitch = 0
+    expect(tall.aim(0)).not.toBeNull()
+})

@@ -159,10 +159,10 @@ describe('headStatusLine', () => {
         )
     })
 
-    it('pede para centralizar quando o rosto some', () => {
+    it('explica a centralização automática quando o rosto retorna', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: false })
         expect(line).toMatch(/rosto fora do quadro/i)
-        expect(line).toMatch(/centralize/i)
+        expect(line).toMatch(/centralizar automaticamente/i)
     })
 
     it('fica vazia quando o rosto está à vista', () => {
@@ -226,4 +226,19 @@ describe('KEYS', () => {
         expect(climb?.action).toMatch(/agarra/i)
         expect(KEYS.some((group) => /sobem|sobe/i.test(group.action))).toBe(true)
     })
+})
+
+it('informa espera e giro contínuo, mantendo precedência da perda e da trava', () => {
+    const base = {cameraActive:true,faceTrackerStatus:'ready' as const,faceVisible:true,calibrated:true}
+    expect(headStatusLine({...base,turn:{intent:'left',progress:0.5,turning:false}})).toContain('0,5 s')
+    expect(headStatusLine({...base,turn:{intent:'right',progress:1,turning:true}})).toContain('Girando para a direita')
+    expect(headStatusLine({...base,faceVisible:false,turn:{intent:'right',progress:1,turning:true}})).toContain('Rosto fora')
+    expect(headStatusLine({...base,lockMode:'locked',turn:{intent:'right',progress:1,turning:true}})).toContain('Direção travada')
+})
+
+it('informa o multiplicador do giro acelerado e preserva a instrução de parada', () => {
+    const message = headStatusLine({cameraActive:true,faceTrackerStatus:'ready',faceVisible:true,
+        turn:{intent:'left',progress:1,turning:true,speedMultiplier:1.4}})
+    expect(message).toContain('Velocidade 1,4×')
+    expect(message).toContain('Volte o rosto ao centro para parar')
 })

@@ -35,7 +35,8 @@ async function playingWithFace() {
         dispose: vi.fn(),
         project: vi.fn(() => ({ x: 0.5, y: 0.3, behind: false })),
     }
-    const context = new Proxy({}, { get: () => vi.fn(), set: () => true })
+    const drawNoop = () => undefined
+    const context = new Proxy({}, { get: () => drawNoop, set: () => true })
     const keys = new EventTarget()
     const handTracker = {
         delegate: 'CPU' as const,
@@ -61,10 +62,13 @@ async function playingWithFace() {
         keys,
     }
     const video = { readyState: 4, videoWidth: 640, videoHeight: 480, currentTime: 0 }
+    const overlay = document.createElement('canvas')
+    vi.spyOn(overlay, 'getContext').mockReturnValue(null)
+    const scene = document.createElement('canvas')
     const surfaces = {
         getVideo: () => video as HTMLVideoElement,
-        getOverlay: () => document.createElement('canvas'),
-        getScene: () => document.createElement('canvas'),
+        getOverlay: () => overlay,
+        getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)
@@ -84,7 +88,7 @@ async function playingWithFace() {
     await flush()
     controller.setCamera(true)
     await flush()
-    return { controller, env, detectFace, faceTracker, tick, lastState }
+    return { controller, env, detectFace, faceTracker, tick, lastState, keys }
 }
 
 /** Dá quadros para a calibração automática e a suavização estabilizarem. */
@@ -149,11 +153,13 @@ describe('SwingController com o rastreador de rosto', () => {
         detectFace.mockReturnValue(null)
         tick()
         expect(Math.abs(lastState().yaw - turned)).toBeLessThan(Math.abs(turned) * 0.5)
-        // Depois de vários quadros, o desvio da cabeça volta a perto de zero (sem rosto) e o
-        // snapshot (publicado no intervalo) marca o rosto ausente.
-        settle(tick, 120)
+        // O desvio posicional decai e o giro contínuo para; a frente acumulada é preservada.
+        settle(tick, 240)
         expect(controller.getSnapshot().faceVisible).toBe(false)
-        expect(Math.abs(controller.getSnapshot().headDebug.yawDeg)).toBeLessThan(5)
+        expect(controller.getSnapshot().headTurn.turning).toBe(false)
+        const stopped = lastState().yaw
+        settle(tick, 120)
+        expect(lastState().yaw).toBeCloseTo(stopped, 3)
     })
 
     it('expõe a leitura da cabeça para a depuração', async () => {
@@ -275,4 +281,165 @@ it('inclinar para baixo após centralizar no neutro move o olhar para baixo', as
     detectFace.mockReturnValue(face(0, -15))
     settle(tick, 120)
     expect(lastState().pitch).toBeLessThan(-0.05)
+})
+
+describe('sensibilidade do rosto configurável', () => {
+    it('multiplica giro horizontal/vertical, mantendo padrão e sem recarregar detector', async () => {
+        const h = await playingWithFace()
+        h.detectFace.mockReturnValue(face(0))
+        settle(h.tick, 30)
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(1)
+        const loads = (h.env.createFaceTracker as ReturnType<typeof vi.fn>).mock.calls.length
+        const initial = {yaw: h.lastState().yaw, pitch: h.lastState().pitch}
+        h.detectFace.mockReturnValue(face(10, 10))
+        settle(h.tick, 120)
+        const normal = { yaw: h.lastState().yaw, pitch: h.lastState().pitch }
+        h.controller.setFaceSensitivity(2)
+        settle(h.tick, 120)
+        expect(h.lastState().yaw).toBeCloseTo(initial.yaw + (normal.yaw - initial.yaw) * 2, 2)
+        expect(h.lastState().pitch).toBeCloseTo(initial.pitch + (normal.pitch - initial.pitch) * 2, 2)
+        h.controller.setFaceSensitivity(0.5)
+        settle(h.tick, 120)
+        expect(h.lastState().yaw).toBeCloseTo(initial.yaw + (normal.yaw - initial.yaw) * 0.5, 2)
+        expect(h.lastState().pitch).toBeCloseTo(initial.pitch + (normal.pitch - initial.pitch) * 0.5, 2)
+        expect((h.env.createFaceTracker as ReturnType<typeof vi.fn>).mock.calls.length).toBe(loads)
+        h.controller.detach()
+    })
+    it('limita configuração e giro, ignora valores inválidos e preserva a opção na troca de modo e reinício', async () => {
+        const h = await playingWithFace()
+        h.controller.setFaceSensitivity(Infinity)
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(1)
+        h.controller.setFaceSensitivity(99)
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(3)
+        h.detectFace.mockReturnValue(face(0))
+        settle(h.tick, 30)
+        h.detectFace.mockReturnValue(face(70, 70))
+        settle(h.tick, 45)
+        expect(h.controller.getSnapshot().headTurn.turning).toBe(false)
+        expect(Math.abs(h.lastState().yaw)).toBeLessThanOrEqual(70 * Math.PI / 180 + 0.001)
+        expect(Math.abs(h.controller.getSnapshot().headDebug.pitchDeg)).toBeLessThanOrEqual(45)
+        expect(Math.abs(h.lastState().pitch)).toBeLessThanOrEqual(55 * Math.PI / 180 + 0.001)
+        h.controller.setFaceSensitivity(-4)
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(0.5)
+        h.controller.setLookMode('auto')
+        h.controller.setLookMode('face')
+        await flush()
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(0.5)
+        h.controller.restart()
+        expect(h.controller.getSnapshot().faceSensitivity).toBe(0.5)
+        h.controller.detach()
+    })
+    it('alterar o fator converge sem salto no primeiro quadro', async () => {
+        const h = await playingWithFace()
+        h.detectFace.mockReturnValue(face(0))
+        settle(h.tick, 30)
+        h.detectFace.mockReturnValue(face(15))
+        settle(h.tick, 120)
+        const before = h.lastState().yaw
+        h.controller.setFaceSensitivity(3)
+        h.tick()
+        expect(Math.abs(h.lastState().yaw - before)).toBeLessThan(0.12)
+        h.controller.detach()
+    })
+    it('rosto recuperado vira neutro pela integração do controlador', async () => {
+        const h = await playingWithFace()
+        h.detectFace.mockReturnValue(face(0))
+        settle(h.tick, 30)
+        h.detectFace.mockReturnValue(face(25))
+        settle(h.tick, 60)
+        h.detectFace.mockReturnValue(null)
+        settle(h.tick, 20)
+        h.detectFace.mockReturnValue(face(-20, 20))
+        settle(h.tick, 120)
+        expect(h.controller.getSnapshot().headDebug.yawDeg).toBe(0)
+        expect(h.controller.getSnapshot().headDebug.pitchDeg).toBe(0)
+        h.controller.detach()
+    })
+})
+
+it.each([
+    { name: 'parado', velocity: {x:0,y:0,z:0}, yaw: 0 },
+    { name: 'em movimento', velocity: {x:10,y:0,z:0}, yaw: Math.PI / 2 },
+])('Centralizar nivela a câmera inteira $name sem deslocar o personagem', async ({velocity, yaw}) => {
+    const game = await playingWithFace()
+    game.detectFace.mockReturnValue(face(0))
+    settle(game.tick, 20)
+    const state = game.lastState()
+    state.yaw = 2.5
+    state.pitch = 0.9
+    state.velocity = velocity
+    const position = {...state.position}
+    game.controller.recenterHead()
+    game.tick()
+    expect(Math.abs(state.pitch - 0.9)).toBeLessThan(0.15)
+    expect(Math.abs(state.yaw - 2.5)).toBeLessThan(0.35)
+    settle(game.tick, 150)
+    expect(state.pitch).toBeCloseTo(0, 3)
+    expect(state.yaw).toBeCloseTo(yaw, 3)
+    expect(state.position).toEqual(position)
+    game.controller.detach()
+})
+
+it.each([-1, 1])('segurar a cabeça de lado por 1 s mantém giro no sentido %s', async (direction) => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0))
+    settle(g.tick, 20)
+    g.detectFace.mockReturnValue(face(direction * 25))
+    settle(g.tick, 55)
+    const beforeDwell = g.lastState().yaw
+    settle(g.tick, 15)
+    const afterDwell = g.lastState().yaw
+    settle(g.tick, 60)
+    expect(direction * (g.lastState().yaw - afterDwell)).toBeGreaterThan(0.4)
+    expect(Math.abs(afterDwell - beforeDwell)).toBeLessThan(0.15)
+    g.detectFace.mockReturnValue(face(0))
+    settle(g.tick, 120)
+    const stopped = g.lastState().yaw
+    settle(g.tick, 120)
+    expect(g.lastState().yaw).toBeCloseTo(stopped, 3)
+    g.controller.detach()
+})
+
+it('interrompe giro por imagem congelada, teclado, centralização, modo e reinício', async () => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    g.detectFace.mockReturnValue(face(25)); settle(g.tick,150)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(true)
+    for(let i=0;i<30;i++) g.tick(16,false)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    settle(g.tick,150)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(true)
+    g.keys.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft'}))
+    settle(g.tick,10)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.keys.dispatchEvent(new KeyboardEvent('keyup',{key:'ArrowLeft'}))
+    settle(g.tick,150)
+    g.controller.recenterHead(); settle(g.tick,10)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.controller.restart(); settle(g.tick,30)
+    expect(g.controller.getSnapshot().headTurn.intent).toBeNull()
+    g.controller.setLookMode('auto'); await flush()
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    g.controller.detach()
+})
+
+it.each([-1, 1])('manter a intenção lateral acelera progressivamente o giro no sentido %s', async (direction) => {
+    const g = await playingWithFace()
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    g.detectFace.mockReturnValue(face(direction*25)); settle(g.tick,90)
+    let before=g.lastState().yaw
+    settle(g.tick,30)
+    const base=direction*(g.lastState().yaw-before)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(1)
+    settle(g.tick,135)
+    before=g.lastState().yaw
+    settle(g.tick,30)
+    expect(direction*(g.lastState().yaw-before)).toBeGreaterThan(base*1.5)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBeGreaterThan(1.5)
+    settle(g.tick,100)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(2)
+    g.detectFace.mockReturnValue(face(0)); settle(g.tick,20)
+    expect(g.controller.getSnapshot().headTurn.speedMultiplier).toBe(1)
+    expect(g.controller.getSnapshot().headTurn.turning).toBe(false)
+    g.controller.detach()
 })

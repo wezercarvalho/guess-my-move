@@ -1,4 +1,4 @@
-import { type City, type FaceReading, type SwingState } from '@guess-my-move/swing'
+import { createSwingState, swingInputSchema, type SwingInput, type City, type FaceReading, type SwingState } from '@guess-my-move/swing'
 import { describe, expect, it, vi } from 'vitest'
 
 import { type FaceTracker } from '../tracker/faceTracker.js'
@@ -56,7 +56,7 @@ const face = (yaw: number, pitch = 0): FaceReading => ({
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-async function playing() {
+async function playing(online?: SwingEnv['online']) {
     let time = 0
     let pending: (() => void) | null = null
     const renderer = {
@@ -65,7 +65,8 @@ async function playing() {
         dispose: vi.fn(),
         project: vi.fn(() => ({ x: 0.5, y: 0.3, behind: false })),
     }
-    const context = new Proxy({}, { get: () => vi.fn(), set: () => true })
+    const drawNoop = () => undefined
+    const context = new Proxy({}, { get: () => drawNoop, set: () => true })
     const keys = new EventTarget()
     const detectAll = vi.fn<NonNullable<HandTracker['detectAll']>>(() => [])
     const handTracker = {
@@ -77,6 +78,7 @@ async function playing() {
     const detectFace = vi.fn<FaceTracker['detect']>(() => null)
     const faceTracker: FaceTracker = { delegate: 'CPU', detect: detectFace, close: vi.fn() }
     const env: SwingEnv = {
+        ...(online ? { online } : {}),
         createTracker: vi.fn(() => Promise.resolve(handTracker)),
         createFaceTracker: vi.fn(() => Promise.resolve(faceTracker)),
         loadCity: vi.fn(() => Promise.resolve(city)),
@@ -92,10 +94,13 @@ async function playing() {
         keys,
     }
     const video = { readyState: 4, videoWidth: 640, videoHeight: 480, currentTime: 0 }
+    const overlay = document.createElement('canvas')
+    vi.spyOn(overlay, 'getContext').mockReturnValue(null)
+    const scene = document.createElement('canvas')
     const surfaces = {
         getVideo: () => video as HTMLVideoElement,
-        getOverlay: () => document.createElement('canvas'),
-        getScene: () => document.createElement('canvas'),
+        getOverlay: () => overlay,
+        getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
     const controller = new SwingController(env)
@@ -126,12 +131,12 @@ const run = (tick: (ms?: number) => void, ms: number) => {
     for (let elapsed = 0; elapsed < ms; elapsed += 16) tick()
 }
 
-/** Calibra o rosto no neutro e vira a cabeça `yaw` graus até o olhar estabilizar; devolve o olhar. */
+/** Calibra o rosto no neutro e vira a cabeça `yaw` graus antes de iniciar o giro contínuo; devolve o olhar. */
 function turnHead({ detectFace, tick, lastState }: Playing, yaw: number): number {
     detectFace.mockReturnValue(face(0))
     run(tick, 400)
     detectFace.mockReturnValue(face(yaw))
-    run(tick, 2000)
+    run(tick, 1000)
     return lastState().yaw
 }
 
@@ -222,7 +227,7 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(lastState().yaw).toBeCloseTo(before, 1)
     })
 
-    it('tirar a mão com a cabeça ainda virada: a câmera volta a seguir a cabeça, somando à direção travada', async () => {
+    it('ao soltar a trava, a pose atual vira neutro e novos movimentos somam à direção travada', async () => {
         const game = await playing()
         const { controller, detectAll, detectFace, tick, lastState } = game
         const turned = turnHead(game, 25)
@@ -232,6 +237,9 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         detectFace.mockReturnValue(face(40))
         run(tick, 2000)
         expect(controller.getSnapshot().headLock.mode).toBe('following')
+        expect(lastState().yaw).toBeCloseTo(turned, 2)
+        detectFace.mockReturnValue(face(55))
+        run(tick, 2000)
         expect(lastState().yaw).toBeGreaterThan(turned + 0.2)
     })
 
@@ -342,4 +350,91 @@ describe('SwingController — trava da direção do olhar (CQ-012)', () => {
         expect(controller.getSnapshot().hud.gripped).toBe(true)
         expect(Math.abs(lastState().position.y - y0)).toBeLessThan(0.5)
     })
+})
+
+it('alterar sensibilidade durante a trava preserva a direção também depois de soltar', async () => {
+    const game = await playing()
+    turnHead(game, 20)
+    game.detectAll.mockReturnValue([thumbDown()])
+    run(game.tick, 800)
+    const frozen = game.lastState().yaw
+    game.controller.setFaceSensitivity(3)
+    game.detectFace.mockReturnValue(face(40))
+    run(game.tick, 800)
+    expect(game.lastState().yaw).toBeCloseTo(frozen, 2)
+    game.detectAll.mockReturnValue([])
+    run(game.tick, 2000)
+    expect(game.lastState().yaw).toBeCloseTo(frozen, 2)
+    game.controller.recenterHead()
+    game.tick()
+    expect(Math.abs(game.lastState().yaw - frozen)).toBeLessThan(0.12)
+    run(game.tick, 2000)
+    expect(game.controller.getSnapshot().headDebug.yawDeg).toBe(0)
+    game.controller.detach()
+})
+
+it.each([0.5, 3])('sensibilidade %s não altera o comando de escalada pelo olhar', async (sensitivity) => {
+    const game = await playing()
+    gripWall(game)
+    game.controller.setFaceSensitivity(sensitivity)
+    game.detectFace.mockReturnValue(face(10, 20))
+    run(game.tick, 3000)
+    expect(game.controller.getSnapshot().headClimb.intent).toBe('up')
+    expect(game.controller.getSnapshot().headClimb.climbing).toBe(true)
+    game.controller.detach()
+})
+
+it('sensibilidade alta e travas sucessivas mantêm os comandos cooperativos dentro do contrato', async () => {
+    const sent: SwingInput[] = []
+    const state = createSwingState({x:0,y:90,z:0})
+    const online = {
+        getSnapshot: () => ({connection:'connected' as const, access:{roomCode:'ABC123',playerId:'one',resumeToken:'private'}, pending:false, stale:false, error:null, room:{roomCode:'ABC123',cityId:'aurora',cityVersion:1 as const,round:1,tick:1,status:'playing' as const,players:[{id:'one',nickname:'Teste',connected:true,ready:true,rematchReady:false,state}],objectives:[]}}),
+        sendInput: (input: SwingInput) => { sent.push(input) },
+    }
+    const game = await playing(online)
+    game.controller.setFaceSensitivity(3)
+    game.detectFace.mockReturnValue(face(0))
+    run(game.tick, 400)
+    for (const degrees of [20,40,60]) {
+        game.detectFace.mockReturnValue(face(degrees))
+        run(game.tick,2000)
+        game.detectAll.mockReturnValue([thumbDown()])
+        run(game.tick,800)
+        game.detectAll.mockReturnValue([])
+        run(game.tick,800)
+    }
+    game.controller.recenterHead()
+    run(game.tick,1000)
+    expect(sent.length).toBeGreaterThan(10)
+    expect(sent.every(input => swingInputSchema.safeParse(input).success)).toBe(true)
+    game.controller.detach()
+})
+
+it('Centralizar agarrado nivela o horizonte e mira a fachada sem mover o personagem', async () => {
+    const game = await playing()
+    gripWall(game)
+    const state = game.lastState()
+    const normal = state.grip!.normal
+    const heading = Math.atan2(-normal.x, normal.z)
+    const position = {...state.position}
+    state.yaw = heading + 1
+    state.pitch = 0.8
+    game.controller.recenterHead()
+    run(game.tick, 3000)
+    expect(state.pitch).toBeCloseTo(0, 3)
+    expect(state.yaw).toBeCloseTo(heading, 3)
+    expect(state.position.x).toBeCloseTo(position.x, 4)
+    expect(state.position.y).toBeCloseTo(position.y, 4)
+    expect(state.position.z).toBeCloseTo(position.z, 4)
+    game.controller.detach()
+})
+
+it('o indicador conta a velocidade vertical enquanto escala agarrado', async () => {
+    const game = await playing()
+    gripWall(game)
+    game.detectFace.mockReturnValue(face(0, 20))
+    run(game.tick, 3000)
+    expect(game.controller.getSnapshot().headClimb.climbing).toBe(true)
+    expect(game.controller.getSnapshot().hud.speedKmh).toBeGreaterThan(0)
+    game.controller.detach()
 })

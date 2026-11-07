@@ -114,11 +114,12 @@ export interface HeadStatusInput {
     faceVisible: boolean
     calibrated?: boolean
     /** Trava da direção (CQ-012): seguindo a cabeça ou travada pelo gesto. */
+    turn?: {intent: 'left' | 'right' | null; progress:number; turning:boolean; speedMultiplier?:number}
     lockMode?: HeadLookMode
 }
 
 /** Dica de uma linha do painel "Direção do olhar" quando tudo está certo: ensina o gesto de travar. */
-export const HEAD_IDLE_HINT = 'Vire a cabeça para olhar. Mão aberta com o dedão para baixo trava a direção.'
+export const HEAD_IDLE_HINT = 'Segure a cabeça de lado: gira após 1 s e acelera após 2,5 s. Volte ao centro para parar. Dedão para baixo trava a direção.'
 
 /**
  * Status de uma linha da câmera pela cabeça; vazia quando está tudo certo (rosto à vista)
@@ -130,14 +131,27 @@ export function headStatusLine({
     faceVisible,
     calibrated = true,
     lockMode = 'following',
+    turn,
 }: HeadStatusInput): string {
     if (!cameraActive || faceTrackerStatus === 'idle') return ''
     if (faceTrackerStatus === 'error') return 'Cabeça indisponível. Use as setas para olhar em volta.'
     if (faceTrackerStatus === 'loading') return 'Carregando o detector de rosto…'
     // Travada, perder o rosto não muda o olhar: o texto da trava vale.
-    if (lockMode === 'locked') return 'Direção travada. Tire a mão e olhe para a tela.'
-    if (!faceVisible) return 'Rosto fora do quadro. Centralize a cabeça.'
+    if (lockMode === 'locked') return 'Direção travada. Reposicione o rosto e tire a mão para centralizar.'
+    if (!faceVisible) return 'Rosto fora do quadro. Reenquadre o rosto para centralizar automaticamente.'
     if (!calibrated) return 'Olhe para a tela e mantenha a cabeça parada para calibrar.'
+    if (turn?.intent) {
+        const direction = turn.intent === 'left' ? 'esquerda' : 'direita'
+        if (turn.turning) {
+            const speed = turn.speedMultiplier ?? 1
+            const boost = speed > 1
+                ? ` Velocidade ${speed.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1})}×.`
+                : ''
+            return `Girando para a ${direction}.${boost} Volte o rosto ao centro para parar.`
+        }
+        const remaining = (1 - turn.progress).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1})
+        return `Olhando para a ${direction}… ${remaining} s para girar.`
+    }
     return ''
 }
 

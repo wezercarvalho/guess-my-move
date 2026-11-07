@@ -88,12 +88,16 @@ export function createSwingWorld(
     let previousHeld: Record<WebSlot, boolean> = { left: false, center: false, right: false }
     let previousPull: Record<WebSlot, boolean> = { left: false, center: false, right: false }
     let accumulator = 0
+    let pendingYaw = 0
+    let pendingPitch = 0
 
     function start(): void {
         Object.assign(state, createSwingState(spawn))
         previousHeld = { left: false, center: false, right: false }
         previousPull = { left: false, center: false, right: false }
         accumulator = 0
+        pendingYaw = 0
+        pendingPitch = 0
     }
     start()
 
@@ -209,6 +213,8 @@ export function createSwingWorld(
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
+        // Se sair da parede, só os impulsos deliberados deste passo devem atravessar a transição.
+        const grippedVelocity = state.grip ? { ...state.velocity } : null
         const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
         const anyGrab = SLOTS.some(({ slot }) => input.grab?.[slot])
         for (const { slot, side } of SLOTS) {
@@ -244,6 +250,11 @@ export function createSwingWorld(
             grab: input.grab,
             climb: input.climb,
             releaseFist: input.releaseFist,
+            gripReleaseImpulse: grippedVelocity ? {
+                x: state.velocity.x - grippedVelocity.x,
+                y: state.velocity.y - grippedVelocity.y,
+                z: state.velocity.z - grippedVelocity.z,
+            } : undefined,
         })
     }
 
@@ -251,9 +262,20 @@ export function createSwingWorld(
         state,
         step,
         advance(input, frameSeconds) {
+            pendingYaw += input.lookDelta?.yaw ?? 0
+            pendingPitch += input.lookDelta?.pitch ?? 0
             accumulator += Math.min(Math.max(frameSeconds, 0), config.maxFrame)
+            const { lookDelta: _lookDelta, ...continuous } = input
             while (accumulator >= config.step) {
-                step(input, config.step)
+                // Deltas são ângulos por render, não taxas repetíveis por subpasso físico.
+                const hasDelta = pendingYaw !== 0 || pendingPitch !== 0
+                step(hasDelta ? {
+                    ...continuous,
+                    lookDelta: { yaw: pendingYaw, pitch: pendingPitch },
+                    lookActive: true,
+                } : continuous, config.step)
+                pendingYaw = 0
+                pendingPitch = 0
                 accumulator -= config.step
             }
         },
