@@ -1,0 +1,2769 @@
+{
+  "commit": "b9335d5dba89a606a795108f00865fed8e7f411f",
+  "measuredAt": "2026-11-08T05:09:04.077Z",
+  "browser": "156.0.8078.4",
+  "node": "v26.12.1",
+  "host": {
+    "platform": "linux",
+    "arch": "x64",
+    "cpus": 2,
+    "cpu": "AMD EPYC 9354P 32-Core Processor"
+  },
+  "settings": {
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "uploadBytesPerSecond": 93750,
+    "cpuSlowdown": 4,
+    "repetitions": 3,
+    "viewport": "1440x900",
+    "compression": "gzip (Node default)",
+    "renderer": "SwiftShader headless",
+    "camera": "off",
+    "cache": "cold context, then warm navigation; JS/CSS/fonts immutable, HTML/JSON no-cache"
+  },
+  "sizes": {
+    "baseline": [
+      {
+        "file": "PrivacyNotice-CajG2ekE.js",
+        "bytes": 221438,
+        "gzipBytes": 68589
+      },
+      {
+        "file": "cards-EnhT5Qix.js",
+        "bytes": 14726,
+        "gzipBytes": 5124
+      },
+      {
+        "file": "esm-_4IJZHD9.js",
+        "bytes": 42880,
+        "gzipBytes": 13291
+      },
+      {
+        "file": "handOverlay-QvBme1JT.js",
+        "bytes": 213674,
+        "gzipBytes": 62824
+      },
+      {
+        "file": "latency-CAVHRnPG.js",
+        "bytes": 2962,
+        "gzipBytes": 1168
+      },
+      {
+        "file": "main-C5dgj8Yl.js",
+        "bytes": 1281,
+        "gzipBytes": 632
+      },
+      {
+        "file": "marbles-UTSbyrvu.js",
+        "bytes": 62998,
+        "gzipBytes": 20408
+      },
+      {
+        "file": "swing-BIROZaAo.js",
+        "bytes": 687933,
+        "gzipBytes": 182558
+      }
+    ],
+    "split": [
+      {
+        "file": "PrivacyNotice-CajG2ekE.js",
+        "bytes": 221438,
+        "gzipBytes": 68589
+      },
+      {
+        "file": "cards-EnhT5Qix.js",
+        "bytes": 14726,
+        "gzipBytes": 5124
+      },
+      {
+        "file": "esm-_4IJZHD9.js",
+        "bytes": 42880,
+        "gzipBytes": 13291
+      },
+      {
+        "file": "handOverlay-QvBme1JT.js",
+        "bytes": 213674,
+        "gzipBytes": 62824
+      },
+      {
+        "file": "latency-CAVHRnPG.js",
+        "bytes": 2962,
+        "gzipBytes": 1168
+      },
+      {
+        "file": "main-C5dgj8Yl.js",
+        "bytes": 1281,
+        "gzipBytes": 632
+      },
+      {
+        "file": "marbles-UTSbyrvu.js",
+        "bytes": 62998,
+        "gzipBytes": 20408
+      },
+      {
+        "file": "swing-BEcHD4R7.js",
+        "bytes": 126988,
+        "gzipBytes": 43065
+      },
+      {
+        "file": "three-vendor-D2Udkn7n.js",
+        "bytes": 560713,
+        "gzipBytes": 139207
+      }
+    ]
+  },
+  "results": [
+    {
+      "repetition": 0,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 335583,
+      "requests": 9,
+      "readyMs": 2801.5999999046326,
+      "domContentLoadedMs": 2388.2000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1854.3999998569489
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1282.3999998569489
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1231.0999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 211.59999990463257
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 624.7000000476837
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 172.20000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 216.90000009536743
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 160.79999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 708.5,
+      "domContentLoadedMs": 316.40000009536743,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 153.79999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 335547,
+      "requests": 10,
+      "readyMs": 2709.7999999523163,
+      "domContentLoadedMs": 2295.399999856949,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1100.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1484.9000000953674
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1434.5999999046326
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 541.5999999046326
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1838.7999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 235.79999995231628
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 427.2999999523163
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 649.4000000953674
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 162
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 793.2000000476837,
+      "domContentLoadedMs": 351.5,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 164.80000019073486
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 395211,
+      "requests": 11,
+      "readyMs": 3336.2999999523163,
+      "domContentLoadedMs": 2329.2999999523163,
+      "first3dMs": 3048.9000000953674,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1853.1000001430511
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1290.0999999046326
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1240.2999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 633
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 182.30000019073486
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 219.70000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 226.90000009536743
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 352.7999999523163
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 165.79999995231628
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 328.2999999523163
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 1742.9000000953674,
+      "domContentLoadedMs": 1033.2999999523163,
+      "first3dMs": 1569.9000000953674,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 395175,
+      "requests": 12,
+      "readyMs": 3222.100000143051,
+      "domContentLoadedMs": 2286.9000000953674,
+      "first3dMs": 2997.4000000953674,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1058.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1437.1000001430511
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1392
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 685.4000000953674
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1847.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 213.39999985694885
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 172.20000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 216.90000009536743
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.79999995231628
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 354.90000009536743
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 328.60000014305115
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 1538.1000001430511,
+      "domContentLoadedMs": 829.5,
+      "first3dMs": 1404.8000001907349,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 160.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 372719,
+      "requests": 10,
+      "readyMs": 2954.7999999523163,
+      "domContentLoadedMs": 2370.5999999046326,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1862.2999999523163
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1239.9000000953674
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1284.7999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 221.40000009536743
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 624.9000000953674
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 182.39999985694885
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 227.09999990463257
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 155.59999990463257
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 359.60000014305115
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 871.7000000476837,
+      "domContentLoadedMs": 393,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 164.09999990463257
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 372683,
+      "requests": 11,
+      "readyMs": 2848.100000143051,
+      "domContentLoadedMs": 2277.7999999523163,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1127.2999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1488.7999999523163
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1442.7000000476837
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 541.3999998569489
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1845.2999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 201.5
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 396.2999999523163
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 615.2999999523163
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 356.60000014305115
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 161.5
+        }
+      ]
+    },
+    {
+      "repetition": 0,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 824.7999999523163,
+      "domContentLoadedMs": 282,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 160.70000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 372683,
+      "requests": 11,
+      "readyMs": 2979.800000190735,
+      "domContentLoadedMs": 2388.2000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1081
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1450.5999999046326
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1402
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 516.2999999523163
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1851.5
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 215.90000009536743
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 174.79999995231628
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 397.60000014305115
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 371.7000000476837
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 162.40000009536743
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 883.2000000476837,
+      "domContentLoadedMs": 460,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 160.09999990463257
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 372719,
+      "requests": 10,
+      "readyMs": 3420.5,
+      "domContentLoadedMs": 2678.699999809265,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1862.3999998569489
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1288.7000000476837
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1243.2999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 630.8000001907349
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 180.90000009536743
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 212.40000009536743
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 225.5
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 380.59999990463257
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 165.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 23697,
+      "requests": 12,
+      "readyMs": 1047.8999998569489,
+      "domContentLoadedMs": 587,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 161.70000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 395175,
+      "requests": 12,
+      "readyMs": 3484.5,
+      "domContentLoadedMs": 2396.2000000476837,
+      "first3dMs": 3253.4000000953674,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1078.6000001430511
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1461.4000000953674
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1416.2999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 710.9000000953674
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1874
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 223.60000014305115
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 186.80000019073486
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 230.59999990463257
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 354.09999990463257
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 167.30000019073486
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 333.7999999523163
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 2303.5,
+      "domContentLoadedMs": 1539.7000000476837,
+      "first3dMs": 2141.5,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 155
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 395211,
+      "requests": 11,
+      "readyMs": 3595.699999809265,
+      "domContentLoadedMs": 2519,
+      "first3dMs": 3368.199999809265,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1861
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1281.5999999046326
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1236.7999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 490.7000000476837
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 240
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 201.10000014305115
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 418.89999985694885
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 361.59999990463257
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 163.70000004768372
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 326
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 2262.100000143051,
+      "domContentLoadedMs": 1517.2000000476837,
+      "first3dMs": 2124.100000143051,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.90000009536743
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 372683,
+      "requests": 11,
+      "readyMs": 3020.7000000476837,
+      "domContentLoadedMs": 2332.2999999523163,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1079.5
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1452.5999999046326
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1406.8000001907349
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 702.2000000476837
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1864.2000000476837
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 191.5
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 228.70000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 236.5
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 353.60000014305115
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 162
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 1071.2000000476837,
+      "domContentLoadedMs": 395.7999999523163,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 165.20000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 372719,
+      "requests": 10,
+      "readyMs": 2974.5999999046326,
+      "domContentLoadedMs": 2365.2000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1854.2999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1272
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1223.2999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 485.2999999523163
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 185.89999985694885
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 221.5
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 408.60000014305115
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 358
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 168.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 1,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 960.5,
+      "domContentLoadedMs": 343.10000014305115,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 157.59999990463257
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 335583,
+      "requests": 9,
+      "readyMs": 2916,
+      "domContentLoadedMs": 2491.4000000953674,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1884.9000000953674
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1292.8000001907349
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1246.0999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 227
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 638.4000000953674
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 177.20000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 222.19999980926514
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.70000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "selection",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 916.2999999523163,
+      "domContentLoadedMs": 346.19999980926514,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 161.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 335547,
+      "requests": 10,
+      "readyMs": 2749.399999856949,
+      "domContentLoadedMs": 2330.5,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1068.2999999523163
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1384.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1436.3999998569489
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 680.2000000476837
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1849.2999999523163
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 212.79999995231628
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 168.10000014305115
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 218.10000014305115
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 169.20000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "selection",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 737.2000000476837,
+      "domContentLoadedMs": 343.2000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 160.29999995231628
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 395211,
+      "requests": 11,
+      "readyMs": 3647.5,
+      "domContentLoadedMs": 2487.699999809265,
+      "first3dMs": 3382,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1870.5
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1285
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1236.7999999523163
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 491.10000014305115
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 232.10000014305115
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 194.70000004768372
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 418.5
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 377.7000000476837
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 169.39999985694885
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 333.30000019073486
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "training",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 3427.9000000953674,
+      "domContentLoadedMs": 1171.6000001430511,
+      "first3dMs": 1867.2000000476837,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.20000004768372
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 395175,
+      "requests": 12,
+      "readyMs": 3424.800000190735,
+      "domContentLoadedMs": 2313.4000000953674,
+      "first3dMs": 3137.7000000476837,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1077.1000001430511
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1435.8999998569489
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 214.29999995231628
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 686.5
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1382.6999998092651
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1848.5
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 178.09999990463257
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 221.70000004768372
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 369.89999985694885
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 164.20000004768372
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 327.59999990463257
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "training",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 2992.7000000476837,
+      "domContentLoadedMs": 964.5999999046326,
+      "first3dMs": 1606.2000000476837,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 156.5
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "cold",
+      "transferredBytes": 395211,
+      "requests": 11,
+      "readyMs": 3132.9000000953674,
+      "domContentLoadedMs": 2429.7000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 182858,
+          "encodedBodySize": 182558,
+          "durationMs": 1866.1999998092651
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1296.6000001430511
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1251.0999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 224.90000009536743
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 636.2999999523163
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 187.09999990463257
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 232.79999995231628
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 376.09999990463257
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 162.59999990463257
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 287.2999999523163
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "online-lobby",
+      "variant": "baseline",
+      "cache": "warm",
+      "transferredBytes": 1205,
+      "requests": 11,
+      "readyMs": 1175.6999998092651,
+      "domContentLoadedMs": 394.7999999523163,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BIROZaAo.js",
+          "transferSize": 0,
+          "encodedBodySize": 182558,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 159.60000014305115
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "cold",
+      "transferredBytes": 395175,
+      "requests": 12,
+      "readyMs": 3587.7000000476837,
+      "domContentLoadedMs": 2449.2000000476837,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 43365,
+          "encodedBodySize": 43065,
+          "durationMs": 1060.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 68889,
+          "encodedBodySize": 68589,
+          "durationMs": 1442.3000001907349
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 13591,
+          "encodedBodySize": 13291,
+          "durationMs": 692.2000000476837
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 63124,
+          "encodedBodySize": 62824,
+          "durationMs": 1397.2000000476837
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 139507,
+          "encodedBodySize": 139207,
+          "durationMs": 1853.5999999046326
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 2945,
+          "encodedBodySize": 2645,
+          "durationMs": 219.59999990463257
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 501,
+          "encodedBodySize": 201,
+          "durationMs": 180.5
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 2963,
+          "encodedBodySize": 2663,
+          "durationMs": 223
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 37232,
+          "encodedBodySize": 36932,
+          "durationMs": 378.10000014305115
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 165.09999990463257
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 22588,
+          "encodedBodySize": 22288,
+          "durationMs": 312.89999985694885
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "scenario": "online-lobby",
+      "variant": "split",
+      "cache": "warm",
+      "transferredBytes": 1222,
+      "requests": 12,
+      "readyMs": 1248.0999999046326,
+      "domContentLoadedMs": 487.7999999523163,
+      "first3dMs": null,
+      "resources": [
+        {
+          "path": "/assets/swing-BEcHD4R7.js",
+          "transferSize": 0,
+          "encodedBodySize": 43065,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-CajG2ekE.js",
+          "transferSize": 0,
+          "encodedBodySize": 68589,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-QvBme1JT.js",
+          "transferSize": 0,
+          "encodedBodySize": 62824,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/esm-_4IJZHD9.js",
+          "transferSize": 0,
+          "encodedBodySize": 13291,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/three-vendor-D2Udkn7n.js",
+          "transferSize": 0,
+          "encodedBodySize": 139207,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/PrivacyNotice-BwuPbFnn.css",
+          "transferSize": 0,
+          "encodedBodySize": 2645,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/handOverlay-CqnhBWBx.css",
+          "transferSize": 0,
+          "encodedBodySize": 201,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/swing-BzEIpTgA.css",
+          "transferSize": 0,
+          "encodedBodySize": 2663,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/dm-sans-latin-Xz1IZZA0.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 36932,
+          "durationMs": 0
+        },
+        {
+          "path": "/assets/space-grotesk-latin-BhU9QXUp.woff2",
+          "transferSize": 0,
+          "encodedBodySize": 22288,
+          "durationMs": 0
+        },
+        {
+          "path": "/swing/cities.json",
+          "transferSize": 674,
+          "encodedBodySize": 374,
+          "durationMs": 157.59999990463257
+        }
+      ]
+    }
+  ]
+}

@@ -32,3 +32,6 @@ apps/web/public/mediapipe/
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+# Resultado local da investigação de bundle
+apps/web/dist-profile/
