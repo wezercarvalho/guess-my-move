@@ -1,3 +1,4 @@
+import { cardsOpenApiPaths } from '../cards/cards.openapi.js'
 import {
     SWING_CLIENT_EVENTS,
     SWING_SERVER_EVENTS,
@@ -94,9 +95,10 @@ export function buildOpenApiDocument() {
                 'HTTP de suporte ao jogo. Comandos de sala e tiros usam Socket.IO e possuem contrato separado.',
         },
         servers: [{ url: '/' }],
-        paths,
+        paths: { ...paths, ...cardsOpenApiPaths() },
         components: {
             securitySchemes: {
+                cardRoundToken: { type: 'http', scheme: 'bearer', description: 'Token privado e efêmero da rodada; nunca guardar em URL, storage persistente ou logs.' },
                 metricsToken: {
                     type: 'http',
                     scheme: 'bearer',

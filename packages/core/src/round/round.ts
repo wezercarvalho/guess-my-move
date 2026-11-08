@@ -35,7 +35,7 @@ class RoundMachine implements Round {
     private endedAt: number | null = null
 
     constructor(config: RoundConfig) {
-        const maxDurationMs = config.maxDurationMs ?? DEFAULT_MAX_DURATION_MS
+        const maxDurationMs = config.maxDurationMs ?? config.card.evaluation.maxDurationMs ?? DEFAULT_MAX_DURATION_MS
         if (!Number.isFinite(maxDurationMs) || maxDurationMs <= 0) {
             throw new Error('maxDurationMs deve ser um número positivo')
         }

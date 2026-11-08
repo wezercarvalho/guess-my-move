@@ -1,7 +1,7 @@
 import {
     type Card,
     createRound,
-    DEFAULT_MAX_DURATION_MS,
+    cardMaxDurationMs,
     handAngleDeg,
     type Round,
     type RoundState,
@@ -293,7 +293,7 @@ export class GestureController {
             canStart: this.round.state === 'camera_ready',
             finished: this.round.finished,
             elapsedMs: this.elapsedMs,
-            maxDurationMs: DEFAULT_MAX_DURATION_MS,
+            maxDurationMs: cardMaxDurationMs(this.options.card),
             debug: this.debug,
         }
     }

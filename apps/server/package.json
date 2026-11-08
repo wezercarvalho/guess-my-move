@@ -6,6 +6,8 @@
     "type": "module",
     "scripts": {
         "dev": "node scripts/dev.mjs",
+        "test:cards": "vitest run test/card-rounds.test.ts test/card-rounds.e2e.test.ts",
+        "test:compiled": "node scripts/smoke-compiled.mjs",
         "start": "node dist/main.js",
         "build": "tsc -p tsconfig.build.json",
         "typecheck": "tsc --noEmit",
@@ -15,6 +17,7 @@
         "load:swing": "node scripts/load-swing.mjs"
     },
     "dependencies": {
+        "@guess-my-move/core": "0.0.0",
         "@guess-my-move/marbles": "0.0.0",
         "@guess-my-move/swing": "0.0.0",
         "@nestjs/common": "12.3.3",

@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/locale.js'
 import { type ReactNode, type RefObject, useEffect, useRef } from 'react'
 
 import { type UseCameraResult } from './useCamera.js'
@@ -20,6 +21,7 @@ export interface CameraPanelProps {
  * está indisponível. Nenhuma requisição ao modelo/servidor acontece aqui.
  */
 export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPanelProps) {
+    const { t, locale } = useI18n()
     const { status, errorMessage, stream, isActive, start, stop } = camera
     const internalRef = useRef<HTMLVideoElement>(null)
     const videoRef = externalRef ?? internalRef
@@ -39,7 +41,7 @@ export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPa
 
     return (
         <section aria-labelledby="camera-heading" className="camera-panel">
-            <h2 id="camera-heading">Câmera</h2>
+            <h2 id="camera-heading">{t.camera}</h2>
 
             <div className="camera-preview-wrapper">
                 <video
@@ -48,7 +50,7 @@ export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPa
                     muted
                     playsInline
                     // Rótulo acessível para o preview da câmera.
-                    aria-label="Pré-visualização da sua câmera"
+                    aria-label={t.cameraPreview}
                     data-testid="camera-preview"
                     hidden={!isActive}
                 />
@@ -60,7 +62,7 @@ export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPa
                         data-testid="camera-active-indicator"
                     >
                         <span className="camera-indicator-dot" aria-hidden="true" />
-                        Câmera ativa
+                        {t.cameraActive}
                     </span>
                 )}
             </div>
@@ -72,28 +74,26 @@ export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPa
                         onClick={() => void start()}
                         disabled={requesting}
                     >
-                        {requesting ? 'Solicitando câmera…' : 'Ativar câmera'}
+                        {requesting ? t.cameraRequest : t.cameraEnable}
                     </button>
                 ) : (
                     <button type="button" onClick={stop}>
-                        Parar câmera
+                        {t.cameraStop}
                     </button>
                 )}
             </div>
 
             {/* Estado anunciado a tecnologias assistivas. */}
             <p className="sr-only" aria-live="polite" data-testid="camera-status">
-                {statusLabel(status)}
+                {statusLabel(status, t)}
             </p>
 
             {errorMessage && (
                 <div className="camera-error" role="alert">
-                    <p>{errorMessage}</p>
+                    <p>{locale === 'pt-BR' ? errorMessage : statusLabel(status, t)}</p>
                     {status === 'denied' && (
                         <p className="camera-error-hint">
-                            Depois de reativar a permissão, clique em “Ativar
-                            câmera” novamente. Enquanto a câmera estiver negada,
-                            nenhum dado é enviado a provedores externos.
+                            {t.cameraRetry}
                         </p>
                     )}
                 </div>
@@ -103,19 +103,19 @@ export function CameraPanel({ camera, videoRef: externalRef, overlay }: CameraPa
 }
 
 /** Rótulo textual de cada estado, para o anúncio em `aria-live`. */
-function statusLabel(status: UseCameraResult['status']): string {
+function statusLabel(status: UseCameraResult['status'], t: ReturnType<typeof useI18n>['t']): string {
     switch (status) {
         case 'idle':
-            return 'Câmera desativada.'
+            return t.cameraIdle
         case 'requesting':
-            return 'Solicitando permissão de câmera.'
+            return t.cameraRequesting
         case 'active':
-            return 'Câmera ativa.'
+            return t.cameraActiveStatus
         case 'denied':
-            return 'Permissão de câmera negada.'
+            return t.cameraDenied
         case 'unavailable':
-            return 'Câmera indisponível.'
+            return t.cameraUnavailable
         case 'error':
-            return 'Erro ao acessar a câmera.'
+            return t.cameraError
     }
 }

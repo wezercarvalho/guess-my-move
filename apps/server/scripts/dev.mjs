@@ -6,6 +6,7 @@ const root = fileURLToPath(new URL('../../..', import.meta.url))
 const tsc = ['tsc', '-p', 'tsconfig.build.json']
 // O servidor executa os exports compilados do workspace, também em clone novo.
 for (const [args, directory] of [
+    [['workspace', '@guess-my-move/core', 'build'], root],
     [['workspace', '@guess-my-move/marbles', 'build'], root],
     [['workspace', '@guess-my-move/swing', 'build'], root],
     [tsc, cwd],
@@ -15,6 +16,7 @@ for (const [args, directory] of [
 }
 
 const children = [
+    spawn('yarn', ['workspace', '@guess-my-move/core', 'exec', 'tsc', '--build', 'tsconfig.build.json', '--watch', '--preserveWatchOutput'], { cwd: root, stdio: 'inherit' }),
     spawn(
         'yarn',
         [

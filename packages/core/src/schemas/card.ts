@@ -15,6 +15,7 @@ export const cardPublicSchema = strict({
     hint: nonEmptyText(),
     suggestion: nonEmptyText(),
     difficulty: z.exactOptional(text()),
+    category: z.exactOptional(nonEmptyText()),
 })
 
 /**
@@ -35,6 +36,8 @@ export const handAngleOscillationCriterionSchema = strict({
 /** Avaliação privada da carta: o critério que o árbitro por visão aplica. */
 export const cardEvaluationSchema = strict({
     criterion: handAngleOscillationCriterionSchema,
+    basePoints: z.exactOptional(positiveInt()),
+    maxDurationMs: z.exactOptional(positiveInt()),
 })
 
 /** Carta completa: identidade, locale, parte pública e avaliação privada. */

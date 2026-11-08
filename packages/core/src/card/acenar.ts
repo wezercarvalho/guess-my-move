@@ -19,10 +19,14 @@ export const acenarCard: Card = parseCard({
     public: {
         word: 'Acenar',
         hint: 'Um gesto usado para cumprimentar ou se despedir de alguém à distância.',
-        suggestion: 'Levante uma das mãos e movimente-a de um lado para o outro.',
+        suggestion:
+            'Levante uma das mãos e movimente-a de um lado para o outro.',
         difficulty: 'easy',
+        category: 'greetings',
     },
     evaluation: {
+        basePoints: 100,
+        maxDurationMs: 10000,
         criterion: {
             kind: 'hand-angle-oscillation',
             // Valores iniciais confirmados no spike com 12 clipes (ver research.md
