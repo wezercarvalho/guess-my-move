@@ -13,6 +13,8 @@ owners:
 reviewers: []
 aliases: []
 code_paths:
+    - package.json
+    - docs/
     - apps/web/
     - apps/server/
     - packages/core/
