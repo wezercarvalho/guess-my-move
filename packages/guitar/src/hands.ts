@@ -19,6 +19,8 @@ export interface HandRoles<T extends HandInput = HandInput> {
 
 /** Margem em volta da divisa em que uma mão sozinha mantém o papel (hipótese a calibrar). */
 export const DEFAULT_SPLIT_MARGIN = 0.03
+/** Janela de memória de papel após perder a mão (ms; hipótese a calibrar). */
+export const DEFAULT_ROLE_GRACE_MS = 150
 
 const WRIST = 0
 
@@ -31,13 +33,19 @@ type Role = 'fretting' | 'strumming'
  */
 export class HandRoleAssigner {
     private lastRole: Role | null = null
+    private lastSeen: number | null = null
 
-    constructor(private readonly margin: number = DEFAULT_SPLIT_MARGIN) {}
+    constructor(
+        private readonly margin: number = DEFAULT_SPLIT_MARGIN,
+        private readonly graceMs: number = DEFAULT_ROLE_GRACE_MS,
+    ) {}
 
-    assign<T extends HandInput>(hands: readonly T[], placement: BoardPlacement): HandRoles<T> {
+    assign<T extends HandInput>(hands: readonly T[], placement: BoardPlacement, tMs: number): HandRoles<T> {
+        if (this.lastSeen !== null && tMs - this.lastSeen > this.graceMs) this.reset()
         if (hands.length === 0) {
             return { fretting: null, strumming: null }
         }
+        this.lastSeen = tMs
         const wristX = (hand: T) => hand.landmarks[WRIST]?.x ?? 0.5
         // da pestana para longe: no braço destro, da esquerda para a direita
         const ordered = [...hands].sort((a, b) =>
@@ -61,6 +69,7 @@ export class HandRoleAssigner {
     }
 
     reset(): void {
+        this.lastSeen = null
         this.lastRole = null
     }
 }

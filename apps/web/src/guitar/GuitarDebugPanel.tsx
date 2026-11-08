@@ -1,4 +1,4 @@
-import { type BoardPlacement, DEFAULT_PLACEMENT, STRING_NUMBERS } from '@guess-my-move/guitar'
+import { type BoardPlacement, DEFAULT_PLACEMENT, highestPress, STRING_NUMBERS } from '@guess-my-move/guitar'
 
 import { Button } from '../design/index.js'
 import { type GuitarController, type GuitarSnapshot } from './guitarController.js'
@@ -60,7 +60,7 @@ export function GuitarDebugPanel({
                     <FingerRow key={finger.finger} finger={finger} />
                 ))}
                 {STRING_NUMBERS.map((string) => {
-                    const press = snapshot.presses.find((item) => item.string === string)
+                    const press = highestPress(snapshot.presses, string)
                     return (
                         <StringRow
                             key={string}

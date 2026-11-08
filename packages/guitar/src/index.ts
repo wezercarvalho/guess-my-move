@@ -35,6 +35,7 @@ export {
 export { type OneEuroConfig, OneEuroFilter } from './oneEuro.js'
 export {
     DEFAULT_SPLIT_MARGIN,
+    DEFAULT_ROLE_GRACE_MS,
     type HandInput,
     HandRoleAssigner,
     type HandRoles,
@@ -51,6 +52,7 @@ export {
     type ChordRecognitionConfig,
     DEFAULT_RECOGNITION_CONFIG,
     recognizeChord,
+    highestPress,
 } from './evaluate.js'
 export {
     DEFAULT_STRUM_CONFIG,

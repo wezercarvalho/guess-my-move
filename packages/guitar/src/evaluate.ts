@@ -3,7 +3,7 @@ import { type FingerPress } from './fingers.js'
 import { type Chord, type ChordId, STRING_NUMBERS, type StringNumber } from './theory.js'
 
 /** Em cada corda, a casa mais alta define a posição efetiva. */
-function topPress(presses: readonly FingerPress[], string: StringNumber): FingerPress | null {
+export function highestPress(presses: readonly FingerPress[], string: StringNumber): FingerPress | null {
     let top: FingerPress | null = null
     for (const press of presses) {
         if (press.string === string && (top === null || press.fret > top.fret)) top = press
@@ -25,7 +25,7 @@ export const DEFAULT_RECOGNITION_CONFIG: ChordRecognitionConfig = {
 
 /** Forma observada: uma única casa efetiva por corda, sem depender do número do dedo. */
 function pressShape(presses: readonly FingerPress[]): string {
-    return STRING_NUMBERS.map((string) => topPress(presses, string))
+    return STRING_NUMBERS.map((string) => highestPress(presses, string))
         .filter((press): press is FingerPress => press !== null)
         .map((press) => `${press.string}:${press.fret}`)
         .join('|')

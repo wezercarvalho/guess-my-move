@@ -172,3 +172,7 @@ Preservar o fluxo livre aprovado em CQ-007. Adotar `AsyncTrackerResource` e `Vid
 ### Rede do detector na conferência de navegador
 
 O MediaPipe 1.1.1 instalado tenta postar telemetria em `odml.pa.googleapis.com/v1/log`, apesar dos modelos locais; a interface pública de opções instalada não oferece desligamento tipado. Para cumprir NFR-001/NFR-002 no Violão, aplicar CSP `connect-src 'self'` no HTML antes dos módulos. Não modificar internals da biblioteca nem interceptar globalmente fetch/XHR. Verificar no navegador o carregamento local, câmera/áudio e ausência de conexões externas concluídas; tentativas bloqueadas pela política são evidência distinta de ausência de tentativa. A proteção é restrita à página do Violão.
+
+### Auditoria de #98 e #104
+
+Injetar tempo também em `HandRoleAssigner.assign`, com tolerância de papel nomeada e configurável (inicialmente 150 ms, hipótese como a tolerância de dedos). Expirar antes de atribuir uma mão reencontrada, mesmo sem quadros intermediários. Compartilhar a redução de casa mais alta por corda de FR-008 com a depuração de FR-017, para impedir divergência no diagnóstico. Cobrir ausência curta/longa e corda com dois dedos antes de corrigir.

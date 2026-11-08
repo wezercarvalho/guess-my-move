@@ -187,3 +187,14 @@ O build mantém o aviso já existente de chunk grande do Arranha-Teia; não é e
 
 - O maintainer ainda precisa repetir o teste com câmera e mãos reais: cinco acordes, troca entre eles, batidas nos dois sentidos, mão direita/esquerda, iluminação e ajustes. Registrar em SC-003 o que funcionou e os limites; não foi medida precisão, latência ou FPS de uso real.
 - A PR permanece em draft para revisão. O `pr-gate` remoto não roda em rascunho; será executado quando o maintainer marcar ready. Não houve merge, deploy nem fechamento de #95.
+
+## Complemento da auditoria de aceite de #98 e #104 — 2026-11-08
+
+A revisão item a item encontrou duas lacunas além das correções da retomada. Ambas foram reproduzidas antes da implementação: dois testes de memória de papel falharam por reutilizar o papel antigo após ausência longa; o teste de depuração exibiu `casa 1` onde o reconhecimento efetivo usa `casa 3`.
+
+- FR-006/#98: `HandRoleAssigner.assign` agora recebe o tempo monotônico injetado e expira a memória de papel após a tolerância configurável (`DEFAULT_ROLE_GRACE_MS`, 150 ms inicialmente). O limite é hipótese a calibrar; o teste cobre a borda de 150 ms, ausência de 151 ms e intervalo sem chamadas intermediárias. A decisão continua baseada no lado da tela, sem rótulo do detector.
+- FR-008/FR-017/#104: `highestPress` é a regra compartilhada entre reconhecimento e depuração. Com dois dedos estáveis na mesma corda, o painel mostra a casa mais alta, e não a primeira entrada do vetor de dedos.
+- Testes dirigidos após correção: `yarn workspace @guess-my-move/guitar test` (84 testes) e `yarn workspace @guess-my-move/web test:guitar` (75 testes + 6 de privacidade) passaram; `yarn check:static` e `yarn build` também passaram.
+- O complemento não substitui nem executa o reteste com mãos reais de SC-003. A PR #105 continua em draft; o fechamento de #95 ainda depende desse registro humano.
+
+Validação completa repetida após o complemento: `yarn check:all` passou em todos os workspaces (68 core, **84 guitar**, 174 marbles, 264 swing, 98 server, **604 web + 87 testes Node**), com tipos/lint sem avisos nem erros e build completo. O smoke Chromium foi repetido sobre o build atualizado e manteve os resultados de áudio, câmera, layout e CSP; `evidence/browser-smoke.json` foi atualizado com essa execução. SDD e formatação também passaram após reconciliar os artefatos.

@@ -316,7 +316,7 @@ export class GuitarController {
         const inputs: HandInput[] = tracked.map((hand) => ({
             landmarks: hand.landmarks.map(mirror),
         }))
-        const roles = this.roles.assign(inputs, this.placement)
+        const roles = this.roles.assign(inputs, this.placement, now)
         this.fretHand = roles.fretting
         this.strumHand = roles.strumming
         this.applyFretHand(now)

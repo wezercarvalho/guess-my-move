@@ -146,3 +146,5 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - [ ] R005 Reteste físico pelo maintainer e registro de SC-003.
 
 - [x] R006 Corrigir primeiro clique de áudio e bloquear telemetria de terceiros na página, com regressões e conferência de navegador (FR-014/NFR-001/NFR-002).
+
+- [x] R007 Expirar a memória de papel da mão e compartilhar a casa efetiva com a depuração, com regressões (FR-006/FR-008/FR-017; #98/#104).

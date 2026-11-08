@@ -289,6 +289,15 @@ describe('GuitarScreen', () => {
         expect(panel).toHaveTextContent(/corda 5.*casa 2/i)
     })
 
+    it('a depuração mostra a casa mais alta quando dois dedos pressionam a mesma corda', async () => {
+        const h = await openWithCamera()
+        h.setHands([fretHand([{ string: 5, fret: 1 }, { string: 5, fret: 3 }]), strumHand(0.45)])
+        h.run(14)
+        fireEvent.click(screen.getByRole('button', { name: 'Depuração' }))
+        const panel = screen.getByRole('region', { name: 'Depuração' })
+        expect(within(panel).getByText('Corda 5', { exact: true }).nextElementSibling).toHaveTextContent('casa 3')
+    })
+
     it('a latência desconhecida (o navegador informa 0) aparece como traço, não como 0 ms', () => {
         const h = harness()
         const deps: GuitarDeps = {
