@@ -25,7 +25,7 @@ O [registry oficial do TypeScript](https://registry.npmjs.org/typescript) ainda 
 
 O [plano oficial](https://github.com/microsoft/TypeScript/issues/63703) prevê RC em **10/11/2026** e estável em **24/11/2026**. Datas de plano não são publicação comprovada. Próxima conferência de prontidão: **10/11/2026**; adoção somente após versão estável publicada e validada, com nova conferência em **24/11/2026** se necessário.
 
-A [compatibilidade do Nest CLI](https://github.com/nestjs/nest-cli/issues/3479) permanece em aberto. Uma proposta ou commit citado na discussão não comprova release estável compatível. Manter o fluxo `tsc` e o launcher de desenvolvimento atuais até demonstrar compilação, watch, DI e metadados no projeto real.
+A [compatibilidade do Nest CLI](https://github.com/nestjs/nest-cli/issues/3479) permanece em aberto. Uma proposta ou commit citado na discussão não comprova release estável compatível. Manter o fluxo `tsc` e o launcher de desenvolvimento atuais até demonstrar compilação, watch, DI e metadados no projeto real. A consulta ao [manifesto oficial de Nest CLI latest](https://registry.npmjs.org/@nestjs%2fcli/latest) identificou **12.0.12**, ainda com dependência de TypeScript `~6.0.2`; isso não comprova adaptação ao compilador 7. O [manifesto de oxlint-tsgolint latest](https://registry.npmjs.org/oxlint-tsgolint/latest) indicou **7.0.2006**, enquanto o projeto está pinado em 7.0.2004. Esses dados orientam a futura matriz; nenhum desses pins foi alterado nesta entrega.
 
 Quando a versão estável existir:
 
