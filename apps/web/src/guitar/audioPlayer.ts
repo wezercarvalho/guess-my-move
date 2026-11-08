@@ -106,14 +106,16 @@ export function createAudioPlayer(
                     return
                 }
             }
-            if (context.state !== 'running') {
+            const active = context
+            if (active.state !== 'running') {
                 try {
-                    await context.resume()
+                    await active.resume()
                 } catch {
                     // o navegador recusou: o próximo gesto tenta de novo
                 }
             }
-            setStatus(context.state === 'running' ? 'running' : 'locked')
+            if (context !== active) return
+            setStatus(active.state === 'running' ? 'running' : 'locked')
         },
         play(plan) {
             const ctx = context
@@ -147,6 +149,7 @@ export function createAudioPlayer(
             listeners.clear()
             const ctx = context
             context = null
+            status = 'idle'
             cache.clear()
             if (ctx) void ctx.close().catch(() => undefined)
         },

@@ -1,4 +1,5 @@
-import { type City, type SwingState } from '@guess-my-move/swing'
+import { type SwingOnlineSnapshot } from './multiplayerClient.js'
+import { createSwingState, type SwingRoomState, type SwingInput, type City, type SwingState } from '@guess-my-move/swing'
 import { describe, expect, it, vi } from 'vitest'
 
 import { type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
@@ -251,5 +252,44 @@ describe('SwingController', () => {
         expect(game.renderer.resize).toHaveBeenCalledWith(800, 450)
         game.controller.resize(1024, 576)
         expect(game.renderer.resize).toHaveBeenLastCalledWith(1024, 576)
+    })
+})
+
+
+describe('SwingController cooperativo', () => {
+    it('sends processed keyboard intent at 10Hz, reconciles snapshots and freezes during reconnection without resetting locally', async () => {
+        const state = createSwingState({ x: 10, y: 90, z: -10 })
+        const room: SwingRoomState = { roomCode: 'ABC123', cityId: 'aurora', cityVersion: 1, round: 1, tick: 1, status: 'playing', players: [{ id: 'one', nickname: 'Ana', connected: true, ready: true, rematchReady: false, state }], objectives: [] }
+        let snapshot: SwingOnlineSnapshot = { connection: 'connected', room, access: { roomCode: 'ABC123', playerId: 'one', resumeToken: 'private' }, error: null, pending: false, stale: false }
+        const sendInput = vi.fn<(input: SwingInput) => void>()
+        const setOnline = vi.fn()
+        const renderer = { resize: vi.fn(), render: vi.fn<(state: SwingState) => void>(), dispose: vi.fn(), setOnline }
+        const game = await playing({ online: { getSnapshot: () => snapshot, sendInput }, createRenderer: vi.fn(() => renderer) })
+        game.press(' ')
+        for (let i = 0; i < 60; i++) game.tick(1000 / 60)
+        expect(sendInput.mock.calls.length).toBeGreaterThanOrEqual(8)
+        expect(sendInput.mock.calls.length).toBeLessThanOrEqual(10)
+        const input = sendInput.mock.calls[0]?.[0]
+        expect(input?.held.center).toBe(true)
+        expect(input).not.toHaveProperty('position')
+        expect(input).not.toHaveProperty('landmarks')
+        snapshot = { ...snapshot, connection: 'disconnected', room: { ...room, tick: 2, status: 'paused', players: [{ ...room.players[0], state: { ...state, position: { x: 50, y: 90, z: -10 } } }] } }
+        game.tick()
+        const frozen = structuredClone(renderer.render.mock.calls.at(-1)?.[0])
+        const sent = sendInput.mock.calls.length
+        game.tick(200)
+        expect(sendInput).toHaveBeenCalledTimes(sent)
+        expect(renderer.render.mock.calls.at(-1)?.[0]).toEqual(frozen)
+        game.controller.restart()
+        game.tick()
+        expect(renderer.render.mock.calls.at(-1)?.[0]).toEqual(frozen)
+        expect(game.env.createRenderer).toHaveBeenCalledTimes(1)
+        expect(setOnline).toHaveBeenCalled()
+        snapshot = { ...snapshot, connection: 'connected', room: { ...room, round: 2, tick: 0, players: [{ ...room.players[0], state: createSwingState({ x: 75, y: 90, z: -10 }) }] } }
+        game.tick()
+        expect(renderer.render.mock.calls.at(-1)?.[0].position.x).toBe(75)
+        expect(game.env.createRenderer).toHaveBeenCalledTimes(1)
+        game.controller.detach()
+        expect(renderer.dispose).toHaveBeenCalledOnce()
     })
 })

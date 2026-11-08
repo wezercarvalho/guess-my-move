@@ -32,13 +32,6 @@
     align-items: start;
 }
 
-@media (min-width: 960px) {
-    .guitar-side {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
 .guitar-main {
     display: flex;
     flex-direction: column;
@@ -52,6 +45,13 @@
     gap: var(--space-5);
     min-width: 0;
     align-items: start;
+}
+
+@media (min-width: 960px) {
+    .guitar-side {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 /* A câmera é o palco: o painel compartilhado com os outros jogos ganha mais altura só aqui. */

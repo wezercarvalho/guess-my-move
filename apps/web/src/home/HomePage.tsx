@@ -47,14 +47,14 @@ export function HomePage() {
                     action="Jogar cartas"
                 />
                 <GameCard
-                    title="Bolinhas de gude: bete"
-                    description="Atire a bolinha azul no alvo vermelho com a mão."
+                    title="Bolinhas de gude"
+                    description="Bete, Triângulo e Cova, contra a meta ou o bot."
                     href="marbles.html"
                     action="Jogar bolinhas"
                 />
                 <GameCard
                     title="Arranha-Teia"
-                    description="Balance entre os prédios de Midtown e lance a teia com o gesto “eu te amo”."
+                    description="Escolha a cidade e balance entre os prédios com as mãos."
                     href="swing.html"
                     action="Jogar Arranha-Teia"
                 />

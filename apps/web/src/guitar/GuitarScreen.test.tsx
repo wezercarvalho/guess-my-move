@@ -259,11 +259,16 @@ describe('GuitarScreen', () => {
         const h = harness('idle')
         render(<GuitarScreen cameraGetUserMedia={null} deps={h.deps} />)
         expect(screen.getByTestId('audio-notice')).toHaveTextContent(/som desligado/i)
-        fireEvent.pointerDown(window)
+        const button = screen.getByRole('button', { name: /bater para baixo/i })
+        fireEvent.pointerDown(button)
+        expect(screen.getByTestId('audio-notice')).toBeInTheDocument()
+        fireEvent.click(button)
         await waitFor(() => {
             expect(screen.queryByTestId('audio-notice')).not.toBeInTheDocument()
         })
         expect(h.audio.unlock).toHaveBeenCalled()
+        expect(h.audio.plays).toHaveLength(1)
+        expect(h.audio.plays[0]).toHaveLength(6)
     })
 
     it('a gaveta de depuração começa recolhida e mostra os números ao abrir', async () => {

@@ -1,0 +1,65 @@
+diff --git a/apps/web/src/swing/multiplayerClient.test.ts b/apps/web/src/swing/multiplayerClient.test.ts
+index 8693f90..a1545e0 100644
+--- a/apps/web/src/swing/multiplayerClient.test.ts
++++ b/apps/web/src/swing/multiplayerClient.test.ts
+@@ -359,3 +359,60 @@ describe('Swing online client', () => {
+         client.destroy()
+     })
+ })
++
++describe('post-merge audit reproductions (current behavior)', () => {
++    it('loses resume credentials after a transient ACK timeout', async () => {
++        vi.useFakeTimers()
++        const socket = new Socket(), client = new SwingMultiplayerClient(socket)
++        try {
++            client.connect()
++            await client.create('aurora', 'Ana')
++            socket.fire(S.state, room())
++            socket.connected = false; socket.fire('disconnect')
++            socket.emit = () => socket
++            socket.connected = true; socket.fire('connect')
++            await vi.advanceTimersByTimeAsync(5000)
++            expect(client.getSnapshot().access).toBeNull()
++            expect(client.getSnapshot().room).toBeNull()
++            expect(client.getSnapshot().connection).toBe('connected')
++        } finally { client.destroy(); vi.useRealTimers() }
++    })
++    it('keeps a provisional room without identity after create ACK timeout', async () => {
++        vi.useFakeTimers()
++        const socket = new Socket(), client = new SwingMultiplayerClient(socket)
++        try {
++            client.connect(); socket.emit = () => socket
++            const creating = client.create('aurora', 'Ana')
++            socket.fire(S.state, room())
++            await vi.advanceTimersByTimeAsync(5000)
++            expect(await creating).toBe(false)
++            expect(client.getSnapshot().access).toBeNull()
++            expect(client.getSnapshot().room?.roomCode).toBe('ABC123')
++            expect(client.getSnapshot().pending).toBe(false)
++        } finally { client.destroy(); vi.useRealTimers() }
++    })
++})
++
++import { MultiplayerClient } from '../marbles/multiplayerClient.js'
++import { CLIENT_EVENTS as MARBLES_EVENTS } from '@guess-my-move/marbles'
++it('audit: marbles accepts a create ACK after disconnect/reconnect without resuming that room', async () => {
++    const socket = new Socket()
++    let late: ((value: unknown) => void) | undefined
++    socket.emit = (event, _payload, ack) => {
++        socket.emitted.push({event,payload:_payload})
++        if (event === MARBLES_EVENTS.create) late = ack
++        else ack?.({ok:true})
++        return socket
++    }
++    const client = new MultiplayerClient({socket,storage:null})
++    const creating = client.createRoom('bete', 'Ana')
++    await Promise.resolve(); await Promise.resolve(); await Promise.resolve()
++    expect(late).toBeDefined()
++    socket.connected = false; socket.fire('disconnect')
++    socket.connected = true; socket.fire('connect')
++    late?.({ok:true,access:{roomCode:'ABC234',role:'player',resumeToken:'private-credential-with-at-least-32-characters'}})
++    expect(await creating).toBe(true)
++    expect(client.getSnapshot().access?.roomCode).toBe('ABC234')
++    expect(socket.emitted.some(e=>e.event === MARBLES_EVENTS.resume)).toBe(false)
++    client.destroy()
++})

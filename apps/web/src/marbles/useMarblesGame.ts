@@ -1,4 +1,5 @@
-import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
+import { type BotLevel, type Opponent } from '@guess-my-move/marbles'
+import { type RefObject, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import {
     createMediaPipeHandTracker,
@@ -8,13 +9,17 @@ import {
 import {
     type MarblesEnv,
     MarblesController,
-    type MarblesMode,
     type MarblesSnapshot,
-    modeFromSearch,
+    type PlayType,
+    type ShotControl,
+    shotControlFromSearch,
 } from './marblesController.js'
+import { MultiplayerClient, type MultiplayerStore } from './multiplayerClient.js'
 
 /** Dependências injetáveis para teste; os padrões usam o navegador e o MediaPipe. */
-export type MarblesDeps = Partial<MarblesEnv>
+export interface MarblesDeps extends Partial<MarblesEnv> {
+    multiplayer?: MultiplayerStore
+}
 
 export interface UseMarblesGameOptions {
     cameraActive: boolean
@@ -27,8 +32,21 @@ export interface UseMarblesGameOptions {
 }
 
 export interface MarblesGameView extends MarblesSnapshot {
-    newRound: () => void
-    setMode: (mode: MarblesMode) => void
+    /** Escolha, só na tela inicial. */
+    setMode: (modeId: string) => void
+    setPlayType: (playType: PlayType) => void
+    setOpponent: (opponent: Opponent) => void
+    setBotLevel: (level: BotLevel) => void
+    setShotControl: (control: ShotControl) => void
+    startMatch: () => void
+    createRoom: (nickname: string) => Promise<boolean>
+    joinRoom: (roomCode: string, nickname: string) => Promise<boolean>
+    setReady: (ready: boolean) => Promise<boolean>
+    setRematchReady: (ready: boolean) => Promise<boolean>
+    leaveRoom: () => Promise<void>
+    /** Fim de partida. */
+    playAgain: () => void
+    changeMode: () => void
 }
 
 /** Resolve as dependências, usando o navegador e o MediaPipe quando não injetadas. */
@@ -45,33 +63,80 @@ function resolveEnv(deps: MarblesDeps | undefined): MarblesEnv {
             deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),
         cancelFrame: deps?.cancelFrame ?? ((handle: number) => cancelAnimationFrame(handle)),
         now: deps?.now ?? (() => performance.now()),
+        ...(deps?.createBot === undefined ? {} : { createBot: deps.createBot }),
+        ...(deps?.seed === undefined ? {} : { seed: deps.seed }),
     }
 }
 
 /**
- * Camada fina sobre o `MarblesController`: cria o controlador uma vez, assina
- * as mudanças e informa a ele o estado da câmera.
+ * Camada fina sobre o `MarblesController`: cria o controlador uma vez, assina as
+ * mudanças e informa a ele o estado da câmera.
  */
 export function useMarblesGame(options: UseMarblesGameOptions): MarblesGameView {
     const { cameraActive, cameraFailed, videoRef, overlayRef, deps } = options
     const [controller] = useState(
-        () => new MarblesController(resolveEnv(deps), modeFromSearch(window.location.search)),
+        () => new MarblesController(resolveEnv(deps), shotControlFromSearch(window.location.search)),
     )
+    const [multiplayer] = useState<MultiplayerStore>(
+        () => deps?.multiplayer ?? new MultiplayerClient(),
+    )
+    const playTypeChoice = useRef(0)
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+    const multiplayerSnapshot = useSyncExternalStore(
+        multiplayer.subscribe,
+        multiplayer.getSnapshot,
+    )
 
     useEffect(() => {
+        controller.setMultiplayer(multiplayerSnapshot, (velocity) => {
+            void multiplayer.sendShot(velocity)
+        })
+    }, [controller, multiplayer, multiplayerSnapshot])
+
+    useEffect(() => {
+        if (multiplayer.getSnapshot().access) {
+            void multiplayer.connect()
+        }
         controller.attach({
             getVideo: () => videoRef.current,
             getOverlay: () => overlayRef.current,
         })
         return () => {
             controller.detach()
+            multiplayer.destroy()
         }
-    }, [controller, videoRef, overlayRef])
+    }, [controller, multiplayer, videoRef, overlayRef])
 
     useEffect(() => {
         controller.setCamera(cameraActive, cameraFailed)
     }, [controller, cameraActive, cameraFailed])
 
-    return { ...snapshot, newRound: controller.newRound, setMode: controller.setMode }
+    return {
+        ...snapshot,
+        setMode: controller.setMode,
+        setPlayType: (playType) => {
+            const choice = ++playTypeChoice.current
+            controller.setPlayType(playType)
+            if (playType === 'online') void multiplayer.connect()
+            else void multiplayer.leave().then(() => {
+                if (choice !== playTypeChoice.current) return
+                controller.setMultiplayer(multiplayer.getSnapshot(), null)
+                controller.setPlayType('local')
+            })
+        },
+        setOpponent: controller.setOpponent,
+        setBotLevel: controller.setBotLevel,
+        setShotControl: controller.setShotControl,
+        startMatch: controller.startMatch,
+        createRoom: (nickname) => multiplayer.createRoom(snapshot.modeId, nickname),
+        joinRoom: (roomCode, nickname) => multiplayer.joinRoom(roomCode, nickname),
+        setReady: (ready) => multiplayer.setReady(ready),
+        setRematchReady: (ready) => multiplayer.setRematchReady(ready),
+        leaveRoom: async () => {
+            await multiplayer.leave()
+            controller.setMultiplayer(multiplayer.getSnapshot(), null)
+        },
+        playAgain: controller.playAgain,
+        changeMode: controller.changeMode,
+    }
 }

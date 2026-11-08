@@ -169,6 +169,26 @@ describe('createAudioPlayer', () => {
         expect(listener.mock.calls.length).toBe(calls)
     })
 
+    it('dispose durante resume invalida a conclusão antiga sem afetar um contexto novo', async () => {
+        const old = fakeContext('suspended')
+        let finish!: () => void
+        old.context.resume.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve }))
+        const fresh = fakeContext('running')
+        const factory = vi.fn(() => old.context).mockReturnValueOnce(old.context).mockReturnValue(fresh.context)
+        const player = createAudioPlayer(factory)
+        const pending = player.unlock()
+        player.dispose()
+        expect(player.status).toBe('idle')
+        finish()
+        await expect(pending).resolves.toBeUndefined()
+        expect(player.status).toBe('idle')
+        await player.unlock()
+        expect(player.status).toBe('running')
+        expect(player.play(plan)).toBe(true)
+        expect(old.sources).toHaveLength(0)
+        expect(fresh.sources).toHaveLength(3)
+    })
+
     it('dispose fecha o contexto', async () => {
         const { context } = fakeContext('running')
         const player = createAudioPlayer(() => context)

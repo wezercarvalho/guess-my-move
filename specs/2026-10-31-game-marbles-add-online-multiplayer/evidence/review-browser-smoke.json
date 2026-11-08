@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "scenarios": [
+    "duas páginas com papéis distintos",
+    "reload da anfitriã antes da entrada da convidada",
+    "criação e entrada por código normalizado",
+    "prontidão e início autoritativo",
+    "pinça simulada envia somente seq e vetor",
+    "alternância de vez",
+    "queda pausa a partida",
+    "retomada automática",
+    "reload preserva papel",
+    "saída permite partida local"
+  ],
+  "limitations": [
+    "câmera e detector simulados",
+    "loopback, sem internet real",
+    "câmera real e desempenho não medidos"
+  ],
+  "shots": [
+    [
+      "match:shot",
+      {
+        "seq": 1,
+        "velocity": {
+          "x": 1100,
+          "y": 0
+        }
+      }
+    ]
+  ]
+}

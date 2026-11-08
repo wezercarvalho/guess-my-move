@@ -1,0 +1,88 @@
+{
+  "baseline": "2e4088cabf326b4ade26a215f94812323e10f05f",
+  "runtime": "Node 26.12.1 / Yarn 4.18.1",
+  "cycles": [
+    {
+      "scope": "núcleo: recuperação e neutro na trava",
+      "before": "4 falhas novas; 236 aprovações",
+      "after": "casos aprovados na suíte de 245 testes",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "controlador: sensibilidade e recuperação",
+      "before": "4 falhas; 73 aprovações",
+      "after": "incluído no agregado dirigido final de 65 testes",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "UI: opção acessível",
+      "before": "slider Sensibilidade do rosto ausente",
+      "after": "UI local/cooperativa aprovada no agregado dirigido",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "acumulador de giro",
+      "before": "dois casos falharam por reaplicar delta ou perder delta sem passo; havia também uma expectativa antiga de trava a atualizar",
+      "after": "subpassos, acúmulo e reset aprovados",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "sensibilidade durante trava",
+      "before": "direção girava de 0,47 para 1,22 rad após soltar; uma falha e 62 aprovações",
+      "after": "direção preservada, ganho no núcleo e sinais de escalada independentes",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "travas sucessivas e centralização curta",
+      "before": "núcleo: 1 falha / 244 aprovações; controlador online: contrato rejeitava bias acima de meia volta",
+      "after": "245 casos do núcleo e 65 casos dirigidos aprovados; representação angular normalizada sem mudar formato do protocolo",
+      "command": "yarn workspace @guess-my-move/swing test e yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "emenda: velocidade de escalada",
+      "before": "2 falhas novas / 246 aprovações; velocity permanecia zero apesar do deslocamento vertical",
+      "after": "250 casos do núcleo aprovados; subida/descida, parada, saída sem impulso e limite inferior cobertos",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "emenda: alinhamento efetivo e indicador",
+      "before": "4 falhas novas / 65 aprovações: pitch residual não zerava em repouso/movimento/agarre e HUD permanecia zero",
+      "after": "69 casos dirigidos aprovados; correção suave, personagem preservado e velocidade indicada",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "emenda: âncora virtual a 500 m",
+      "before": "1 falha / 249 aprovações: mira sem âncora a 500 m com limite anterior de 220 m",
+      "after": "teste de fronteira confirma 500 m inclusive, recusa acima e prédio válido acima do limite virtual",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "revisão: impulso na transição agarre/teia",
+      "before": "2 falhas / 250 aprovações: lançar e puxar ao sair da parede resultava em velocidade zero, em vez do impulso de 9 m/s",
+      "after": "254 casos do núcleo aprovados; impulso preservado com velocidades anteriores 0/+6/-6, sem inércia ao lançar sem puxão",
+      "command": "yarn workspace @guess-my-move/swing test"
+    },
+    {
+      "scope": "giro contínuo após 1 s",
+      "before": "módulo ainda ausente; 2 testes de integração falharam / 69 aprovações, sem giro após a espera",
+      "after": "260 casos do núcleo e 72 casos dirigidos aprovados; espera simétrica, taxa, ganho, reset e amostra congelada",
+      "command": "yarn workspace @guess-my-move/swing test; yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "retorno ao centro junto ao fim da espera",
+      "before": "regressão detectada: 0,075 rad de giro após retornar ao centro devido à cauda de suavização",
+      "after": "intenção sem suavização cancela a espera imediatamente; regressão aprovada sem aumentar tolerância",
+      "command": "yarn workspace @guess-my-move/web test:swing-look"
+    },
+    {
+      "scope": "aceleração após 2,5 s de intenção lateral",
+      "before": "4 falhas novas / 260 aprovações: multiplicador ausente e rotação extra igual a zero",
+      "after": "264 casos do núcleo aprovados: fronteira de 2,5 s, rampa/teto em ambos os sentidos, resets e integral equivalente em frames de 20/100 ms",
+      "command": "yarn workspace @guess-my-move/swing test"
+    }
+  ],
+  "limits": [
+    "Dados sintéticos; nenhuma câmera física, mídia, nickname ou token registrado.",
+    "Expectativa antiga de somar de novo a pose ao liberar a trava foi alterada intencionalmente conforme FR-003."
+  ]
+}

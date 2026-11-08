@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
+import {
+    HEAD_IDLE_HINT,
+    KEYS,
+    STEPS,
+    currentStep,
+    gripStatusLine,
+    guideHint,
+    headStatusLine,
+    statusLine,
+} from './guide.js'
 
 const ok = {
     cameraActive: true,
@@ -150,10 +159,10 @@ describe('headStatusLine', () => {
         )
     })
 
-    it('pede para centralizar quando o rosto some', () => {
+    it('explica a centralização automática quando o rosto retorna', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'ready', faceVisible: false })
         expect(line).toMatch(/rosto fora do quadro/i)
-        expect(line).toMatch(/centralize/i)
+        expect(line).toMatch(/centralizar automaticamente/i)
     })
 
     it('fica vazia quando o rosto está à vista', () => {
@@ -163,6 +172,37 @@ describe('headStatusLine', () => {
     it('diz que a cabeça não está disponível quando o detector de rosto falha', () => {
         const line = headStatusLine({ cameraActive: true, faceTrackerStatus: 'error', faceVisible: false })
         expect(line).toMatch(/cabeça/i)
+    })
+})
+
+describe('headStatusLine com a trava da direção (CQ-012)', () => {
+    const base = { cameraActive: true, faceTrackerStatus: 'ready', faceVisible: true } as const
+
+    it('travada: diz que a direção está travada e o que fazer', () => {
+        const line = headStatusLine({ ...base, lockMode: 'locked' })
+        expect(line).toMatch(/travada/i)
+        expect(line).toMatch(/tire a mão/i)
+    })
+
+    it('travada, o texto da trava vale mesmo sem rosto à vista', () => {
+        expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'locked' })).toMatch(/travada/i)
+    })
+
+    it('seguindo ou sem informar o modo: fica como antes', () => {
+        expect(headStatusLine({ ...base, lockMode: 'following' })).toBe('')
+        expect(headStatusLine(base)).toBe('')
+        expect(headStatusLine({ ...base, faceVisible: false, lockMode: 'following' })).toMatch(/rosto fora do quadro/i)
+    })
+
+    it('carregando ou com erro, esses avisos vêm antes da trava', () => {
+        expect(headStatusLine({ ...base, faceTrackerStatus: 'loading', lockMode: 'locked' })).toMatch(/carregando/i)
+        expect(headStatusLine({ ...base, faceTrackerStatus: 'error', lockMode: 'locked' })).toMatch(/indisponível/i)
+    })
+
+    it('a dica padrão ensina o gesto de travar em uma linha', () => {
+        expect(HEAD_IDLE_HINT).toMatch(/dedão para baixo/i)
+        expect(HEAD_IDLE_HINT).toMatch(/trava/i)
+        expect(HEAD_IDLE_HINT).not.toContain('\n')
     })
 })
 
@@ -186,4 +226,19 @@ describe('KEYS', () => {
         expect(climb?.action).toMatch(/agarra/i)
         expect(KEYS.some((group) => /sobem|sobe/i.test(group.action))).toBe(true)
     })
+})
+
+it('informa espera e giro contínuo, mantendo precedência da perda e da trava', () => {
+    const base = {cameraActive:true,faceTrackerStatus:'ready' as const,faceVisible:true,calibrated:true}
+    expect(headStatusLine({...base,turn:{intent:'left',progress:0.5,turning:false}})).toContain('0,5 s')
+    expect(headStatusLine({...base,turn:{intent:'right',progress:1,turning:true}})).toContain('Girando para a direita')
+    expect(headStatusLine({...base,faceVisible:false,turn:{intent:'right',progress:1,turning:true}})).toContain('Rosto fora')
+    expect(headStatusLine({...base,lockMode:'locked',turn:{intent:'right',progress:1,turning:true}})).toContain('Direção travada')
+})
+
+it('informa o multiplicador do giro acelerado e preserva a instrução de parada', () => {
+    const message = headStatusLine({cameraActive:true,faceTrackerStatus:'ready',faceVisible:true,
+        turn:{intent:'left',progress:1,turning:true,speedMultiplier:1.4}})
+    expect(message).toContain('Velocidade 1,4×')
+    expect(message).toContain('Volte o rosto ao centro para parar')
 })

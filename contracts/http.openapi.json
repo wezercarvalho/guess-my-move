@@ -1,0 +1,551 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Guess My Move HTTP API",
+    "version": "1.0.0",
+    "description": "HTTP de suporte ao jogo. Comandos de sala e tiros usam Socket.IO e possuem contrato separado."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/contracts/swing": {
+      "get": {
+        "operationId": "getSwingContract",
+        "summary": "Schemas do multiplayer cooperativo Arranha-Teia",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Verificação de vida do processo",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "ok"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/capabilities": {
+      "get": {
+        "operationId": "getCapabilities",
+        "summary": "Capacidades públicas e transporte do multiplayer",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "protocolVersion": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "transport": {
+                      "type": "string",
+                      "const": "socket.io"
+                    },
+                    "socketIoMajor": {
+                      "type": "number",
+                      "const": 4
+                    },
+                    "path": {
+                      "type": "string",
+                      "const": "/socket.io"
+                    },
+                    "namespace": {
+                      "type": "string",
+                      "const": "/"
+                    },
+                    "modes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "bete",
+                          "triangle",
+                          "hole"
+                        ]
+                      }
+                    },
+                    "reconnectGraceMs": {
+                      "type": "number",
+                      "const": 60000
+                    },
+                    "games": {
+                      "type": "object",
+                      "properties": {
+                        "marbles": {
+                          "type": "object",
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "const": "/"
+                            },
+                            "contract": {
+                              "type": "string",
+                              "const": "/api/contracts/multiplayer"
+                            }
+                          },
+                          "required": [
+                            "namespace",
+                            "contract"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "swing": {
+                          "type": "object",
+                          "properties": {
+                            "namespace": {
+                              "type": "string",
+                              "const": "/swing"
+                            },
+                            "contract": {
+                              "type": "string",
+                              "const": "/api/contracts/swing"
+                            },
+                            "maxPlayers": {
+                              "type": "number",
+                              "const": 2
+                            },
+                            "cooperative": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "cityIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "aurora",
+                                  "midtown",
+                                  "paulista",
+                                  "santa-maria"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "namespace",
+                            "contract",
+                            "maxPlayers",
+                            "cooperative",
+                            "cityIds"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "marbles",
+                        "swing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "protocolVersion",
+                    "transport",
+                    "socketIoMajor",
+                    "path",
+                    "namespace",
+                    "modes",
+                    "reconnectGraceMs",
+                    "games"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contracts/multiplayer": {
+      "get": {
+        "operationId": "getMultiplayerContract",
+        "summary": "Schemas dos eventos Socket.IO; não são endpoints REST de jogo",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "operationId": "getMetrics",
+        "summary": "Métricas agregadas de operação; habilitado somente com METRICS_TOKEN",
+        "security": [
+          {
+            "metricsToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resposta válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "acceptedConnections": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "rejectedConnections": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "rejectedOrigins": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "rateLimited": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "invalidCommands": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "internalErrors": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "telemetryFailures": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "expiredRooms": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "maxTickDelayMs": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "activeConnections": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "activeTransports": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "activeRooms": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "operations": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "errors": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMs": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "maxMs": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "errors",
+                          "totalMs",
+                          "maxMs"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "acceptedConnections",
+                    "rejectedConnections",
+                    "rejectedOrigins",
+                    "rateLimited",
+                    "invalidCommands",
+                    "internalErrors",
+                    "telemetryFailures",
+                    "expiredRooms",
+                    "maxTickDelayMs",
+                    "activeConnections",
+                    "activeTransports",
+                    "activeRooms",
+                    "operations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Métricas não habilitadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro HTTP sem dados privados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "statusCode",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "metricsToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Token exclusivo de operação; não é uma credencial de jogador."
+      }
+    }
+  }
+}

@@ -6,8 +6,8 @@ strategy: sdd
 domain: game
 capability: arranha-teia
 objective: add-head-tracking-camera
-summary: Acrescenta ao Arranha-Teia o giro da câmera pela cabeça. O MediaPipe Face Landmarker (mesmo pacote @mediapipe/tasks-vision das mãos, modelo face_landmarker.task servido pelo próprio app e conferido por SHA-256 no prepare:assets) dá a matriz de transformação facial; uma lógica pura e testada no pacote @guess-my-move/swing converte guinada e inclinação da cabeça num desvio do olhar, com correção do espelhamento, calibração do neutro, zona morta, suavização exponencial, ganho e limites, e volta suave a zero quando o rosto some. O desvio soma ao acompanhamento automático atual (a cabeça tem prioridade enquanto está fora da zona morta) e vale também para a mira da teia, que já sai da direção da câmera. A camada web alimenta mãos e rosto com o mesmo quadro, mostra status de uma linha, dica curta e o painel de depuração com a leitura da cabeça, e oferece um botão "Centralizar"; sem rosto o jogo segue como hoje e o teclado continua funcionando. Nenhuma imagem é gravada ou enviada. Issue #80. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; a implementação é test-first e o Gate 3 fica pendente do teste ao vivo do maintainer, sem afirmar desempenho (fps) nem precisão da pose sem medição.
-status: validated
+summary: Acrescenta ao Arranha-Teia o giro da câmera pela cabeça. O MediaPipe Face Landmarker (mesmo pacote @mediapipe/tasks-vision das mãos, modelo face_landmarker.task servido pelo próprio app e conferido por SHA-256 no prepare:assets) dá a matriz de transformação facial; uma lógica pura e testada no pacote @guess-my-move/swing converte guinada e inclinação da cabeça num desvio do olhar, com correção do espelhamento, calibração do neutro, zona morta, suavização exponencial, ganho e limites, e volta suave a zero quando o rosto some. O desvio soma ao acompanhamento automático atual (a cabeça tem prioridade enquanto está fora da zona morta) e vale também para a mira da teia, que já sai da direção da câmera. A camada web alimenta mãos e rosto com o mesmo quadro, mostra status de uma linha, dica curta e o painel de depuração com a leitura da cabeça, e oferece um botão "Centralizar"; sem rosto o jogo segue como hoje e o teclado continua funcionando. Nenhuma imagem é gravada ou enviada. Issue #80. Gates 1 e 2 aprovados antecipadamente pelo maintainer em 2026-10-29; a implementação é test-first e o Gate 3 fica pendente do teste ao vivo do maintainer, sem afirmar desempenho (fps) nem precisão da pose sem medição. A emenda CQ-012 (issue #106) acrescenta a trava da direção do olhar por gesto de mão (mão aberta com o dedão para baixo, qualquer mão), porque o monitor é fixo e virar a cabeça tira a tela da vista; a direção travada vale enquanto o gesto durar e, ao tirar a mão, vira a nova frente: a cabeça volta a somar o desvio a partir dela, na hora.
+status: validating
 owners:
     - wezercarvalho
 reviewers:
@@ -35,6 +35,10 @@ aliases:
     - seletor de olhar
     - legenda de teclado
     - inversão da câmera
+    - trava da direção
+    - dedão para baixo
+    - lockGesture.ts
+    - estabilização do rosto
 code_paths:
     - packages/swing/
     - apps/web/
@@ -44,7 +48,7 @@ supersedes: []
 branch: feat/80-camera-com-a-cabeca
 constitution_version: 1.0.0
 created_at: 2026-10-29
-updated_at: 2026-10-30
+updated_at: 2026-10-31
 ---
 
 # Arranha-Teia, girar a câmera com a cabeça pelo MediaPipe Face Landmarker
@@ -92,6 +96,8 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **US-004 (jogador, P2): calibrar o neutro.** Um botão "Centralizar" trata a pose atual da cabeça como o novo zero. Testável: após `recenter`, a pose virada passa a dar desvio perto de zero.
 - **US-005 (operador, P1): privacidade e origem do modelo.** O modelo de rosto é servido pelo app (sem CDN), conferido por SHA-256, e nenhuma imagem é gravada ou enviada. Testável: o `prepare:assets` tem arquivo, URL do Google e SHA-256 próprios do modelo de rosto; o rastreador lê só a matriz de transformação (sem landmarks nem blendshapes guardados).
 
+- **US-006 (jogador, P1, CQ-012): manter a direção sem olhar de lado.** O monitor é fixo; ao virar a cabeça para o lado o jogador não vê a tela. Com a mão aberta e o dedão para baixo (qualquer mão), a direção do olhar trava; ele tira a mão, olha para a tela e a câmera continua na direção travada; ao tirar a mão, a cabeça volta a girar a câmera na hora, a partir dela. Sem o gesto, nada trava. Testável: a unidade pura de `headLook` e o controlador com mãos e rosto simulados.
+
 ## Requisitos funcionais
 
 - **FR-001**: A orientação da cabeça (guinada e inclinação) DEVE ser extraída da matriz de transformação facial do MediaPipe por função pura, devolvendo `null` para matriz de tamanho inválido.
@@ -109,6 +115,13 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **FR-013 (CQ-010)**: A tela DEVE oferecer um seletor "Direção do olhar" com **Automática** (câmera segue o movimento; setas ajustam) e **Rosto** (a cabeça soma o desvio), padrão **Rosto**, só em memória de sessão, sempre que a câmera estiver ativa. Em Automática o detector de rosto NÃO DEVE ser carregado (liberado se já estava), nada de rosto é lido nem desenhado, o botão "Centralizar" fica oculto, e o desvio da cabeça é descartado sem salto. Trocar durante o jogo DEVE ser seguro (sem vazar tracker nem acumular desvio). O estado vive no `SwingController` (`setLookMode`, snapshot `lookMode`) e o painel de depuração mostra o modo ativo.
 - **FR-014 (CQ-010)**: A tela DEVE mostrar uma legenda de teclado sempre visível (painel "Teclado", uma linha por grupo, com `<kbd>`), definida como DADOS exportados (`KEYS`) para evolução sem conflito de layout.
 
+- **FR-015 (CQ-012)**: Um gesto de mão DEVE travar a direção do olhar: mão aberta com o dedão para baixo, de qualquer mão. A pose é reconhecida por função pura (`isThumbDownOpenHand`, em `pose.ts`): os quatro dedos esticados, o polegar afastado e a ponta do polegar abaixo do centro da palma, na imagem, por pelo menos `LOCK_THUMB_DROP` (0,9) do tamanho da palma (valor de jogo). Uma mão nessa pose NÃO conta como palma aberta (não agarra a parede nem solta a teia por palma) nem como pose de teia, e não derruba um agarre em andamento.
+- **FR-016 (CQ-012)**: Um módulo puro (`lockGesture.ts`) DEVE filtrar a pose: só vira "travar" depois de `onsetMs` (200 ms, valor de jogo) contínuos, e só deixa de valer depois de `releaseGraceMs` (150 ms, valor de jogo) sem a pose, para um quadro ruim não soltar nem um gesto passageiro travar.
+- **FR-017 (CQ-012)**: O `headLook` DEVE aceitar o pedido de trava por quadro (`update(orientation, dt, lock)`) e ter dois estados. **Seguindo**: como hoje, o desvio da cabeça soma ao olhar. **Travada** (enquanto o gesto vale): o olhar fica fixo na direção que a cabeça tinha `lookbackMs` (400 ms, valor de jogo) ANTES de o gesto ser reconhecido, porque levar a mão ao gesto mexe a cabeça; a cabeça não gira a câmera. **Ao tirar a mão** (gesto desfeito) o estado volta a Seguindo na hora, sem esperar o rosto centralizar: a direção travada continua como a nova frente e o desvio da cabeça soma a ela, sem salto (a suavização leva o olhar até lá). Re-travar a qualquer momento é permitido. "Centralizar" encerra a trava e zera a direção travada (o olhar volta ao acompanhamento automático).
+- **FR-018 (CQ-012)**: Com a direção travada, perder o rosto NÃO DEVE mudar o olhar. Fora da trava, perder o rosto DEVE manter o desvio atual por `faceLostHoldMs` (1500 ms, valor de jogo) antes de voltar suave à direção travada (zero se não houver), no lugar de voltar na hora. Isso altera o FR-006 apenas no prazo, não no destino.
+- **FR-019 (CQ-012)**: A direção travada DEVE ser relativa ao movimento: o mundo aceita um viés (`SwingInput.lookBias`) e o acompanhamento automático passa a mirar o rumo MAIS o viés, também travada e sem rosto à vista; sem viés nada muda. A escalada pelo olhar (FR-009 da spec do agarre) DEVE usar só o desvio vivo da cabeça, nunca a direção travada, e ficar parada enquanto travada.
+- **FR-020 (CQ-012)**: A tela DEVE ensinar e mostrar o estado em uma linha no painel "Direção do olhar": seguindo ("Vire a cabeça para olhar. Mão aberta com o dedão para baixo trava a direção.") e travada ("Direção travada. Tire a mão e olhe para a tela."). A depuração DEVE mostrar o estado da trava e a pose do dedão por mão.
+
 ## Requisitos não funcionais
 
 - **NFR-001 (privacidade)**: Nenhum frame, vídeo ou landmark do rosto DEVE ser gravado, enviado ou logado. O rastreador lê a matriz de transformação facial e os pontos do rosto por quadro; os pontos são desenhados de forma TRANSITÓRIA no overlay e descartados a cada quadro (CQ-010), nunca persistidos.
@@ -125,6 +138,7 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **SC-004**: O rastreio de mãos e de rosto funciona ao mesmo tempo, alimentado pelo mesmo quadro (FR-009); o fps com os dois ativos é medido e registrado, sem afirmar desempenho antes da medição (NFR-003).
 - **SC-005**: Privacidade: nenhum frame é guardado nem enviado, o modelo de rosto é servido pelo app e a licença é lida e registrada ou declarada como não confirmada (US-005, NFR-001, NFR-002, NFR-004).
 - **SC-006**: A lógica de orientação, zona morta, suavização e perda do rosto tem testes automatizados escritos antes do código (FR-001..FR-006).
+- **SC-007 (CQ-012)**: A pose do dedão para baixo (nas duas mãos), o filtro do gesto e os dois estados da trava têm testes escritos antes do código; o controlador com mãos e rosto simulados mantém a direção enquanto o gesto dura e, ao tirar a mão, volta a seguir a cabeça na hora a partir dela (FR-015..FR-019).
 
 ## Hipóteses
 
@@ -138,6 +152,8 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **R-02 (precisão)**: A pose da cabeça com óculos, pouca luz ou rosto parcial não foi medida; declarar como não medida.
 - **R-03 (conflito de olhar)**: Olhar o monitor e virar a cabeça tira o rosto do eixo; mitigado por ganho > 1 e calibração do neutro.
 - **R-04 (licença do modelo)**: A licença do `.task` pode não estar confirmável na fonte; declarar o que foi e o que não foi lido (NFR-004).
+- **R-05 (CQ-012, leitura do gesto)**: Não foi medido se o MediaPipe lê bem o dedão para baixo com a mão de lado, nem se a mão relaxada dispara a pose sem querer. Os tempos e o limiar do polegar são valores de jogo; a depuração mostra a pose e o estado para ajustar ao vivo.
+- **R-06 (CQ-012, mão da teia)**: Uma mão no gesto de travar não segura a pose de teia, então a teia daquela mão solta como em qualquer outra pose. A outra mão segue livre.
 
 ## Decisões
 
@@ -145,6 +161,7 @@ Quatro dificuldades concretas precisam ser tratadas: (1) o espelhamento — a im
 - **Mira da teia segue o olhar**: sim. A mira já sai de `state.yaw`/`state.pitch`; aplicar o desvio ao olhar faz a mira segui-lo sem código extra. Razão: coerência (a teia vai para onde se olha) e escopo menor.
 - **Calibração**: automática nos primeiros quadros estáveis, mais um botão "Centralizar" para recalibrar. Razão: é a opção mais simples e testável; não exige um fluxo de calibração dedicado.
 - **Matriz e pontos transitórios**: o rastreador lê a matriz (orientação) e, desde a CQ-010, também os pontos do rosto, desenhados de forma transitória no overlay e descartados a cada quadro (sem blendshapes, sem persistência). Razão: o overlay do rosto, pedido pelo dono, precisa dos pontos para desenhar; a privacidade é mantida porque nada é gravado, enviado ou logado.
+- **Trava da direção (CQ-012)**: embreagem por gesto de mão, relativa ao movimento. A direção travada vale enquanto o gesto durar e, ao tirar a mão, vira a nova frente: o desvio da cabeça soma a ela na hora; não é fixa no mundo. Razão: reaproveita a soma de desvio que o jogo já tem, com um viés pequeno no acompanhamento automático, e é o que o maintainer descreveu. A espera pelo rosto centralizar (versão inicial desta emenda) foi removida por pedido dele depois do primeiro teste. As alternativas descartadas (joystick de taxa, trava por tempo, tecla) estão em `clarification.md`.
 
 ## Adoção constitucional
 

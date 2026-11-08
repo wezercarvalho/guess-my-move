@@ -36,7 +36,7 @@ supersedes: []
 branch: feat/95-violao-no-ar
 constitution_version: 1.0.0
 created_at: 2026-10-30
-updated_at: 2026-10-30
+updated_at: 2026-11-08
 ---
 
 # Violão no Ar, PoC alpha de acordes básicos com visão computacional
@@ -170,6 +170,8 @@ Como maintainer, quero ajustar o braço, ver os números do reconhecimento e toc
 - Dois dedos na mesma corda valem pela casa mais alta.
 - Câmera negada ou ausente: mensagem em português e batida pelo teclado ou clique.
 - Áudio bloqueado até o primeiro gesto.
+
+- Ao parar a câmera, desmontar a tela ou perder os quadros por mais que a tolerância, limpar mãos e reconhecimento. Um carregamento antigo do detector não pode reativar a captura nem substituir uma nova sessão. Falhas permitem nova tentativa ao reiniciar a câmera.
 
 ## Hipóteses e dependências
 

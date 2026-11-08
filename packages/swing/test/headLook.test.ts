@@ -190,18 +190,26 @@ describe('createHeadLook', () => {
         expect(Math.abs(first.yawOffset)).toBeLessThan(Math.abs(target.yawOffset))
     })
 
-    it('sem rosto, o olhar volta suave a zero e marca o rosto como ausente', () => {
+    it('sem rosto, mantém o olhar por faceLostHoldMs e depois volta suave a zero (CQ-012)', () => {
         const look = createHeadLook()
         for (let i = 0; i < DEFAULT_HEAD_LOOK.calibrationFrames + 1; i++) {
             look.update({ yaw: 0, pitch: 0 }, 1 / 60)
         }
         const turned = settle(look, { yaw: ANGLE, pitch: 0 })
         expect(turned.yawOffset).toBeGreaterThan(0)
-        // Rosto some: um passo ainda não zera (volta suave), mas marca ausente.
+        // Rosto some: marca ausente, mas o olhar não se mexe dentro do prazo de espera.
         const first = look.update(null, 1 / 60)
         expect(first.faceVisible).toBe(false)
-        expect(first.yawOffset).toBeGreaterThan(0)
-        expect(first.yawOffset).toBeLessThan(turned.yawOffset)
+        expect(first.yawOffset).toBeCloseTo(turned.yawOffset, 6)
+        const holdFrames = Math.floor((DEFAULT_HEAD_LOOK.faceLostHoldMs / 1000) * 60) - 5
+        let held = first
+        for (let i = 0; i < holdFrames; i++) held = look.update(null, 1 / 60)
+        expect(held.yawOffset).toBeCloseTo(turned.yawOffset, 6)
+        // Passado o prazo, volta suave: um passo ainda não zera.
+        let after = held
+        for (let i = 0; i < 12; i++) after = look.update(null, 1 / 60)
+        expect(after.yawOffset).toBeLessThan(turned.yawOffset)
+        expect(after.yawOffset).toBeGreaterThan(0)
         // Depois de muitos quadros sem rosto, o olhar chega a zero.
         const gone = settle(look, null)
         expect(Math.abs(gone.yawOffset)).toBeLessThan(1e-3)
@@ -231,4 +239,336 @@ describe('createHeadLook', () => {
         expect(state.calibrated).toBe(false)
         expect(state.yawOffset).toBe(0)
     })
+})
+
+
+/** Roda `seconds` de quadros a 60 Hz com a cabeça em `orientation` e o pedido de trava `lock`. */
+function run(
+    look: ReturnType<typeof createHeadLook>,
+    orientation: HeadOrientation | null,
+    seconds: number,
+    lock = false,
+) {
+    let state = look.update(orientation, 1 / 60, lock)
+    const frames = Math.round(seconds * 60) - 1
+    for (let i = 0; i < frames; i++) state = look.update(orientation, 1 / 60, lock)
+    return state
+}
+
+function calibrated() {
+    const look = createHeadLook()
+    run(look, { yaw: 0, pitch: 0 }, 0.5)
+    return look
+}
+
+const CENTER: HeadOrientation = { yaw: 0, pitch: 0 }
+const RIGHT: HeadOrientation = { yaw: ANGLE, pitch: 0 }
+
+describe('trava da direção (CQ-012)', () => {
+    it('sem o pedido de trava, nada trava e o modo é "seguindo"', () => {
+        const look = calibrated()
+        const state = run(look, RIGHT, 2)
+        expect(state.mode).toBe('following')
+        expect(state.yawOffset).toBeGreaterThan(0)
+        expect(state.liveYaw).toBeCloseTo(state.yawOffset, 6)
+    })
+
+    it('com o pedido, trava e a cabeça deixa de girar a câmera', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        const locked = run(look, RIGHT, 0.1, true)
+        expect(locked.mode).toBe('locked')
+        expect(locked.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+        // Volta o rosto para a tela com o gesto ainda valendo: o olhar fica onde estava.
+        const still = run(look, CENTER, 2, true)
+        expect(still.mode).toBe('locked')
+        expect(still.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+        expect(still.liveYaw).toBe(0)
+    })
+
+    it('trava a direção de pouco antes do gesto, não a do instante em que ele é reconhecido', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        // Levar a mão ao gesto mexe a cabeça: ela já voltou ao centro quando o gesto vale.
+        run(look, CENTER, 0.25)
+        const locked = run(look, CENTER, 2, true)
+        expect(locked.yawOffset).toBeGreaterThan(turned.yawOffset * 0.9)
+    })
+
+    it('ao tirar a mão, volta a seguir a cabeça na hora, somando à direção travada', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        run(look, CENTER, 1, true)
+        // Gesto desfeito: sem espera, o modo já é "seguindo" e a direção travada continua.
+        const first = look.update(CENTER, 1 / 60, false)
+        expect(first.mode).toBe('following')
+        const done = run(look, CENTER, 0.5)
+        expect(done.mode).toBe('following')
+        expect(done.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+        expect(done.liveYaw).toBeCloseTo(0, 3)
+    })
+
+    it('tirar a mão com a cabeça ainda virada: a pose vira neutro sem somar outro giro', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        const after = run(look, RIGHT, 2)
+        expect(after.mode).toBe('following')
+        expect(after.liveYaw).toBeCloseTo(0, 3)
+        expect(after.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+    })
+
+    it('depois de tirar a mão, a cabeça soma a partir da direção travada, sem salto', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        run(look, CENTER, 1, true)
+        run(look, CENTER, 1)
+        // Primeiro quadro virando de novo: continua perto da direção travada (sem salto).
+        const first = look.update(RIGHT, 1 / 60)
+        expect(Math.abs(first.yawOffset - turned.yawOffset)).toBeLessThan(0.08)
+        const more = run(look, RIGHT, 2)
+        expect(more.mode).toBe('following')
+        expect(more.yawOffset).toBeGreaterThan(turned.yawOffset + 0.2)
+        // Para a esquerda, volta ao redor da direção travada.
+        const left = run(look, { yaw: -ANGLE, pitch: 0 }, 2)
+        expect(left.yawOffset).toBeLessThan(turned.yawOffset - 0.2)
+    })
+
+    it('trava a inclinação junto com a guinada', () => {
+        const look = calibrated()
+        const up: HeadOrientation = { yaw: 0, pitch: ANGLE }
+        const turned = run(look, up, 1.5)
+        expect(turned.pitchOffset).toBeGreaterThan(0.1)
+        run(look, up, 0.1, true)
+        const locked = run(look, CENTER, 2, true)
+        expect(locked.pitchOffset).toBeCloseTo(turned.pitchOffset, 2)
+    })
+
+    it('travar de novo com a direção anterior: a nova trava vale pelo total aplicado', () => {
+        const look = calibrated()
+        const first = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        run(look, CENTER, 1, true)
+        run(look, CENTER, 1)
+        const turnedAgain = run(look, RIGHT, 1.5)
+        expect(turnedAgain.yawOffset).toBeGreaterThan(first.yawOffset + 0.2)
+        run(look, RIGHT, 0.1, true)
+        const second = run(look, CENTER, 2, true)
+        expect(second.yawOffset).toBeCloseTo(turnedAgain.yawOffset, 2)
+    })
+
+    it('travada, perder o rosto não muda o olhar', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        const lockedNoFace = run(look, null, 4, true)
+        expect(lockedNoFace.mode).toBe('locked')
+        expect(lockedNoFace.faceVisible).toBe(false)
+        expect(lockedNoFace.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+    })
+
+    it('fora da trava, sem rosto volta suave à direção travada, não a zero', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        run(look, CENTER, 1, true)
+        run(look, CENTER, 1)
+        run(look, RIGHT, 1.5)
+        const gone = run(look, null, 8)
+        expect(gone.mode).toBe('following')
+        expect(gone.yawOffset).toBeCloseTo(turned.yawOffset, 2)
+    })
+
+    it('"Centralizar" encerra a trava e zera a direção travada', () => {
+        const look = calibrated()
+        run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        run(look, CENTER, 1, true)
+        look.recenter()
+        const state = run(look, CENTER, 3)
+        expect(state.mode).toBe('following')
+        expect(Math.abs(state.yawOffset)).toBeLessThan(1e-3)
+    })
+
+    it('expõe a direção travada (viés do acompanhamento): zero sem trava, o total travado depois', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 1.5)
+        expect(turned.lockedYaw).toBe(0)
+        expect(turned.lockedPitch).toBe(0)
+        const locked = run(look, RIGHT, 0.1, true)
+        expect(locked.lockedYaw).toBeCloseTo(turned.yawOffset, 2)
+        // Segue valendo depois de tirar a mão (seguindo a cabeça); "Centralizar" zera.
+        expect(run(look, CENTER, 0.1).lockedYaw).toBeCloseTo(turned.yawOffset, 2)
+        expect(run(look, CENTER, 1).lockedYaw).toBeCloseTo(turned.yawOffset, 2)
+        look.recenter()
+        expect(run(look, CENTER, 0.1).lockedYaw).toBe(0)
+    })
+
+    it('não trava antes de calibrar', () => {
+        const look = createHeadLook()
+        const state = look.update(CENTER, 1 / 60, true)
+        expect(state.mode).toBe('following')
+        expect(state.calibrated).toBe(false)
+    })
+
+    it('reset volta ao modo seguindo e sem direção travada', () => {
+        const look = calibrated()
+        run(look, RIGHT, 1.5)
+        run(look, RIGHT, 0.1, true)
+        look.reset()
+        const state = look.update(null, 1 / 60)
+        expect(state.mode).toBe('following')
+        expect(state.yawOffset).toBe(0)
+    })
+})
+
+
+describe('regressões de calibração e inclinação', () => {
+    it('não calibra repetindo o mesmo quadro em vários frames de tela', () => {
+        const look = createHeadLook()
+        look.update(CENTER, 1 / 60, false, true)
+        let state = look.update(CENTER, 1 / 60, false, false)
+        for (let i = 0; i < 60; i++) state = look.update(CENTER, 1 / 60, false, false)
+        expect(state.calibrated).toBe(false)
+    })
+
+    it('espera uma janela estável, sem calibrar enquanto a cabeça está movendo', () => {
+        const look = createHeadLook()
+        let state = look.update(CENTER, 1 / 60)
+        for (let i = 0; i < 30; i++) state = look.update({yaw: 0, pitch: i * 0.02}, 1 / 60)
+        expect(state.calibrated).toBe(false)
+        const neutral = {yaw: 0.1, pitch: -0.1}
+        for (let i = 0; i < 13; i++) state = look.update(neutral, 1 / 60)
+        expect(state.calibrated).toBe(true)
+        expect(settle(look, neutral).pitchOffset).toBeCloseTo(0, 5)
+    })
+
+    it('centralizar sem uma leitura válida não declara calibração', () => {
+        const look = createHeadLook()
+        look.recenter()
+        expect(look.update(null, 1 / 60).calibrated).toBe(false)
+    })
+
+    it('extrai pitch e yaw sem misturar a rotação lateral da cabeça', () => {
+        // Rotação YXZ: Y=-30°, X=-20°, Z=25°, com escala uniforme 1.7.
+        const y = -Math.PI/6, x = -Math.PI/9, z = 25*Math.PI/180
+        const cy=Math.cos(y), sy=Math.sin(y), cx=Math.cos(x), sx=Math.sin(x), cz=Math.cos(z), sz=Math.sin(z)
+        const matrix = [cy*cz+sy*sx*sz,cx*sz,-sy*cz+cy*sx*sz,0,-cy*sz+sy*sx*cz,cx*cz,sy*sz+cy*sx*cz,0,sy*cx,-sx,cy*cx,0,0,0,-50,1].map((v,i)=>i<12 && i%4!==3 ? v*1.7 : v)
+        const pose=headOrientationFromMatrix(matrix)
+        expect(pose?.pitch).toBeCloseTo(-x, 5)
+        expect(pose?.yaw).toBeCloseTo(-y, 5)
+    })
+
+    it('recusa matriz com valores inválidos', () => {
+        expect(headOrientationFromMatrix(Array(16).fill(NaN))).toBeNull()
+        expect(headOrientationFromMatrix(Array(16).fill(0))).toBeNull()
+    })
+})
+
+describe('recentralização automática do neutro', () => {
+    it('a pose recuperada vira neutro nos dois eixos, sem salto nem recalibrar os próximos movimentos', () => {
+        const look = calibrated()
+        run(look, RIGHT, 2)
+        run(look, null, 0.5)
+        const before = look.update(null, 1 / 60)
+        const recovered = look.update({ yaw: -ANGLE, pitch: ANGLE }, 1 / 60)
+        expect(Math.abs(recovered.yawOffset - before.yawOffset)).toBeLessThan(0.08)
+        const neutral = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2)
+        expect(neutral.yawOffset).toBeCloseTo(0, 3)
+        expect(neutral.pitchOffset).toBeCloseTo(0, 3)
+        const moved = run(look, { yaw: 0, pitch: 0 }, 2)
+        expect(moved.yawOffset).toBeGreaterThan(0.2)
+        expect(moved.pitchOffset).toBeLessThan(-0.2)
+    })
+    it('render repetido sem nova amostra não arma recuperação ou altera o neutro', () => {
+        const look = calibrated()
+        run(look, RIGHT, 2)
+        look.update(null, 1 / 60, false, false)
+        const same = run(look, RIGHT, 2)
+        expect(same.yawOffset).toBeGreaterThan(0.2)
+    })
+    it('orientação inválida seguida de nova amostra válida também recentraliza', () => {
+        const look = calibrated()
+        look.update({ yaw: NaN, pitch: Infinity }, 1 / 60)
+        const neutral = run(look, RIGHT, 2)
+        expect(neutral.yawOffset).toBeCloseTo(0, 3)
+    })
+    it('trava e liberação definem o neutro sem duplicar o giro, mesmo após reposicionar a cabeça', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 2)
+        run(look, RIGHT, 1, true)
+        const frozen = run(look, CENTER, 1, true)
+        expect(frozen.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        const released = run(look, CENTER, 2)
+        expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        expect(released.liveYaw).toBeCloseTo(0, 3)
+        const moved = run(look, RIGHT, 2)
+        expect(moved.yawOffset).toBeGreaterThan(released.yawOffset + 0.2)
+    })
+    it('recuperação durante trava preserva a direção, e soltar na pose recuperada não adiciona giro', () => {
+        const look = calibrated()
+        const turned = run(look, RIGHT, 2)
+        run(look, RIGHT, 1, true)
+        run(look, null, 3, true)
+        const recovered = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2, true)
+        expect(recovered.mode).toBe('locked')
+        expect(recovered.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        const released = run(look, { yaw: -ANGLE, pitch: ANGLE }, 2)
+        expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+        expect(released.livePitch).toBeCloseTo(0, 3)
+    })
+})
+
+it('soltar a trava na mesma pose não soma novamente a cabeça que definiu a direção', () => {
+    const look = calibrated()
+    const turned = run(look, RIGHT, 2)
+    run(look, RIGHT, 1, true)
+    const released = run(look, RIGHT, 2)
+    expect(released.liveYaw).toBeCloseTo(0, 3)
+    expect(released.yawOffset).toBeCloseTo(turned.yawOffset, 3)
+})
+
+it('a sensibilidade muda o giro visual, preservando os sinais de escalada', () => {
+    const look = calibrated()
+    const pose = { yaw: ANGLE * 0.75, pitch: ANGLE * 0.75 }
+    const normal = run(look, pose, 2)
+    look.setSensitivity(2)
+    const stronger = run(look, pose, 2)
+    expect(stronger.yawOffset).toBeCloseTo(normal.yawOffset * 2, 3)
+    expect(stronger.pitchOffset).toBeCloseTo(normal.pitchOffset * 2, 3)
+    expect(stronger.gestureYaw).toBeCloseTo(normal.gestureYaw, 3)
+    expect(stronger.gesturePitch).toBeCloseTo(normal.gesturePitch, 3)
+})
+
+it('centraliza pelo caminho angular curto após acumular mais de meia volta em travas', () => {
+    const look = calibrated()
+    look.setSensitivity(3)
+    let state = run(look, CENTER, 0.5)
+    for (const degrees of [20, 40, 60]) {
+        const pose = {yaw: degrees * Math.PI / 180, pitch:0}
+        run(look, pose, 2)
+        run(look, pose, 1, true)
+        state = run(look, pose, 1)
+    }
+    expect(state.yawOffset).toBeGreaterThan(Math.PI)
+    const before = Math.abs(Math.atan2(Math.sin(state.yawOffset), Math.cos(state.yawOffset)))
+    look.recenter()
+    const next = look.update({yaw:Math.PI/3,pitch:0},1/60)
+    expect(Math.abs(Math.atan2(Math.sin(next.yawOffset),Math.cos(next.yawOffset)))).toBeLessThan(before)
+})
+
+it('giro deliberado muda a nova frente e preserva sinais da cabeça; trava/perda impedem giro', () => {
+    const look = calibrated()
+    const before = run(look, RIGHT, 0.5)
+    const turned = look.turnYaw(0.5)
+    expect(turned.yawOffset - before.yawOffset).toBeCloseTo(0.5)
+    expect(turned.lockedYaw - before.lockedYaw).toBeCloseTo(0.5)
+    expect(turned.liveYaw).toBeCloseTo(before.liveYaw)
+    expect(turned.gestureYaw).toBeCloseTo(before.gestureYaw)
+    const frozen = run(look, RIGHT, 1, true)
+    expect(look.turnYaw(0.5).yawOffset).toBe(frozen.yawOffset)
+    look.update(null, 0.1, true)
+    expect(look.turnYaw(0.5).faceVisible).toBe(false)
 })

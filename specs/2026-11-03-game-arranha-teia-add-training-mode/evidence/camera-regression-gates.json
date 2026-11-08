@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-04",
+  "node": "26.12.1",
+  "yarn": "4.18.1",
+  "environment": "node:26.12.1-bookworm-slim",
+  "immutable_install": "PASS",
+  "check_all": "PASS",
+  "tests": {
+    "core": 68,
+    "marbles": 159,
+    "swing": 232,
+    "web_vitest": 417,
+    "web_node": 79
+  },
+  "governance_host_node26": {
+    "test_gates": 231,
+    "test_sdd": 109,
+    "sdd_check": "PASS",
+    "dependency_audit": "PASS; all severities zero"
+  },
+  "known_host_limitation": "check:all excedeu timeout preexistente de 5 s na simulação de 3000 tiros do bot; mesma aplicação passou no contêiner, sem alterar teste, timeout ou bolinhas",
+  "manual_acceptance": "PENDING: câmera real, fluidez no dispositivo e T006",
+  "remote_ci": "rascunho não executa CI; CI anterior pertence a 6ccc9bc"
+}

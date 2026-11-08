@@ -94,3 +94,7 @@
 - **Substitui:** as partes de CQ-002, CQ-003, CQ-004 e CQ-005 que exigiam acorde alvo, correção contra o alvo, disparo no pico e som de formato inválido.
 - **Evidência:** seção 6 de `research.md`; testes de reconhecimento dos cinco acordes, independência do dedo, troca com permanência, jitter sem evento e câmera em largura total.
 - **Gate 3:** continua pendente. O primeiro teste ao vivo rejeitou a ergonomia e o fluxo da versão anterior; a revisão precisa de novo teste do maintainer.
+
+## Retomada autorizada em 2026-11-08
+
+O maintainer retirou o Violão do standby e aprovou explicitamente os gates de desenvolvimento nesta sessão: “Vamos para as do violão que estavam em standby. Pode considerar os gates aprovados.” Gates 1 e 2 confirmados; integrar a main e revisar ciclo de câmera e áudio. A aprovação não representa evidência do teste físico de SC-003, que segue pendente.

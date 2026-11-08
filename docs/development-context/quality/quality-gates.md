@@ -42,3 +42,5 @@ O teste de fronteira roda dentro do agregado `yarn test` do escopo `code`; qualq
 - O spike é evidência exploratória de amostra pequena: registre o tamanho da amostra e as limitações; não publique taxa de acerto, de quadros ou latência geral.
 - Não declare sucesso de gate não executado; registre `BLOCKED` ou `NOT_APPLICABLE` com justificativa.
 - Documentação puramente normativa pode usar revisão estrutural e verificação de links em vez de teste unitário.
+
+`yarn security:runtime` confere suporte e correções publicadas do Node pinado; roda no job audit, hook e rotina diária. Testes sem rede em test:gates. Ver [política de runtime](../security/runtime-node.md).

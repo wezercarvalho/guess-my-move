@@ -61,14 +61,15 @@ export function useGuitarGame(options: UseGuitarGameOptions): GuitarGameView {
         controller.setCamera(cameraActive)
     }, [controller, cameraActive])
 
-    // o primeiro clique em qualquer lugar libera o áudio (o navegador exige um gesto)
+    // O click preserva o alvo até mouseup: retirar o aviso no pointerdown deslocava
+    // os botões antes de completar o primeiro clique. Ainda é um gesto do usuário.
     useEffect(() => {
         const unlock = () => {
             controller.unlockAudio()
         }
-        window.addEventListener('pointerdown', unlock)
+        window.addEventListener('click', unlock)
         return () => {
-            window.removeEventListener('pointerdown', unlock)
+            window.removeEventListener('click', unlock)
         }
     }, [controller])
 

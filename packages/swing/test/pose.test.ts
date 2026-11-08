@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { type HandPoint, handMetrics, handSide, isFist, isOpenPalm, isWebPose, webSignal } from '../src/pose.js'
+import {
+    type HandPoint,
+    handMetrics,
+    handSide,
+    isFist,
+    isOpenPalm,
+    isThumbDownOpenHand,
+    isWebPose,
+    webSignal,
+} from '../src/pose.js'
 
 interface Fingers {
     thumb: boolean
@@ -150,5 +159,46 @@ describe('webSignal', () => {
 
     it('o rótulo Open_Palm do reconhecedor, sem a geometria, não solta a teia', () => {
         expect(webSignal(neutral, { name: 'Open_Palm', score: 0.99 })).toBeNull()
+    })
+})
+
+const DEG = Math.PI / 180
+
+/**
+ * Dados sintéticos (declarado): `hand(PALM, -90°)` é a mão aberta de lado, dedos para a
+ * esquerda da imagem e o dedão para baixo, como na foto do maintainer. O espelho dá a outra mão.
+ */
+describe('isThumbDownOpenHand', () => {
+    it('reconhece a mão aberta com o dedão para baixo, de lado', () => {
+        expect(isThumbDownOpenHand(hand(PALM, -90 * DEG))).toBe(true)
+    })
+
+    it('vale para a mão espelhada (esquerda ou direita)', () => {
+        expect(isThumbDownOpenHand(hand(PALM, -90 * DEG, true))).toBe(true)
+        expect(isThumbDownOpenHand(hand(PALM, -110 * DEG, true))).toBe(true)
+        // O espelho inverte só o eixo horizontal: de lado com o dedão para cima continua não valendo.
+        expect(isThumbDownOpenHand(hand(PALM, 90 * DEG, true))).toBe(false)
+    })
+
+    it.each([-70, -90, -110, -135])('vale com a mão inclinada (%i°)', (degrees) => {
+        expect(isThumbDownOpenHand(hand(PALM, degrees * DEG))).toBe(true)
+    })
+
+    it.each([
+        ['palma em pé', hand(PALM, 0)],
+        ['palma em pé espelhada', hand(PALM, 0, true)],
+        ['palma levemente inclinada', hand(PALM, -30 * DEG)],
+        ['palma de lado com o dedão para cima', hand(PALM, 90 * DEG)],
+        ['palma de cabeça para baixo', hand(PALM, 180 * DEG)],
+        ['punho de lado', hand(FIST, -90 * DEG)],
+        ['pose de teia de lado', hand(WEB, -90 * DEG)],
+        ['palma de lado com o dedão recolhido', hand({ ...PALM, thumb: false }, -90 * DEG)],
+    ])('rejeita %s', (_name, landmarks) => {
+        expect(isThumbDownOpenHand(landmarks)).toBe(false)
+    })
+
+    it('rejeita mão incompleta', () => {
+        expect(isThumbDownOpenHand([])).toBe(false)
+        expect(isThumbDownOpenHand(hand(PALM, -90 * DEG).slice(0, 10))).toBe(false)
     })
 })

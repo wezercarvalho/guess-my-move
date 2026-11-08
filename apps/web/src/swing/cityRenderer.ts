@@ -1,12 +1,17 @@
+import { createOnlineScene } from './onlineScene.js'
+import { type SwingRoomState } from '@guess-my-move/swing'
 import {
     type City,
     DEFAULT_SWING,
     type SwingState,
     type Vec3,
+    createCityIndex,
     forwardFromAngles,
 } from '@guess-my-move/swing'
 import {
     BackSide,
+    BoxGeometry,
+    TorusGeometry,
     BufferGeometry,
     CanvasTexture,
     Color,
@@ -15,6 +20,8 @@ import {
     Float32BufferAttribute,
     Fog,
     Mesh,
+    InstancedMesh,
+    Object3D,
     MeshBasicMaterial,
     PerspectiveCamera,
     PlaneGeometry,
@@ -29,12 +36,15 @@ import {
 } from 'three'
 
 import { type MeshData, buildRoofs, buildWalls } from './cityGeometry.js'
+import { CITY_ATMOSPHERE, roadPaintLayers } from './cityVisual.js'
 import { type ScreenPoint } from './reticle.js'
+import { createStreetSigns } from './streetSignsView.js'
 
 /** O que a tela precisa do desenho 3D: tamanho, um quadro por estado e liberação. */
 export interface SwingRenderer {
     resize(width: number, height: number): void
     render(state: SwingState): void
+    setOnline?(room: SwingRoomState | null, playerId: string | null, dt: number): void
     /** Onde um ponto do mundo cai no quadro atual (0 a 1), ou `null` antes do primeiro desenho. */
     project?(point: Vec3): ScreenPoint | null
     dispose(): void
@@ -69,17 +79,42 @@ function canvasOf(size: number): { canvas: HTMLCanvasElement; context: CanvasRen
     return { canvas, context }
 }
 
-/** Fachada: pedra clara com 4 x 8 janelas, algumas acesas. Colorida depois pelo prédio. */
+/** Fachada procedural: painéis, molduras e janelas com variação determinística. */
 function facadeTexture(): CanvasTexture {
     const { canvas, context } = canvasOf(256)
     const random = lcg(7)
-    context.fillStyle = '#d8d2c6'
+    const gradient = context.createLinearGradient(0, 0, 256, 0)
+    gradient.addColorStop(0, '#b8b2a8')
+    gradient.addColorStop(0.5, '#e0dad0')
+    gradient.addColorStop(1, '#aaa59d')
+    context.fillStyle = gradient
     context.fillRect(0, 0, 256, 256)
+
+    // Juntas discretas do revestimento; o tint por prédio continua vindo da geometria.
+    context.strokeStyle = 'rgb(70 73 80 / 28%)'
+    context.lineWidth = 1
+    for (let x = 0; x <= 256; x += 64) {
+        context.beginPath()
+        context.moveTo(x, 0)
+        context.lineTo(x, 256)
+        context.stroke()
+    }
     for (let row = 0; row < 8; row++) {
         for (let column = 0; column < 4; column++) {
-            const lit = random() < 0.22
-            context.fillStyle = lit ? '#ffd18a' : '#2b3550'
-            context.fillRect(column * 64 + 10, row * 32 + 7, 44, 18)
+            const x = column * 64 + 8
+            const y = row * 32 + 5
+            const lit = random() < 0.2
+            context.fillStyle = '#171d27'
+            context.fillRect(x, y, 48, 22)
+            const glass = context.createLinearGradient(x, y, x + 48, y + 22)
+            glass.addColorStop(0, lit ? '#ffce7a' : '#28384a')
+            glass.addColorStop(0.52, lit ? '#e9a74c' : '#53718a')
+            glass.addColorStop(0.56, lit ? '#b96d2f' : '#1c2838')
+            glass.addColorStop(1, lit ? '#ffd997' : '#263a50')
+            context.fillStyle = glass
+            context.fillRect(x + 2, y + 2, 44, 18)
+            context.strokeStyle = 'rgb(230 235 240 / 28%)'
+            context.strokeRect(x + 2.5, y + 2.5, 43, 17)
         }
     }
     const texture = new CanvasTexture(canvas)
@@ -106,13 +141,15 @@ function groundTexture(city: City): { texture: CanvasTexture; size: number; cx: 
         (x - (cx - size / 2)) * pixelsPerMeter,
         (z - (cz - size / 2)) * pixelsPerMeter,
     ]
-    for (const [extra, color] of [
-        [4, '#6a665d'],
-        [0, '#1d1d20'],
-    ] as const) {
-        context.strokeStyle = color
+    // Desenha primeiro todas as calçadas, depois o asfalto e por fim as faixas centrais,
+    // para os cruzamentos continuarem legíveis sem textura externa.
+    for (const role of ['sidewalk', 'asphalt', 'center-line'] as const) {
         for (const road of city.roads) {
-            context.lineWidth = (road.width + extra) * pixelsPerMeter
+            const layer = roadPaintLayers(road.width).find((candidate) => candidate.role === role)
+            if (!layer) continue
+            context.strokeStyle = layer.color
+            context.lineWidth = Math.max(1, layer.width * pixelsPerMeter)
+            context.setLineDash(layer.dashes?.map((value) => value * pixelsPerMeter) ?? [])
             context.beginPath()
             for (let i = 0; i < road.line.length; i += 2) {
                 const [px, pz] = toPixel(road.line[i] ?? 0, road.line[i + 1] ?? 0)
@@ -122,6 +159,7 @@ function groundTexture(city: City): { texture: CanvasTexture; size: number; cx: 
             context.stroke()
         }
     }
+    context.setLineDash([])
     const texture = new CanvasTexture(canvas)
     texture.colorSpace = SRGBColorSpace
     texture.anisotropy = 8
@@ -138,15 +176,18 @@ function geometryOf(data: MeshData): BufferGeometry {
 }
 
 /** Céu em degradê de fim de tarde: horizonte quente, topo azul-escuro. */
-function skyDome(): Mesh {
+function skyDome(aurora = false): Mesh {
     const geometry = new SphereGeometry(1500, 24, 16)
     const positions = geometry.getAttribute('position')
     const colors: number[] = []
     const color = new Color()
+    const horizon = aurora ? new Color('#164768') : HORIZON
+    const middle = aurora ? new Color('#392258') : MIDDLE
+    const zenith = aurora ? new Color('#080c27') : ZENITH
     for (let i = 0; i < positions.count; i++) {
         const height = Math.max(0, positions.getY(i) / 1500)
-        if (height < 0.35) color.copy(HORIZON).lerp(MIDDLE, height / 0.35)
-        else color.copy(MIDDLE).lerp(ZENITH, (height - 0.35) / 0.65)
+        if (height < 0.35) color.copy(horizon).lerp(middle, height / 0.35)
+        else color.copy(middle).lerp(zenith, (height - 0.35) / 0.65)
         colors.push(color.r, color.g, color.b)
     }
     geometry.setAttribute('color', new Float32BufferAttribute(colors, 3))
@@ -161,10 +202,11 @@ function skyDome(): Mesh {
 
 /** Desenho 3D em primeira pessoa da cidade (Three.js), sem luzes: cor por vértice e névoa. */
 export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
-    const renderer = new WebGLRenderer({ canvas, antialias: true })
+    const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     const scene = new Scene()
-    scene.fog = new Fog(HORIZON.clone(), 120, 1000)
+    const aurora = city.visual?.theme === 'aurora'
+    scene.fog = new Fog(aurora ? new Color('#164768') : HORIZON.clone(), CITY_ATMOSPHERE.fogNear, CITY_ATMOSPHERE.fogFar)
     const camera = new PerspectiveCamera(FOV_STILL, 1, 0.3, 2200)
     camera.rotation.order = 'YXZ'
 
@@ -174,19 +216,78 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         return item
     }
 
-    const sky = skyDome()
+    const sky = skyDome(aurora)
     track(sky.geometry)
     track(sky.material as MeshBasicMaterial)
     scene.add(sky)
 
     const facade = track(facadeTexture())
     const wallMaterial = track(
-        new MeshBasicMaterial({ map: facade, vertexColors: true, side: DoubleSide }),
+        new MeshBasicMaterial({
+            ...(aurora ? {} : { map: facade }),
+            vertexColors: true,
+            side: DoubleSide,
+        }),
     )
-    const roofMaterial = track(new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }))
+    const roofMaterial = track(
+        new MeshBasicMaterial({ vertexColors: true, side: DoubleSide }),
+    )
     const walls = new Mesh(track(geometryOf(buildWalls(city))), wallMaterial)
     const roofs = new Mesh(track(geometryOf(buildRoofs(city))), roofMaterial)
     scene.add(walls, roofs)
+
+    if (aurora) {
+        // Néon sem iluminação dinâmica, texturas ou chamadas de rede.
+        const colors = [0x4af3ed, 0xff67c8, 0xa78bfa]
+        const neonMaterials = colors.map((color) => track(new MeshBasicMaterial({ color, fog: false })))
+        const trim = track(new BoxGeometry(1, 1, 1))
+        // Um lote por material, em vez de quatro meshes por prédio a cada quadro.
+        const batches = neonMaterials.map((material, group) => {
+            const count = city.buildings.filter((_, id) => id % neonMaterials.length === group).length * 4
+            const mesh = track(new InstancedMesh(trim, material, count))
+            scene.add(mesh)
+            return { mesh, next: 0 }
+        })
+        const transform = new Object3D()
+        city.buildings.forEach((building, id) => {
+            const xs = building.ring.filter((_, i) => i % 2 === 0)
+            const zs = building.ring.filter((_, i) => i % 2 === 1)
+            const minX = Math.min(...xs), maxX = Math.max(...xs)
+            const minZ = Math.min(...zs), maxZ = Math.max(...zs)
+            const batch = batches[id % batches.length]
+            const add = (x: number, y: number, z: number, sx: number, sy: number, sz: number) => {
+                transform.position.set(x, y, z)
+                transform.scale.set(sx, sy, sz)
+                transform.updateMatrix()
+                batch.mesh.setMatrixAt(batch.next++, transform.matrix)
+            }
+            for (const z of [minZ, maxZ]) {
+                add((minX+maxX)/2, building.height-0.3, z, maxX-minX+0.4, 0.7, 0.5)
+            }
+            // Mesmas posições e escalas do néon original; a colisão continua no City v1.
+            for (const x of [minX, maxX]) {
+                add(x, building.height/2, minZ-0.1, 0.6, building.height, 0.6)
+            }
+        })
+        for (const { mesh } of batches) {
+            mesh.instanceMatrix.needsUpdate = true
+            mesh.computeBoundingSphere()
+        }
+        const moon = new Mesh(track(new SphereGeometry(85, 24, 16)), track(new MeshBasicMaterial({ color: 0xc1b2ed, fog: false })))
+        moon.position.set(0, 650, -850)
+        scene.add(moon)
+        const planet = new Mesh(track(new SphereGeometry(38, 20, 12)), track(new MeshBasicMaterial({ color: 0x5cd4e6, fog: false })))
+        planet.position.set(350, 700, -1000)
+        scene.add(planet)
+        const ring = new Mesh(track(new TorusGeometry(64, 2.5, 6, 48)), neonMaterials[2])
+        ring.position.copy(planet.position)
+        ring.rotation.x = 0.8
+        scene.add(ring)
+        const water = new Mesh(track(new PlaneGeometry(8000, 8000)), track(new MeshBasicMaterial({ color: 0x164768, transparent: true, opacity: 0.65 })))
+        water.rotation.x = -Math.PI / 2
+        water.position.y = 0.05
+        scene.add(water)
+    }
 
     const ground = groundTexture(city)
     track(ground.texture)
@@ -204,6 +305,11 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     base.position.y = -0.1
     scene.add(base, streets)
 
+    // Placas nas esquinas (só em mapas com nomes de rua); o poste evita ficar dentro de prédios.
+    const index = createCityIndex(city)
+    const signs = createStreetSigns(city, scene, (x, z) => index.clearance(x, z, 2) >= 2)
+    disposables.push(signs)
+
     // Uma corda por lado (esquerda, centro, direita), que dividem a geometria e o material.
     const ropeGeometry = track(new CylinderGeometry(0.025, 0.025, 1, 6))
     const ropeMaterial = track(new MeshBasicMaterial({ color: 0xf2f2ff, fog: false }))
@@ -214,6 +320,8 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         return rope
     })
 
+    const onlineScene = createOnlineScene(scene)
+
     const projected = new Vector3()
     const up = new Vector3(0, 1, 0)
     const from = new Vector3()
@@ -222,6 +330,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
     const orientation = new Quaternion()
 
     return {
+        setOnline: (room, playerId, dt) => onlineScene.update(room, playerId, dt),
         resize(width, height) {
             renderer.setSize(width, height, false)
             camera.aspect = width / Math.max(1, height)
@@ -242,6 +351,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
             camera.position.set(position.x, position.y, position.z)
             camera.rotation.set(pitch, -yaw, roll, 'YXZ')
             sky.position.copy(camera.position)
+            signs.update(position, yaw)
 
             const ahead = forwardFromAngles(yaw, pitch)
             ropes.forEach((rope, slot) => {
@@ -278,6 +388,7 @@ export const createThreeRenderer: CreateSwingRenderer = (canvas, city) => {
         },
 
         dispose() {
+            onlineScene.dispose()
             for (const item of disposables) item.dispose()
         },
     }

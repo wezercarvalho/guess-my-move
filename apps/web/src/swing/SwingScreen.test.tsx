@@ -29,7 +29,8 @@ function harness(overrides: SwingDeps = {}) {
     let nowMs = 1000
     let queued: (() => void) | null = null
     const keys = new EventTarget()
-    const renderer: SwingRenderer = { resize: vi.fn(), render: vi.fn(), dispose: vi.fn() }
+    const resize = vi.fn()
+    const renderer: SwingRenderer = { resize, render: vi.fn(), dispose: vi.fn() }
     const deps: SwingDeps = {
         loadCity: () => Promise.resolve(city),
         createRenderer: () => renderer,
@@ -46,6 +47,7 @@ function harness(overrides: SwingDeps = {}) {
     }
     return {
         deps,
+        resize,
         press: (key: string) => keys.dispatchEvent(new KeyboardEvent('keydown', { key })),
         run(count = 1, stepMs = 16) {
             for (let i = 0; i < count; i++) {
@@ -73,7 +75,7 @@ describe('SwingScreen', () => {
     it('mostra o título, a frase de apoio e o crédito do mapa', async () => {
         await openGame()
         expect(screen.getByRole('heading', { level: 1, name: 'Arranha-Teia' })).toBeInTheDocument()
-        expect(screen.getByText(/balance entre os prédios de midtown/i)).toBeInTheDocument()
+        expect(screen.getByText(/Midtown Manhattan · Nova York, Estados Unidos/i)).toBeInTheDocument()
         expect(screen.getByTestId('map-credit')).toHaveTextContent(/OpenStreetMap \(ODbL\)/)
     })
 
@@ -199,6 +201,45 @@ describe('SwingScreen', () => {
         expect(legend).toHaveTextContent('olham')
     })
 
+    it('as mensagens ficam dentro do palco, não na coluna lateral', async () => {
+        await openGame()
+        const feedback = screen.getByTestId('swing-feedback')
+        expect(feedback.closest('.swing-stage')).not.toBeNull()
+        expect(feedback.closest('.swing-side')).toBeNull()
+    })
+
+    it('uma teia presa avisa a mão sobre o jogo', async () => {
+        const h = await openGame()
+        h.run(2)
+        h.press(' ')
+        h.run(3)
+        h.run(1, 150)
+        await waitFor(() => {
+            expect(within(screen.getByTestId('swing-feedback')).getByText('Teia presa: centro')).toBeInTheDocument()
+        })
+    })
+
+    it('o botão de depuração fica no cabeçalho e a gaveta não ocupa a página fechada', async () => {
+        await openGame()
+        const header = screen.getByRole('heading', { level: 1, name: 'Arranha-Teia' }).closest('header')
+        expect(header).not.toBeNull()
+        expect(within(header as HTMLElement).getByRole('button', { name: 'Depuração' })).toBeInTheDocument()
+        expect(screen.queryByRole('region', { name: 'Depuração' })).not.toBeInTheDocument()
+    })
+
+    it('marca o body enquanto a tela está montada e limpa ao sair', () => {
+        const { unmount } = render(<SwingScreen cameraGetUserMedia={null} deps={harness().deps} />)
+        expect(document.body).toHaveClass('swing-playing')
+        unmount()
+        expect(document.body).not.toHaveClass('swing-playing')
+    })
+
+    it('a tela do jogo usa o contêiner que preenche a janela', async () => {
+        await openGame()
+        expect(document.querySelector('.swing-screen')).not.toBeNull()
+        expect(screen.getByTestId('swing-stage')).toBeInTheDocument()
+    })
+
     it('com a câmera ativa, mostra o seletor de direção do olhar e troca para Automática', async () => {
         vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
         const { stream } = createFakeStream()
@@ -222,6 +263,9 @@ describe('SwingScreen', () => {
             await Promise.resolve()
         })
         const selector = await screen.findByRole('group', { name: 'Direção do olhar' })
+        // O título do painel não se repete: só o rótulo do grupo.
+        const panel = screen.getByRole('region', { name: 'Direção do olhar' })
+        expect(within(panel).getAllByText('Direção do olhar')).toHaveLength(1)
         const rosto = within(selector).getByRole('radio', { name: 'Rosto' })
         expect(rosto).toBeChecked()
         act(() => {
@@ -230,4 +274,70 @@ describe('SwingScreen', () => {
         expect(within(selector).getByRole('radio', { name: 'Automática' })).toBeChecked()
         expect(screen.getByTestId('head-status')).toHaveTextContent(/câmera automática/i)
     })
+})
+
+
+describe('regressão de redimensionamento durante o HUD', () => {
+    it('atualiza HUD sem recriar o observador nem redimensionar o canvas', async () => {
+        const observe = vi.fn()
+        const disconnect = vi.fn()
+        vi.stubGlobal('ResizeObserver', class { observe = observe; disconnect = disconnect })
+        try {
+            const h = await openGame()
+            const observations = observe.mock.calls.length
+            const resizes = h.resize.mock.calls.length
+            h.run(20, 120)
+            expect(observe).toHaveBeenCalledTimes(observations)
+            expect(h.resize).toHaveBeenCalledTimes(resizes)
+        } finally { vi.unstubAllGlobals() }
+    })
+})
+
+
+it('explica a calibração e só permite centralizar com orientação válida', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    let seen = false
+    const h = harness({
+        createTracker: () => Promise.resolve({delegate: 'CPU', detect: () => null, close() {}}),
+        createFaceTracker: () => Promise.resolve({delegate: 'CPU', detect: () => seen ? {orientation: {yaw:0,pitch:0},landmarks:[]} : null, close() {}}),
+    })
+    render(<SwingScreen cameraGetUserMedia={() => Promise.resolve(createFakeStream().stream)} deps={h.deps} />)
+    await waitFor(() => expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i))
+    fireEvent.click(screen.getByRole('button', {name:'Ativar câmera'}))
+    const video = screen.getByTestId('camera-preview') as HTMLVideoElement
+    Object.defineProperties(video, {readyState:{value:4},videoWidth:{value:640},videoHeight:{value:480}})
+    await waitFor(() => expect(screen.getByRole('button',{name:'Parar câmera'})).toBeInTheDocument())
+    h.run(1,120)
+    expect(screen.getByRole('button',{name:'Centralizar'})).toBeDisabled()
+    seen=true
+    video.currentTime=1
+    h.run(1,120)
+    expect(screen.getByTestId('head-status')).toHaveTextContent(/cabeça parada para calibrar/)
+    expect(screen.getByRole('button',{name:'Centralizar'})).toBeEnabled()
+})
+
+it.each([false, true])('oferece sensibilidade acessível e mantém valor (cooperativo=%s)', async (cooperative) => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    const h = harness({
+        createTracker: () => Promise.resolve({delegate:'CPU', detect:()=>null, close(){}}),
+        createFaceTracker: () => Promise.resolve({delegate:'CPU', detect:()=>null, close(){}}),
+    })
+    const online = cooperative ? {
+        getSnapshot: () => ({ connection: 'connected' as const, access: null, room: null, error: null, pending: false, stale: false }),
+        sendInput: () => undefined,
+    } : undefined
+    render(<SwingScreen {...(online ? { online } : {})} cameraGetUserMedia={() => Promise.resolve(createFakeStream().stream)} deps={h.deps} />)
+    await waitFor(() => expect(screen.getByTestId('game-status')).toHaveTextContent(/pose de teia/i))
+    fireEvent.click(screen.getByRole('button', {name:'Ativar câmera'}))
+    const slider = await screen.findByRole('slider', {name:'Sensibilidade do rosto'})
+    expect(slider).toHaveValue('1')
+    expect(slider).toHaveAttribute('min','0.5')
+    expect(slider).toHaveAttribute('max','3')
+    fireEvent.change(slider, {target:{value:'2.5'}})
+    expect(slider).toHaveValue('2.5')
+    expect(screen.getByText('2,5×')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', {name:'Automática'}))
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', {name:'Rosto'}))
+    expect(screen.getByRole('slider', {name:'Sensibilidade do rosto'})).toHaveValue('2.5')
 })

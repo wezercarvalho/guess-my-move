@@ -35,6 +35,13 @@ test('guitar.html carrega o Violão no Ar e volta ao menu', () => {
     assert.match(page, /href="\.\/"/)
 })
 
+test('Violão bloqueia conexões de terceiros antes de carregar o detector', () => {
+    const page = read('guitar.html')
+    const policy = page.indexOf('http-equiv="Content-Security-Policy"')
+    assert.ok(policy >= 0 && policy < page.indexOf('<script'))
+    assert.match(page, /content="connect-src 'self'"/)
+})
+
 test('o Vite tem uma entrada para cada página', () => {
     const config = read('vite.config.ts')
     assert.match(config, /main: 'index\.html'/)

@@ -12,8 +12,17 @@ Aplica-se a qualquer mudança que toque câmera, quadros, landmarks, logs ou doc
 
 ## Sem servidor nem provedor de IA no fluxo principal
 
-- O fluxo principal não tem servidor, não faz chamada a provedor de IA e não usa variável de ambiente de provedor nem chave de API. Uma rodada completa não gera requisição de rede com imagem, vídeo ou landmarks; só há o carregamento do app e dos arquivos do detector, servidos pelo próprio app.
+- O fluxo local não tem servidor, não faz chamada a provedor de IA e não usa variável de ambiente de provedor nem chave de API. Uma rodada completa não gera requisição de rede com imagem, vídeo ou landmarks; só há o carregamento do app e dos arquivos do detector, servidos pelo próprio app.
 - A pesquisa de modelo multimodal em [`docs/research`](../../research/multimodal-model-selection.md) é referência para uma futura IA jogadora, fora do fluxo atual.
+
+## Salas online de bolinhas
+
+- No modo online, o servidor recebe código/acesso da sala, apelido efêmero, prontidão, confirmação de revanche e tiros (número da partida, sequência e vetor). Isso não altera o processamento local da câmera: nenhuma imagem, vídeo ou landmark é enviado.
+- Apelidos são texto público apenas para as duas pessoas da sala, limitado e validado; não exigem nome real, conta ou perfil. Ficam nos slots em memória e são descartados ao encerrar/expirar a sala. Não registrar apelidos, credenciais ou payloads completos em logs. A retomada recupera o mesmo slot sem persistir o apelido no navegador.
+
+## Arranha-Teia cooperativo
+
+O navegador envia somente inputs numéricos/booleanos derivados dos controles (teias, puxar, agarrar, taxas/deltas do olhar e escalada), número da partida e sequência. O servidor simula posições e objetivos. Nenhum frame, imagem, vídeo, landmark ou dado bruto do detector é aceito pelo schema. Apelidos e posições do avatar são públicos apenas à dupla da sala em memória; o segredo de retomada só aparece no ACK privado e fica em memória da página, sem storage. Fechar/recarregar a página perde essa credencial. Logs e telemetria não incluem apelidos, tokens, posições ou payloads.
 
 ## Arquivos do detector
 

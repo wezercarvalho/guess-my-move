@@ -49,7 +49,19 @@ export interface HeadLookConfig {
     maxPitch: number
     /** Suavização exponencial por segundo (maior = mais rápido para o alvo). 0 desliga. */
     smoothing: number
+    /**
+     * Trava (CQ-012): a direção travada é a que a cabeça tinha este tempo, em ms, ANTES do
+     * pedido de trava valer, porque levar a mão ao gesto mexe a cabeça. Valor de jogo.
+     */
+    lookbackMs: number
+    /**
+     * Sem rosto e sem trava (CQ-012): tempo, em ms, que o desvio atual é mantido antes de voltar
+     * suave à direção travada (zero sem trava). Valor de jogo.
+     */
+    faceLostHoldMs: number
 }
+
+export const HEAD_LOOK_SENSITIVITY = { min: 0.5, max: 3, step: 0.1, initial: 1 } as const
 
 export const DEFAULT_HEAD_LOOK: HeadLookConfig = {
     calibrationFrames: 12,
@@ -58,30 +70,65 @@ export const DEFAULT_HEAD_LOOK: HeadLookConfig = {
     maxYaw: (70 * Math.PI) / 180,
     maxPitch: (45 * Math.PI) / 180,
     smoothing: 8,
+    lookbackMs: 400,
+    faceLostHoldMs: 1500,
 }
+
+/**
+ * Modo do olhar (CQ-012): `following` a cabeça soma o desvio; `locked` a direção está travada
+ * pelo gesto, enquanto ele durar. Ao tirar a mão volta a `following`, e a direção travada
+ * continua como a nova frente; a pose ao soltar define o novo neutro.
+ */
+export type HeadLookMode = 'following' | 'locked'
 
 /** Estado do olhar da cabeça num quadro. */
 export interface HeadLookState {
-    /** Desvio de guinada a somar ao olhar do jogo, em radianos. */
+    /** Desvio de guinada TOTAL a somar ao olhar do jogo (direção travada mais a cabeça), em radianos. */
     yawOffset: number
-    /** Desvio de inclinação a somar ao olhar do jogo, em radianos. */
+    /** Desvio de inclinação TOTAL a somar ao olhar do jogo (direção travada mais a cabeça), em radianos. */
     pitchOffset: number
     /** O neutro já foi calibrado. */
     calibrated: boolean
     /** Havia rosto no último quadro. */
     faceVisible: boolean
+    /** Seguindo a cabeça ou travada pelo gesto. */
+    mode: HeadLookMode
+    /** Parte da guinada que vem só da cabeça agora (zero travada). */
+    liveYaw: number
+    /** Parte da inclinação que vem só da cabeça agora (zero travada). */
+    livePitch: number
+    /** Guinada travada pelo gesto (a nova frente), em radianos; zero sem trava. É o viés do acompanhamento automático. */
+    lockedYaw: number
+    /** Inclinação travada pelo gesto, em radianos; zero sem trava. */
+    lockedPitch: number
+    /** Sinais com ganho padrão, independentes da preferência visual, para escalada. */
+    /** Sinal horizontal sem suavização, para cancelar imediatamente a intenção ao centralizar. */
+    intentYaw: number
+    gestureYaw: number
+    gesturePitch: number
 }
 
 export interface HeadLook {
+    /** Incorpora giro deliberado na direção, sem alterar os sinais físicos da cabeça. */
+    turnYaw(delta: number): HeadLookState
+    readonly sensitivity: number
+    setSensitivity(value: number): void
     /**
-     * Um quadro: a orientação da cabeça (`null` sem rosto) e o tempo `dt` em segundos.
-     * Devolve o desvio suavizado a somar ao olhar.
+     * Um quadro: a orientação da cabeça (`null` sem rosto), o tempo `dt` em segundos e, desde a
+     * CQ-012, se o gesto de travar vale neste quadro (`lock`). Devolve o desvio suavizado a somar
+     * ao olhar. `newSample=false` suaviza o último resultado sem contar a mesma imagem
+     * novamente na calibração (a tela pode desenhar mais rápido que a câmera).
      */
-    update(orientation: HeadOrientation | null, dt: number): HeadLookState
-    /** Trata a orientação atual como o novo neutro (botão "Centralizar"). */
-    recenter(): void
-    /** Volta ao estado inicial, sem calibração. */
+    update(orientation: HeadOrientation | null, dt: number, lock?: boolean, newSample?: boolean): HeadLookState
+    /** Redefine o neutro e encerra a trava; cameraOffset permite nivelar a câmera inteira pela mesma suavização. */
+    recenter(cameraOffset?: HeadOrientation): void
+    /** Volta ao estado inicial, sem calibração, preservando a preferência de sensibilidade. */
     reset(): void
+}
+
+/** Representa a mesma direção sem voltas completas, compatível com os limites do protocolo. */
+export function normalizeYaw(yaw: number): number {
+    return Math.atan2(Math.sin(yaw), Math.cos(yaw))
 }
 
 /**
@@ -91,38 +138,50 @@ export interface HeadLook {
  * matriz não tem 16 números.
  */
 export function headOrientationFromMatrix(matrix: readonly number[]): HeadOrientation | null {
-    if (matrix.length !== 16) return null
-    // Ordem de coluna: índice = coluna*4 + linha. r[linha][coluna].
-    const r = (row: number, col: number) => matrix[col * 4 + row] ?? 0
-    // A matriz do MediaPipe leva o modelo canônico (olha para +Z, X à direita da imagem, Y
-    // para cima) ao espaço da câmera, SEM espelhar. Em Ry(theta), +Z vai a (sin theta, 0,
-    // cos theta): r(0,2)=sin, r(2,2)=cos, r(2,0)=-sin. Como a imagem não é espelhada, virar
-    // a cabeça para a direita do jogador é theta NEGATIVO; invertemos o sinal para que
-    // `yaw > 0` signifique "olha para a sua direita". O mesmo para a inclinação: em Rx(phi),
-    // +Z vai a (0, -sin phi, cos phi), e olhar para cima é phi negativo, então `pitch > 0`
-    // ao olhar para cima. Assim o olhar do jogo (yaw cresce à direita, pitch positivo para
-    // cima) casa com o desvio sem inversão extra.
-    const yaw = Math.atan2(r(2, 0), r(2, 2))
-    const pitch = Math.atan2(r(1, 2), r(1, 1))
+    if (matrix.length !== 16 || !matrix.every(Number.isFinite)) return null
+    // Coluna Z da rotação: direção frontal. A norma horizontal remove a escala;
+    // o eixo frontal não muda quando a cabeça inclina lateralmente (roll).
+    const x = matrix[8] ?? 0
+    const y = matrix[9] ?? 0
+    const z = matrix[10] ?? 0
+    if (Math.hypot(x, y, z) < 1e-6) return null
+    const yaw = Math.atan2(-x, z)
+    const pitch = Math.atan2(y, Math.hypot(x, z))
     return { yaw, pitch }
 }
 
 /** Aplica zona morta e ganho a um ângulo relativo ao neutro, depois limita. */
-function shape(relative: number, config: HeadLookConfig, limit: number): number {
+function shape(relative: number, config: HeadLookConfig, limit: number, sensitivity = 1): number {
     const sign = Math.sign(relative)
     const past = Math.abs(relative) - config.deadzone
     if (past <= 0) return 0
-    const value = sign * past * config.gain
+    const value = sign * past * config.gain * sensitivity
     return Math.max(-limit, Math.min(limit, value))
 }
 
 export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): HeadLook {
+    let sensitivity: number = HEAD_LOOK_SENSITIVITY.initial
+    let visible = false
+    let intentYaw = 0
+    let gestureYaw = 0
+    let gesturePitch = 0
     let calibrated = false
     let neutral: HeadOrientation = { yaw: 0, pitch: 0 }
     let stableFrames = 0
+    let calibrationOrigin: HeadOrientation | null = null
     let last: HeadOrientation | null = null
+    // Desvio TOTAL aplicado ao olhar (direção travada + cabeça), suavizado.
     let yawOffset = 0
     let pitchOffset = 0
+    // Trava (CQ-012): a direção travada vira a nova frente e a cabeça soma a ela.
+    let mode: HeadLookMode = 'following'
+    let baseYaw = 0
+    let basePitch = 0
+    let lostMs = 0
+    let recenterOnRecovery = false
+    let clockMs = 0
+    // Histórico curto do desvio total, para travar na direção de antes do gesto.
+    let history: { t: number; yaw: number; pitch: number }[] = []
 
     function approach(current: number, target: number, dt: number): number {
         if (config.smoothing <= 0) return target
@@ -130,50 +189,193 @@ export function createHeadLook(config: HeadLookConfig = DEFAULT_HEAD_LOOK): Head
         return current + (target - current) * k
     }
 
+    function remember(): void {
+        history.push({ t: clockMs, yaw: yawOffset, pitch: pitchOffset })
+        // Guarda uma amostra anterior ao corte de `lookbackMs` e descarta o resto.
+        while (history.length > 2 && (history[1]?.t ?? Infinity) <= clockMs - config.lookbackMs) history.shift()
+    }
+
+    /** O desvio total que valia `lookbackMs` atrás (a amostra mais antiga se o histórico é curto). */
+    function lookedBack(): { yaw: number; pitch: number } {
+        const cutoff = clockMs - config.lookbackMs
+        let picked = history[0]
+        for (const sample of history) {
+            if (sample.t <= cutoff) picked = sample
+            else break
+        }
+        return picked ? { yaw: picked.yaw, pitch: picked.pitch } : { yaw: yawOffset, pitch: pitchOffset }
+    }
+
+    function state(faceVisible: boolean): HeadLookState {
+        visible = faceVisible
+        const following = mode === 'following'
+        return {
+            yawOffset,
+            pitchOffset,
+            calibrated,
+            faceVisible,
+            mode,
+            liveYaw: following ? yawOffset - baseYaw : 0,
+            livePitch: following ? pitchOffset - basePitch : 0,
+            lockedYaw: baseYaw,
+            lockedPitch: basePitch,
+            intentYaw: following ? intentYaw : 0,
+            gestureYaw: following ? gestureYaw : 0,
+            gesturePitch: following ? gesturePitch : 0,
+        }
+    }
+
     return {
-        update(orientation, dt) {
-            if (orientation === null) {
-                // Sem rosto: o desvio volta suave a zero; o jogo segue como hoje.
-                yawOffset = approach(yawOffset, 0, dt)
-                pitchOffset = approach(pitchOffset, 0, dt)
-                stableFrames = 0
-                return { yawOffset, pitchOffset, calibrated, faceVisible: false }
+        turnYaw(delta) {
+            if (calibrated && visible && mode === 'following' && Number.isFinite(delta)) {
+                baseYaw += delta
+                yawOffset += delta
+                const sample = history.at(-1)
+                if (sample) sample.yaw = yawOffset
+            }
+            return state(visible)
+        },
+        get sensitivity() { return sensitivity },
+        setSensitivity(value) {
+            if (!Number.isFinite(value)) return
+            sensitivity = Math.round(Math.max(HEAD_LOOK_SENSITIVITY.min, Math.min(HEAD_LOOK_SENSITIVITY.max, value)) * 10) / 10
+        },
+        update(orientation, dt, lock = false, newSample = true) {
+            if (orientation && (!Number.isFinite(orientation.yaw) || !Number.isFinite(orientation.pitch))) orientation = null
+            clockMs += dt * 1000
+            if (newSample && calibrated) {
+                if (orientation === null) recenterOnRecovery = true
+                else if (recenterOnRecovery) {
+                    neutral = { ...orientation }
+                    if (mode !== 'locked') {
+                        yawOffset = normalizeYaw(yawOffset)
+                        baseYaw = 0
+                        basePitch = 0
+                        history = []
+                    }
+                    recenterOnRecovery = false
+                }
             }
 
-            // Calibração automática: os primeiros quadros estáveis definem o neutro.
             if (!calibrated) {
-                stableFrames++
-                neutral = orientation
-                if (stableFrames >= config.calibrationFrames) calibrated = true
-                last = orientation
-                // Durante a calibração o olhar não se mexe.
+                // Calibração automática: os primeiros quadros estáveis definem o neutro.
+                if (orientation === null) {
+                    // Sem rosto: o desvio volta suave a zero; o jogo segue como hoje.
+                    yawOffset = approach(yawOffset, 0, dt)
+                    pitchOffset = approach(pitchOffset, 0, dt)
+                    stableFrames = 0
+                    calibrationOrigin = null
+                    last = null
+                    return state(false)
+                }
+                if (newSample) {
+                    // Uma janela inteira perto da pose inicial; movimento reinicia a janela.
+                    const tolerance = (2 * Math.PI) / 180
+                    if (!calibrationOrigin || Math.abs(orientation.yaw - calibrationOrigin.yaw) > tolerance || Math.abs(orientation.pitch - calibrationOrigin.pitch) > tolerance) {
+                        calibrationOrigin = { ...orientation }
+                        stableFrames = 0
+                        neutral = { yaw: 0, pitch: 0 }
+                    }
+                    stableFrames++
+                    neutral = {
+                        yaw: neutral.yaw + (orientation.yaw - neutral.yaw) / stableFrames,
+                        pitch: neutral.pitch + (orientation.pitch - neutral.pitch) / stableFrames,
+                    }
+                    if (stableFrames >= config.calibrationFrames) calibrated = true
+                    last = orientation
+                }
+                // Durante a calibração o olhar não se mexe (e a trava não vale).
                 yawOffset = approach(yawOffset, 0, dt)
                 pitchOffset = approach(pitchOffset, 0, dt)
-                return { yawOffset, pitchOffset, calibrated, faceVisible: true }
+                return state(true)
             }
-            last = orientation
+
+            if (orientation !== null) {
+                last = orientation
+                lostMs = 0
+            } else {
+                lostMs += dt * 1000
+            }
+
+            // Transições da trava: o gesto começa ou termina; cada transição redefine a pose neutra.
+            if (lock && mode !== 'locked') {
+                const picked = lookedBack()
+                baseYaw = picked.yaw
+                basePitch = picked.pitch
+                mode = 'locked'
+                if (orientation) neutral = { ...orientation }
+            } else if (!lock && mode === 'locked') {
+                // Reposicionar a cabeça durante a trava não deve somar outro giro ao soltar.
+                if (orientation) neutral = { ...orientation }
+                else recenterOnRecovery = true
+                mode = 'following'
+            }
 
             // Espelhamento: a imagem da câmera é invertida. A matriz já dá yaw positivo
             // quando a cabeça vira para a direita do jogador, e o olhar do jogo cresce
             // para a direita, então o sinal já casa (sem inversão extra aqui).
-            const targetYaw = shape(orientation.yaw - neutral.yaw, config, config.maxYaw)
-            const targetPitch = shape(orientation.pitch - neutral.pitch, config, config.maxPitch)
+            const liveYaw = orientation ? shape(orientation.yaw - neutral.yaw, config, config.maxYaw, sensitivity) : 0
+            const livePitch = orientation ? shape(orientation.pitch - neutral.pitch, config, config.maxPitch, sensitivity) : 0
+
+            let targetYaw = baseYaw
+            let targetPitch = basePitch
+            if (mode === 'following') {
+                if (orientation !== null) {
+                    targetYaw = baseYaw + liveYaw
+                    targetPitch = basePitch + livePitch
+                } else if (lostMs <= config.faceLostHoldMs) {
+                    // Rosto fora do quadro há pouco: mantém o olhar em vez de voltar na hora.
+                    targetYaw = yawOffset
+                    targetPitch = pitchOffset
+                }
+            }
+            targetPitch = Math.max(-config.maxPitch, Math.min(config.maxPitch, targetPitch))
+
             yawOffset = approach(yawOffset, targetYaw, dt)
             pitchOffset = approach(pitchOffset, targetPitch, dt)
-            return { yawOffset, pitchOffset, calibrated: true, faceVisible: true }
+            intentYaw = mode === 'following' && orientation ? shape(orientation.yaw - neutral.yaw, config, config.maxYaw) : 0
+            gestureYaw = approach(gestureYaw, intentYaw, dt)
+            gesturePitch = approach(gesturePitch, mode === 'following' && orientation ? shape(orientation.pitch - neutral.pitch, config, config.maxPitch) : 0, dt)
+            remember()
+            return state(orientation !== null)
         },
-        recenter() {
-            if (last) neutral = last
+        recenter(cameraOffset) {
+            if (!last) return
+            neutral = { ...last }
+            yawOffset = normalizeYaw(cameraOffset?.yaw ?? yawOffset)
+            pitchOffset = cameraOffset?.pitch ?? pitchOffset
             calibrated = true
             stableFrames = config.calibrationFrames
+            // Encerra a trava e zera a direção travada: o olhar volta suave ao acompanhamento.
+            mode = 'following'
+            baseYaw = 0
+            basePitch = 0
+            lostMs = 0
+            history = []
+            recenterOnRecovery = false
+            intentYaw = 0
+            gestureYaw = 0
+            gesturePitch = 0
         },
         reset() {
+            visible = false
             calibrated = false
+            intentYaw = 0
+            gestureYaw = 0
+            gesturePitch = 0
             neutral = { yaw: 0, pitch: 0 }
             stableFrames = 0
+            calibrationOrigin = null
             last = null
             yawOffset = 0
             pitchOffset = 0
+            mode = 'following'
+            baseYaw = 0
+            basePitch = 0
+            lostMs = 0
+            clockMs = 0
+            history = []
+            recenterOnRecovery = false
         },
     }
 }

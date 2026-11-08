@@ -164,3 +164,11 @@ README.md                            (lista de jogos)
 | Necessidade   | Impacto | Alternativa mais simples rejeitada | Aprovação |
 | ------------- | ------- | ---------------------------------- | --------- |
 | Nenhum desvio | —       | —                                  | —         |
+
+## Retomada e integração com main — 2026-11-08
+
+Preservar o fluxo livre aprovado em CQ-007. Adotar `AsyncTrackerResource` e `VideoFrameGate`, já presentes na main, para FR-015/NFR-001: invalidar cargas antigas, liberar recursos ao parar e permitir reinício após erro. Limpar o reconhecimento quando a captura expira ou para, preservando somente o último acorde para teste por teclado (FR-017). Cobrir corridas de câmera e retomada de áudio com testes falhando antes da correção. Atualizar a apresentação do quarto jogo sem regredir os três existentes.
+
+### Rede do detector na conferência de navegador
+
+O MediaPipe 1.1.1 instalado tenta postar telemetria em `odml.pa.googleapis.com/v1/log`, apesar dos modelos locais; a interface pública de opções instalada não oferece desligamento tipado. Para cumprir NFR-001/NFR-002 no Violão, aplicar CSP `connect-src 'self'` no HTML antes dos módulos. Não modificar internals da biblioteca nem interceptar globalmente fetch/XHR. Verificar no navegador o carregamento local, câmera/áudio e ausência de conexões externas concluídas; tentativas bloqueadas pela política são evidência distinta de ausência de tentativa. A proteção é restrita à página do Violão.

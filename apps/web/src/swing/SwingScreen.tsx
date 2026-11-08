@@ -1,3 +1,7 @@
+import { HEAD_LOOK_SENSITIVITY } from '@guess-my-move/swing'
+import { type SwingOnlineBridge } from './multiplayerClient.js'
+import { TrainingPanel } from './TrainingPanel.js'
+import { TRAINING_MAP } from './training.js'
 import { useEffect, useRef } from 'react'
 
 import { CameraPanel } from '../camera/CameraPanel.js'
@@ -6,11 +10,27 @@ import { useCamera } from '../camera/useCamera.js'
 import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, Steps, useDrawer } from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
-import { KEYS, STEPS, currentStep, gripStatusLine, guideHint, headStatusLine, statusLine } from './guide.js'
+import { DEFAULT_CITY_MAP, type CityMap } from './cityCatalog.js'
+import {
+    HEAD_IDLE_HINT,
+    KEYS,
+    STEPS,
+    currentStep,
+    gripStatusLine,
+    guideHint,
+    headStatusLine,
+    statusLine,
+} from './guide.js'
+import { type FeedbackInput } from './feedback.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
+import { SwingFeedback } from './SwingFeedback.js'
 import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
 
 export interface SwingScreenProps {
+    online?: SwingOnlineBridge
+    /** Mapa validado pelo catálogo. O default preserva usos/testes anteriores do Midtown. */
+    map?: CityMap
+    onChangeMap?: () => void
     /** `getUserMedia` injetável para teste (o navegador resolve por padrão). */
     cameraGetUserMedia?: GetUserMedia | null
     deps?: SwingDeps
@@ -44,7 +64,13 @@ function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
  * pequena com o esqueleto da mão e o guia. Todo o processamento é local; nenhuma imagem
  * sai do navegador.
  */
-export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
+export function SwingScreen({
+    online,
+    map = DEFAULT_CITY_MAP,
+    onChangeMap,
+    cameraGetUserMedia,
+    deps,
+}: SwingScreenProps) {
     const camera = useCamera(
         cameraGetUserMedia === undefined ? {} : { getUserMedia: cameraGetUserMedia },
     )
@@ -55,6 +81,8 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
     const stageRef = useRef<HTMLDivElement | null>(null)
     const debugDrawer = useDrawer()
     const game = useSwingGame({
+        map,
+        ...(online ? { online } : {}),
         cameraActive: camera.isActive,
         videoRef,
         overlayRef,
@@ -63,6 +91,14 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         ...(deps === undefined ? {} : { deps }),
     })
     const { resize } = game
+
+    // Marca o body enquanto a tela do jogo está montada: o link "← Menu" passa a flutuar no cabeçalho.
+    useEffect(() => {
+        document.body.classList.add('swing-playing')
+        return () => {
+            document.body.classList.remove('swing-playing')
+        }
+    }, [])
 
     useEffect(() => {
         const stage = stageRef.current
@@ -91,24 +127,64 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
         cameraActive: camera.isActive,
         faceTrackerStatus: game.faceTrackerStatus,
         faceVisible: game.faceVisible,
+        calibrated: game.headDebug.calibrated,
+        lockMode: game.headLock.mode,
+        turn: game.headTurn,
     })
+
+    const feedbackInput: FeedbackInput = {
+        phase: game.phase,
+        cameraActive: camera.isActive,
+        lookMode: game.lookMode,
+        faceTrackerStatus: game.faceTrackerStatus,
+        faceVisible: game.faceVisible,
+        lockMode: game.headLock.mode,
+        gripped: game.hud.gripped,
+        headClimb: game.headClimb,
+        cue: game.cue,
+        webSides: game.hud.webSides,
+    }
 
     return (
         <div className="swing-screen">
             <header className="swing-header">
-                <Eyebrow>Passeio livre</Eyebrow>
-                <h1>Arranha-Teia</h1>
-                <p className="swing-lead">Balance entre os prédios de Midtown com a mão.</p>
+                <div className="swing-header__title">
+                    <h1>Arranha-Teia</h1>
+                    <p className="swing-lead">
+                        {map.name} · {map.region}
+                    </p>
+                </div>
+                <div className="swing-header__actions">
+                    <p className="swing-header__stats">
+                        <span className="swing-counter" data-testid="web-counter">
+                            Teias: {game.hud.webs}
+                        </span>
+                        <span className="swing-distance" data-testid="distance">
+                            Distância: {game.hud.distance} m
+                        </span>
+                    </p>
+                    {!online ? <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
+                        Voltar ao início
+                    </Button> : null}
+                    {onChangeMap ? (
+                        <Button variant="text" onClick={onChangeMap}>
+                            Trocar mapa
+                        </Button>
+                    ) : null}
+                    <DrawerToggle open={debugDrawer.open} panelId={debugDrawer.panelId} onToggle={debugDrawer.toggle}>
+                        Depuração
+                    </DrawerToggle>
+                </div>
             </header>
 
             <div className="swing-layout">
                 <Panel aria-label="Cidade" className="swing-stage-panel">
-                    <div ref={stageRef} className="swing-stage" data-cue={game.cue}>
+                    <div ref={stageRef} className="swing-stage" data-cue={game.cue} data-testid="swing-stage">
                         <canvas
                             ref={sceneRef}
                             className="swing-scene"
                             role="img"
-                            aria-label="Vista em primeira pessoa de Manhattan"
+                            aria-label={`Vista em primeira pessoa de ${map.name}`}
                         />
                         <canvas ref={effectsRef} className="swing-effects" aria-hidden="true" />
                         <dl className="swing-hud" data-testid="swing-hud">
@@ -127,27 +203,76 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                                 </dd>
                             </div>
                         </dl>
+                        <SwingFeedback input={feedbackInput} />
                     </div>
-                    <p className="swing-credit" data-testid="map-credit">
-                        {game.attribution}
-                    </p>
-                    <DrawerToggle
-                        open={debugDrawer.open}
-                        panelId={debugDrawer.panelId}
-                        onToggle={debugDrawer.toggle}
-                    >
-                        Depuração
-                    </DrawerToggle>
+                    <div className="swing-stage-footer">
+                        <p className="swing-credit" data-testid="map-credit">
+                            {game.attribution}
+                        </p>
+                        <PrivacyNotice />
+                    </div>
                 </Panel>
 
                 <div className="swing-side">
-                    <Panel raised aria-label="Passeio" className="swing-round">
-                        <p className="swing-counter" data-testid="web-counter">
-                            Teias: {game.hud.webs}
-                        </p>
-                        <p className="swing-distance" data-testid="distance">
-                            Distância: {game.hud.distance} m
-                        </p>
+                    {!online && map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
+                    <CameraPanel
+                        camera={camera}
+                        videoRef={videoRef}
+                        overlay={<HandOverlay canvasRef={overlayRef} />}
+                    />
+                    {camera.isActive && (
+                        <Panel raised aria-label="Direção do olhar" className="swing-head">
+                            <div className="swing-head__controls">
+                                <SegmentedControl
+                                    legend="Direção do olhar"
+                                    name="swing-look-mode"
+                                    value={game.lookMode}
+                                    options={LOOK_MODE_OPTIONS}
+                                    onChange={game.setLookMode}
+                                />
+                                {game.lookMode === 'face' ? (
+                                    <Button
+                                        variant="secondary"
+                                        onClick={game.recenterHead}
+                                        title="Nivelar a câmera ao horizonte e refazer o neutro do rosto"
+                                        disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
+                                    >
+                                        Centralizar
+                                    </Button>
+                                ) : null}
+                            </div>
+                            {game.lookMode === 'face' ? (
+                                <div className="swing-head__sensitivity">
+                                    <div className="swing-head__sensitivity-label">
+                                        <label htmlFor="swing-face-sensitivity">Sensibilidade do rosto</label>
+                                        <output htmlFor="swing-face-sensitivity">{game.faceSensitivity.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×</output>
+                                    </div>
+                                    <input
+                                        id="swing-face-sensitivity"
+                                        type="range"
+                                        min={HEAD_LOOK_SENSITIVITY.min}
+                                        max={HEAD_LOOK_SENSITIVITY.max}
+                                        step={HEAD_LOOK_SENSITIVITY.step}
+                                        value={game.faceSensitivity}
+                                        aria-valuetext={`${game.faceSensitivity.toLocaleString('pt-BR')} vezes`}
+                                        aria-describedby="swing-face-sensitivity-hint"
+                                        onChange={(event) => game.setFaceSensitivity(Number(event.currentTarget.value))}
+                                    />
+                                    <p id="swing-face-sensitivity-hint" className="round-status">Maior sensibilidade: pequenos movimentos giram mais a câmera. Menor: movimentos mais suaves. Também ajusta a velocidade do giro contínuo.</p>
+                                </div>
+                            ) : null}
+                            {game.lookMode === 'face' ? (
+                                <p aria-live="polite" className="round-status" data-testid="head-status">
+                                    {headStatus || HEAD_IDLE_HINT}
+                                </p>
+                            ) : (
+                                <p className="round-status" data-testid="head-status">
+                                    Câmera automática. As setas ajustam o olhar.
+                                </p>
+                            )}
+                        </Panel>
+                    )}
+                    <Panel raised aria-label="Passeio" className="swing-guide">
                         <p aria-live="polite" className="round-status" data-testid="game-status">
                             {statusText(game)}
                         </p>
@@ -156,55 +281,17 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                                 Motivo: {game.failure}
                             </p>
                         )}
-                        <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
-                            Voltar ao início
-                        </Button>
-                    </Panel>
-                    <CameraPanel
-                        camera={camera}
-                        videoRef={videoRef}
-                        overlay={<HandOverlay canvasRef={overlayRef} />}
-                    />
-                    {camera.isActive && (
-                        <Panel raised aria-label="Direção do olhar" className="swing-head">
-                            <Eyebrow>Direção do olhar</Eyebrow>
-                            <SegmentedControl
-                                legend="Direção do olhar"
-                                name="swing-look-mode"
-                                value={game.lookMode}
-                                options={LOOK_MODE_OPTIONS}
-                                onChange={game.setLookMode}
-                            />
-                            {game.lookMode === 'face' ? (
-                                <>
-                                    <p aria-live="polite" className="round-status" data-testid="head-status">
-                                        {headStatus || 'Vire a cabeça para olhar em volta.'}
-                                    </p>
-                                    <Button
-                                        variant="secondary"
-                                        onClick={game.recenterHead}
-                                        disabled={game.faceTrackerStatus !== 'ready'}
-                                    >
-                                        Centralizar
-                                    </Button>
-                                </>
-                            ) : (
-                                <p className="round-status" data-testid="head-status">
-                                    Câmera automática. As setas ajustam o olhar.
-                                </p>
-                            )}
-                        </Panel>
-                    )}
-                    <Panel raised aria-label="Como jogar">
-                        <Eyebrow>Como jogar</Eyebrow>
-                        <Steps
-                            label="Como jogar"
-                            items={STEPS}
-                            current={currentStep(game.cue)}
-                        />
                         <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
                             {hint}
                         </p>
+                        <details>
+                            <summary>Como jogar</summary>
+                            <Steps
+                                label="Como jogar"
+                                items={STEPS}
+                                current={currentStep(game.cue)}
+                            />
+                        </details>
                     </Panel>
                     <Panel raised aria-label="Teclado" className="swing-keys-panel">
                         <Eyebrow>Teclado</Eyebrow>
@@ -222,7 +309,6 @@ export function SwingScreen({ cameraGetUserMedia, deps }: SwingScreenProps) {
                             ))}
                         </ul>
                     </Panel>
-                    <PrivacyNotice />
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>

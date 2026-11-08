@@ -1,0 +1,39 @@
+{
+  "browser": "156.0.8078.4",
+  "camera": "synthetic Chromium only; no real hands",
+  "audioSources": 12,
+  "layout": {
+    "video": {
+      "x": 85,
+      "y": -128.8125,
+      "width": 1270,
+      "height": 760
+    },
+    "overlay": {
+      "x": 85,
+      "y": -128.8125,
+      "width": 1270,
+      "height": 760
+    },
+    "columns": "421.328px 421.328px 421.344px",
+    "overflow": false
+  },
+  "mobile": {
+    "overflow": false,
+    "columns": "342px"
+  },
+  "pageErrors": [],
+  "externalRequests": [],
+  "nonReadRequests": [],
+  "blockedRequests": [],
+  "cspBlocks": [
+    {
+      "directive": "connect-src",
+      "blocked": "https://odml.pa.googleapis.com/v1/log"
+    },
+    {
+      "directive": "connect-src",
+      "blocked": "https://odml.pa.googleapis.com/v1/log"
+    }
+  ]
+}

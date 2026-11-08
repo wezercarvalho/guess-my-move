@@ -6,7 +6,13 @@ import { defineConfig } from 'vite'
 export default defineConfig({
     plugins: [react()],
     resolve: { conditions: ['source'] },
-    // Entradas: o menu (index.html), o jogo de cartas, o bete (marbles.html), o Arranha-Teia e o Violão no Ar.
+    server: {
+        proxy: {
+            '/socket.io': { target: 'http://127.0.0.1:3000', ws: true },
+            '/api': 'http://127.0.0.1:3000',
+        },
+    },
+    // Entradas: o menu (index.html), o jogo de cartas, as bolinhas, o Arranha-Teia e o Violão no Ar.
     build: {
         rollupOptions: {
             input: {

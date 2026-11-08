@@ -23,6 +23,9 @@ export type WebSlot = 'left' | 'center' | 'right'
 export type SlotFlags = Partial<Record<WebSlot, boolean>>
 
 /** Os três lugares de teia e o lado de cada um. */
+/** Sem direção travada: o acompanhamento automático mira só o rumo. */
+const ZERO_BIAS = { yaw: 0, pitch: 0 } as const
+
 const SLOTS: readonly { slot: WebSlot; side: WebSide }[] = [
     { slot: 'left', side: -1 },
     { slot: 'center', side: 0 },
@@ -54,6 +57,12 @@ export interface SwingInput {
      * isso ligado, o acompanhamento automático não sobrescreve o olhar neste passo.
      */
     lookActive?: boolean
+    /**
+     * Direção travada pelo gesto (CQ-012), em radianos: o acompanhamento automático passa a mirar
+     * o rumo MAIS este viés, então a direção travada vale em relação ao movimento (vira a nova
+     * frente) em vez de ficar fixa no mundo. Ausente = sem viés.
+     */
+    lookBias?: { yaw: number; pitch: number }
 }
 
 export interface SwingWorld {
@@ -79,12 +88,16 @@ export function createSwingWorld(
     let previousHeld: Record<WebSlot, boolean> = { left: false, center: false, right: false }
     let previousPull: Record<WebSlot, boolean> = { left: false, center: false, right: false }
     let accumulator = 0
+    let pendingYaw = 0
+    let pendingPitch = 0
 
     function start(): void {
         Object.assign(state, createSwingState(spawn))
         previousHeld = { left: false, center: false, right: false }
         previousPull = { left: false, center: false, right: false }
         accumulator = 0
+        pendingYaw = 0
+        pendingPitch = 0
     }
     start()
 
@@ -127,13 +140,16 @@ export function createSwingWorld(
         return aimWeb(side)?.anchor ?? null
     }
 
-    /** A câmera passa a olhar, aos poucos, para onde o jogador se move (guinada e inclinação). */
-    function followHeading(dt: number, followPitch: boolean): void {
+    /**
+     * A câmera passa a olhar, aos poucos, para onde o jogador se move (guinada e inclinação),
+     * mais o viés da direção travada, quando há.
+     */
+    function followHeading(dt: number, followPitch: boolean, bias: { yaw: number; pitch: number }): void {
         const { x, y, z } = state.velocity
         const horizontal = Math.hypot(x, z)
         if (horizontal < config.headingMinSpeed) return
         const follow = 1 - Math.exp(-config.headingFollow * dt)
-        const target = Math.atan2(x, -z)
+        const target = Math.atan2(x, -z) + bias.yaw
         let diff = target - state.yaw
         while (diff > Math.PI) diff -= 2 * Math.PI
         while (diff < -Math.PI) diff += 2 * Math.PI
@@ -141,7 +157,7 @@ export function createSwingWorld(
         if (followPitch) {
             const slope = Math.atan2(y, horizontal)
             const wanted = Math.max(config.followPitchMin, Math.min(config.followPitchMax, config.followPitchBase + slope * 0.5))
-            state.pitch += (wanted - state.pitch) * follow
+            state.pitch += (wanted + bias.pitch - state.pitch) * follow
         }
     }
 
@@ -190,13 +206,15 @@ export function createSwingWorld(
         }
         // O acompanhamento automático só entra quando nem o teclado nem a cabeça comandam o olhar.
         if (state.started && input.yawRate === 0 && !input.lookActive) {
-            followHeading(dt, input.pitchRate === 0 && !input.lookActive)
+            followHeading(dt, input.pitchRate === 0 && !input.lookActive, input.lookBias ?? ZERO_BIAS)
         }
         state.pitch = Math.max(
             -config.pitchLimit,
             Math.min(config.pitchLimit, state.pitch + input.pitchRate * config.pitchRate * dt),
         )
 
+        // Se sair da parede, só os impulsos deliberados deste passo devem atravessar a transição.
+        const grippedVelocity = state.grip ? { ...state.velocity } : null
         const anyHeld = SLOTS.some(({ slot }) => input.held[slot])
         const anyGrab = SLOTS.some(({ slot }) => input.grab?.[slot])
         for (const { slot, side } of SLOTS) {
@@ -232,6 +250,11 @@ export function createSwingWorld(
             grab: input.grab,
             climb: input.climb,
             releaseFist: input.releaseFist,
+            gripReleaseImpulse: grippedVelocity ? {
+                x: state.velocity.x - grippedVelocity.x,
+                y: state.velocity.y - grippedVelocity.y,
+                z: state.velocity.z - grippedVelocity.z,
+            } : undefined,
         })
     }
 
@@ -239,9 +262,20 @@ export function createSwingWorld(
         state,
         step,
         advance(input, frameSeconds) {
+            pendingYaw += input.lookDelta?.yaw ?? 0
+            pendingPitch += input.lookDelta?.pitch ?? 0
             accumulator += Math.min(Math.max(frameSeconds, 0), config.maxFrame)
+            const { lookDelta: _lookDelta, ...continuous } = input
             while (accumulator >= config.step) {
-                step(input, config.step)
+                // Deltas são ângulos por render, não taxas repetíveis por subpasso físico.
+                const hasDelta = pendingYaw !== 0 || pendingPitch !== 0
+                step(hasDelta ? {
+                    ...continuous,
+                    lookDelta: { yaw: pendingYaw, pitch: pendingPitch },
+                    lookActive: true,
+                } : continuous, config.step)
+                pendingYaw = 0
+                pendingPitch = 0
                 accumulator -= config.step
             }
         },

@@ -14,6 +14,8 @@ export interface CityBuilding {
 export interface CityRoad {
     /** Largura da pista, em metros. */
     readonly width: number
+    /** Nome da rua no OpenStreetMap; ausente quando a via não tem nome. */
+    readonly name?: string
     /** Eixo da rua, em pares `x, z`. */
     readonly line: readonly number[]
 }
@@ -32,5 +34,7 @@ export interface City {
     readonly attribution: string
     readonly bounds: CityBounds
     readonly buildings: readonly CityBuilding[]
+    /** Apresentação opcional; não altera a colisão v1. */
+    readonly visual?: { readonly theme: 'aurora' }
     readonly roads: readonly CityRoad[]
 }

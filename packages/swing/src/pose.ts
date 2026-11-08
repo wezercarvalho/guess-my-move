@@ -15,11 +15,16 @@ const MIDDLE = { mcp: 9, tip: 12 } as const
 const RING = { mcp: 13, tip: 16 } as const
 const PINKY = { mcp: 17, tip: 20 } as const
 
+/** Pontos da palma (pulso e base dos quatro dedos), para o centro da palma. */
+const PALM_POINTS = [0, 5, 9, 13, 17] as const
+
 /** Dedo esticado: a ponta está bem mais longe do pulso que a base. Dobrado: perto da base. */
 const EXTENDED_RATIO = 1.5
 const CURLED_RATIO = 1.3
 /** Polegar aberto: a ponta se afasta da base do indicador, em frações do tamanho da palma. */
 const THUMB_OUT = 0.6
+/** Dedão para baixo: a ponta do polegar fica abaixo do centro da palma, em frações da palma. */
+const LOCK_THUMB_DROP = 0.9
 
 /**
  * Distância entre dois landmarks. Com a profundidade (`z`), um dedo apontado para a câmera
@@ -96,6 +101,33 @@ export function isOpenPalm(landmarks: readonly HandPoint[]): boolean {
     )
 }
 
+/**
+ * Mão aberta com o dedão para baixo (gesto de travar a direção do olhar, de qualquer mão):
+ * os quatro dedos esticados, o polegar afastado e a ponta do polegar abaixo do centro da
+ * palma, na imagem, por pelo menos `LOCK_THUMB_DROP` do tamanho da palma. O eixo vertical
+ * da imagem não depende de qual mão é, então vale nas duas. O limiar é valor de jogo, não
+ * medido com mãos reais.
+ */
+export function isThumbDownOpenHand(landmarks: readonly HandPoint[]): boolean {
+    const m = handMetrics(landmarks)
+    if (m === null || !isOpenPalm(landmarks) || m.thumb < THUMB_OUT) return false
+    const thumbTip = landmarks[THUMB_TIP]
+    const wrist = landmarks[WRIST]
+    const middleMcp = landmarks[MIDDLE.mcp]
+    if (!thumbTip || !wrist || !middleMcp) return false
+    let y = 0
+    let count = 0
+    for (const index of PALM_POINTS) {
+        const point = landmarks[index]
+        if (!point) continue
+        y += point.y
+        count++
+    }
+    if (count === 0) return false
+    const palm = distance(wrist, middleMcp)
+    return thumbTip.y - y / count >= LOCK_THUMB_DROP * palm
+}
+
 /** Punho fechado: os quatro dedos dobrados. Com a teia presa, puxa. */
 export function isFist(landmarks: readonly HandPoint[]): boolean {
     const m = handMetrics(landmarks)
@@ -107,8 +139,6 @@ export function isFist(landmarks: readonly HandPoint[]): boolean {
         m.pinky <= CURLED_RATIO
     )
 }
-
-const PALM_POINTS = [0, 5, 9, 13, 17] as const
 
 /**
  * Lado da tela espelhada em que a mão aparece. A imagem da câmera é invertida, então a

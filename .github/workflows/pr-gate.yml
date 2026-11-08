@@ -64,7 +64,7 @@ jobs:
                   fi
 
                   # Testes dos próprios gates: hook local, auditor de dependências e workflows.
-                  TOOLING_PATTERN='^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\.mjs|dependency-audit-exceptions\.json)$|^test/(gates|security)/|^\.githooks/|^\.github/workflows/|^(package\.json|yarn\.lock|\.prettierrc|\.node-version)$'
+                  TOOLING_PATTERN='^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\.mjs|audit-runtime\.mjs|dependency-audit-exceptions\.json)$|^test/(gates|security)/|^\.githooks/|^\.github/workflows/|^(package\.json|yarn\.lock|\.prettierrc|\.node-version)$'
                   if echo "$CHANGED" | grep -qE "$TOOLING_PATTERN"; then
                     echo "tooling=true" >>"$GITHUB_OUTPUT"
                   else
@@ -72,9 +72,9 @@ jobs:
                   fi
 
                   # Código da aplicação: workspaces (apps/, packages/), manifesto e lockfile,
-                  # tsconfig*, config do Oxlint e o .env.example. Espelhado EXATAMENTE em
+                  # tsconfig*, config do Oxlint, .env.example e .node-version. Espelhado EXATAMENTE em
                   # scripts/git-hooks/scopes.mjs.
-                  CODE_PATTERN='^apps/|^packages/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$'
+                  CODE_PATTERN='^apps/|^packages/|^contracts/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$|^\.node-version$'
                   if echo "$CHANGED" | grep -qE "$CODE_PATTERN"; then
                     echo "code=true" >>"$GITHUB_OUTPUT"
                   else
@@ -83,7 +83,7 @@ jobs:
 
                   # Auditoria de dependências no PR: só quando algo que muda o veredito é tocado
                   # (manifesto, lockfile, auditor, exceções ou os workflows que a executam).
-                  AUDIT_PATTERN='^(package\.json|yarn\.lock|scripts/audit-dependencies\.mjs|scripts/dependency-audit-exceptions\.json|scripts/lib/dependency-audit[a-z-]*\.mjs)$|^\.github/workflows/(pr-gate|dependency-audit)\.yml$'
+                  AUDIT_PATTERN='^(package\.json|yarn\.lock|scripts/audit-dependencies\.mjs|scripts/dependency-audit-exceptions\.json|scripts/lib/dependency-audit[a-z-]*\.mjs|scripts/audit-runtime\.mjs|scripts/lib/runtime-audit\.mjs|\.node-version)$|^\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\.yml$'
                   if echo "$CHANGED" | grep -qE "$AUDIT_PATTERN"; then
                     echo "audit=true" >>"$GITHUB_OUTPUT"
                   else
@@ -162,7 +162,7 @@ jobs:
               run: yarn check:all
 
     audit:
-        name: 'security:dependencies (auditoria de dependências)'
+        name: 'segurança: dependências e runtime Node'
         needs: detect-changes
         if: needs.detect-changes.outputs.audit == 'true'
         runs-on: ubuntu-latest
@@ -184,6 +184,8 @@ jobs:
               run: yarn install --immutable
             - name: Auditoria de dependências
               run: yarn security:dependencies
+            - name: Conferir runtime Node
+              run: yarn security:runtime
 
     gate:
         # Único job a marcar como "Required" na proteção de branch. Sempre roda (if: always()),

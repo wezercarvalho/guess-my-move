@@ -99,14 +99,14 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 
 ## Limitações e riscos residuais
 
-| Limitação/risco                                                                                                        | Impacto                                                              | Responsável | Aceite             |
-| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------- | ------------------ |
-| Nunca testado com mão real: a separação das pontas dos dedos e os falsos positivos de dedo são hipóteses (H-01 e H-02) | O reconhecimento pode errar dedos ou exigir ajuste do braço          | maintainer  | pendente do Gate 3 |
-| Sem profundidade (z), um dedo só passando sobre o braço pode contar como apertando                                     | Status "tire o dedo" para um dedo que o jogador não apertou          | maintainer  | pendente do Gate 3 |
-| Limiar da batida, refratário, permanência, suavização, atraso entre cordas e decaimento são palpites (H-03)            | Batidas perdidas ou duplas; som sem o timbre esperado                | maintainer  | pendente do Gate 3 |
-| Latência fim a fim e quadros por segundo não medidos (H-04)                                                            | Pode haver atraso perceptível entre a batida e o som                 | maintainer  | pendente do Gate 3 |
-| O áudio só é liberado por um gesto do usuário; a batida pela mão sozinha não o libera                                  | Antes do primeiro clique ou tecla a batida pela mão não soa          | maintainer  | pendente do Gate 3 |
-| Gates 1 e 2 foram aprovados de forma antecipada e inferida do pedido, não por uma frase de aprovação dos gates         | O maintainer pode rejeitar e a spec volta ao primeiro estado afetado | maintainer  | pendente           |
+| Limitação/risco                                                                                                        | Impacto                                                     | Responsável | Aceite             |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------- | ------------------ |
+| Nunca testado com mão real: a separação das pontas dos dedos e os falsos positivos de dedo são hipóteses (H-01 e H-02) | O reconhecimento pode errar dedos ou exigir ajuste do braço | maintainer  | pendente do Gate 3 |
+| Sem profundidade (z), um dedo só passando sobre o braço pode contar como apertando                                     | Status "tire o dedo" para um dedo que o jogador não apertou | maintainer  | pendente do Gate 3 |
+| Limiar da batida, refratário, permanência, suavização, atraso entre cordas e decaimento são palpites (H-03)            | Batidas perdidas ou duplas; som sem o timbre esperado       | maintainer  | pendente do Gate 3 |
+| Latência fim a fim e quadros por segundo não medidos (H-04)                                                            | Pode haver atraso perceptível entre a batida e o som        | maintainer  | pendente do Gate 3 |
+| O áudio só é liberado por um gesto do usuário; a batida pela mão sozinha não o libera                                  | Antes do primeiro clique ou tecla a batida pela mão não soa | maintainer  | pendente do Gate 3 |
+| Gates 1 e 2 foram confirmados explicitamente pelo maintainer na retomada em 2026-11-08                                 | Desenvolvimento autorizado; aceite físico continua separado | maintainer  | pendente           |
 
 ## Gate 3 — Convergência validada
 
@@ -140,3 +140,50 @@ Veredito do agente: **convergente para os critérios automatizáveis**, **não v
 - Não há círculos nem números de um acorde alvo sobre o braço. As linhas, os painéis e os controles não estão cortados.
 - Console: 0 erros; 1 aviso esperado do runtime do MediaPipe sobre verificação OpenGL desativada.
 - Limite: o fluxo sintético prova layout e inicialização, não precisão com dedos reais nem qualidade rítmica. Essas duas validações seguem no Gate 3.
+
+## Retomada e revisão integrada — 2026-11-08
+
+O maintainer encerrou o standby do Violão e aprovou explicitamente os gates de desenvolvimento nesta sessão. A PR #105 continua sendo a entrega consolidada, em draft, com base na main `b9335d5`. SC-003 não é considerado executado por essa autorização.
+
+### Correções verificadas
+
+- Integração da main, resolvendo README, catálogo SDD, scripts web e configuração Vite sem remover proxy HTTP/Socket.IO nem regressões dos outros jogos.
+- FR-015/NFR-001: `AsyncTrackerResource` invalida carregamento antigo ao parar/desmontar; reiniciar após erro permite nova carga e limpa o motivo anterior. `VideoFrameGate` substitui callbacks duplicados. Parar a câmera ou ficar sem quadros por 500 ms limpa mãos, dedos e acorde, exigindo nova permanência na retomada.
+- FR-014: uma retomada antiga de áudio não acessa contexto descartado nem muda o estado de um novo contexto. O desbloqueio global usa `click`: no navegador, retirar o aviso no `pointerdown` deslocava o botão antes do primeiro clique terminar, e nenhuma corda era agendada. Depois da correção o primeiro clique agenda seis cordas.
+- NFR-001/NFR-002: a biblioteca MediaPipe instalada tentou enviar duas requisições de telemetria para `odml.pa.googleapis.com/v1/log` durante o smoke inicial. A página agora declara `connect-src 'self'` antes dos módulos; o smoke final confirma duas violações bloqueadas, zero requisições externas concluídas e detector local operacional. Não foi feita afirmação sobre o conteúdo dos payloads tentados. A proteção é desta página; não representa auditoria de todas as páginas do repositório.
+- FR-015/FR-016: a regra de três colunas dos painéis estava antes da regra básica e era sobrescrita; a ordem CSS foi corrigida. README, guia de jogos, arquitetura e issues #95/#99/#101–#104 foram reconciliados com CQ-007, sem seletor de acorde alvo.
+
+### Evidência automatizada
+
+Ambiente de validação completa: Linux, Node 26.12.1, Yarn 4.18.1, container isolado sem rede externa, instalação imutável usando cache e modelos locais previamente verificados. Não houve mudança de dependências publicadas.
+
+| Comando                                                                        | Resultado                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `yarn check:all`                                                               | PASS: tipos, lint (zero avisos/erros), 68 core, 82 guitar, 174 marbles, 264 swing, 98 server, 603 web, 86 testes Node de scripts web; build de todos os workspaces |
+| `yarn workspace @guess-my-move/web test:guitar`                                | PASS após as correções: 74 testes de tela/controlador/áudio/overlay/guia e 6 testes Node de privacidade                                                            |
+| `yarn workspace @guess-my-move/web test`                                       | PASS no estado final: 603 testes Vitest e 87 testes Node, incluindo a regressão CSP                                                                                |
+| `yarn check:static`                                                            | PASS novamente após o ajuste do primeiro clique                                                                                                                    |
+| `yarn workspace @guess-my-move/web build`                                      | PASS no estado final, incluindo CSP                                                                                                                                |
+| `yarn sdd:check`, `yarn docs:format:check`, `yarn test:sdd`, `yarn test:gates` | PASS: estrutura/documentação e 109 testes SDD + 241 dos gates                                                                                                      |
+| `yarn security:dependencies`                                                   | PASS: zero ocorrências em todas as severidades                                                                                                                     |
+| `yarn security:runtime`                                                        | PASS segundo releases publicadas; não atesta ausência de vulnerabilidades                                                                                          |
+
+Os testes novos de carregamento, limpeza do acorde e reinício após erro falharam antes da correção (3 falhas), assim como a retomada de áudio após descarte (TypeError) e a presença da CSP no HTML. O teste de componente confirma que o aviso permanece durante `pointerdown` e que o clique agenda o som. Após as mudanças finais no hook/HTML, o suite web e build são executados novamente; os demais workspaces não tiveram alterações desde o `check:all`.
+
+### Conferência de navegador
+
+Chromium 156.0.8078.4, frontend compilado, câmera sintética nativa do Chromium, GPU por software, detector MediaPipe real e Web Audio real instrumentado somente pela contagem de fontes agendadas. Não há imagem de pessoa nem áudio gravado nos artefatos. Os [resultados numéricos](evidence/browser-smoke.json) registram:
+
+- Menu abre o quarto jogo sem acorde antecipado; primeiro clique para baixo agenda seis fontes e o clique para cima mais seis. Isso verifica agendamento, não timbre percebido nem latência acústica.
+- Câmera ativada, detector pronto, parada e reativação sem erro de página.
+- Desktop 1440×1000: vídeo e overlay com o mesmo retângulo de 1270×760 e três colunas de painéis. Coordenadas negativas no JSON decorrem do scroll até a depuração, não de deslocamento entre vídeo e overlay.
+- Tela 390×844: uma coluna e ausência de overflow horizontal.
+- Zero erros JavaScript, zero conexões externas concluídas e duas tentativas da biblioteca bloqueadas por CSP.
+- Inspeção visual de captura sintética: braço fino, seis cordas/cinco casas, zona de batida à direita, painéis abaixo da câmera, indicador de câmera e privacidade visíveis. A captura sintética usada na inspeção fica apenas no ambiente de trabalho; o artefato versionado contém somente números de layout e contagem de eventos.
+
+O build mantém o aviso já existente de chunk grande do Arranha-Teia; não é erro nem medição de fluidez. Avisos de canvas sem implementação no jsdom também não são prova de renderização; a conferência Chromium cobre o caminho real.
+
+### Pendências e entrega
+
+- O maintainer ainda precisa repetir o teste com câmera e mãos reais: cinco acordes, troca entre eles, batidas nos dois sentidos, mão direita/esquerda, iluminação e ajustes. Registrar em SC-003 o que funcionou e os limites; não foi medida precisão, latência ou FPS de uso real.
+- A PR permanece em draft para revisão. O `pr-gate` remoto não roda em rascunho; será executado quando o maintainer marcar ready. Não houve merge, deploy nem fechamento de #95.

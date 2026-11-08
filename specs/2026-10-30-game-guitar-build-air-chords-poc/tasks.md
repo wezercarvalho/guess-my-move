@@ -136,3 +136,13 @@ Somente referências presentes nas linhas formais de tarefa contam como cobertur
 - [x] T045 [US-003] [FR-011] Escrever a regressão de jitter e exigir deslocamento acumulado para reconhecer a batida
 - [x] T046 [US-004] [FR-015, FR-017] Reduzir o braço para 18% da altura, ampliar a câmera e mover os painéis para baixo
 - [x] T047 [SC-002] Atualizar documentação, rodar testes direcionados e inspecionar a tela com câmera sintética no Chromium
+
+## Retomada — 2026-11-08
+
+- [x] R001 Integrar a main e resolver conflitos preservando configurações e jogos atuais (FR-001/FR-002).
+- [x] R002 Reproduzir e corrigir cancelamento de carga, reinício após erro e limpeza ao parar/perder captura (FR-015/NFR-001).
+- [x] R003 Revisar retomada assíncrona de áudio ao desmontar (FR-014).
+- [x] R004 Executar gates atuais, atualizar a PR #105 em draft e registrar limitações (SC-001/SC-002).
+- [ ] R005 Reteste físico pelo maintainer e registro de SC-003.
+
+- [x] R006 Corrigir primeiro clique de áudio e bloquear telemetria de terceiros na página, com regressões e conferência de navegador (FR-014/NFR-001/NFR-002).

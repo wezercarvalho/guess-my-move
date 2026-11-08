@@ -101,6 +101,12 @@ function harness(
             await Promise.resolve()
             await Promise.resolve()
         },
+        stall(ms: number) {
+            const callback = queued
+            queued = null
+            nowMs += ms
+            callback?.()
+        },
         snapshot: () => controller.getSnapshot(),
     }
 }
@@ -314,6 +320,65 @@ describe('GuitarController', () => {
         expect(h.closeTracker).toHaveBeenCalled()
         expect(h.snapshot().handsVisible).toBe(0)
         expect(h.snapshot().trackerStatus).toBe('idle')
+    })
+
+    it('parar durante a carga descarta o detector antigo e permite uma nova carga', async () => {
+        const h = harness()
+        h.controller.setCamera(true)
+        h.controller.setCamera(false)
+        expect(h.snapshot().trackerStatus).toBe('idle')
+        await Promise.resolve()
+        expect(h.closeTracker).toHaveBeenCalledTimes(1)
+        expect(h.snapshot().trackerStatus).toBe('idle')
+        await h.enableCamera()
+        expect(h.snapshot().trackerStatus).toBe('ready')
+        h.controller.detach()
+    })
+
+    it('parar limpa imediatamente o acorde confirmado e exige nova permanência', async () => {
+        const h = harness()
+        await h.enableCamera()
+        h.setHands([fretHand(EM), strumHand(0.45)])
+        h.step(14)
+        expect(h.snapshot().detectedChord).toBe('Em')
+        h.controller.setCamera(false)
+        expect(h.snapshot().detectedChord).toBeNull()
+        expect(h.snapshot().presses).toEqual([])
+        await h.enableCamera()
+        h.step()
+        expect(h.snapshot().detectedChord).toBeNull()
+        h.controller.detach()
+    })
+
+    it('quadros congelados expiram o reconhecimento e a retomada exige nova permanência', async () => {
+        const h = harness()
+        await h.enableCamera()
+        h.setHands([fretHand(EM), strumHand(0.45)])
+        h.step(14)
+        expect(h.snapshot().detectedChord).toBe('Em')
+        h.stall(501)
+        expect(h.snapshot().handsVisible).toBe(0)
+        expect(h.snapshot().detectedChord).toBeNull()
+        expect(h.snapshot().presses).toEqual([])
+        h.step()
+        expect(h.snapshot().detectedChord).toBeNull()
+        h.step(14)
+        expect(h.snapshot().detectedChord).toBe('Em')
+        h.controller.detach()
+    })
+
+    it('reiniciar a câmera após erro tenta carregar novamente e limpa o motivo antigo', async () => {
+        const h = harness({ trackerError: new Error('falha temporária') })
+        await h.enableCamera()
+        expect(h.snapshot().trackerStatus).toBe('error')
+        h.controller.setCamera(false)
+        expect(h.snapshot().trackerStatus).toBe('idle')
+        expect(h.snapshot().trackerFailure).toBeNull()
+        h.controller.setCamera(true)
+        expect(h.snapshot().trackerStatus).toBe('loading')
+        expect(h.snapshot().trackerFailure).toBeNull()
+        await Promise.resolve()
+        h.controller.detach()
     })
 
     it('um rastreador que falha vira erro com o motivo', async () => {

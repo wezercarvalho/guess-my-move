@@ -357,3 +357,13 @@ a:focus-visible {
     padding: var(--space-4) var(--space-5) var(--space-7);
     gap: var(--space-4);
 }
+
+/* Tela do Arranha-Teia: ocupa a janela inteira, sem faixas vazias nas laterais. A altura fixa
+   (sem rolagem da página) vem de swing.css, só a partir de 960 x 560 px. */
+.app.app-fill {
+    max-width: none;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: var(--space-2) var(--space-4) var(--space-3);
+    gap: var(--space-3);
+}

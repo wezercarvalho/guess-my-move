@@ -16,6 +16,9 @@ import {
     strumZone,
 } from '@guess-my-move/guitar'
 
+import { AsyncTrackerResource } from '../capture/asyncTrackerResource.js'
+import { VideoFrameGate } from '../capture/videoFrameGate.js'
+
 import { drawHands } from '../round/handOverlay.js'
 import { type CreateHandTracker, type HandTracker, type TrackedHand } from '../tracker/handTracker.js'
 import { type AudioPlayer, type AudioStatus } from './audioPlayer.js'
@@ -114,10 +117,8 @@ export class GuitarController {
     private detectedChord: ChordId | null = null
     private leftHanded = false
     private placement: BoardPlacement = DEFAULT_PLACEMENT
-    private tracker: HandTracker | null = null
-    private trackerStatus: GuitarTrackerStatus = 'idle'
-    private trackerFailure: string | null = null
-    private loadToken = 0
+    private readonly resource = new AsyncTrackerResource<HandTracker>(messageOf)
+    private readonly frames = new VideoFrameGate()
     private hands: TrackedHand[] = []
     private lastHandAt = 0
     private fretHand: HandInput | null = null
@@ -126,10 +127,6 @@ export class GuitarController {
     private completed: ChordId[] = []
     private lastStrum: StrumRecord | null = null
     private frameTimes: number[] = []
-    private lastVideoTime = -1
-    private cameraFrameVideo: HTMLVideoElement | null = null
-    private cameraFrameHandle: number | null = null
-    private cameraFramePending = false
     private loop: number | null = null
     private unsubscribeAudio: (() => void) | null = null
     private snapshot: GuitarSnapshot
@@ -164,21 +161,22 @@ export class GuitarController {
     /** Desliga: encerra o laço, libera o rastreador e o áudio e solta o teclado. */
     detach(): void {
         this.attached = false
-        this.loadToken++
         this.env.keys.removeEventListener('keydown', this.onKeyDown as EventListener)
         this.unsubscribeAudio?.()
         this.unsubscribeAudio = null
         this.stopLoop()
-        this.tracker?.close()
-        this.tracker = null
-        this.trackerStatus = 'idle'
+        this.resource.release()
+        this.dropHands()
         this.audio.dispose()
         this.snapshot = this.buildSnapshot()
     }
 
     setCamera(active: boolean): void {
         this.cameraActive = active
-        if (!active) this.dropHands()
+        if (!active) {
+            this.releaseTracker()
+            this.dropHands()
+        }
         // ativar a câmera vem de um clique: o navegador ainda aceita liberar o áudio agora, e
         // a batida pela mão (que não é um gesto do usuário) só soa se o áudio já estiver liberado
         else void this.audio.unlock()
@@ -229,40 +227,22 @@ export class GuitarController {
     }
 
     private sync(): void {
-        if (this.attached && this.cameraActive && this.trackerStatus === 'idle') this.loadTracker()
-        if (!this.cameraActive && this.tracker) this.releaseTracker()
+        if (this.attached && this.cameraActive && this.resource.status === 'idle') {
+            this.resource.load(this.env.createTracker, {
+                alive: () => this.attached && this.cameraActive,
+                onReady: () => {
+                    this.frames.watch(this.surfaces.getVideo())
+                    this.emit()
+                },
+                onError: () => this.emit(),
+            })
+        }
         this.emit()
     }
 
-    private loadTracker(): void {
-        const token = ++this.loadToken
-        this.trackerStatus = 'loading'
-        this.env.createTracker().then(
-            (tracker) => {
-                if (token !== this.loadToken || !this.attached) {
-                    tracker.close()
-                    return
-                }
-                this.tracker = tracker
-                this.trackerStatus = 'ready'
-                this.watchCameraFrames()
-                this.emit()
-            },
-            (error: unknown) => {
-                if (token !== this.loadToken || !this.attached) return
-                this.trackerStatus = 'error'
-                this.trackerFailure = messageOf(error)
-                this.emit()
-            },
-        )
-    }
-
     private releaseTracker(): void {
-        this.loadToken++
-        this.unwatchCameraFrames()
-        this.tracker?.close()
-        this.tracker = null
-        this.trackerStatus = 'idle'
+        this.frames.unwatch()
+        this.resource.release()
     }
 
     private dropHands(): void {
@@ -270,8 +250,7 @@ export class GuitarController {
         this.fretHand = null
         this.strumHand = null
         this.frameTimes = []
-        this.strumDetector.lost()
-        this.applyFretHand(this.env.now())
+        this.resetRecognition()
         this.drawOverlay()
     }
 
@@ -283,7 +262,7 @@ export class GuitarController {
     private stopLoop(): void {
         if (this.loop !== null) this.env.cancelFrame(this.loop)
         this.loop = null
-        this.unwatchCameraFrames()
+        this.frames.unwatch()
     }
 
     private readonly frame = (): void => {
@@ -301,10 +280,10 @@ export class GuitarController {
      * se perdem. Devolve `true` quando o estado mudou e a tela deve ser avisada.
      */
     private readHands(now: number): boolean {
-        const { tracker } = this
+        const tracker = this.resource.value
         const video = this.surfaces.getVideo()
         if (!tracker || !video || !this.cameraActive) return false
-        if (video.readyState >= 2 && video.videoWidth > 0 && this.takeNewCameraFrame(video)) {
+        if (video.readyState >= 2 && video.videoWidth > 0 && this.frames.take(video)) {
             let tracked: TrackedHand[]
             try {
                 tracked = tracker.detectAll
@@ -314,9 +293,8 @@ export class GuitarController {
                           return single ? [single] : []
                       })()
             } catch (error) {
-                this.releaseTracker()
-                this.trackerStatus = 'error'
-                this.trackerFailure = messageOf(error)
+                this.frames.unwatch()
+                this.resource.fail(error)
                 this.dropHands()
                 return true
             }
@@ -430,43 +408,6 @@ export class GuitarController {
         })
     }
 
-    private takeNewCameraFrame(video: HTMLVideoElement): boolean {
-        if (this.cameraFrameVideo === video) {
-            if (!this.cameraFramePending) return false
-            this.cameraFramePending = false
-            return true
-        }
-        if (video.currentTime === this.lastVideoTime) return false
-        this.lastVideoTime = video.currentTime
-        return true
-    }
-
-    /** Pede ao vídeo que avise cada quadro NOVO da câmera, quando o navegador oferece. */
-    private watchCameraFrames(): void {
-        const video = this.surfaces.getVideo()
-        this.unwatchCameraFrames()
-        if (!video || typeof video.requestVideoFrameCallback !== 'function') return
-        this.cameraFrameVideo = video
-        const arm = (): void => {
-            this.cameraFrameHandle = video.requestVideoFrameCallback(() => {
-                this.cameraFramePending = true
-                arm()
-            })
-        }
-        arm()
-    }
-
-    private unwatchCameraFrames(): void {
-        const video = this.cameraFrameVideo
-        if (video && this.cameraFrameHandle !== null) {
-            video.cancelVideoFrameCallback(this.cameraFrameHandle)
-        }
-        this.cameraFrameHandle = null
-        this.cameraFrameVideo = null
-        this.cameraFramePending = false
-        this.lastVideoTime = -1
-    }
-
     private readonly onKeyDown = (event: KeyboardEvent): void => {
         if (!CONTROL_KEYS.has(event.key) || event.repeat) return
         const target = event.target
@@ -491,8 +432,8 @@ export class GuitarController {
             placement: this.placement,
             leftHanded: this.leftHanded,
             cameraActive: this.cameraActive,
-            trackerStatus: this.trackerStatus,
-            trackerFailure: this.trackerFailure,
+            trackerStatus: this.resource.status,
+            trackerFailure: this.resource.error,
             handsVisible: this.hands.length,
             fretVisible: this.fretHand !== null,
             strumVisible: this.strumHand !== null,
@@ -503,7 +444,7 @@ export class GuitarController {
             debug: {
                 fingers: this.fingers.debug(),
                 fps: this.fps(),
-                delegate: this.tracker?.delegate ?? null,
+                delegate: this.resource.value?.delegate ?? null,
                 latency: this.audio.latency(),
                 strumSpeed: this.strumDetector.debug().speed,
             },

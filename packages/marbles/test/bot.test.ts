@@ -1,0 +1,130 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+    BOT_LEVELS,
+    type BotConfig,
+    type BotLevel,
+    DEFAULT_BOT,
+    DEFAULT_BOT_LEVEL,
+    createBotPlanner,
+    directionTo,
+    speedToStop,
+} from '../src/bot/index.js'
+import { type Body, DEFAULT_PHYSICS, isAtRest, stepBodies } from '../src/physics.js'
+import { DEFAULT_SHOT } from '../src/shot.js'
+
+const TETO = DEFAULT_SHOT.gain * DEFAULT_SHOT.maxPull // 1100
+
+/** Simula uma bolinha única com a velocidade dada e devolve onde ela para. */
+function pararEm(origem: { x: number; y: number }, velocidade: { x: number; y: number }): { x: number; y: number } {
+    let campo: Body[] = [{ pos: { ...origem }, vel: { ...velocidade }, radius: 14 }]
+    let passos = 0
+    while (!isAtRest(campo, DEFAULT_PHYSICS) && passos < 10_000) {
+        campo = stepBodies(campo, DEFAULT_PHYSICS).bodies
+        passos++
+    }
+    return campo[0].pos
+}
+
+/** Distância entre dois pontos. */
+const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+
+describe('bot: erro zero (parada por simulação)', () => {
+    it('para a no máximo 1 unidade do ponto entre 50 e 700 unidades numa trajetória livre', () => {
+        // Diagonal canto a canto (campo 800 x 600): um trajeto reto de até 700 unidades cabe sem tocar a parede.
+        const origem = { x: 74, y: 74 }
+        const dlen = Math.hypot(786 - 74, 586 - 74)
+        const dir = { x: (786 - 74) / dlen, y: (586 - 74) / dlen }
+        for (const d of [50, 120, 250, 400, 550, 700]) {
+            const alvo = { x: origem.x + dir.x * d, y: origem.y + dir.y * d }
+            const velocidade = speedToStop(origem, alvo, DEFAULT_PHYSICS, 14)
+            const parada = pararEm(origem, velocidade)
+            expect(dist(parada, alvo)).toBeLessThanOrEqual(1)
+        }
+    })
+
+    it('a direção aponta da origem para o ponto', () => {
+        const dir = directionTo({ x: 100, y: 300 }, { x: 200, y: 400 })
+        expect(dir.x).toBeCloseTo(Math.SQRT1_2, 6)
+        expect(dir.y).toBeCloseTo(Math.SQRT1_2, 6)
+    })
+})
+
+describe('bot: erro por semente', () => {
+    it('a mesma semente e o mesmo campo dão o tiro idêntico; sementes diferentes diferem', () => {
+        const alvo = { x: 500, y: 300 }
+        const origem = { x: 100, y: 300 }
+        const tiro = (semente: number) =>
+            createBotPlanner(DEFAULT_BOT).planShot(origem, alvo, semente, DEFAULT_PHYSICS, 14)
+        const a = tiro(42)
+        const b = tiro(42)
+        const c = tiro(43)
+        expect(a).toEqual(b)
+        expect(a.x === c.x && a.y === c.y).toBe(false)
+    })
+})
+
+/*
+ * Os desvios de cada nível do bot (BOT_LEVELS) são PALPITES INICIAIS a calibrar
+ * com uso real. As faixas de acerto abaixo são PROTEÇÃO DE REGRESSÃO, não
+ * equilíbrio medido nem prova de diversão: travam a mira do bot contra mudanças
+ * acidentais, não afirmam que o jogo está balanceado.
+ */
+
+/** Taxa de acerto (0..1) de um nível em 1000 tiros a 400 unidades, raio 14, e o maior tiro visto. */
+function taxaDoNivel(config: BotConfig): { taxa: number; maiorVel: number } {
+    const origem = { x: 100, y: 300 }
+    const alvoCentro = { x: 500, y: 300 }
+    const planejador = createBotPlanner(config)
+    let acertos = 0
+    let maiorVel = 0
+    for (let s = 0; s < 1000; s++) {
+        const tiro = planejador.planShot(origem, alvoCentro, s * 2654435761 + 1, DEFAULT_PHYSICS, 14)
+        maiorVel = Math.max(maiorVel, Math.hypot(tiro.x, tiro.y))
+        // Simula o tiro com o alvo parado presente; acerto = contato.
+        let campo: Body[] = [
+            { pos: { ...origem }, vel: { x: tiro.x, y: tiro.y }, radius: 14 },
+            { pos: { ...alvoCentro }, vel: { x: 0, y: 0 }, radius: 14 },
+        ]
+        let bateu = false
+        let passos = 0
+        while (!isAtRest(campo, DEFAULT_PHYSICS) && passos < 10_000) {
+            const r = stepBodies(campo, DEFAULT_PHYSICS)
+            campo = r.bodies
+            if (r.contacts.some(([a, b]) => a === 0 && b === 1)) bateu = true
+            passos++
+        }
+        if (bateu) acertos++
+    }
+    return { taxa: acertos / 1000, maiorVel }
+}
+
+describe('bot: níveis (faixa de acerto e teto)', () => {
+    const faixas: Record<BotLevel, [number, number]> = {
+        easy: [0.3, 0.55],
+        medium: [0.55, 0.8],
+        hard: [0.78, 0.95],
+    }
+
+    for (const nivel of ['easy', 'medium', 'hard'] as const) {
+        it(`nível ${nivel}: acerta dentro da faixa em 1000 tiros a 400 unidades, raio 14, e nenhum tiro excede gain·maxPull`, () => {
+            const { taxa, maiorVel } = taxaDoNivel(BOT_LEVELS[nivel])
+            expect(taxa).toBeGreaterThanOrEqual(faixas[nivel][0])
+            expect(taxa).toBeLessThanOrEqual(faixas[nivel][1])
+            expect(maiorVel).toBeLessThanOrEqual(TETO + 1e-9)
+        })
+    }
+
+    it('quanto mais difícil o nível, maior a taxa de acerto', () => {
+        const facil = taxaDoNivel(BOT_LEVELS.easy).taxa
+        const medio = taxaDoNivel(BOT_LEVELS.medium).taxa
+        const dificil = taxaDoNivel(BOT_LEVELS.hard).taxa
+        expect(facil).toBeLessThan(medio)
+        expect(medio).toBeLessThan(dificil)
+    })
+
+    it('o nível padrão é o médio e DEFAULT_BOT é a sua configuração', () => {
+        expect(DEFAULT_BOT_LEVEL).toBe('medium')
+        expect(DEFAULT_BOT).toBe(BOT_LEVELS.medium)
+    })
+})
