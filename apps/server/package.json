@@ -8,11 +8,12 @@
         "dev": "node scripts/dev.mjs",
         "start": "node dist/main.js",
         "build": "tsc -p tsconfig.build.json",
-        "typecheck": "tsc --noEmit",
-        "test": "vitest run",
+        "typecheck": "tsc --noEmit && tsc -p tsconfig.integration.json",
+        "test": "vitest run && yarn test:lobby",
         "contracts:export": "node scripts/contracts.mjs",
         "contracts:check": "node scripts/contracts.mjs --check",
-        "load:swing": "node scripts/load-swing.mjs"
+        "load:swing": "node scripts/load-swing.mjs",
+        "test:lobby": "vitest run --config vitest.lobby.config.ts"
     },
     "dependencies": {
         "@guess-my-move/marbles": "0.0.0",
