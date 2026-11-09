@@ -367,3 +367,23 @@ a:focus-visible {
     padding: var(--space-2) var(--space-4) var(--space-3);
     gap: var(--space-3);
 }
+
+.cards-selection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4, 1rem);
+    margin-block: 1rem;
+}
+.cards-selection > div {
+    display: grid;
+    gap: 0.4rem;
+    flex: 1 1 10rem;
+}
+.cards-selection select {
+    width: 100%;
+    padding: 0.5rem;
+    color: inherit;
+    background: var(--surface-raised);
+    border: 1px solid var(--control-border);
+    font: inherit;
+}

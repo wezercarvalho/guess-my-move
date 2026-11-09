@@ -11,6 +11,7 @@
         "apps/server",
         "apps/web",
         "packages/core",
+        "packages/guitar",
         "packages/marbles",
         "packages/swing"
     ],
@@ -20,7 +21,7 @@
         "test": "yarn workspaces foreach --all --topological run test",
         "build": "yarn workspaces foreach --all --topological run build",
         "check:static": "yarn typecheck && yarn lint",
-        "check:all": "yarn check:static && yarn test && yarn build",
+        "check:all": "yarn check:static && yarn test && yarn build && yarn workspace @guess-my-move/server test:compiled",
         "dev:server": "yarn workspace @guess-my-move/server dev",
         "dev:web": "yarn workspace @guess-my-move/web dev",
         "sdd:check": "node scripts/sdd/check-specs.mjs --root .",
@@ -29,9 +30,9 @@
         "docs:format:fix": "prettier --write .prettierrc AGENTS.md CLAUDE.md README.md \"docs/**/*.md\" \"specs/**/*.md\"",
         "test:gates": "node --test test/security/dependency-audit.node-test.mjs test/security/dependency-audit-exceptions.node-test.mjs test/security/dependency-audit-workflows.node-test.mjs test/gates/hook-and-gate.node-test.mjs test/security/runtime-audit.node-test.mjs",
         "security:dependencies": "node scripts/audit-dependencies.mjs",
-        "contracts:export": "yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server contracts:export",
-        "contracts:check": "yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server contracts:check",
-        "load:swing": "yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server load:swing",
+        "contracts:export": "yarn workspace @guess-my-move/core build && yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server contracts:export",
+        "contracts:check": "yarn workspace @guess-my-move/core build && yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server contracts:check",
+        "load:swing": "yarn workspace @guess-my-move/core build && yarn workspace @guess-my-move/marbles build && yarn workspace @guess-my-move/swing build && yarn workspace @guess-my-move/server build && yarn workspace @guess-my-move/server load:swing",
         "security:runtime": "node scripts/audit-runtime.mjs"
     },
     "devDependencies": {

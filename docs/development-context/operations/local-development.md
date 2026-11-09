@@ -56,7 +56,7 @@ Os mesmos comandos e proxy atendem `/swing.html` → **Cooperativo online**. Use
 
 ## Limites e operação do multiplayer
 
-`yarn dev:server` compila primeiro `packages/marbles` e o servidor, e acompanha alterações de ambos. Nenhum build anterior precisa existir. Se um compilador falhar no preparo, o comando encerra com erro; só o frontend continua independente do servidor.
+`yarn dev:server` compila primeiro `packages/core`, `packages/marbles`, `packages/swing` e o servidor, e acompanha alterações desses workspaces. Nenhum build anterior precisa existir. Se um compilador falhar no preparo, o comando encerra com erro; só o frontend continua independente do servidor.
 
 A configuração de exemplo está em [`apps/server/.env.example`](../../../apps/server/.env.example). O servidor lê o ambiente do processo; esse arquivo não é carregado automaticamente. Exporte as variáveis no terminal ou configure-as no gerenciador do processo. Valores inválidos impedem a inicialização.
 
@@ -92,3 +92,9 @@ Veja [API e observabilidade](../contracts/backend-api.md) para os scripts de con
 `yarn load:swing` compila as dependências e inicia um backend isolado em porta aleatória de loopback, com clientes Socket.IO locais. Não recebe URL de servidor externo nem mede uma instância de produção. O padrão usa 2/10/20 salas, duas pessoas por sala, duas réplicas, aquecimento de 3 s e medição de 15 s por rodada. `yarn workspace @guess-my-move/server load:swing --output /tmp/swing-load.json` pode salvar agregados após os builds.
 
 O experimento desativa o SDK externo e ajusta limites por IP somente no processo filho porque todos os participantes simulados usam loopback. Não modifica defaults de produção. Inclui CPU/RSS do servidor, atraso do event loop, intervalo de snapshots, ACKs e falhas; exclui câmera, WebGL, internet e cidades reais. Consulte o [resultado e as condições da amostra](../../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/load-results.md) antes de interpretar números como capacidade.
+
+### Integração real do lobby de bolinhas
+
+`yarn workspace @guess-my-move/server test:lobby` executa o cliente `MultiplayerClient` do frontend contra Nest e Socket.IO reais em uma porta temporária. Não requer navegador, câmera ou servidor iniciado à parte. A suíte faz parte do `test` do servidor e de `yarn check:all`.
+
+Os quatro cenários cobrem broadcast antes da confirmação privada, confirmação perdida com abandono/expiração, desconexão/retomada/saída e partida completa com revanche bilateral. O harness apenas adia/descarta ACKs e avança o relógio da simulação; não fabrica estados nem altera regras. Timeouts são reais, limitados a 20 s por cenário e 5 s de limpeza. No ambiente registrado na [validação](../../../specs/2026-11-08-frontend-marbles-test-real-lobby/validation.md), a execução isolada levou cerca de 9 s, dos quais 5 s são o timeout real de um ACK perdido. Esse custo complementa os testes de unidade e os E2E que usam sockets diretamente; não mede fluidez nem reconhecimento na câmera.

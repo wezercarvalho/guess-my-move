@@ -18,7 +18,9 @@ export async function createServerApp(
 ): Promise<INestApplication> {
     if (!ObserveInstrument)
         throw new Error('Instrumentação do SDK indisponível.')
-    const app = await NestFactory.create(AppModule, new NodeAdapter(), {
+    const adapter = new NodeAdapter()
+    adapter.useBodyParser('json', false, { limit: 2048, inflate: false, type: (request) => (request.url ?? '').startsWith('/api/cards/') && /^application\/json(?:;|$)/i.test(request.headers['content-type'] ?? '') })
+    const app = await NestFactory.create(AppModule, adapter, {
         bodyParser: false,
         instrument: ObserveInstrument,
         return503OnClosing: true,
@@ -36,7 +38,7 @@ export async function createServerApp(
     )
     app.enableCors({
         origin: config.allowedOrigins,
-        methods: ['GET', 'HEAD'],
+        methods: ['GET', 'HEAD', 'POST'],
         allowedHeaders: ['Authorization', 'Content-Type'],
     })
     app.use(

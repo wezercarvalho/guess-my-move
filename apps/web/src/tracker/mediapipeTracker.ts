@@ -32,19 +32,27 @@ const WASM_PATH = `${import.meta.env.BASE_URL}mediapipe/wasm`
 const MODEL_PATH = `${import.meta.env.BASE_URL}mediapipe/hand_landmarker.task`
 const GESTURE_MODEL_PATH = `${import.meta.env.BASE_URL}mediapipe/gesture_recognizer.task`
 
-/** Carregador real: arquivos locais do app, uma mão, modo de vídeo. */
-export const realMediaPipeLoader: MediaPipeLoader = {
-    load: () => FilesetResolver.forVisionTasks(WASM_PATH),
-    create: (fileset, delegate) =>
-        HandLandmarker.createFromOptions(
-            fileset as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
-            {
-                baseOptions: { modelAssetPath: MODEL_PATH, delegate },
-                runningMode: 'VIDEO',
-                numHands: 1,
-            },
-        ),
+/** Carregador de landmarks (sem gestos prontos) para até `numHands` mãos, em modo de vídeo. */
+function landmarkLoader(numHands: number): MediaPipeLoader {
+    return {
+        load: () => FilesetResolver.forVisionTasks(WASM_PATH),
+        create: (fileset, delegate) =>
+            HandLandmarker.createFromOptions(
+                fileset as Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>,
+                {
+                    baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+                    runningMode: 'VIDEO',
+                    numHands,
+                },
+            ),
+    }
 }
+
+/** Carregador real: arquivos locais do app, uma mão, modo de vídeo. */
+export const realMediaPipeLoader: MediaPipeLoader = landmarkLoader(1)
+
+/** Duas mãos só com landmarks, sem o modelo de gestos (o Violão no Ar: uma forma o acorde e a outra bate). */
+export const realTwoHandLoader: MediaPipeLoader = landmarkLoader(2)
 
 /**
  * Carregador do reconhecedor de gestos (jogo das bolinhas): os mesmos landmarks do

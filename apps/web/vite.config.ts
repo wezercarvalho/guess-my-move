@@ -12,7 +12,7 @@ export default defineConfig({
             '/api': 'http://127.0.0.1:3000',
         },
     },
-    // Entradas: o menu (index.html), o jogo de cartas, o bete (marbles.html) e o Arranha-Teia.
+    // Entradas: o menu (index.html), o jogo de cartas, as bolinhas, o Arranha-Teia e o Violão no Ar.
     build: {
         rollupOptions: {
             input: {
@@ -20,6 +20,7 @@ export default defineConfig({
                 cards: 'cards.html',
                 marbles: 'marbles.html',
                 swing: 'swing.html',
+                guitar: 'guitar.html',
             },
         },
     },

@@ -1,4 +1,5 @@
 export { Button, type ButtonProps, type ButtonVariant } from './Button.js'
+export { Badge } from './Badge.js'
 export { DrawerPanel, DrawerToggle } from './Drawer.js'
 export { useDrawer } from './useDrawer.js'
 export { Eyebrow } from './Eyebrow.js'

@@ -10,6 +10,6 @@ describe('App', () => {
             screen.getByRole('heading', { name: 'Guess My Move' }),
         ).toBeInTheDocument()
         // A palavra da carta (parte pública) é visível ao jogador.
-        expect(screen.getByText('Acenar')).toBeInTheDocument()
+        expect(screen.getByText('Acenar', { selector: '.card-word' })).toBeInTheDocument()
     })
 })

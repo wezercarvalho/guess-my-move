@@ -19,6 +19,13 @@
     font-size: 1.25rem;
 }
 
+.game-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
 .game-card p {
     margin: 0;
     color: var(--cor-texto-suave);
