@@ -58,13 +58,13 @@ A hipótese técnica validada em spike é: _um detector de landmarks executado n
 
 1. Reconhecer o Acenar localmente, em tempo de rodada, com critério determinístico, testável sem câmera e parametrizado pela carta.
 2. Mostrar ao jogador, para depuração e ajuste, o que o detector lê: esqueleto da mão, ângulo, contagem de inversões, amostras, quadros e latência de inferência.
-3. Preservar a privacidade: processamento 100% local, sem persistência, sem log de imagem e sem envio a terceiros.
+3. Preservar a privacidade: processamento visual local, sem persistência ou log de imagem. No competitivo opcional de cartas, transmitir somente ângulos escalares/null à própria API após aviso explícito.
 4. Manter o repositório sem o código do fluxo por LLM, com os gates verdes.
 
 ### Não objetivos
 
 - IA jogadora (adivinhar sem conhecer a carta); detecção automática do início do gesto.
-- Mais de uma carta, baralho, pontuação, internacionalização, tempo de rodada configurável pela interface.
+- Novos tipos de critério além de oscilação e duração configurável pelo jogador; baralho, seleção, pt-BR/en-US e competitivo opcional fazem parte do incremento das issues #18/#19.
 - Navegadores além do Chrome desktop; celular.
 - Detecção avançada de trapaça, autenticação, banco de dados e áudio; o multiplayer está limitado às salas de duas pessoas de bolinhas.
 - Treinar ou ajustar modelos; qualquer modelo além do Hand Landmarker pré-treinado.
@@ -124,6 +124,12 @@ A carta separa `public` (o que o jogador vê) de `evaluation` (o critério do ge
 ```
 
 O schema rejeita campos desconhecidos e valores não positivos. Adicionar uma carta é incluir outro objeto no baralho (`packages/core/src/card/deck.ts`); um novo tipo de critério exige ampliar o schema.
+
+### 5.3 Baralho, idiomas e competitivo (#18/#19)
+
+A [spec vigente deste incremento](../../specs/2026-11-08-game-cards-add-deck-and-competition/spec.md) acrescenta quatro cartas de oscilação, três categorias e dificuldades fácil/médio, com pt-BR padrão e en-US no fluxo de cartas. Novas cartas são dados; o árbitro continua o de oscilação, sem interpretação semântica. Seleção e treinamento usam o baralho versionado. A avaliação privada contém também duração e pontos-base e continua fora da projeção pública.
+
+No competitivo experimental, o servidor carrega a carta por id, usa seu relógio e avalia os ângulos escalares enviados pelo dispositivo. Nenhuma mídia/landmark é transmitida. Reconhecimento e pontos vêm do servidor; timeout/cancelamento não pontuam. Não há ranking, contas ou comprovação de presença/identidade. Regras, limites e contratos em [guia de cartas](../games.md#cartas-de-gestos). As seções abaixo descrevem o treino local; o competitivo usa os mesmos núcleo/árbitro com autoridade e prazo no servidor.
 
 ## 6. Experiência do usuário e fluxo da rodada
 
@@ -223,7 +229,7 @@ O spike (12 clipes, uma pessoa, em Chromium headless) é evidência inicial, nã
 
 ## 10. Segurança e privacidade
 
-- **Processamento local:** nenhuma imagem, vídeo ou landmark é enviado, gravado ou registrado em log. Uma rodada não gera requisição de rede com mídia; só há o carregamento do app e dos arquivos do detector, servidos pelo próprio app.
+- **Processamento local:** nenhuma imagem, vídeo ou landmark é enviado, gravado ou registrado em log. O treino não gera requisição de rede com sinais. No competitivo opcional de cartas há transmissão explícita apenas de ângulo escalar/null e sequência à própria API, sem mídia ou landmarks.
 - **Servidor limitado ao multiplayer:** `apps/server` recebe somente comandos e vetores de bolinhas e publica snapshots. Cartas e jogos locais não dependem dele; não há provedor ou chave de IA.
 - **Câmera:** consentimento explícito do navegador, indicador de câmera ativa e opção de parar a captura. Em conteúdo de menores, aplicar salvaguardas antes de ampliar o público.
 - **Modelos:** os arquivos `.task` (`hand_landmarker.task` e `gesture_recognizer.task`) não são versionados; suas licenças não foram confirmadas na fonte e a verificação fica pendente antes de qualquer redistribuição (registro em `research.md`).

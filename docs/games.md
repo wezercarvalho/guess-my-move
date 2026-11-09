@@ -4,7 +4,31 @@ O menu inicial oferece quatro jogos. Use Chrome desktop com webcam, permita o ac
 
 ## Cartas de gestos
 
-Abra `/cards.html`, ative a câmera e aperte **Começar**. Faça o gesto da carta antes do fim da rodada (10 segundos por padrão). A carta disponível, **Acenar**, avalia a oscilação do ângulo da mão. Ao final, a interface informa se o gesto foi reconhecido.
+Abra `/cards.html`. Português brasileiro é o padrão; **Idioma** permite inglês, com preferência local opcional. Selecione categoria, dificuldade e carta. Há quatro cartas: Acenar, Despedida animada, Limpador de para-brisa e Regente de orquestra, distribuídas entre Cumprimentos, Cotidiano e Artes. Todas usam oscilação da mão: o avaliador reconhece esse movimento, não o significado da mímica. Trocar carta, idioma ou modo encerra a captura/rodada anterior.
+
+No **Treino local**, ative a câmera e use **Começar**; reconhecimento e prazo vêm do núcleo local. Dica e sugestão ficam escondidas até você pedir. Não há pontuação competitiva nem transmissão de sinais.
+
+No **Competitivo experimental**, inicie o backend conforme o README. A tela avisa antes de começar: apenas ângulo da mão/null e sequência são enviados à mesma origem; imagens, vídeo e landmarks permanecem no navegador. O servidor seleciona seus próprios metadados por id e usa seu relógio para decidir reconhecimento e prazo. Falha de rede não concede pontos nem troca silenciosamente para treino. **Cancelar**, trocar seleção ou parar a câmera encerra a tentativa.
+
+Regras atuais: 10 s por rodada; pontos-base 100 em cartas fáceis e 200 em médias. Acerto vale `round(basePoints × (1 − elapsedMs / (2 × durationMs)))`; quanto mais cedo, maior a pontuação. O limite exato já é timeout. Cancelamento, timeout e falha valem zero; dicas não alteram pontos nesta versão. Resultado final confirmado pelo servidor não pode ser pontuado outra vez. A contagem regressiva da tela é indicativa entre confirmações, sem autoridade sobre o resultado.
+
+Não há contas, ranking ou premiação. Ângulos recebidos do dispositivo podem ser fabricados; o protocolo não prova identidade, presença ou gesto físico. A autoridade de avaliação/tempo/pontuação no servidor não resolve esse problema de antifraude. Reconhecimento real dessas cartas ainda requer testes em câmeras e pessoas diferentes.
+
+### Contrato competitivo
+
+O [OpenAPI exportado](../contracts/http.openapi.json) descreve os corpos e respostas estritos:
+
+- `POST /api/cards/rounds`: `{ cardId, locale }`; cria acesso privado `{ roundId, token, round }`.
+- `POST /api/cards/rounds/{id}/observe`: `{ seq, angleDeg }`, com `Authorization: Bearer <token>`; `angleDeg: null` atualiza prazo sem mão.
+- `POST /api/cards/rounds/{id}/cancel`: `{}` com o mesmo token; resultado final é idempotente.
+
+Exige origem permitida pela configuração existente. Não enviar tokens em URL, logs ou storage persistente. Corpo JSON limitado a 2.048 B, sem compressão; observações com pelo menos 50 ms de intervalo. O cliente mantém uma requisição por vez e intervalo mínimo de 120 ms. Há no máximo 100 rodadas por processo; tentativas de início compartilham o limite agregado por endereço dos jogos. Rodadas expiram no máximo 30 s após o prazo de execução, com varredura a cada segundo. As cartas atuais têm duração de 10 s, portanto TTL de 40 s mais até 1 s da varredura; acessos expirados são recusados imediatamente na próxima operação. Uma criação cujo ACK HTTP se perde pode reservar capacidade até esse TTL; não se repete automaticamente.
+
+Para testar o protocolo sem câmera: `yarn workspace @guess-my-move/server test:cards`. Seleção, traduções e descarte: `yarn workspace @guess-my-move/web test:cards`. Testes não medem acurácia visual. O painel técnico do treino permanece em português; os demais jogos mantêm seus idiomas atuais.
+
+### Demonstração automatizada no navegador
+
+Após `yarn build`, `yarn workspace @guess-my-move/web smoke:cards` executa frontend compilado, servidor compilado e câmera sintética do Chromium em portas temporárias. Exige instalação externa de Playwright 1.64.1 indicada por `GMM_PLAYWRIGHT_PATH`; `GMM_CHROMIUM_PATH` é opcional. Instale externamente `playwright@1.64.1` e o Chromium correspondente; por exemplo, `npm install --prefix /tmp/gmm-cards-browser playwright@1.64.1` e `/tmp/gmm-cards-browser/node_modules/.bin/playwright install chromium`. Nesse exemplo, use `GMM_PLAYWRIGHT_PATH=/tmp/gmm-cards-browser/node_modules/playwright`. É uma demonstração opcional, fora do gate padrão e sem nova dependência da aplicação. O argumento opcional define um JSON sanitizado de resultado; não gera imagens ou vídeos, não registra tokens/sinais e desativa coleta externa. Comprova seleção, inglês, preferência após reload, carregamento real do detector e timeout competitivo sem mão com zero pontos. Não mede reconhecimento de gestos com câmera física.
 
 ## Bolinhas de gude
 

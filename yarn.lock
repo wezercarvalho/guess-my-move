@@ -210,6 +210,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@guess-my-move/server@workspace:apps/server"
   dependencies:
+    "@guess-my-move/core": "npm:0.0.0"
     "@guess-my-move/marbles": "npm:0.0.0"
     "@guess-my-move/swing": "npm:0.0.0"
     "@nestjs/common": "npm:12.3.3"

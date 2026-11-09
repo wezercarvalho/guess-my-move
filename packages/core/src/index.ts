@@ -42,3 +42,9 @@ export { evaluateOscillation, handAngleDeg } from './gesture/index.js'
 // Motor da rodada: máquina de estados pura e determinística.
 export type { Clock, Round, RoundConfig, RoundState } from './round/index.js'
 export { createRound, DEFAULT_MAX_DURATION_MS } from './round/index.js'
+
+export { CARD_LOCALES, getCards } from './card/deck.js'
+export type { CardLocale } from './card/deck.js'
+export { cardMaxDurationMs, scoreCardRound } from './card/scoring.js'
+export { cardLocaleSchema, publicCardSchema, startCardRoundSchema, observeCardRoundSchema, cancelCardRoundSchema, cardRoundSnapshotSchema, cardRoundAccessSchema } from './competition/contracts.js'
+export type { StartCardRound, ObserveCardRound, CardRoundSnapshot, CardRoundAccess } from './competition/contracts.js'

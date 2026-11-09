@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/locale.js'
 import { type Card, toPublicCard } from '@guess-my-move/core'
 import { useRef } from 'react'
 
@@ -24,6 +25,7 @@ export interface GestureScreenProps {
  * processamento é local; nenhuma imagem sai do navegador.
  */
 export function GestureScreen({ card, cameraGetUserMedia, deps }: GestureScreenProps) {
+    const { t, locale } = useI18n()
     const camera = useCamera(
         cameraGetUserMedia === undefined ? {} : { getUserMedia: cameraGetUserMedia },
     )
@@ -59,24 +61,24 @@ export function GestureScreen({ card, cameraGetUserMedia, deps }: GestureScreenP
             />
 
             <section aria-labelledby="round-heading" className="round-panel">
-                <h2 id="round-heading">Rodada</h2>
+                <h2 id="round-heading">{t.round}</h2>
 
                 <p className="round-status" data-testid="round-status">
-                    {statusText(round.state, round.trackerStatus)}
+                    {statusText(round.state, round.trackerStatus, t)}
                 </p>
 
                 <div className="round-actions">
                     <button type="button" onClick={round.start} disabled={!round.canStart}>
-                        Começar
+                        {t.start}
                     </button>
                     {detecting && (
                         <button type="button" onClick={round.cancel}>
-                            Cancelar
+                            {t.cancel}
                         </button>
                     )}
                     {round.finished && (
                         <button type="button" onClick={round.newRound}>
-                            Nova rodada
+                            {t.newRound}
                         </button>
                     )}
                     {detecting && remainingSeconds !== null && (
@@ -87,14 +89,14 @@ export function GestureScreen({ card, cameraGetUserMedia, deps }: GestureScreenP
                 </div>
 
                 <div aria-live="polite" className="round-result" data-testid="round-result">
-                    {resultText(round.state, round.elapsedMs, round.maxDurationMs)}
+                    {resultText(round.state, round.elapsedMs, round.maxDurationMs, t, locale)}
                 </div>
 
                 {round.state === 'tracker_error' && (
                     <div className="round-error" role="alert">
-                        <p>O detector de mão falhou: {round.failureReason}</p>
+                        <p>{t.trackerFailed} {round.failureReason}</p>
                         <p className="round-error-hint">
-                            A câmera continua ativa. Use “Nova rodada” para tentar de novo.
+                            {t.trackerRetry}
                         </p>
                     </div>
                 )}
@@ -108,24 +110,25 @@ export function GestureScreen({ card, cameraGetUserMedia, deps }: GestureScreenP
 function statusText(
     state: ReturnType<typeof useGestureRound>['state'],
     tracker: ReturnType<typeof useGestureRound>['trackerStatus'],
+    t: ReturnType<typeof useI18n>['t'],
 ): string {
     switch (state) {
         case 'idle':
         case 'card_revealed':
             return tracker === 'loading'
-                ? 'Carregando o detector de mão…'
-                : 'Ative a câmera para começar.'
+                ? t.trackerLoading
+                : t.enableToStart
         case 'camera_ready':
-            return 'Pronto. Aperte Começar e faça o gesto da carta.'
+            return t.ready
         case 'detecting':
-            return 'Faça o gesto da carta diante da câmera.'
+            return t.detecting
         case 'recognized':
         case 'timed_out':
         case 'user_cancelled':
         case 'tracker_error':
-            return 'Rodada encerrada.'
+            return t.ended
         case 'camera_denied':
-            return 'A rodada não pode começar sem a câmera.'
+            return t.cameraRequired
     }
 }
 
@@ -133,21 +136,23 @@ function resultText(
     state: ReturnType<typeof useGestureRound>['state'],
     elapsedMs: number | null,
     maxDurationMs: number,
+    t: ReturnType<typeof useI18n>['t'],
+    locale: string,
 ): string {
     switch (state) {
         case 'recognized':
-            return `Gesto reconhecido em ${formatSeconds(elapsedMs ?? 0)}.`
+            return `${t.recognized} ${formatSeconds(elapsedMs ?? 0, locale)}.`
         case 'timed_out':
-            return `Gesto não reconhecido em ${formatSeconds(maxDurationMs)}. Tente de novo.`
+            return `${t.timeout} ${formatSeconds(maxDurationMs, locale)}. ${t.retry}`
         case 'user_cancelled':
-            return 'Rodada cancelada.'
+            return t.cancelled
         default:
             return ''
     }
 }
 
-function formatSeconds(ms: number): string {
-    return `${(ms / 1000).toLocaleString('pt-BR', {
+function formatSeconds(ms: number, locale: string): string {
+    return `${(ms / 1000).toLocaleString(locale, {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
     })} s`

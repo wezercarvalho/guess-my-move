@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/locale.js'
 import { type CardPublicProjection } from '@guess-my-move/core'
 import { useId, useState } from 'react'
 
@@ -25,6 +26,7 @@ export function CardView({ card, onReveal }: CardViewProps) {
 }
 
 function CardContent({ card, onReveal }: CardViewProps) {
+    const { t } = useI18n()
     const [revealed, setRevealed] = useState<Record<RevealableItem, boolean>>({
         hint: false,
         suggestion: false,
@@ -40,12 +42,13 @@ function CardContent({ card, onReveal }: CardViewProps) {
 
     return (
         <section aria-labelledby="card-heading" className="card-view">
-            <h2 id="card-heading">Sua carta</h2>
+            <h2 id="card-heading">{t.yourCard}</h2>
             <p className="card-word">{card.public.word}</p>
             <div className="card-details">
                 <RevealableDetail
-                    label="Dica"
-                    actionNoun="dica"
+                    label={t.hint}
+                    showLabel={t.showHint}
+                    hideLabel={t.hideHint}
                     text={card.public.hint}
                     isRevealed={revealed.hint}
                     onToggle={() => {
@@ -53,8 +56,9 @@ function CardContent({ card, onReveal }: CardViewProps) {
                     }}
                 />
                 <RevealableDetail
-                    label="Sugestão"
-                    actionNoun="sugestão"
+                    label={t.suggestion}
+                    showLabel={t.showSuggestion}
+                    hideLabel={t.hideSuggestion}
                     text={card.public.suggestion}
                     isRevealed={revealed.suggestion}
                     onToggle={() => {
@@ -68,7 +72,8 @@ function CardContent({ card, onReveal }: CardViewProps) {
 
 interface RevealableDetailProps {
     label: string
-    actionNoun: string
+    showLabel: string
+    hideLabel: string
     text: string
     isRevealed: boolean
     onToggle: () => void
@@ -76,7 +81,8 @@ interface RevealableDetailProps {
 
 function RevealableDetail({
     label,
-    actionNoun,
+    showLabel,
+    hideLabel,
     text,
     isRevealed,
     onToggle,
@@ -91,7 +97,7 @@ function RevealableDetail({
                 aria-controls={regionId}
                 onClick={onToggle}
             >
-                {isRevealed ? `Ocultar ${actionNoun}` : `Mostrar ${actionNoun}`}
+                {isRevealed ? hideLabel : showLabel}
             </button>
             <div id={regionId} aria-live="polite">
                 {isRevealed && (

@@ -1,3 +1,4 @@
+import { CardsModule } from './cards/cards.module.js'
 import { RuntimeConfigModule } from './runtime-config.module.js'
 import { ObservabilityModule } from './observability/observability.module.js'
 import { HttpTimingInterceptor } from './observability/http-timing.interceptor.js'
@@ -12,6 +13,7 @@ import { SwingMultiplayerModule } from './swing/swing.module.js'
 
 @Module({
     imports: [
+        CardsModule,
         RuntimeConfigModule,
         ObservabilityModule,
         RealtimeModule,

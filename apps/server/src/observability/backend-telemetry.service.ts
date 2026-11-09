@@ -4,6 +4,9 @@ import { SWING_CLIENT_EVENTS } from '@guess-my-move/swing'
 import { CLIENT_EVENTS } from '@guess-my-move/marbles'
 
 export const HTTP_OPERATIONS = [
+    'CardsController:start',
+    'CardsController:observe',
+    'CardsController:cancel',
     'HealthController:check',
     'ApiController:capabilities',
     'ApiController:multiplayer',

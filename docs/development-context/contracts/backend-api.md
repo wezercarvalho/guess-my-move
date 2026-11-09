@@ -17,7 +17,11 @@ Com `ENABLE_API_DOCS=true`, `GET /api/openapi.json` serve o mesmo documento HTTP
 
 Os interceptores de medição e serialização são aplicados somente aos controllers HTTP. Isso mantém eventos Socket.IO fora de uma cadeia HTTP e preserva o contexto de tracing até a execução do comando. As respostas de health, capacidades e métricas passam pelo `StandardSchemaSerializerInterceptor` do Nest e pelos schemas Zod usados para produzir o OpenAPI. Respostas inválidas falham em vez de publicar silenciosamente um formato divergente. O gate compara documentos e verifica a cobertura das rotas HTTP reais.
 
-CORS aceita as origens de `ALLOWED_ORIGINS`, com leitura HTTP por GET/HEAD e header Authorization. Para um frontend em outra origem, inclua a origem exata na configuração. CORS não é autenticação; métricas continuam exigindo token, e os eventos continuam sujeitos à política de origem e aos limites de admissão.
+CORS aceita as origens de `ALLOWED_ORIGINS`, com HTTP GET/HEAD/POST e headers Content-Type/Authorization. Para um frontend em outra origem, inclua a origem exata na configuração. CORS não é autenticação; métricas continuam exigindo token, e os eventos continuam sujeitos à política de origem e aos limites de admissão.
+
+## Cartas competitivas
+
+O OpenAPI também descreve início, observação escalar e cancelamento em `POST /api/cards/rounds`, `POST /api/cards/rounds/{id}/observe` e `POST /api/cards/rounds/{id}/cancel`. Os mesmos schemas de `packages/core` validam os corpos e serializam as respostas. O token de rodada é privado e efêmero, distinto do token de métricas; nunca aparece no snapshot público. Estado, tempo e pontos são calculados no servidor. Limites, privacidade e restrições de integridade no [guia das cartas](../../games.md#cartas-de-gestos).
 
 ## Eventos de jogo
 

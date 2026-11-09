@@ -56,7 +56,7 @@ Os mesmos comandos e proxy atendem `/swing.html` → **Cooperativo online**. Use
 
 ## Limites e operação do multiplayer
 
-`yarn dev:server` compila primeiro `packages/marbles` e o servidor, e acompanha alterações de ambos. Nenhum build anterior precisa existir. Se um compilador falhar no preparo, o comando encerra com erro; só o frontend continua independente do servidor.
+`yarn dev:server` compila primeiro `packages/core`, `packages/marbles`, `packages/swing` e o servidor, e acompanha alterações desses workspaces. Nenhum build anterior precisa existir. Se um compilador falhar no preparo, o comando encerra com erro; só o frontend continua independente do servidor.
 
 A configuração de exemplo está em [`apps/server/.env.example`](../../../apps/server/.env.example). O servidor lê o ambiente do processo; esse arquivo não é carregado automaticamente. Exporte as variáveis no terminal ou configure-as no gerenciador do processo. Valores inválidos impedem a inicialização.
 

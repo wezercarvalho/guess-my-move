@@ -10,10 +10,9 @@ Use a webcam para jogar cartas de gestos, bolinhas de gude e se movimentar entre
 
 | Jogo                 | Experiência                                                                                                                                                                                                        | Página          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
-| **Cartas de gestos** | Faça o gesto pedido pela carta antes de acabar a rodada. O gesto disponível é **Acenar**.                                                                                                                          | `/cards.html`   |
+| **Cartas de gestos** | Escolha entre quatro cartas de oscilação da mão em três categorias, em português ou inglês. Treino local ou competitivo experimental com tempo e pontos no servidor.                                               | `/cards.html`   |
 | **Bolinhas de gude** | Modos **Bete**, **Triângulo** e **Cova**, com tiro por pinça ou estalo experimental. Jogue localmente contra a meta ou o bot, ou online com outra pessoa.                                                          | `/marbles.html` |
 | **Arranha-Teia**     | Lance teias, balance e escale usando mãos e cabeça. Aprenda no **Treino**, em Aurora, ou explore cidades reais no modo **Viajante**. Coopere online com outra pessoa na mesma cidade ou use controles por teclado. | `/swing.html`   |
-
 | **Violão no Ar (Alpha)** | Forme Em, Am, D, C ou G sobre o braço projetado no vídeo e bata com a outra mão para ouvir o acorde reconhecido. Reconhecimento experimental, ainda sem validação com câmera real após a revisão. | `/guitar.html` |
 
 O menu inicial reúne os quatro jogos. No multiplayer de bolinhas, a sala mostra apelidos, participantes, prontidão, vez atual, próximo jogador e resultado. As duas pessoas podem confirmar uma nova partida na mesma sala.
@@ -36,6 +35,12 @@ yarn dev:web
 O Corepack é instalado explicitamente para preparar o Yarn. Abra o endereço exibido pelo Vite, normalmente `http://localhost:5173`, e escolha um jogo.
 
 Na primeira execução, o script prepara o WebAssembly e baixa os modelos do MediaPipe com verificação de SHA-256. Esse preparo precisa de internet; execuções seguintes reutilizam os arquivos em cache. Os modelos são servidos pelo próprio app e não são versionados no Git.
+
+### Cartas: treino e competitivo
+
+Em `/cards.html`, selecione idioma, categoria, dificuldade e carta. **Treino local** funciona sem backend; **Competitivo experimental** exige `yarn dev:server` e só começa após ativar a câmera. Antes de iniciar, a tela informa o envio de ângulos escalares ao servidor. Imagens e landmarks permanecem locais. As quatro cartas usam o mesmo avaliador de oscilação: não há classificação semântica da mímica.
+
+O servidor determina reconhecimento, prazo de 10 s e pontuação. Acerto vale de 50% a 100% dos pontos-base (100 fácil, 200 médio), conforme o tempo restante; timeout/cancelamento valem zero. Sem ranking ou premiação: sinais do dispositivo não provam identidade ou presença. Veja [regras e contratos](docs/games.md#cartas-de-gestos).
 
 ### Jogar bolinhas online
 
@@ -67,6 +72,7 @@ O servidor simula os movimentos e os objetivos. Quedas pausam a sessão e reserv
 - **Mãos e rosto são processados no navegador.** Imagens, vídeos e landmarks não são enviados ao servidor, gravados ou registrados em logs.
 - A câmera depende da permissão explícita do navegador, com indicador de captura e opção de pará-la.
 - O modo local funciona sem o backend de multiplayer e sem chaves de provedores de IA.
+- No competitivo de cartas, recebe apenas ângulos escalares/null e sequência; tokens e rodadas ficam em memória por um prazo de 40 s nas cartas atuais, com varredura a cada segundo, sem logs de amostras.
 - No online, o servidor recebe apelidos efêmeros, acesso e comandos da sala, tiros e estado da partida. Não há contas nem banco de dados; as bolinhas guardam a credencial de retomada em `sessionStorage`, enquanto o Arranha-Teia a mantém somente em memória da página.
 
 Detalhes: [privacidade e segredos](docs/development-context/security/privacy-and-secrets.md).

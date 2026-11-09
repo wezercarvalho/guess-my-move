@@ -41,6 +41,7 @@ describe('plataforma nativa e política de telemetria', () => {
             observeHttpIgnored({ url: '/api/capabilities?anything=secret' }),
         ).toBe(true)
         expect(observeHttpIgnored({ url: '/api/metrics' })).toBe(true)
+        expect(observeHttpIgnored({ url: '/api/cards/rounds/private-id/observe' })).toBe(true)
         expect(observeHttpIgnored({ url: '/anything-secret' })).toBe(true)
     })
     it('define HTTP separadamente dos comandos de jogo', () => {
@@ -48,9 +49,13 @@ describe('plataforma nativa e política de telemetria', () => {
         expect(openapi.openapi).toBe('3.1.0')
         expect(openapi.paths['/api/health']).toBeDefined()
         expect(openapi.paths['/api/capabilities']).toBeDefined()
-        expect(openapi.paths['/api/metrics'].get.security).toEqual([
+        expect('get' in openapi.paths['/api/metrics'] && openapi.paths['/api/metrics'].get.security).toEqual([
             { metricsToken: [] },
         ])
+        const cardStart = openapi.paths['/api/cards/rounds']
+        expect('post' in cardStart).toBe(true)
+        expect(JSON.stringify(cardStart)).not.toMatch(/evaluation|criterion|amplitudeDeg|basePoints/)
+        expect(openapi.components.securitySchemes.cardRoundToken.scheme).toBe('bearer')
         expect(JSON.stringify(openapi.paths)).not.toContain('room:create')
         const multiplayer = buildMultiplayerContract()
         expect(multiplayer.transport).toBe('socket.io')
@@ -109,7 +114,9 @@ describe('cobertura HTTP do documento', () => {
                             handler,
                         )
                         if (method === undefined) continue
-                        expect(method).toBe(RequestMethod.GET)
+                        if (typeof method !== 'number') throw new Error('Método HTTP inválido.')
+                        const verb = RequestMethod[method]?.toLowerCase()
+                        if (!verb) throw new Error('Método HTTP desconhecido.')
                         const path: unknown = Reflect.getMetadata(
                             PATH_METADATA,
                             handler,
@@ -122,19 +129,19 @@ describe('cobertura HTTP do documento', () => {
                                 'Documentar rotas múltiplas antes de expor a operação.',
                             )
                         paths.push(
-                            '/' +
+                            verb + ' /' +
                                 [prefix, path]
                                     .join('/')
                                     .split('/')
                                     .filter(Boolean)
-                                    .join('/'),
+                                    .join('/').replace(/:([A-Za-z_]\w*)/g, '{$1}'),
                         )
                     }
                 }
             expect(paths.sort()).toEqual(
                 [
-                    ...Object.keys(buildOpenApiDocument().paths),
-                    '/api/openapi.json',
+                    ...Object.entries(buildOpenApiDocument().paths).flatMap(([path, methods]) => Object.keys(methods).map((method) => `${method} ${path}`)),
+                    'get /api/openapi.json',
                 ].sort(),
             )
         } finally {
