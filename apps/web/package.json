@@ -10,7 +10,7 @@
         "dev": "yarn prepare:assets && vite",
         "build": "yarn prepare:assets && tsc --build && vite build",
         "preview": "vite preview",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "tsc --noEmit && tsc -p tsconfig.profile.json",
         "test": "vitest run && node --test scripts/prepare-assets.test.mjs scripts/pages.test.mjs scripts/design-tokens.test.mjs scripts/city-from-osm.test.mjs scripts/city-sources.test.mjs scripts/city-data.test.mjs scripts/swing-layout.test.mjs scripts/guitar-privacy.test.mjs",
         "test:swing-network": "vitest run src/swing/multiplayerClient.test.ts src/swing/SwingOnline.test.tsx src/swing/swingController.test.ts",
         "test:multiplayer-clients": "vitest run src/marbles/multiplayerClient.test.ts src/swing/multiplayerClient.test.ts src/swing/SwingOnline.test.tsx",
@@ -20,7 +20,9 @@
         "test:marbles-input": "vitest run src/marbles/handInput.test.ts src/marbles/marblesController.test.ts",
         "test:marbles-controls": "vitest run src/marbles/*.test.ts src/marbles/*.test.tsx",
         "test:swing-look": "vitest run src/swing/swingHeadLook.test.ts src/swing/swingHeadLock.test.ts src/swing/swingHeadClimb.test.ts src/swing/SwingScreen.test.tsx",
-        "test:guitar": "vitest run src/guitar && node --test scripts/guitar-privacy.test.mjs"
+        "test:guitar": "vitest run src/guitar && node --test scripts/guitar-privacy.test.mjs",
+        "build:profile": "yarn prepare:assets && vite build --config vite.profile.config.ts",
+        "profile:swing": "node scripts/profile-swing-bundle.mjs"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",
