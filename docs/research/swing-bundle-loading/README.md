@@ -69,3 +69,7 @@ O runner fecha contextos, navegador e servidores em `finally`, usa timeouts expl
 Ambos os builds aprovados; 36 navegações medidas sem erros de página/requisição. O teste preserva entradas de seleção, treino e lobby; não cria sala online nem comprova uma partida ou câmera real. A aplicação de produção permanece igual à base; as suítes de aplicação existentes continuam como regressão, sem alegar novos testes de regras.
 
 Investigação de risco baixo, sem mudança comportamental de produção: SDD opcional pelo roteador de estratégias; a decisão registrada aqui encerra o escopo da issue. Revisão/aceite e merge pendentes do maintainer.
+
+## Consolidação da entrega
+
+A configuração experimental e este estudo foram incorporados à entrega consolidada de 2026-11-09. As medições acima continuam referentes aos commits e condições identificados no estudo; não são medições do bundle de todas as funcionalidades combinadas. Ver [registro de integração](../../development-context/delivery/consolidated-games-2026-11-09.md).

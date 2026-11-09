@@ -54,3 +54,7 @@ Node 26.12.1, Yarn 4.18.1, TypeScript 7.0.2; Linux x64. Suíte integral em Docke
 Português brasileiro padrão, inglês opcional, 10 s e pontos-base 100/200. Pontuação premia rapidez, sem penalidade por dica e sem ranking. Autoridade do servidor evita confiar em pontos/tempo/resultado enviados pelo dispositivo; não prova gesto físico, identidade ou presença. Cartas novas são variações oscilatórias, sem novos classificadores e sem promessa de reconhecimento semântico.
 
 Falta teste humano com câmera física, outras pessoas/dispositivos e rede pública; não há medição de acurácia ou FPS. CI remoto será executado ao sair de draft, sem declaração de aprovação antecipada. #52/#132 seguem como acompanhamentos externos independentes; nenhuma versão futura foi simulada ou adotada como estável. Violão preservado em standby.
+
+## Entrega consolidada — 2026-11-09
+
+Por solicitação do maintainer, esta implementação foi incorporada à branch `codex/consolidate-game-deliveries`, junto das outras quatro PRs. O [registro de integração](../../docs/development-context/delivery/consolidated-games-2026-11-09.md) identifica commits, validação conjunta, fechamento das PRs substituídas e pendências de aceite. As evidências específicas acima permanecem vinculadas às execuções e limitações registradas.

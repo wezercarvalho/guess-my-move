@@ -198,3 +198,7 @@ A revisão item a item encontrou duas lacunas além das correções da retomada.
 - O complemento não substitui nem executa o reteste com mãos reais de SC-003. A PR #105 continua em draft; o fechamento de #95 ainda depende desse registro humano.
 
 Validação completa repetida após o complemento: `yarn check:all` passou em todos os workspaces (68 core, **84 guitar**, 174 marbles, 264 swing, 98 server, **604 web + 87 testes Node**), com tipos/lint sem avisos nem erros e build completo. O smoke Chromium foi repetido sobre o build atualizado e manteve os resultados de áudio, câmera, layout e CSP; `evidence/browser-smoke.json` foi atualizado com essa execução. SDD e formatação também passaram após reconciliar os artefatos.
+
+## Entrega consolidada — 2026-11-09
+
+Por solicitação do maintainer, esta implementação foi incorporada à branch `codex/consolidate-game-deliveries`, junto das outras quatro PRs. O [registro de integração](../../docs/development-context/delivery/consolidated-games-2026-11-09.md) identifica commits, validação conjunta, fechamento das PRs substituídas e pendências de aceite. As evidências específicas acima permanecem vinculadas às execuções e limitações registradas.

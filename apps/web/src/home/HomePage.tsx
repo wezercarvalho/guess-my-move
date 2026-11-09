@@ -42,7 +42,7 @@ export function HomePage() {
             <div className="game-cards">
                 <GameCard
                     title="Jogo de cartas"
-                    description="Escolha uma carta de movimento, em português ou inglês."
+                    description="Acenar e outras cartas de movimento, em português ou inglês."
                     href="cards.html"
                     action="Jogar cartas"
                 />

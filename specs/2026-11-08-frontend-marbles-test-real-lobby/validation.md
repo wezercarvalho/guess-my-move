@@ -38,3 +38,7 @@ Os testes usam o cliente de produção e sockets reais, cobrindo a lacuna entre 
 ## Limitações e veredito
 
 FR-001–FR-004 demonstrados. Não mede navegador, rede pública, fluidez, inferência ou câmera real; a UI mantém suas suítes existentes. A integração não substitui esses testes. Aceite final/Gate 3 pendentes; status validating. CI remoto será executado ao sair de draft, sem alegar aprovação remota antecipada.
+
+## Entrega consolidada — 2026-11-09
+
+Por solicitação do maintainer, esta implementação foi incorporada à branch `codex/consolidate-game-deliveries`, junto das outras quatro PRs. O [registro de integração](../../docs/development-context/delivery/consolidated-games-2026-11-09.md) identifica commits, validação conjunta, fechamento das PRs substituídas e pendências de aceite. As evidências específicas acima permanecem vinculadas às execuções e limitações registradas.

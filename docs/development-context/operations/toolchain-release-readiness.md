@@ -42,3 +42,7 @@ Quando a versão estável existir:
 Mudança documental de baixo risco: SDD opcional pelo roteador, sem código de runtime ou dependências alterados. Fontes primárias conferidas, main e PR #146 verificadas no GitHub, consulta real `yarn security:runtime` aprovada. Formatação, catálogo e verificações leves do hook devem passar antes do push. Não substitui testes futuros com releases ainda indisponíveis.
 
 As duas issues permanecem abertas. Esta entrega resolve a organização e a conferência atual; os critérios de atualização/adoção dos binários continuam bloqueados pelas respectivas publicações externas. Não usar `Closes` para este acompanhamento.
+
+## Consolidação da entrega
+
+Este acompanhamento foi incorporado à entrega consolidada de 2026-11-09; permanecem os mesmos critérios de atualização e pendências de lançamentos. Ver [registro de integração](../delivery/consolidated-games-2026-11-09.md).

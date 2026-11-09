@@ -1,0 +1,21 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.4",
+  "camera": "Chromium synthetic test pattern, no hand",
+  "scenarios": [
+    "Portuguese category/card selection",
+    "English card/controls",
+    "locale preference after reload",
+    "real MediaPipe loading",
+    "built frontend and compiled Nest API",
+    "server timeout without hand awards zero",
+    "scalar-only command bodies",
+    "camera stopped"
+  ],
+  "requests": 40,
+  "limitations": [
+    "no physical camera or gesture accuracy measurement",
+    "loopback only",
+    "no media, tokens or signal samples persisted"
+  ]
+}

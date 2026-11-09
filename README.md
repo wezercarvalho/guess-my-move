@@ -2,18 +2,18 @@
 
 **Jogos de movimento no navegador, com visão computacional local.**
 
-Use a webcam para jogar cartas de gestos, bolinhas de gude e se movimentar entre prédios no Arranha-Teia. O Guess My Move é um projeto open source em TypeScript: o MediaPipe detecta mãos e rosto no próprio navegador, e os núcleos dos jogos transformam esses sinais em ações.
+Use a webcam para jogar cartas de gestos e bolinhas de gude, explorar cidades no Arranha-Teia e formar acordes no Violão no Ar. O Guess My Move é um projeto open source em TypeScript: o MediaPipe detecta mãos e rosto no próprio navegador, e os núcleos dos jogos transformam esses sinais em ações.
 
 [Começar](#executar-localmente) · [Como jogar](docs/games.md) · [Contribuir](docs/contributing.md) · [Issues](https://github.com/wezercarvalho/guess-my-move/issues) · [Licença MIT](LICENSE)
 
 ## Jogos disponíveis
 
-| Jogo                 | Experiência                                                                                                                                                                                                        | Página          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
-| **Cartas de gestos** | Escolha entre quatro cartas de oscilação da mão em três categorias, em português ou inglês. Treino local ou competitivo experimental com tempo e pontos no servidor.                                               | `/cards.html`   |
-| **Bolinhas de gude** | Modos **Bete**, **Triângulo** e **Cova**, com tiro por pinça ou estalo experimental. Jogue localmente contra a meta ou o bot, ou online com outra pessoa.                                                          | `/marbles.html` |
-| **Arranha-Teia**     | Lance teias, balance e escale usando mãos e cabeça. Aprenda no **Treino**, em Aurora, ou explore cidades reais no modo **Viajante**. Coopere online com outra pessoa na mesma cidade ou use controles por teclado. | `/swing.html`   |
-| **Violão no Ar (Alpha)** | Forme Em, Am, D, C ou G sobre o braço projetado no vídeo e bata com a outra mão para ouvir o acorde reconhecido. Reconhecimento experimental, ainda sem validação com câmera real após a revisão. | `/guitar.html` |
+| Jogo                     | Experiência                                                                                                                                                                                                        | Página          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| **Cartas de gestos**     | Escolha entre quatro cartas de oscilação da mão em três categorias, em português ou inglês. Treino local ou competitivo experimental com tempo e pontos no servidor.                                               | `/cards.html`   |
+| **Bolinhas de gude**     | Modos **Bete**, **Triângulo** e **Cova**, com tiro por pinça ou estalo experimental. Jogue localmente contra a meta ou o bot, ou online com outra pessoa.                                                          | `/marbles.html` |
+| **Arranha-Teia**         | Lance teias, balance e escale usando mãos e cabeça. Aprenda no **Treino**, em Aurora, ou explore cidades reais no modo **Viajante**. Coopere online com outra pessoa na mesma cidade ou use controles por teclado. | `/swing.html`   |
+| **Violão no Ar (Alpha)** | Forme Em, Am, D, C ou G sobre o braço projetado no vídeo e bata com a outra mão para ouvir o acorde reconhecido. Reconhecimento experimental, ainda sem validação com câmera real após a revisão.                  | `/guitar.html`  |
 
 O menu inicial reúne os quatro jogos. No multiplayer de bolinhas, a sala mostra apelidos, participantes, prontidão, vez atual, próximo jogador e resultado. As duas pessoas podem confirmar uma nova partida na mesma sala.
 
