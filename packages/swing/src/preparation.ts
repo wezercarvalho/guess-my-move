@@ -83,13 +83,13 @@ export function isPositive(points: readonly HandPoint[]): boolean {
     )
 }
 const messages: Record<PreparationStep, string> = {
-    face: 'Posicione o rosto no guia e olhe em frente por 1 segundo.',
+    face: 'Olhe para o centro da cidade e mantenha a cabeça parada por 1 segundo.',
     left: '← Vire a cabeça para a sua esquerda.',
     right: 'Vire a cabeça para a sua direita. →',
-    up: '↑ Olhe para cima.',
-    down: '↓ Olhe para baixo.',
-    center: 'Volte ao centro e mantenha a cabeça parada.',
-    hands: 'Mostre a palma aberta dentro do quadro.',
+    up: '↑ Incline a cabeça para cima.',
+    down: '↓ Incline a cabeça para baixo.',
+    center: 'Volte a olhar para o centro da cidade e mantenha a cabeça parada.',
+    hands: 'Mostre a palma aberta à câmera, mantendo o olhar na cidade.',
     confirm: 'Faça positivo: polegar para cima, demais dedos fechados.',
     release: 'Positivo confirmado. Abra a palma para liberar os controles.',
     ready: 'Controles preparados.',

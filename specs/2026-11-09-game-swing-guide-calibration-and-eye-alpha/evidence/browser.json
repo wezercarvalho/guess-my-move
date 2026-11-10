@@ -6,7 +6,7 @@
     "keyboard explicit start",
     "restart confirmation",
     "ocular off by default",
-    "responsive widths",
+    "responsive widths and centered city calibration without overlap",
     "real MediaPipe assets with synthetic camera/no face",
     "cooperative two-client readiness",
     "persistent camera element lobby to playing"

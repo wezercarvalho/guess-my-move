@@ -74,3 +74,18 @@ O CI remoto permanece intencionalmente sem execução enquanto a PR é draft, co
 ## Entrega disponível
 
 [PR #163](https://github.com/wezercarvalho/guess-my-move/pull/163), draft, atribuída a @wezercarvalho. Código entregue em 1941826; alterações posteriores somente finalizam este registro. O push passou pelo hook local (test:sdd, sdd:check, docs:format:check e check:static). T005 concluída com roteiro e evidências automatizadas disponíveis. A spec permanece validating enquanto o maintainer testa a câmera física; #161 permanece em andamento e nenhuma issue foi encerrada.
+
+## Reteste solicitado pelo maintainer — calibração na cidade
+
+Após feedback de 2026-11-10, FR-003 passa a usar ponto no centro geométrico da cidade, instrução/progresso junto ao ponto e controles de preparação no próprio cenário. O preview é apoio de enquadramento; o neutro é olhar para a cidade. A opção ocular está desabilitada até retomada futura, conforme FR-006 revisado; os resultados sintéticos anteriores de FR-006/FR-007 não representam usabilidade aprovada.
+
+- Regressão de UI falhou quando a preparação ainda estava na lateral; passou após mover os elementos para o cenário.
+- `yarn workspace @guess-my-move/swing test`: PASS, 279 testes.
+- `yarn workspace @guess-my-move/web test`: PASS, 617 testes e 87 testes de scripts.
+- `yarn workspace @guess-my-move/web test:swing-look`: PASS, 75 testes, repetidos após ajuste final das mensagens centrais.
+- `yarn build`: PASS; `yarn workspace @guess-my-move/web build` repetido após o ajuste final: PASS.
+- `yarn workspace @guess-my-move/web smoke:swing-preparation`: PASS. Mede alinhamento ao centro e ausência de sobreposição em 1280×720, 1920×1080 e 640×360, com câmera inativa e câmera sintética ativa. Preserva início por teclado, reinício e prontidão de dois clientes. Detectou sobreposição em janela baixa, corrigida aumentando o espaço mínimo e reduzindo o preview. O teste aguarda o contador de teias em vez de presumir atualização visual em 300 ms.
+- `yarn check:all`: FAIL nesta revisão por timeout de 5 s, repetido duas vezes, no teste preexistente de progressão da taxa por nível em `packages/marbles/test/bot.test.ts`. Não houve alteração nesse jogo nem no timeout; os testes do escopo e o build foram executados separadamente. O PASS anterior permanece histórico e não substitui este resultado.
+- `yarn sdd:check`, `yarn docs:format:check` e `git diff --check`: PASS.
+
+A PR #163 continua draft para novo teste do maintainer. A qualidade com câmera física permanece pendente em #161; #162 foi adiada. Não houve merge nem publicação.

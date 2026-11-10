@@ -6,6 +6,8 @@
 - [x] T004 [FR-006, FR-007, NFR-001] Testes vermelhos e ocular calibrado, flag, suspensão/exclusão de UI.
 - [x] T005 [FR-008, NFR-002, SC-001, SC-002] Gates, evidências, roteiro real e PR draft.
 
+- [x] T006 [FR-003, FR-006, FR-008] Reteste autorizado: preparação central na cidade, ocular indisponível, regressão de interface, geometria no navegador e atualização da PR draft.
+
 ## Análise de consistência
 
 - Status: aprovada

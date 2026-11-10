@@ -56,7 +56,8 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
-    if (!game.preparation.ready) return game.preparation.message
+    if (!game.preparation.ready)
+        return 'Prepare os controles no centro da cidade.'
     if (game.hud.gripped)
         return gripStatusLine(
             game.lookMode === 'face' && game.faceVisible
@@ -243,6 +244,7 @@ export function SwingScreen({
                     <div
                         ref={stageRef}
                         className="swing-stage"
+                        data-preparing={!game.preparation.ready}
                         data-cue={game.cue}
                         data-testid="swing-stage"
                     >
@@ -311,17 +313,144 @@ export function SwingScreen({
                                 </dd>
                             </div>
                         </dl>
-                        {game.preparation.ready ? (
+                        {game.preparation.ready && (
                             <SwingFeedback input={feedbackInput} />
-                        ) : (
-                            <div
-                                className="swing-preparation-banner"
-                                role="status"
-                            >
-                                <strong>Prepare seus controles</strong>
-                                <span>{!camera.isActive && game.preparation.mode !== 'keyboard' ? 'Ative a câmera para preparar seus controles.' : game.preparation.message}</span>
-                            </div>
                         )}
+                        <div
+                            className="swing-preparation-surface"
+                            data-ready={game.preparation.ready}
+                        >
+                            <Panel
+                                raised
+                                aria-label="Preparação dos controles"
+                                className="swing-preparation"
+                                hidden={game.preparation.ready}
+                            >
+                                <h2>Preparar para jogar</h2>
+                                <label>
+                                    Controles
+                                    <select
+                                        aria-label="Controles"
+                                        value={game.preparation.mode}
+                                        onChange={(event) => {
+                                            const value =
+                                                event.currentTarget.value
+                                            if (
+                                                value === 'face' ||
+                                                value === 'hands' ||
+                                                value === 'keyboard'
+                                            )
+                                                game.setControlMode(value)
+                                            if (value === 'keyboard')
+                                                camera.stop()
+                                        }}
+                                    >
+                                        <option value="face">
+                                            Rosto e mãos
+                                        </option>
+                                        <option value="hands">
+                                            Mãos e olhar automático
+                                        </option>
+                                        <option value="keyboard">
+                                            Somente teclado
+                                        </option>
+                                    </select>
+                                </label>
+                                {game.preparation.mode !== 'keyboard' && (
+                                    <label>
+                                        Mãos para jogar
+                                        <select
+                                            aria-label="Mãos para jogar"
+                                            value={game.preparation.handCount}
+                                            onChange={(event) =>
+                                                game.setPreparationHands(
+                                                    event.currentTarget
+                                                        .value === '2'
+                                                        ? 2
+                                                        : 1,
+                                                )
+                                            }
+                                        >
+                                            <option value="1">
+                                                Uma mão (qualquer uma)
+                                            </option>
+                                            <option value="2">Duas mãos</option>
+                                        </select>
+                                    </label>
+                                )}
+                            </Panel>
+                            {!game.preparation.ready && (
+                                <div className="swing-calibration-cue">
+                                    <span
+                                        className="swing-calibration-center"
+                                        aria-hidden="true"
+                                    >
+                                        +
+                                    </span>
+                                    <p
+                                        className="swing-preparation-instruction"
+                                        aria-live="polite"
+                                    >
+                                        {game.trackerFailure ||
+                                            game.faceTrackerFailure ||
+                                            (game.trackerStatus === 'loading' ||
+                                            game.faceTrackerStatus === 'loading'
+                                                ? 'Carregando reconhecimento…'
+                                                : game.preparation.mode !==
+                                                        'keyboard' &&
+                                                    !camera.isActive
+                                                  ? 'Ative a câmera aqui e olhe para o centro da cidade.'
+                                                  : game.preparation.message)}
+                                    </p>
+                                    {!game.preparation.ready && (
+                                        <progress
+                                            aria-label="Progresso da etapa"
+                                            max={1}
+                                            value={game.preparation.progress}
+                                        />
+                                    )}
+                                    {game.preparation.mode === 'keyboard' &&
+                                        !game.preparation.ready && (
+                                            <Button
+                                                disabled={
+                                                    game.phase !== 'playing'
+                                                }
+                                                onClick={() => {
+                                                    game.confirmPreparation()
+                                                    sceneRef.current?.focus()
+                                                }}
+                                            >
+                                                Iniciar com teclado
+                                            </Button>
+                                        )}
+                                    {(game.trackerFailure ||
+                                        game.faceTrackerFailure) && (
+                                        <>
+                                            <Button
+                                                onClick={game.retryTrackers}
+                                            >
+                                                Tentar detectores novamente
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                            <CameraPanel
+                                camera={camera}
+                                videoRef={videoRef}
+                                overlay={
+                                    <>
+                                        <HandOverlay canvasRef={overlayRef} />
+                                        {camera.isActive &&
+                                            !game.preparation.ready && (
+                                                <PreparationOverlay
+                                                    videoRef={videoRef}
+                                                />
+                                            )}
+                                    </>
+                                }
+                            />
+                        </div>
                     </div>
                     <div className="swing-stage-footer">
                         <p className="swing-credit" data-testid="map-credit">
@@ -332,123 +461,9 @@ export function SwingScreen({
                 </Panel>
 
                 <div className="swing-side">
-                    <CameraPanel
-                        camera={camera}
-                        videoRef={videoRef}
-                        overlay={
-                            <>
-                                <HandOverlay canvasRef={overlayRef} />
-                                {camera.isActive && !game.preparation.ready && (
-                                    <PreparationOverlay videoRef={videoRef} />
-                                )}
-                            </>
-                        }
-                    />
-
-                    <Panel
-                        raised
-                        aria-label="Preparação dos controles"
-                        className="swing-preparation"
-                    >
-                        <h2>Preparar para jogar</h2>
-                        <label>
-                            Controles
-                            <select
-                                aria-label="Controles"
-                                value={game.preparation.mode}
-                                onChange={(event) => {
-                                    const value = event.currentTarget.value
-                                    if (
-                                        value === 'face' ||
-                                        value === 'hands' ||
-                                        value === 'keyboard'
-                                    )
-                                        game.setControlMode(value)
-                                    if (value === 'keyboard') camera.stop()
-                                }}
-                            >
-                                <option value="face">Rosto e mãos</option>
-                                <option value="hands">
-                                    Mãos e olhar automático
-                                </option>
-                                <option value="keyboard">
-                                    Somente teclado
-                                </option>
-                            </select>
-                        </label>
-                        {game.preparation.mode !== 'keyboard' && (
-                            <label>
-                                Mãos para jogar
-                                <select
-                                    aria-label="Mãos para jogar"
-                                    value={game.preparation.handCount}
-                                    onChange={(event) =>
-                                        game.setPreparationHands(
-                                            event.currentTarget.value === '2'
-                                                ? 2
-                                                : 1,
-                                        )
-                                    }
-                                >
-                                    <option value="1">
-                                        Uma mão (qualquer uma)
-                                    </option>
-                                    <option value="2">Duas mãos</option>
-                                </select>
-                            </label>
-                        )}
-                        <p aria-live="polite">
-                            {game.preparation.mode !== 'keyboard' &&
-                            !camera.isActive
-                                ? 'Ative a câmera abaixo para começar a calibragem.'
-                                : game.preparation.message}
-                        </p>
-                        {!game.preparation.ready && (
-                            <progress
-                                aria-label="Progresso da etapa"
-                                max={1}
-                                value={game.preparation.progress}
-                            />
-                        )}
-                        {game.preparation.mode === 'keyboard' &&
-                            !game.preparation.ready && (
-                                <Button
-                                    disabled={game.phase !== 'playing'}
-                                    onClick={() => { game.confirmPreparation(); sceneRef.current?.focus() }}
-                                >
-                                    Iniciar com teclado
-                                </Button>
-                            )}
-                        {game.preparation.mode !== 'keyboard' && (
-                            <p className="round-status">
-                                Siga as setas. Depois, mostre a palma e faça
-                                positivo por um instante. Abra a palma novamente
-                                para liberar os controles.
-                            </p>
-                        )}
-                        <p className="round-status">
-                            As mãos controlam os lados em que aparecem no vídeo
-                            espelhado. Cruzar as mãos troca esses lados.
-                        </p>
-                        <Button variant="secondary" onClick={game.recalibrate}>
-                            Recalibrar controles
-                        </Button>
-                        {(game.trackerFailure || game.faceTrackerFailure) && (
-                            <>
-                                <p role="alert">
-                                    {game.trackerFailure ||
-                                        game.faceTrackerFailure}
-                                </p>
-                                <Button onClick={game.retryTrackers}>
-                                    Tentar detectores novamente
-                                </Button>
-                            </>
-                        )}
-                        {(game.trackerStatus === 'loading' ||
-                            game.faceTrackerStatus === 'loading') && (
-                            <p role="status">Carregando reconhecimento…</p>
-                        )}
-                    </Panel>
+                    <Button variant="secondary" onClick={game.recalibrate}>
+                        Recalibrar controles
+                    </Button>
                     <Panel
                         raised
                         aria-label="Assistência ocular experimental"
@@ -459,24 +474,15 @@ export function SwingScreen({
                                 <input
                                     type="checkbox"
                                     checked={game.eye.phase !== 'off'}
-                                    disabled={
-                                        game.preparation.mode !== 'face' ||
-                                        (!game.preparation.ready &&
-                                            game.eye.phase === 'off')
-                                    }
-                                    onChange={(event) =>
-                                        game.setExperimentalEyeTracking(
-                                            event.currentTarget.checked,
-                                        )
-                                    }
+                                    disabled
                                 />{' '}
                                 Controle ocular — alpha experimental
                             </span>
                         </label>
                         <p>
-                            Prepare primeiro rosto e mãos. Os olhos acrescentam
-                            apenas pequenos ajustes; a cabeça continua sendo o
-                            controle principal.
+                            Experimento adiado. Nesta rodada, calibre e jogue
+                            com a cabeça e as mãos; o controle ocular está
+                            indisponível.
                         </p>
                         {game.eye.phase !== 'off' && (
                             <>
@@ -618,7 +624,9 @@ export function SwingScreen({
                             data-testid="guide-hint"
                             aria-live="polite"
                         >
-                            {game.preparation.ready ? hint : 'Os movimentos serão liberados após a confirmação.'}
+                            {game.preparation.ready
+                                ? hint
+                                : 'Os movimentos serão liberados após a confirmação.'}
                         </p>
                         <details>
                             <summary>Como jogar</summary>

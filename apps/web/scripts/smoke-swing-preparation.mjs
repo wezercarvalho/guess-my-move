@@ -46,24 +46,43 @@ try{
     await page.keyboard.press('Space');await page.waitForTimeout(300)
     assert.match(await page.getByTestId('web-counter').textContent(),/Teias: 0/)
     assert.equal(await page.getByRole('checkbox',{name:/Controle ocular/}).isChecked(),false)
+    assert.equal(await page.getByRole('checkbox',{name:/Controle ocular/}).isDisabled(),true)
     await page.getByLabel('Controles',{exact:true}).selectOption('keyboard')
     await page.getByRole('button',{name:'Iniciar com teclado',exact:true}).click()
-    await page.keyboard.down('Space');await page.waitForTimeout(300);await page.keyboard.up('Space')
+    assert.equal(await page.evaluate(()=>document.activeElement?.tagName),'CANVAS')
+    await page.keyboard.down('Space');await page.waitForFunction(()=>document.querySelector('[data-testid="web-counter"]')?.textContent==='Teias: 1');await page.keyboard.up('Space')
     assert.match(await page.getByTestId('web-counter').textContent(),/Teias: 1/)
     await page.getByRole('button',{name:'Voltar ao início',exact:true}).click()
     assert.equal(await page.getByRole('button',{name:'Iniciar com teclado',exact:true}).count(),1)
+    const checkCalibrationLayout = async () => {
     for(const viewport of [{width:1280,height:720},{width:1920,height:1080},{width:640,height:360}]){
         await page.setViewportSize(viewport)
-        await page.getByLabel('Controles',{exact:true}).scrollIntoViewIfNeeded()
+        await page.getByTestId('swing-stage').scrollIntoViewIfNeeded()
+        const geometry = await page.evaluate(() => {
+            const stage=document.querySelector('[data-testid="swing-stage"]').getBoundingClientRect()
+            const center=document.querySelector('.swing-calibration-center').getBoundingClientRect()
+            const cue=document.querySelector('.swing-calibration-cue').getBoundingClientRect()
+            const camera=document.querySelector('.swing-preparation-surface .camera-panel').getBoundingClientRect()
+            return {viewport:[innerWidth,innerHeight],stage:stage.toJSON(),cue:cue.toJSON(),camera:camera.toJSON(),dx: Math.abs(center.x+center.width/2-stage.x-stage.width/2),dy:Math.abs(center.y+center.height/2-stage.y-stage.height/2),inside:cue.x>=stage.x && cue.right<=stage.right && camera.bottom<=stage.bottom,overlap:cue.bottom>camera.top}
+        })
+        assert.ok(geometry.dx<2 && geometry.dy<2,JSON.stringify(geometry))
+        assert.equal(geometry.inside,true)
+        assert.equal(geometry.overlap,false,JSON.stringify(geometry))
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true)
     }
+    }
+    await checkCalibrationLayout()
     await page.setViewportSize({width:1280,height:720})
     if(process.env.GMM_SCREENSHOT_PATH)await page.screenshot({path:process.env.GMM_SCREENSHOT_PATH,fullPage:true})
     await page.getByLabel('Controles',{exact:true}).selectOption('face')
     await page.getByRole('button',{name:'Ativar câmera',exact:true}).click()
     await page.getByRole('button',{name:'Parar câmera',exact:true}).waitFor()
+    assert.equal(await page.getByTestId('swing-stage').getByTestId('camera-preview').count(),1)
     await page.waitForFunction(()=>!document.body.textContent.includes('Carregando reconhecimento'),null,{timeout:60000})
     assert.equal(await page.getByRole('button',{name:'Tentar detectores novamente'}).count(),0)
+    await checkCalibrationLayout()
+    await page.setViewportSize({width:1280,height:720})
+
     assert.match(await page.getByTestId('web-counter').textContent(),/Teias: 0/)
     await page.getByRole('button',{name:'Parar câmera',exact:true}).click()
     const other=await context.newPage();other.on('pageerror',e=>errors.push(e.message))
@@ -85,7 +104,7 @@ try{
     await page.waitForFunction(()=>document.querySelector('.swing-online-feedback__status')?.textContent?.includes('Coletem juntos'))
     assert.equal(await video.evaluate(el=>el.isConnected),true)
     assert.deepEqual(errors,[])
-    const report={result:'PASS',browser:browser.version(),scenarios:['local input gate','keyboard explicit start','restart confirmation','ocular off by default','responsive widths','real MediaPipe assets with synthetic camera/no face','cooperative two-client readiness','persistent camera element lobby to playing'],limitations:['no physical camera or ocular accuracy measurement','software WebGL','loopback only']}
+    const report={result:'PASS',browser:browser.version(),scenarios:['local input gate','keyboard explicit start','restart confirmation','ocular off by default','responsive widths and centered city calibration without overlap','real MediaPipe assets with synthetic camera/no face','cooperative two-client readiness','persistent camera element lobby to playing'],limitations:['no physical camera or ocular accuracy measurement','software WebGL','loopback only']}
     if(process.argv[2])await writeFile(resolve(process.argv[2]),JSON.stringify(report,null,2)+'\n')
     console.log(JSON.stringify(report));await context.close()
 }catch(error){

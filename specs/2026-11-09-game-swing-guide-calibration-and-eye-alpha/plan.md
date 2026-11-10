@@ -21,3 +21,7 @@ Câmera real não é simulada como evidência de precisão; entregar roteiro. Oc
 ## Constitution Check pós-design
 
 - PASS: captura única, funções testáveis, parâmetros em memória, aprovação registrada; nenhuma exceção ao test-first.
+
+## Ajuste autorizado após teste
+
+Centralizar a preparação no palco da cidade: ponto de referência fixo no centro geométrico, instruções/progresso junto ao ponto, configurações e captura na mesma área. Manter o mesmo elemento de vídeo entre preparação e jogo evita reinício dos detectores. A câmera pequena é apoio de enquadramento; não é referência de orientação neutra. Bloquear a opção ocular na interface enquanto o experimento está adiado. Validar posição e ausência de sobreposição no smoke de navegador, além das regressões de UI e cooperativo.
