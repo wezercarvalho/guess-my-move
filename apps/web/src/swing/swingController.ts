@@ -319,6 +319,7 @@ export class SwingController {
     readonly confirmPreparation = (): void => {
         this.preparation.confirmKeyboard()
         this.clearControls()
+        if (this.preparation.view.ready) { this.controlsWereSuspended = false; this.preparationWasReady = true }
         this.emit()
     }
     readonly recalibrate = (): void => {

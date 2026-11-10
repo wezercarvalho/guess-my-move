@@ -248,6 +248,7 @@ export function SwingScreen({
                     >
                         <canvas
                             ref={sceneRef}
+                            tabIndex={0}
                             className="swing-scene"
                             role="img"
                             aria-label={`Vista em primeira pessoa de ${map.name}`}
@@ -413,7 +414,7 @@ export function SwingScreen({
                             !game.preparation.ready && (
                                 <Button
                                     disabled={game.phase !== 'playing'}
-                                    onClick={game.confirmPreparation}
+                                    onClick={() => { game.confirmPreparation(); sceneRef.current?.focus() }}
                                 >
                                     Iniciar com teclado
                                 </Button>

@@ -48,7 +48,7 @@ try{
     assert.equal(await page.getByRole('checkbox',{name:/Controle ocular/}).isChecked(),false)
     await page.getByLabel('Controles',{exact:true}).selectOption('keyboard')
     await page.getByRole('button',{name:'Iniciar com teclado',exact:true}).click()
-    await page.locator('.swing-scene').click();await page.keyboard.down('Space');await page.waitForTimeout(300);await page.keyboard.up('Space')
+    await page.keyboard.down('Space');await page.waitForTimeout(300);await page.keyboard.up('Space')
     assert.match(await page.getByTestId('web-counter').textContent(),/Teias: 1/)
     await page.getByRole('button',{name:'Voltar ao início',exact:true}).click()
     assert.equal(await page.getByRole('button',{name:'Iniciar com teclado',exact:true}).count(),1)

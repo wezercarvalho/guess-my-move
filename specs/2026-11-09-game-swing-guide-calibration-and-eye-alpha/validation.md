@@ -29,7 +29,7 @@ O primeiro smoke de navegador encontrou rótulo acessível não exato no seletor
 ## Comandos
 
 - `yarn install --immutable`: PASS com Node 26.12.1 e Yarn 4.18.1.
-- `yarn check:all`: PASS na integração inicial; repetir após os refinamentos finais antes do push.
+- `yarn check:all`: PASS sobre 02a200c (71 core, 84 guitar, 174 marbles, 279 swing, 104 server, 4 lobby e 617 web; scripts Node, build e smoke do servidor também aprovados). O ajuste posterior de foco é coberto novamente por static, suítes de controlador/interface, build e smoke de navegador.
 - `yarn workspace @guess-my-move/swing test test/preparation.test.ts test/eyeAssist.test.ts`: PASS; regressões suplementares registradas no resultado final.
 - `yarn workspace @guess-my-move/web test:swing-network`: PASS, 39 testes.
 - `yarn workspace @guess-my-move/web test:swing-look`: PASS, 75 testes.
@@ -58,3 +58,15 @@ Gates autorizados antecipadamente pelo maintainer nesta conversa. A entrega téc
 - O ambiente isolado recusou o cache nativo do SWC por propriedade virtual de diretórios/noexec. Os gates completos são executados fora desse isolamento, sem alterar permissões do sistema nem dependências.
 
 - A execução completa expôs uma corrida no teste antigo de Centralizar: ele aguardava câmera ativa, mas não o carregamento assíncrono do detector facial. O teste agora aguarda o estado do detector antes de alimentar frames, sem aumentar timeout nem alterar comportamento de produção.
+
+- Smoke sem clique adicional no cenário demonstrou que o foco permanecia no botão de início, bloqueando Espaço. A confirmação por teclado agora transfere foco ao canvas e aceita comandos novos imediatamente, descartando somente os anteriores.
+
+## Governança e auditoria
+
+- `yarn test:sdd`: PASS, 109 testes.
+- `yarn test:gates`: PASS, 241 testes.
+- `yarn security:dependencies`: PASS, nenhuma vulnerabilidade reportada.
+- `yarn docs:format:check`: PASS.
+- `git diff --check`: PASS.
+
+O CI remoto permanece intencionalmente sem execução enquanto a PR é draft, conforme o workflow do repositório. Os resultados locais não são apresentados como resultado do CI.
