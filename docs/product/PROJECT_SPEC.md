@@ -271,3 +271,7 @@ Executar o teste manual do maintainer no Chrome desktop, registrar latência e d
 ## Evolução: Arranha-Teia cooperativo
 
 O modo cooperativo permite duas pessoas na mesma cidade, com apelidos efêmeros, sala por código, confirmação de prontidão, avatares identificáveis e coleta compartilhada de sinais luminosos. O servidor NestJS simula os controles do núcleo swing, define os objetivos e confirma o término. A dupla pode retomar após uma queda de até 60 segundos ou confirmar uma nova partida sem recriar a sala. A câmera permanece opcional e local; somente comandos derivados dos controles são enviados. Treino e Viajante continuam locais. Implementação e evidências são acompanhadas pela [spec de cooperação](../../specs/2026-11-06-game-swing-add-cooperative-multiplayer/spec.md) e pelas issues #119–#122; aceite final depende da revisão da entrega.
+
+## Preparação guiada e ocular alpha do Arranha-Teia
+
+Evolução em desenvolvimento nas issues #156–#162: preparação de rosto, quatro sentidos e mãos; início com positivo sustentado e palma neutra; alternativa explícita de teclado. No cooperativo, preparação acontece ainda no lobby. O controle ocular é assistência limitada e voluntária, alpha desligada por padrão, com calibração e validação próprias. Não substitui o rosto nem comanda escalada/giro contínuo. A precisão real depende do teste do maintainer. Contrato vigente: [spec da preparação](../../specs/2026-11-09-game-swing-guide-calibration-and-eye-alpha/spec.md).

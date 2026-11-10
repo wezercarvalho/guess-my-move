@@ -24,7 +24,8 @@
         "build:profile": "yarn prepare:assets && vite build --config vite.profile.config.ts",
         "profile:swing": "node scripts/profile-swing-bundle.mjs",
         "test:cards": "vitest run src/cards src/App.test.tsx src/round/GestureScreen.test.tsx src/card/CardView.test.tsx",
-        "smoke:cards": "node scripts/smoke-cards.mjs"
+        "smoke:cards": "node scripts/smoke-cards.mjs",
+        "smoke:swing-preparation": "node scripts/smoke-swing-preparation.mjs"
     },
     "dependencies": {
         "@guess-my-move/core": "0.0.0",

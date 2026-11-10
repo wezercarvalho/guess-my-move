@@ -702,3 +702,20 @@ ul.swing-keys kbd {
     margin: 0;
     accent-color: var(--gold-bright);
 }
+
+/* Preparation stays in the scrollable side panel; the stage only carries a short hint. */
+.swing-preparation { display: grid; gap: .65rem; }
+.swing-preparation h2 { margin: 0; font-size: 1rem; }
+.swing-preparation label { display: grid; gap: .35rem; }
+.swing-preparation select { max-width: 100%; color: inherit; background: var(--color-surface, #202024); padding: .5rem; border: 1px solid #777; border-radius: .4rem; }
+.swing-preparation progress { width: 100%; accent-color: #e4bd72; }
+.swing-preparation-banner { position: absolute; inset: auto 1rem 1rem; display: grid; gap: .3rem; padding: .8rem; border-radius: .6rem; background: #111d; color: #fff; pointer-events: none; }
+.swing-camera-guides { position: absolute; inset: 0; pointer-events: none; }
+.swing-face-guide { position: absolute; left: 30%; top: 12%; width: 40%; height: 60%; border: 2px dashed #e4bd72; border-radius: 50%; }
+.swing-hand-guide { position: absolute; bottom: 8%; width: 22%; height: 35%; border: 1px dashed #eee; border-radius: .6rem; color: #fff; text-align: center; background: #0003; }
+.swing-hand-guide--left { left: 4%; }.swing-hand-guide--right { right: 4%; }
+
+.swing-eye-calibration { position:absolute; inset:0; z-index:5; background:#111e; color:white; pointer-events:none; }
+.swing-eye-calibration p { position:absolute; top:.25rem; left:1rem; right:1rem; text-align:center; }
+.swing-eye-calibration progress { position:absolute; bottom:1rem; left:25%; width:50%; accent-color:#e4bd72; }
+.swing-eye-target { position:absolute; transform:translate(-50%,-50%); color:#e4bd72; font-size:2rem; text-shadow:0 0 10px #fff; }

@@ -71,7 +71,7 @@ async function playingWithFace() {
         getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
-    const controller = new SwingController(env)
+    const controller = new SwingController({ guidedPreparation: false, ...env })
     const tick = (ms = 16, newCameraFrame = true) => {
         time += ms
         if (newCameraFrame) video.currentTime += 1

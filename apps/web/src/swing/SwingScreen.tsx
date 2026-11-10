@@ -1,3 +1,4 @@
+import { PreparationOverlay } from './PreparationOverlay.js'
 import { HEAD_LOOK_SENSITIVITY } from '@guess-my-move/swing'
 import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { TrainingPanel } from './TrainingPanel.js'
@@ -7,7 +8,16 @@ import { useEffect, useRef } from 'react'
 import { CameraPanel } from '../camera/CameraPanel.js'
 import { type GetUserMedia } from '../camera/cameraService.js'
 import { useCamera } from '../camera/useCamera.js'
-import { Button, DrawerPanel, DrawerToggle, Eyebrow, Panel, SegmentedControl, Steps, useDrawer } from '../design/index.js'
+import {
+    Button,
+    DrawerPanel,
+    DrawerToggle,
+    Eyebrow,
+    Panel,
+    SegmentedControl,
+    Steps,
+    useDrawer,
+} from '../design/index.js'
 import { HandOverlay } from '../round/HandOverlay.js'
 import { PrivacyNotice } from '../shared/PrivacyNotice.js'
 import { DEFAULT_CITY_MAP, type CityMap } from './cityCatalog.js'
@@ -24,9 +34,15 @@ import {
 import { type FeedbackInput } from './feedback.js'
 import { SwingDebugPanel } from './SwingDebugPanel.js'
 import { SwingFeedback } from './SwingFeedback.js'
-import { type SwingDeps, type SwingGameView, useSwingGame } from './useSwingGame.js'
+import {
+    type SwingDeps,
+    type SwingGameView,
+    useSwingGame,
+} from './useSwingGame.js'
 
 export interface SwingScreenProps {
+    onPrepared?: (ready: boolean) => void
+    preparationRound?: number
     online?: SwingOnlineBridge
     /** Mapa validado pelo catálogo. O default preserva usos/testes anteriores do Midtown. */
     map?: CityMap
@@ -40,7 +56,13 @@ export interface SwingScreenProps {
 function statusText(game: SwingGameView): string {
     if (game.phase === 'loading') return 'Carregando a cidade…'
     if (game.phase === 'error') return 'Não foi possível jogar.'
-    if (game.hud.gripped) return gripStatusLine(game.lookMode === 'face' && game.faceVisible ? game.headClimb : null)
+    if (!game.preparation.ready) return game.preparation.message
+    if (game.hud.gripped)
+        return gripStatusLine(
+            game.lookMode === 'face' && game.faceVisible
+                ? game.headClimb
+                : null,
+        )
     return statusLine(game.cue)
 }
 
@@ -66,13 +88,17 @@ function webLabel(sides: readonly (-1 | 0 | 1)[]): string {
  */
 export function SwingScreen({
     online,
+    onPrepared,
+    preparationRound,
     map = DEFAULT_CITY_MAP,
     onChangeMap,
     cameraGetUserMedia,
     deps,
 }: SwingScreenProps) {
     const camera = useCamera(
-        cameraGetUserMedia === undefined ? {} : { getUserMedia: cameraGetUserMedia },
+        cameraGetUserMedia === undefined
+            ? {}
+            : { getUserMedia: cameraGetUserMedia },
     )
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const overlayRef = useRef<HTMLCanvasElement | null>(null)
@@ -90,6 +116,28 @@ export function SwingScreen({
         effectsRef,
         ...(deps === undefined ? {} : { deps }),
     })
+    const { recalibrate } = game
+    const { stream, stop: stopCamera } = camera
+    useEffect(() => {
+        onPrepared?.(game.preparation.ready)
+    }, [onPrepared, game.preparation.ready])
+    const previousPreparationRound = useRef(preparationRound)
+    useEffect(() => {
+        if (previousPreparationRound.current !== preparationRound) {
+            previousPreparationRound.current = preparationRound
+            recalibrate()
+        }
+    }, [preparationRound, recalibrate])
+    useEffect(() => {
+        if (!stream) return
+        const tracks = stream.getVideoTracks()
+        const ended = () => stopCamera()
+        for (const track of tracks) track.addEventListener?.('ended', ended)
+        return () => {
+            for (const track of tracks)
+                track.removeEventListener?.('ended', ended)
+        }
+    }, [stream, stopCamera])
     const { resize } = game
 
     // Marca o body enquanto a tela do jogo está montada: o link "← Menu" passa a flutuar no cabeçalho.
@@ -156,22 +204,35 @@ export function SwingScreen({
                 </div>
                 <div className="swing-header__actions">
                     <p className="swing-header__stats">
-                        <span className="swing-counter" data-testid="web-counter">
+                        <span
+                            className="swing-counter"
+                            data-testid="web-counter"
+                        >
                             Teias: {game.hud.webs}
                         </span>
                         <span className="swing-distance" data-testid="distance">
                             Distância: {game.hud.distance} m
                         </span>
                     </p>
-                    {!online ? <Button variant="secondary" onClick={game.restart} disabled={game.phase !== 'playing'}>
-                        Voltar ao início
-                    </Button> : null}
+                    {!online ? (
+                        <Button
+                            variant="secondary"
+                            onClick={game.restart}
+                            disabled={game.phase !== 'playing'}
+                        >
+                            Voltar ao início
+                        </Button>
+                    ) : null}
                     {onChangeMap ? (
                         <Button variant="text" onClick={onChangeMap}>
                             Trocar mapa
                         </Button>
                     ) : null}
-                    <DrawerToggle open={debugDrawer.open} panelId={debugDrawer.panelId} onToggle={debugDrawer.toggle}>
+                    <DrawerToggle
+                        open={debugDrawer.open}
+                        panelId={debugDrawer.panelId}
+                        onToggle={debugDrawer.toggle}
+                    >
                         Depuração
                     </DrawerToggle>
                 </div>
@@ -179,31 +240,87 @@ export function SwingScreen({
 
             <div className="swing-layout">
                 <Panel aria-label="Cidade" className="swing-stage-panel">
-                    <div ref={stageRef} className="swing-stage" data-cue={game.cue} data-testid="swing-stage">
+                    <div
+                        ref={stageRef}
+                        className="swing-stage"
+                        data-cue={game.cue}
+                        data-testid="swing-stage"
+                    >
                         <canvas
                             ref={sceneRef}
                             className="swing-scene"
                             role="img"
                             aria-label={`Vista em primeira pessoa de ${map.name}`}
                         />
-                        <canvas ref={effectsRef} className="swing-effects" aria-hidden="true" />
+                        {game.eye.target && (
+                            <div
+                                className="swing-eye-calibration"
+                                aria-label="Calibragem ocular"
+                            >
+                                <p data-eye-exclude>
+                                    Olhe para o ponto sem mover a cabeça.{' '}
+                                    {game.eye.phase === 'validating'
+                                        ? 'Conferindo'
+                                        : 'Calibrando'}{' '}
+                                    · {game.eye.index + 1}/
+                                    {game.eye.phase === 'validating' ? 4 : 9}
+                                </p>
+                                <span
+                                    className="swing-eye-target"
+                                    style={{
+                                        left: `${game.eye.target.x * 100}%`,
+                                        top: `${game.eye.target.y * 100}%`,
+                                    }}
+                                    aria-label="Alvo do olhar"
+                                >
+                                    ●
+                                </span>
+                                <progress
+                                    data-eye-exclude
+                                    aria-label="Captura do alvo ocular"
+                                    max={1}
+                                    value={game.eye.progress}
+                                />
+                            </div>
+                        )}
+                        <canvas
+                            ref={effectsRef}
+                            className="swing-effects"
+                            aria-hidden="true"
+                        />
                         <dl className="swing-hud" data-testid="swing-hud">
                             <div>
                                 <dt>Velocidade</dt>
-                                <dd data-testid="hud-speed">{game.hud.speedKmh} km/h</dd>
+                                <dd data-testid="hud-speed">
+                                    {game.hud.speedKmh} km/h
+                                </dd>
                             </div>
                             <div>
                                 <dt>Altura</dt>
-                                <dd data-testid="hud-altitude">{game.hud.altitude} m</dd>
+                                <dd data-testid="hud-altitude">
+                                    {game.hud.altitude} m
+                                </dd>
                             </div>
                             <div>
                                 <dt>Teia</dt>
                                 <dd data-testid="hud-web">
-                                    {game.hud.gripped ? 'Agarrado' : webLabel(game.hud.webSides)}
+                                    {game.hud.gripped
+                                        ? 'Agarrado'
+                                        : webLabel(game.hud.webSides)}
                                 </dd>
                             </div>
                         </dl>
-                        <SwingFeedback input={feedbackInput} />
+                        {game.preparation.ready ? (
+                            <SwingFeedback input={feedbackInput} />
+                        ) : (
+                            <div
+                                className="swing-preparation-banner"
+                                role="status"
+                            >
+                                <strong>Prepare seus controles</strong>
+                                <span>{!camera.isActive && game.preparation.mode !== 'keyboard' ? 'Ative a câmera para preparar seus controles.' : game.preparation.message}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="swing-stage-footer">
                         <p className="swing-credit" data-testid="map-credit">
@@ -214,14 +331,186 @@ export function SwingScreen({
                 </Panel>
 
                 <div className="swing-side">
-                    {!online && map.id === TRAINING_MAP.id ? <TrainingPanel progress={game.training} /> : null}
                     <CameraPanel
                         camera={camera}
                         videoRef={videoRef}
-                        overlay={<HandOverlay canvasRef={overlayRef} />}
+                        overlay={
+                            <>
+                                <HandOverlay canvasRef={overlayRef} />
+                                {camera.isActive && !game.preparation.ready && (
+                                    <PreparationOverlay videoRef={videoRef} />
+                                )}
+                            </>
+                        }
                     />
+
+                    <Panel
+                        raised
+                        aria-label="Preparação dos controles"
+                        className="swing-preparation"
+                    >
+                        <h2>Preparar para jogar</h2>
+                        <label>
+                            Controles
+                            <select
+                                aria-label="Controles"
+                                value={game.preparation.mode}
+                                onChange={(event) => {
+                                    const value = event.currentTarget.value
+                                    if (
+                                        value === 'face' ||
+                                        value === 'hands' ||
+                                        value === 'keyboard'
+                                    )
+                                        game.setControlMode(value)
+                                    if (value === 'keyboard') camera.stop()
+                                }}
+                            >
+                                <option value="face">Rosto e mãos</option>
+                                <option value="hands">
+                                    Mãos e olhar automático
+                                </option>
+                                <option value="keyboard">
+                                    Somente teclado
+                                </option>
+                            </select>
+                        </label>
+                        {game.preparation.mode !== 'keyboard' && (
+                            <label>
+                                Mãos para jogar
+                                <select
+                                    aria-label="Mãos para jogar"
+                                    value={game.preparation.handCount}
+                                    onChange={(event) =>
+                                        game.setPreparationHands(
+                                            event.currentTarget.value === '2'
+                                                ? 2
+                                                : 1,
+                                        )
+                                    }
+                                >
+                                    <option value="1">
+                                        Uma mão (qualquer uma)
+                                    </option>
+                                    <option value="2">Duas mãos</option>
+                                </select>
+                            </label>
+                        )}
+                        <p aria-live="polite">
+                            {game.preparation.mode !== 'keyboard' &&
+                            !camera.isActive
+                                ? 'Ative a câmera abaixo para começar a calibragem.'
+                                : game.preparation.message}
+                        </p>
+                        {!game.preparation.ready && (
+                            <progress
+                                aria-label="Progresso da etapa"
+                                max={1}
+                                value={game.preparation.progress}
+                            />
+                        )}
+                        {game.preparation.mode === 'keyboard' &&
+                            !game.preparation.ready && (
+                                <Button
+                                    disabled={game.phase !== 'playing'}
+                                    onClick={game.confirmPreparation}
+                                >
+                                    Iniciar com teclado
+                                </Button>
+                            )}
+                        {game.preparation.mode !== 'keyboard' && (
+                            <p className="round-status">
+                                Siga as setas. Depois, mostre a palma e faça
+                                positivo por um instante. Abra a palma novamente
+                                para liberar os controles.
+                            </p>
+                        )}
+                        <p className="round-status">
+                            As mãos controlam os lados em que aparecem no vídeo
+                            espelhado. Cruzar as mãos troca esses lados.
+                        </p>
+                        <Button variant="secondary" onClick={game.recalibrate}>
+                            Recalibrar controles
+                        </Button>
+                        {(game.trackerFailure || game.faceTrackerFailure) && (
+                            <>
+                                <p role="alert">
+                                    {game.trackerFailure ||
+                                        game.faceTrackerFailure}
+                                </p>
+                                <Button onClick={game.retryTrackers}>
+                                    Tentar detectores novamente
+                                </Button>
+                            </>
+                        )}
+                        {(game.trackerStatus === 'loading' ||
+                            game.faceTrackerStatus === 'loading') && (
+                            <p role="status">Carregando reconhecimento…</p>
+                        )}
+                    </Panel>
+                    <Panel
+                        raised
+                        aria-label="Assistência ocular experimental"
+                        className="swing-preparation"
+                    >
+                        <label>
+                            <span>
+                                <input
+                                    type="checkbox"
+                                    checked={game.eye.phase !== 'off'}
+                                    disabled={
+                                        game.preparation.mode !== 'face' ||
+                                        (!game.preparation.ready &&
+                                            game.eye.phase === 'off')
+                                    }
+                                    onChange={(event) =>
+                                        game.setExperimentalEyeTracking(
+                                            event.currentTarget.checked,
+                                        )
+                                    }
+                                />{' '}
+                                Controle ocular — alpha experimental
+                            </span>
+                        </label>
+                        <p>
+                            Prepare primeiro rosto e mãos. Os olhos acrescentam
+                            apenas pequenos ajustes; a cabeça continua sendo o
+                            controle principal.
+                        </p>
+                        {game.eye.phase !== 'off' && (
+                            <>
+                                <p aria-live="polite">
+                                    {game.eye.phase === 'failed'
+                                        ? 'A calibração ocular não ficou confiável. Repita ou use somente a cabeça.'
+                                        : game.eye.phase === 'ready'
+                                          ? game.eye.usable
+                                              ? 'Assistência ocular calibrada.'
+                                              : 'Olhos sem leitura estável. Usando somente a cabeça.'
+                                          : 'Olhe para cada alvo no cenário. Durante a calibração ocular, seus comandos ficam suspensos; você pode pular a qualquer momento.'}
+                                </p>
+                                <Button
+                                    variant="secondary"
+                                    onClick={game.recalibrateEyes}
+                                >
+                                    Recalibrar olhos
+                                </Button>
+                                <Button
+                                    variant="text"
+                                    onClick={() =>
+                                        game.setExperimentalEyeTracking(false)
+                                    }
+                                >
+                                    Pular / desligar olhos
+                                </Button>
+                            </>
+                        )}
+                    </Panel>
                     {camera.isActive && (
-                        <Panel raised aria-label="Direção do olhar" className="swing-head">
+                        <Panel
+                            raised
+                            aria-label="Direção do olhar"
+                            className="swing-head"
+                        >
                             <div className="swing-head__controls">
                                 <SegmentedControl
                                     legend="Direção do olhar"
@@ -235,7 +524,10 @@ export function SwingScreen({
                                         variant="secondary"
                                         onClick={game.recenterHead}
                                         title="Nivelar a câmera ao horizonte e refazer o neutro do rosto"
-                                        disabled={game.faceTrackerStatus !== 'ready' || !game.faceVisible}
+                                        disabled={
+                                            game.faceTrackerStatus !==
+                                                'ready' || !game.faceVisible
+                                        }
                                     >
                                         Centralizar
                                     </Button>
@@ -244,8 +536,19 @@ export function SwingScreen({
                             {game.lookMode === 'face' ? (
                                 <div className="swing-head__sensitivity">
                                     <div className="swing-head__sensitivity-label">
-                                        <label htmlFor="swing-face-sensitivity">Sensibilidade do rosto</label>
-                                        <output htmlFor="swing-face-sensitivity">{game.faceSensitivity.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×</output>
+                                        <label htmlFor="swing-face-sensitivity">
+                                            Sensibilidade do rosto
+                                        </label>
+                                        <output htmlFor="swing-face-sensitivity">
+                                            {game.faceSensitivity.toLocaleString(
+                                                'pt-BR',
+                                                {
+                                                    minimumFractionDigits: 1,
+                                                    maximumFractionDigits: 1,
+                                                },
+                                            )}
+                                            ×
+                                        </output>
                                     </div>
                                     <input
                                         id="swing-face-sensitivity"
@@ -256,24 +559,52 @@ export function SwingScreen({
                                         value={game.faceSensitivity}
                                         aria-valuetext={`${game.faceSensitivity.toLocaleString('pt-BR')} vezes`}
                                         aria-describedby="swing-face-sensitivity-hint"
-                                        onChange={(event) => game.setFaceSensitivity(Number(event.currentTarget.value))}
+                                        onChange={(event) =>
+                                            game.setFaceSensitivity(
+                                                Number(
+                                                    event.currentTarget.value,
+                                                ),
+                                            )
+                                        }
                                     />
-                                    <p id="swing-face-sensitivity-hint" className="round-status">Maior sensibilidade: pequenos movimentos giram mais a câmera. Menor: movimentos mais suaves. Também ajusta a velocidade do giro contínuo.</p>
+                                    <p
+                                        id="swing-face-sensitivity-hint"
+                                        className="round-status"
+                                    >
+                                        Maior sensibilidade: pequenos movimentos
+                                        giram mais a câmera. Menor: movimentos
+                                        mais suaves. Também ajusta a velocidade
+                                        do giro contínuo.
+                                    </p>
                                 </div>
                             ) : null}
                             {game.lookMode === 'face' ? (
-                                <p aria-live="polite" className="round-status" data-testid="head-status">
+                                <p
+                                    aria-live="polite"
+                                    className="round-status"
+                                    data-testid="head-status"
+                                >
                                     {headStatus || HEAD_IDLE_HINT}
                                 </p>
                             ) : (
-                                <p className="round-status" data-testid="head-status">
+                                <p
+                                    className="round-status"
+                                    data-testid="head-status"
+                                >
                                     Câmera automática. As setas ajustam o olhar.
                                 </p>
                             )}
                         </Panel>
                     )}
+                    {!online && map.id === TRAINING_MAP.id ? (
+                        <TrainingPanel progress={game.training} />
+                    ) : null}
                     <Panel raised aria-label="Passeio" className="swing-guide">
-                        <p aria-live="polite" className="round-status" data-testid="game-status">
+                        <p
+                            aria-live="polite"
+                            className="round-status"
+                            data-testid="game-status"
+                        >
                             {statusText(game)}
                         </p>
                         {game.phase === 'error' && (
@@ -281,8 +612,12 @@ export function SwingScreen({
                                 Motivo: {game.failure}
                             </p>
                         )}
-                        <p className="guide-hint" data-testid="guide-hint" aria-live="polite">
-                            {hint}
+                        <p
+                            className="guide-hint"
+                            data-testid="guide-hint"
+                            aria-live="polite"
+                        >
+                            {game.preparation.ready ? hint : 'Os movimentos serão liberados após a confirmação.'}
                         </p>
                         <details>
                             <summary>Como jogar</summary>
@@ -293,9 +628,16 @@ export function SwingScreen({
                             />
                         </details>
                     </Panel>
-                    <Panel raised aria-label="Teclado" className="swing-keys-panel">
+                    <Panel
+                        raised
+                        aria-label="Teclado"
+                        className="swing-keys-panel"
+                    >
                         <Eyebrow>Teclado</Eyebrow>
-                        <ul className="swing-keys" data-testid="keyboard-legend">
+                        <ul
+                            className="swing-keys"
+                            data-testid="keyboard-legend"
+                        >
                             {KEYS.map((group) => (
                                 <li key={group.action}>
                                     {group.keys.map((key, index) => (
@@ -312,7 +654,11 @@ export function SwingScreen({
                 </div>
             </div>
             <DrawerPanel open={debugDrawer.open} panelId={debugDrawer.panelId}>
-                <SwingDebugPanel hands={game.handDebug} head={game.headDebug} grab={game.grabDebug} />
+                <SwingDebugPanel
+                    hands={game.handDebug}
+                    head={game.headDebug}
+                    grab={game.grabDebug}
+                />
             </DrawerPanel>
         </div>
     )

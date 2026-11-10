@@ -133,3 +133,13 @@ describe('sessão online independente da câmera', () => {
         expect(h.world.state.position.x).toBe(30)
     })
 })
+
+it('preparação descarta giro acumulado antes de enviar controle neutro',()=>{
+    const h=harness()
+    h.session.advance(h.world,h.input,0,.016)
+    h.session.advance(h.world,{...h.input,lookDelta:{yaw:.4,pitch:.2}},50,.016)
+    const steps=h.world.advance.mock.calls.length
+    h.session.advance(h.world,h.input,100,.016,undefined,false)
+    expect(h.world.advance).toHaveBeenCalledTimes(steps)
+    expect(h.sendInput.mock.calls.at(-1)?.[0].lookDelta).toEqual({yaw:0,pitch:0})
+})

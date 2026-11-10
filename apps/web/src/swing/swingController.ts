@@ -1,3 +1,4 @@
+import { EyeAssist, SwingPreparation, type ControlMode } from '@guess-my-move/swing'
 import { AsyncTrackerResource } from '../capture/asyncTrackerResource.js'
 import { VideoFrameGate } from '../capture/videoFrameGate.js'
 import { OnlineSwingSession } from './onlineSession.js'
@@ -150,6 +151,12 @@ export class SwingController {
     private get faceTrackerFailure() {
         return this.faceResource.error
     }
+    private readonly eye = new EyeAssist()
+    private appliedEye = {yaw:0,pitch:0}
+    private readonly preparation = new SwingPreparation()
+    private controlsWereSuspended = true
+    private preparationWasReady = false
+    private lastFaceAt = -Infinity
     private readonly headLook: HeadLook = createHeadLook()
     private readonly headTurn = createHeadTurn()
     private headTurnState: HeadTurnState = {intent:null, progress:0, turning:false, yawDelta:0, speedMultiplier:1}
@@ -283,10 +290,59 @@ export class SwingController {
     }
 
     setCamera(active: boolean): void {
+        if (this.cameraActive !== active && this.preparation.view.mode !== 'keyboard') this.recalibrate()
         this.cameraActive = active
         if (!active) this.dropHand()
         this.sync()
     }
+
+    readonly setExperimentalEyeTracking = (enabled: boolean): void => {
+        this.eye.enable(enabled && this.preparation.view.mode === 'face' && this.preparation.view.ready)
+        this.clearControls()
+        this.emit()
+    }
+    readonly recalibrateEyes = (): void => { this.eye.invalidate(); this.clearControls(); this.emit() }
+    readonly setControlMode = (mode: ControlMode): void => {
+        this.eye.enable(false)
+        this.preparation.configure(mode, this.preparation.view.handCount)
+        this.preparationWasReady = false
+        this.setLookMode(mode === 'face' ? 'face' : 'auto')
+        this.clearControls()
+        this.emit()
+    }
+    readonly setPreparationHands = (count: 1 | 2): void => {
+        this.preparation.configure(this.preparation.view.mode, count)
+        this.preparationWasReady = false
+        this.clearControls()
+        this.emit()
+    }
+    readonly confirmPreparation = (): void => {
+        this.preparation.confirmKeyboard()
+        this.clearControls()
+        this.emit()
+    }
+    readonly recalibrate = (): void => {
+        this.eye.invalidate()
+        this.preparation.reset()
+        this.preparationWasReady = false
+        this.clearControls()
+        this.emit()
+    }
+    readonly retryTrackers = (): void => {
+        this.releaseTracker()
+        this.releaseFaceTracker()
+        this.recalibrate()
+        this.sync()
+    }
+    private clearControls(): void {
+        this.keys.clear()
+        this.triggers.left.reset();this.triggers.right.reset()
+        this.held = {left:false,right:false};this.pulls = {left:false,right:false}
+        this.grabs = {left:false,right:false};this.releaseFist = false;this.climb = 0
+        this.prevWrist = {left:null,right:null};this.lockPose = false
+        this.lockGesture.reset();this.resetHeadTurn();this.headClimb.reset()
+    }
+    private get controlsReady(): boolean { return this.env.guidedPreparation === false || this.preparation.view.ready }
 
     readonly setFaceSensitivity = (value: number): void => {
         this.headLook.setSensitivity(value)
@@ -296,13 +352,15 @@ export class SwingController {
     /** Recalibra o neutro da cabeça na pose atual ("Centralizar"). */
     readonly recenterHead = (): void => {
         const state = this.world?.state
-        if (!this.lastFace?.orientation || !state) return
+        if (!this.lastFace?.orientation || !state || this.env.now() - this.lastFaceAt > 250) return
+        if (this.env.guidedPreparation !== false && !this.preparation.view.ready) { this.recalibrate(); return }
         const normal = state.grip?.normal
         const heading = normal
             ? Math.atan2(-normal.x, normal.z)
             : Math.hypot(state.velocity.x, state.velocity.z) >= DEFAULT_SWING.headingMinSpeed
               ? Math.atan2(state.velocity.x, -state.velocity.z)
               : 0
+        this.eye.invalidate()
         const offset = { yaw: normalizeYaw(state.yaw - heading), pitch: state.pitch }
         this.resetHeadTurn()
         this.headLook.recenter(offset)
@@ -322,6 +380,12 @@ export class SwingController {
     readonly setLookMode = (mode: LookMode): void => {
         if (mode === this.lookMode) return
         this.lookMode = mode
+        if (mode !== 'face') this.eye.enable(false)
+        if (this.preparation.view.mode !== 'keyboard' && this.preparation.view.mode !== (mode === 'face' ? 'face' : 'hands')) {
+            this.preparation.configure(mode === 'face' ? 'face' : 'hands', this.preparation.view.handCount)
+            this.preparationWasReady = false
+            this.clearControls()
+        }
         if (mode === 'auto' && this.faceTracker) this.releaseFaceTracker()
         // Em qualquer troca, zera o "já aplicado" para não somar/subtrair o desvio de uma vez.
         this.headLook.reset()
@@ -343,6 +407,7 @@ export class SwingController {
             (width === this.size.width && height === this.size.height)
         )
             return
+        this.eye.invalidate()
         this.size = { width, height }
         this.renderer?.resize(width, height)
         const effects = this.surfaces.getEffects()
@@ -358,7 +423,12 @@ export class SwingController {
         this.resetRound()
     }
 
-    private resetRound(): void {
+    private resetRound(preservePreparation = false): void {
+        if (!preservePreparation) this.preparation.restart()
+        this.preparationWasReady = false
+        this.keys.clear()
+        this.eye.invalidate()
+        this.appliedEye = {yaw:0,pitch:0}
         this.headLook.reset()
         this.resetHeadTurn()
         this.headClimb.reset()
@@ -517,7 +587,37 @@ export class SwingController {
         const dt = this.lastNow === null ? 0 : (now - this.lastNow) / 1000
         this.lastNow = now
 
+        const onlineRoom = this.env.online?.getSnapshot().room
+        this.preparation.setLive(this.preparationWasReady && (!this.env.online || onlineRoom?.status === 'playing' || onlineRoom?.status === 'paused'))
         this.readHand(now)
+        this.preparation.expire(now)
+        const eyeCalibrating = this.eye.view.phase === 'calibrating' || this.eye.view.phase === 'validating'
+        if (!this.controlsReady || eyeCalibrating) {
+            this.controlsWereSuspended = true
+            if (!this.controlsReady) this.preparationWasReady = false
+            this.clearControls()
+            this.headState = this.headLook.update(this.lastFace?.orientation ? this.preparation.correct(this.lastFace.orientation) : null, dt, false, this.faceSamplePending)
+            this.faceSamplePending = false
+            if (this.onlineSession) {
+                const view = this.onlineSession.advance(world, { held: {}, yawRate:0, pitchRate:0, lookDelta: {yaw:0,pitch:0} }, now, dt, () => this.resetRound(true), false)
+                renderer.setOnline?.(view.room, view.playerId, Math.min(dt, 0.1))
+            }
+            const correction = this.eye.update(now, dt, false, () => false)
+            world.state.yaw = normalizeYaw(world.state.yaw + correction.yaw - this.appliedEye.yaw)
+            world.state.pitch += correction.pitch - this.appliedEye.pitch
+            this.appliedEye = correction
+            renderer.render(world.state)
+            if (now - this.lastEmitAt >= PUBLISH_INTERVAL_MS) this.emit()
+            this.loop = this.env.requestFrame(this.frame)
+            return
+        }
+        if (this.controlsWereSuspended && this.env.guidedPreparation !== false) {
+            this.clearControls()
+            this.headLook.recenter()
+            this.appliedHead = {yaw:this.headState.yawOffset,pitch:this.headState.pitchOffset}
+        }
+        this.controlsWereSuspended = false
+        this.preparationWasReady = true
         const touchingWall = world.state.touchingWall
         const gripped = world.state.grip !== null
         // Precedência da palma aberta: só agarra em contato com a parede; senão a palma segue
@@ -553,6 +653,9 @@ export class SwingController {
         const climb = [this.climb, keyClimb, this.headClimbState.climb].reduce(
             (best, value) => (Math.abs(value) > Math.abs(best) ? value : best),
         )
+        const eye = this.headState.mode === 'locked' || this.lockPose ? this.appliedEye : this.eye.update(now, dt, this.lookMode === 'face' && this.headState.mode === 'following' && !this.lockPose, this.surfaces.eyeTargetAllowed ?? (() => false))
+        const eyeDelta = {yaw:eye.yaw-this.appliedEye.yaw,pitch:eye.pitch-this.appliedEye.pitch}
+        this.appliedEye = eye
         const input: SwingInput = {
             // Cada mão segura a própria teia; Espaço é a teia do centro (teclado).
             held: {
@@ -572,14 +675,14 @@ export class SwingController {
             yawRate: this.keyAxis('ArrowRight', 'ArrowLeft'),
             pitchRate: gripped ? 0 : this.keyAxis('ArrowUp', 'ArrowDown'),
             // A cabeça soma um desvio ao olhar enquanto há rosto; a mira da teia segue junto.
-            lookDelta: head.delta,
-            lookActive: head.active,
+            lookDelta: {yaw:head.delta.yaw+eyeDelta.yaw,pitch:head.delta.pitch+eyeDelta.pitch},
+            lookActive: head.active || Math.abs(eye.yaw)>1e-4 || Math.abs(eye.pitch)>1e-4,
             // A direção travada vira a nova frente: o acompanhamento automático mira o rumo mais ela.
             lookBias: head.bias,
         }
         if (this.onlineSession) {
             const view = this.onlineSession.advance(world, input, now, dt, () =>
-                this.resetRound(),
+                this.resetRound(true),
             )
             renderer.setOnline?.(view.room, view.playerId, Math.min(dt, 0.1))
         } else world.advance(input, dt)
@@ -651,7 +754,7 @@ export class SwingController {
         // O gesto de travar só vale no modo Rosto (o detector de rosto só existe nele).
         const lock = this.lockGesture.update(this.lockPose, dt * 1000)
         this.headState = this.headLook.update(
-            this.lastFace?.orientation ?? null,
+            this.lastFace?.orientation ? this.preparation.correct(this.lastFace.orientation) : null,
             dt,
             lock,
             this.faceSamplePending,
@@ -752,6 +855,7 @@ export class SwingController {
                 this.hand = hands[0] ?? null
                 this.applyTriggers(this.signalsBySide(hands), now)
             }
+            this.preparation.sample({at:now, face:this.lastFace, hands:hands.map(h => h.landmarks)})
             this.drawOverlay(video, hands)
         } else if (
             this.hands.length > 0 &&
@@ -808,6 +912,8 @@ export class SwingController {
         if (!face) return
         try {
             this.lastFace = face.detect(video, now)
+            this.lastFaceAt = now
+            this.eye.sample(this.lastFace, now)
             this.faceSamplePending = true
         } catch (error) {
             this.releaseFaceTracker()
@@ -870,6 +976,7 @@ export class SwingController {
 
     private readonly onKeyDown = (event: KeyboardEvent): void => {
         if (!CONTROL_KEYS.has(event.key)) return
+        if (!this.controlsReady || (event.target instanceof HTMLElement && /INPUT|SELECT|TEXTAREA|BUTTON/.test(event.target.tagName))) return
         event.preventDefault()
         this.keys.add(event.key)
     }
@@ -905,13 +1012,15 @@ export class SwingController {
               }
             : EMPTY_HUD
         return {
+            eye: this.eye.view,
+            preparation: this.env.guidedPreparation === false ? {...this.preparation.view,ready:true,step:'ready'} : this.preparation.view,
             phase: this.phase,
             failure: this.failure,
             trackerStatus: this.trackerStatus,
             trackerFailure: this.trackerFailure,
             faceTrackerStatus: this.faceTrackerStatus,
             faceTrackerFailure: this.faceTrackerFailure,
-            faceVisible: this.headState.faceVisible,
+            faceVisible: this.headState.faceVisible && this.env.now() - this.lastFaceAt <= 250,
             lookMode: this.lookMode,
             faceSensitivity: this.headLook.sensitivity,
             handVisible: this.hand !== null,

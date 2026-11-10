@@ -87,7 +87,7 @@ async function playing() {
         getScene: () => scene,
         getEffects: () => ({ width: 800, height: 400, getContext: () => context }) as unknown as HTMLCanvasElement,
     }
-    const controller = new SwingController(env)
+    const controller = new SwingController({ guidedPreparation: false, ...env })
     const tick = (ms = 16) => {
         time += ms
         video.currentTime += 1

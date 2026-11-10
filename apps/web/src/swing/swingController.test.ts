@@ -55,7 +55,7 @@ function setup(overrides: Partial<SwingEnv> = {}) {
         getScene: () => document.createElement('canvas'),
         getEffects: () => document.createElement('canvas'),
     }
-    const controller = new SwingController(env)
+    const controller = new SwingController({ guidedPreparation: false, ...env })
     /** Avança `ms` e roda o quadro pendente, como o `requestAnimationFrame`. */
     const tick = (ms = 16) => {
         time += ms
@@ -292,4 +292,55 @@ describe('SwingController cooperativo', () => {
         game.controller.detach()
         expect(renderer.dispose).toHaveBeenCalledOnce()
     })
+})
+
+describe('preparação antes dos controles', () => {
+    it('bloqueia teclas até escolha e confirmação explícita de teclado', async () => {
+        const g = await playing({ guidedPreparation: true })
+        g.press(' ');g.tick(150);g.tick(150)
+        expect(g.controller.getSnapshot().hud.webs).toBe(0)
+        expect(g.controller.getSnapshot().preparation.ready).toBe(false)
+        g.controller.setControlMode('keyboard')
+        g.controller.confirmPreparation()
+        g.tick(150)
+        expect(g.controller.getSnapshot().hud.webs).toBe(0)
+        g.release(' ');g.press(' ');g.tick(150);g.tick(150)
+        expect(g.controller.getSnapshot().hud.webs).toBe(1)
+        g.controller.restart();g.press(' ');g.tick(150)
+        expect(g.controller.getSnapshot().hud.webs).toBe(0)
+        expect(g.controller.getSnapshot().preparation.ready).toBe(false)
+        g.controller.detach()
+    })
+})
+
+it('executa o percurso facial completo e consome o positivo antes da primeira teia', async () => {
+    const makePalm=(positive=false): TrackedHand => {
+        const landmarks=Array.from({length:21},()=>({x:.5,y:.5}))
+        landmarks[0]={x:.5,y:.8}
+        for(const [base,tip,x] of [[5,8,.4],[9,12,.5],[13,16,.6],[17,20,.7]]){
+            landmarks[base]={x,y:.6};landmarks[tip]={x,y:positive?.62:.25}
+        }
+        landmarks[2]={x:.35,y:.65};landmarks[3]={x:.35,y:.48};landmarks[4]={x:.35,y:positive?.25:.5}
+        return {landmarks}
+    }
+    let orientation={yaw:0,pitch:0}
+    const faceTracker={delegate:'CPU' as const,detect:()=>({orientation,landmarks:[{x:.4,y:.3},{x:.6,y:.7}]}),close:vi.fn()}
+    const g=await playing({guidedPreparation:true,createFaceTracker:()=>Promise.resolve(faceTracker)})
+    g.controller.setCamera(true);await flush()
+    const hold=(yaw:number,pitch:number,n=8)=>{orientation={yaw,pitch};for(let i=0;i<n;i++)g.tick(60)}
+    hold(0,0,22)
+    expect(g.controller.getSnapshot().preparation.step).toBe('left')
+    hold(-.2,0);hold(0,0);hold(.2,0);hold(0,0);hold(0,.2);hold(0,0);hold(0,-.2);hold(0,0)
+    expect(g.controller.getSnapshot().preparation.step).toBe('hands')
+    g.tracker.detect.mockReturnValue(makePalm());hold(0,0,12)
+    expect(g.controller.getSnapshot().preparation.step).toBe('confirm')
+    g.tracker.detect.mockReturnValue(makePalm(true));hold(0,0,18)
+    expect(g.controller.getSnapshot().preparation.step).toBe('release')
+    expect(g.controller.getSnapshot().hud.webs).toBe(0)
+    g.tracker.detect.mockReturnValue(makePalm());hold(0,0,8)
+    expect(g.controller.getSnapshot().preparation.ready).toBe(true)
+    expect(g.controller.getSnapshot().hud.webs).toBe(0)
+    g.press(' ');hold(0,0,8)
+    expect(g.controller.getSnapshot().hud.webs).toBe(1)
+    g.controller.detach()
 })

@@ -32,6 +32,7 @@ function harness(overrides: SwingDeps = {}) {
     const resize = vi.fn()
     const renderer: SwingRenderer = { resize, render: vi.fn(), dispose: vi.fn() }
     const deps: SwingDeps = {
+        guidedPreparation: false,
         loadCity: () => Promise.resolve(city),
         createRenderer: () => renderer,
         now: () => nowMs,
@@ -340,4 +341,19 @@ it.each([false, true])('oferece sensibilidade acessível e mantém valor (cooper
     expect(screen.queryByRole('slider')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('radio', {name:'Rosto'}))
     expect(screen.getByRole('slider', {name:'Sensibilidade do rosto'})).toHaveValue('2.5')
+})
+
+it('guia preparação por padrão e oferece teclado sem exigir câmera ou ocular', async () => {
+    const h=harness({guidedPreparation:true})
+    render(<SwingScreen cameraGetUserMedia={null} deps={h.deps} />)
+    await waitFor(()=>expect(screen.getByTestId('game-status')).not.toHaveTextContent('Carregando'))
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).not.toBeChecked()
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).toBeDisabled()
+    h.press(' ');h.run(3,150)
+    expect(screen.getByTestId('web-counter')).toHaveTextContent('Teias: 0')
+    fireEvent.change(screen.getByLabelText('Controles',{exact:true}),{target:{value:'keyboard'}})
+    fireEvent.click(screen.getByRole('button',{name:'Iniciar com teclado'}))
+    h.run(2,150);h.press(' ');h.run(3,150)
+    expect(screen.getByTestId('web-counter')).toHaveTextContent('Teias: 1')
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).toBeDisabled()
 })
