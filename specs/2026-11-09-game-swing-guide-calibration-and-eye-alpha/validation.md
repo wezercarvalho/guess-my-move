@@ -56,3 +56,5 @@ Gates autorizados antecipadamente pelo maintainer nesta conversa. A entrega téc
 - Regressão vermelha de alternância rápida de lados confirmou aceitação indevida; manter o sinal durante a janela corrigiu o caso.
 - Regressão vermelha de sessão online confirmou envio tardio de giro acumulado ao recalibrar; a suspensão agora descarta esse acumulador antes do próximo input neutro.
 - O ambiente isolado recusou o cache nativo do SWC por propriedade virtual de diretórios/noexec. Os gates completos são executados fora desse isolamento, sem alterar permissões do sistema nem dependências.
+
+- A execução completa expôs uma corrida no teste antigo de Centralizar: ele aguardava câmera ativa, mas não o carregamento assíncrono do detector facial. O teste agora aguarda o estado do detector antes de alimentar frames, sem aumentar timeout nem alterar comportamento de produção.

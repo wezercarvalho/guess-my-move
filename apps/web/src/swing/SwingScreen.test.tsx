@@ -308,6 +308,7 @@ it('explica a calibração e só permite centralizar com orientação válida', 
     const video = screen.getByTestId('camera-preview') as HTMLVideoElement
     Object.defineProperties(video, {readyState:{value:4},videoWidth:{value:640},videoHeight:{value:480}})
     await waitFor(() => expect(screen.getByRole('button',{name:'Parar câmera'})).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('head-status')).not.toHaveTextContent(/Carregando/))
     h.run(1,120)
     expect(screen.getByRole('button',{name:'Centralizar'})).toBeDisabled()
     seen=true
