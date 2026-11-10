@@ -54,4 +54,4 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Preparação guiada do Arranha-Teia
 
-[`2026-11-09-game-swing-guide-calibration-and-eye-alpha`](2026-11-09-game-swing-guide-calibration-and-eye-alpha/spec.md) — `implementing`; preparação, positivo e ocular alpha (#156–#162).
+[`2026-11-09-game-swing-guide-calibration-and-eye-alpha`](2026-11-09-game-swing-guide-calibration-and-eye-alpha/spec.md) — `validating`; preparação, positivo e ocular alpha (#156–#162).

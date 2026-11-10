@@ -6,7 +6,7 @@ strategy: sdd
 domain: game
 capability: swing
 objective: guide-calibration-and-eye-alpha
-status: implementing
+status: validating
 summary: Preparação guiada de rosto e mãos, início por positivo e assistência ocular opcional alpha.
 owners: [wezercarvalho]
 reviewers: [wezercarvalho]
@@ -17,7 +17,7 @@ supersedes: []
 branch: feat/swing-guided-calibration
 constitution_version: 1.0.0
 created_at: 2026-11-09
-updated_at: 2026-11-09
+updated_at: 2026-11-10
 ---
 
 # Preparação guiada e assistência ocular alpha

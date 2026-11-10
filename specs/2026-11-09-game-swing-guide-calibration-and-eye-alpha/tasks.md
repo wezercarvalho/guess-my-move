@@ -4,7 +4,7 @@
 - [x] T002 [FR-003, FR-004, NFR-002] Integrar controlador, ajuda, erros e alternativas; provar bloqueio.
 - [x] T003 [FR-005, NFR-001] Lobby persistente, confirmação, invalidação concorrente e regressões.
 - [x] T004 [FR-006, FR-007, NFR-001] Testes vermelhos e ocular calibrado, flag, suspensão/exclusão de UI.
-- [ ] T005 [FR-008, NFR-002, SC-001, SC-002] Gates, evidências, roteiro real e PR draft.
+- [x] T005 [FR-008, NFR-002, SC-001, SC-002] Gates, evidências, roteiro real e PR draft.
 
 ## Análise de consistência
 

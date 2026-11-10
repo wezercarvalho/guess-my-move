@@ -2,8 +2,8 @@
 
 ## Estado
 
-- Status: entrega técnica em validação para PR draft e teste do maintainer.
-- Data: 2026-11-09.
+- Status: entrega técnica em PR draft; teste físico do maintainer pendente.
+- Data: 2026-11-10.
 - Base: main 9b439b522f7b06598fe5553374e85b4453f96bf8.
 - Escopo: #156–#162; sem merge ou publicação.
 
@@ -70,3 +70,7 @@ Gates autorizados antecipadamente pelo maintainer nesta conversa. A entrega téc
 - `git diff --check`: PASS.
 
 O CI remoto permanece intencionalmente sem execução enquanto a PR é draft, conforme o workflow do repositório. Os resultados locais não são apresentados como resultado do CI.
+
+## Entrega disponível
+
+[PR #163](https://github.com/wezercarvalho/guess-my-move/pull/163), draft, atribuída a @wezercarvalho. Código entregue em 1941826; alterações posteriores somente finalizam este registro. O push passou pelo hook local (test:sdd, sdd:check, docs:format:check e check:static). T005 concluída com roteiro e evidências automatizadas disponíveis. A spec permanece validating enquanto o maintainer testa a câmera física; #161 permanece em andamento e nenhuma issue foi encerrada.
