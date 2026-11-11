@@ -1,6 +1,12 @@
+import type { ControlMode } from '@guess-my-move/swing'
 import { type SwingOnlineBridge } from './multiplayerClient.js'
 import { DEFAULT_SWING, type City } from '@guess-my-move/swing'
-import { type RefObject, useEffect, useState, useSyncExternalStore } from 'react'
+import {
+    type RefObject,
+    useEffect,
+    useState,
+    useSyncExternalStore,
+} from 'react'
 
 import {
     createMediaPipeHandTracker,
@@ -12,7 +18,11 @@ import { type CityMap } from './cityCatalog.js'
 import { createThreeRenderer } from './cityRenderer.js'
 import { createTrainingCity, TRAINING_MAP } from './training.js'
 import { fetchCity } from './loadCity.js'
-import { SwingController, type SwingEnv, type SwingSnapshot } from './swingController.js'
+import {
+    SwingController,
+    type SwingEnv,
+    type SwingSnapshot,
+} from './swingController.js'
 
 /** Dependências injetáveis para teste; `loadCity` recebe o mapa validado pelo catálogo. */
 export type SwingDeps = Omit<Partial<SwingEnv>, 'loadCity'> & {
@@ -32,6 +42,14 @@ export interface UseSwingGameOptions {
 }
 
 export interface SwingGameView extends SwingSnapshot {
+    setExperimentalEyeTracking: (enabled: boolean) => void
+    recalibrateEyes: () => void
+    setControlMode: (mode: ControlMode) => void
+    setPreparationHands: (count: 1 | 2) => void
+    confirmPreparation: () => void
+    recalibrate: () => void
+    retryTrackers: () => void
+
     restart: () => void
     recenterHead: () => void
     setLookMode: (mode: 'auto' | 'face') => void
@@ -41,7 +59,11 @@ export interface SwingGameView extends SwingSnapshot {
 
 function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
     return {
-        config: deps?.config ?? { ...DEFAULT_SWING, spawnHeight: map.spawnHeight },
+        guidedPreparation: deps?.guidedPreparation ?? true,
+        config: deps?.config ?? {
+            ...DEFAULT_SWING,
+            spawnHeight: map.spawnHeight,
+        },
         createTracker:
             deps?.createTracker ??
             (() =>
@@ -51,13 +73,24 @@ function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
                 )),
         createFaceTracker:
             deps?.createFaceTracker ??
-            (() => createMediaPipeFaceTracker(undefined, delegatePreferenceFromSearch(window.location.search))),
+            (() =>
+                createMediaPipeFaceTracker(
+                    undefined,
+                    delegatePreferenceFromSearch(window.location.search),
+                )),
         loadCity: () =>
-            deps?.loadCity ? deps.loadCity(map) : map.id === TRAINING_MAP.id ? Promise.resolve(createTrainingCity()) : fetchCity(`${import.meta.env.BASE_URL}${map.file}`),
+            deps?.loadCity
+                ? deps.loadCity(map)
+                : map.id === TRAINING_MAP.id
+                  ? Promise.resolve(createTrainingCity())
+                  : fetchCity(`${import.meta.env.BASE_URL}${map.file}`),
         createRenderer: deps?.createRenderer ?? createThreeRenderer,
         requestFrame:
-            deps?.requestFrame ?? ((callback: () => void) => requestAnimationFrame(callback)),
-        cancelFrame: deps?.cancelFrame ?? ((handle: number) => cancelAnimationFrame(handle)),
+            deps?.requestFrame ??
+            ((callback: () => void) => requestAnimationFrame(callback)),
+        cancelFrame:
+            deps?.cancelFrame ??
+            ((handle: number) => cancelAnimationFrame(handle)),
         now: deps?.now ?? (() => performance.now()),
         keys: deps?.keys ?? window,
     }
@@ -65,9 +98,26 @@ function resolveEnv(map: CityMap, deps: SwingDeps | undefined): SwingEnv {
 
 /** Camada fina sobre o `SwingController`: cria o controlador uma vez e assina as mudanças. */
 export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
-    const { map, cameraActive, videoRef, overlayRef, sceneRef, effectsRef, deps } = options
-    const [controller] = useState(() => new SwingController({ ...resolveEnv(map, deps), ...(options.online ? { online: options.online } : {}) }))
-    const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+    const {
+        map,
+        cameraActive,
+        videoRef,
+        overlayRef,
+        sceneRef,
+        effectsRef,
+        deps,
+    } = options
+    const [controller] = useState(
+        () =>
+            new SwingController({
+                ...resolveEnv(map, deps),
+                ...(options.online ? { online: options.online } : {}),
+            }),
+    )
+    const snapshot = useSyncExternalStore(
+        controller.subscribe,
+        controller.getSnapshot,
+    )
 
     useEffect(() => {
         controller.attach({
@@ -75,6 +125,27 @@ export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
             getOverlay: () => overlayRef.current,
             getScene: () => sceneRef.current,
             getEffects: () => effectsRef.current,
+            eyeTargetAllowed: (point) => {
+                const stage = sceneRef.current?.parentElement
+                if (!stage) return false
+                const rect = stage.getBoundingClientRect()
+                if (rect.width <= 0 || rect.height <= 0) return false
+                const x = rect.left + point.x * rect.width,
+                    y = rect.top + point.y * rect.height
+                return !Array.from(
+                    stage.querySelectorAll(
+                        '.swing-hud, .swing-feedback, .swing-preparation-banner, [data-eye-exclude]',
+                    ),
+                ).some((element) => {
+                    const box = element.getBoundingClientRect()
+                    return (
+                        x >= box.left &&
+                        x <= box.right &&
+                        y >= box.top &&
+                        y <= box.bottom
+                    )
+                })
+            },
         })
         return () => {
             controller.detach()
@@ -87,6 +158,13 @@ export function useSwingGame(options: UseSwingGameOptions): SwingGameView {
 
     return {
         ...snapshot,
+        setExperimentalEyeTracking: controller.setExperimentalEyeTracking,
+        recalibrateEyes: controller.recalibrateEyes,
+        setControlMode: controller.setControlMode,
+        setPreparationHands: controller.setPreparationHands,
+        confirmPreparation: controller.confirmPreparation,
+        recalibrate: controller.recalibrate,
+        retryTrackers: controller.retryTrackers,
         restart: controller.restart,
         recenterHead: controller.recenterHead,
         setLookMode: controller.setLookMode,

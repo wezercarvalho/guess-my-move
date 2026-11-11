@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Button, Panel } from '../design/index.js'
 import { type CityCatalog } from './cityCatalog.js'
 import { TRAINING_MAP } from './training.js'
@@ -22,6 +22,11 @@ export function SwingOnline({
     const [nickname, setNickname] = useState('')
     const [code, setCode] = useState('')
     const [city, setCity] = useState(TRAINING_MAP.id)
+    const [prepared, setPrepared] = useState(false)
+    const [preparationEpoch, setPreparationEpoch] = useState(0)
+    const awaitingFreshRematch = useRef(false)
+    const finishedRound = useRef(-1)
+    const sentPreparation = useRef<string | null>(null)
     useEffect(() => {
         client.connect()
         return () => client.destroy()
@@ -37,6 +42,38 @@ export function SwingOnline({
     const map = maps.find((candidate) => candidate.id === room?.cityId)
     const connected = view.connection === 'connected'
     const busy = view.pending || !connected || view.stale
+    useEffect(() => {
+        if (
+            room?.status === 'finished' &&
+            finishedRound.current !== room.round
+        ) {
+            awaitingFreshRematch.current = true
+            finishedRound.current = room.round
+            setPrepared(false)
+            setPreparationEpoch((value) => value + 1)
+            sentPreparation.current = null
+        }
+    }, [room?.status, room?.round])
+    useEffect(() => {
+        if (!room || !me || busy) return
+        if (!prepared) awaitingFreshRematch.current = false
+        const desired = prepared
+        const request = `${room.roomCode}:${room.round}:${room.status}:${desired}`
+        if (sentPreparation.current === request) return
+        if (room.status === 'waiting' && me.ready !== desired) {
+            sentPreparation.current = request
+            void client.ready(desired)
+        } else if (
+            room.status === 'finished' &&
+            !awaitingFreshRematch.current &&
+            prepared &&
+            !me.rematchReady &&
+            finishedRound.current === room.round
+        ) {
+            sentPreparation.current = request
+            void client.rematch()
+        }
+    }, [room, me, busy, prepared, client])
     const exit = () => {
         client.leave()
         onBack()
@@ -125,7 +162,7 @@ export function SwingOnline({
                     </p>
                     {room.status === 'waiting' ? (
                         <Button
-                            disabled={busy || !me}
+                            disabled={busy || !me || !prepared}
                             onClick={() => {
                                 void client.ready(!me?.ready)
                             }}
@@ -137,7 +174,7 @@ export function SwingOnline({
                     ) : null}
                     {room.status === 'finished' ? (
                         <Button
-                            disabled={busy || !!me?.rematchReady}
+                            disabled={busy || !prepared || !!me?.rematchReady}
                             onClick={() => {
                                 void client.rematch()
                             }}
@@ -158,7 +195,7 @@ export function SwingOnline({
             </Button>
         </Panel>
     )
-    if (room && room.status !== 'waiting' && view.access && map)
+    if (room && view.access && map)
         return (
             <main className="app app-wide app-fill swing-online-session">
                 {feedback}
@@ -166,6 +203,8 @@ export function SwingOnline({
                     key={room.roomCode}
                     map={map}
                     online={client}
+                    onPrepared={setPrepared}
+                    preparationRound={preparationEpoch}
                     {...(deps ? { deps } : {})}
                 />
             </main>

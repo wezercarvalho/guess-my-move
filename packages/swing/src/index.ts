@@ -80,3 +80,7 @@ export { type SlotFlags, type SwingInput, type SwingWorld, type WebSlot, createS
 export * from './online.js'
 
 export { createHeadTurn, DEFAULT_HEAD_TURN, type HeadTurn, type HeadTurnInput, type HeadTurnState } from './headTurn.js'
+
+export * from "./preparation.js"
+
+export * from "./eyeAssist.js"

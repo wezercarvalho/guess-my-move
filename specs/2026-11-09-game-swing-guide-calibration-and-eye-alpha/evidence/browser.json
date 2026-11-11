@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "browser": "156.0.8078.4",
+  "scenarios": [
+    "local input gate",
+    "keyboard explicit start",
+    "restart confirmation",
+    "ocular off by default",
+    "responsive widths and centered city calibration without overlap",
+    "real MediaPipe assets with synthetic camera/no face",
+    "cooperative two-client readiness",
+    "persistent camera element lobby to playing"
+  ],
+  "limitations": [
+    "no physical camera or ocular accuracy measurement",
+    "software WebGL",
+    "loopback only"
+  ]
+}

@@ -22,7 +22,10 @@ export class OnlineSwingSession {
         now: number,
         dt: number,
         onRound: () => void = () => {},
+        predict = true,
     ) {
+        // A preparation frame must not flush a delta accumulated before controls were suspended.
+        if (!predict) this.look = { yaw: 0, pitch: 0 }
         const view = this.bridge.getSnapshot()
         const room = view.room
         const playerId = view.access?.playerId ?? null
@@ -65,7 +68,7 @@ export class OnlineSwingSession {
                 this.look = { yaw: 0, pitch: 0 }
                 this.lastInputAt = now
             }
-            if (now - this.snapshotAt <= 100)
+            if (predict && now - this.snapshotAt <= 100)
                 world.advance(input, Math.min(dt, 0.1))
         } else this.look = { yaw: 0, pitch: 0 }
         return { room, playerId }

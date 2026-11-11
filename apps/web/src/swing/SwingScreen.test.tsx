@@ -32,6 +32,7 @@ function harness(overrides: SwingDeps = {}) {
     const resize = vi.fn()
     const renderer: SwingRenderer = { resize, render: vi.fn(), dispose: vi.fn() }
     const deps: SwingDeps = {
+        guidedPreparation: false,
         loadCity: () => Promise.resolve(city),
         createRenderer: () => renderer,
         now: () => nowMs,
@@ -307,6 +308,7 @@ it('explica a calibração e só permite centralizar com orientação válida', 
     const video = screen.getByTestId('camera-preview') as HTMLVideoElement
     Object.defineProperties(video, {readyState:{value:4},videoWidth:{value:640},videoHeight:{value:480}})
     await waitFor(() => expect(screen.getByRole('button',{name:'Parar câmera'})).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('head-status')).not.toHaveTextContent(/Carregando/))
     h.run(1,120)
     expect(screen.getByRole('button',{name:'Centralizar'})).toBeDisabled()
     seen=true
@@ -340,4 +342,23 @@ it.each([false, true])('oferece sensibilidade acessível e mantém valor (cooper
     expect(screen.queryByRole('slider')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('radio', {name:'Rosto'}))
     expect(screen.getByRole('slider', {name:'Sensibilidade do rosto'})).toHaveValue('2.5')
+})
+
+it('guia preparação por padrão e oferece teclado sem exigir câmera ou ocular', async () => {
+    const h=harness({guidedPreparation:true})
+    render(<SwingScreen cameraGetUserMedia={null} deps={h.deps} />)
+    await waitFor(()=>expect(screen.getByTestId('game-status')).not.toHaveTextContent('Carregando'))
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).not.toBeChecked()
+    const city = within(screen.getByTestId('swing-stage'))
+    expect(city.getByRole('region', {name:'Preparação dos controles'})).toBeInTheDocument()
+    expect(city.getByRole('button', {name:'Ativar câmera'})).toBeInTheDocument()
+    expect(city.getByRole('progressbar', {name:'Progresso da etapa'})).toBeInTheDocument()
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).toBeDisabled()
+    h.press(' ');h.run(3,150)
+    expect(screen.getByTestId('web-counter')).toHaveTextContent('Teias: 0')
+    fireEvent.change(screen.getByLabelText('Controles',{exact:true}),{target:{value:'keyboard'}})
+    fireEvent.click(screen.getByRole('button',{name:'Iniciar com teclado'}))
+    h.run(2,150);h.press(' ');h.run(3,150)
+    expect(screen.getByTestId('web-counter')).toHaveTextContent('Teias: 1')
+    expect(screen.getByRole('checkbox',{name:/Controle ocular/})).toBeDisabled()
 })

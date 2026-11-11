@@ -1,3 +1,4 @@
+import type { PreparationView, EyeView, EyePoint } from '@guess-my-move/swing'
 import type {
     City,
     HandMetrics,
@@ -38,6 +39,9 @@ export interface SwingHud {
 
 /** Dependências do controlador; em testes, a cidade, o 3D, o relógio e as teclas são simulados. */
 export interface SwingEnv {
+    /** Defaults to true. False isolates existing control unit tests from onboarding. */
+    guidedPreparation?: boolean
+
     online?: SwingOnlineBridge
     createTracker: CreateHandTracker
     /** Valores de jogo ajustáveis por mapa (ex.: altura inicial); ausente usa o padrão. */
@@ -56,6 +60,8 @@ export interface SwingEnv {
 
 /** Elementos da tela, entregues na montagem (nunca durante a renderização). */
 export interface SwingSurfaces {
+    eyeTargetAllowed?: (point: EyePoint) => boolean
+
     getVideo: () => HTMLVideoElement | null
     getOverlay: () => HTMLCanvasElement | null
     getScene: () => HTMLCanvasElement | null
@@ -100,6 +106,9 @@ export interface HeadDebug {
 }
 
 export interface SwingSnapshot {
+    eye: EyeView
+    preparation: PreparationView
+
     phase: SwingPhase
     failure: string | null
     trackerStatus: SwingTrackerStatus
