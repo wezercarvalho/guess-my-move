@@ -89,3 +89,15 @@ Após feedback de 2026-11-10, FR-003 passa a usar ponto no centro geométrico da
 - `yarn sdd:check`, `yarn docs:format:check` e `git diff --check`: PASS.
 
 A PR #163 continua draft para novo teste do maintainer. A qualidade com câmera física permanece pendente em #161; #162 foi adiada. Não houve merge nem publicação.
+
+## Conferência após merge — 2026-11-11
+
+A PR #163 foi integrada pelo maintainer em 2026-11-11 às 06:03:36 UTC, commit `ada2c4b244567cee414fe939e94050aba4994f72`, na branch padrão main. O conteúdo coincide integralmente com `bd3f1ed01fb718b2d222f3ef82f02a058599321b`. O [pr-gate remoto](https://github.com/wezercarvalho/guess-my-move/actions/runs/42969579726) passou para esse head: check:all, governança e gate obrigatório. O timeout local anterior de bolinhas não se repetiu nesse CI; sua ocorrência histórica continua registrada.
+
+As entregas técnicas #156–#160 estão integradas e têm testes automatizados e evidência de navegador; a validação física permanece concentrada em #161. #162 continua trabalho futuro: o controle ocular está indisponível e o usuário pediu retomar apenas após a conferência das pendências.
+
+Gate 3 permanece pendente de evidência física e veredito sobre seus riscos. Responsável: @wezercarvalho. A autorização antecipada dos gates e o merge não fornecem as contagens, condições e resultados da matriz de câmera real exigida em #161. Não há relatório nem declaração de aceite dessas limitações nos comentários da PR/issues consultados em 2026-11-11. A spec permanece validating; não se registra medição nem aprovação física inexistente. Próxima ação: publicar o resultado do reteste ou declarar explicitamente o risco aceito e o escopo de validação dispensado. Só então reconciliar #161 e o Gate 3 antes de avançar à evolução ocular.
+
+### Limpeza de branches
+
+A branch remota feat/swing-guided-calibration já estava excluída no GitHub; a referência local foi removida após comprovar ancestralidade e árvore idêntica à main. Também foram removidas 11 branches remotas antigas de PRs encerradas, todas com zero commits ausentes da main e sem worktree usando a branch: codex/cards-deck-competitive, codex/swing-bundle-study, codex/toolchain-release-readiness, docs/post-merge-review, fix/multiplayer-session-recovery, fix/realtime-transport-admission, refactor/backend-public-projections, refactor/capture-resources, refactor/marbles-capture-input, refactor/swing-session-input e test/marbles-real-client-lobby. Cada remoção usou lease do SHA conferido. Branches de outros worktrees foram preservadas; fix/61-codex-prompt-aliases local também foi preservada porque sua ancestralidade na main não foi comprovada. O worktree desta conversa foi reutilizado para este registro documental.
