@@ -96,7 +96,16 @@ A PR #163 foi integrada pelo maintainer em 2026-11-11 às 06:03:36 UTC, commit `
 
 As entregas técnicas #156–#160 estão integradas e têm testes automatizados e evidência de navegador; a validação física permanece concentrada em #161. #162 continua trabalho futuro: o controle ocular está indisponível e o usuário pediu retomar apenas após a conferência das pendências.
 
-Gate 3 permanece pendente de evidência física e veredito sobre seus riscos. Responsável: @wezercarvalho. A autorização antecipada dos gates e o merge não fornecem as contagens, condições e resultados da matriz de câmera real exigida em #161. Não há relatório nem declaração de aceite dessas limitações nos comentários da PR/issues consultados em 2026-11-11. A spec permanece validating; não se registra medição nem aprovação física inexistente. Próxima ação: publicar o resultado do reteste ou declarar explicitamente o risco aceito e o escopo de validação dispensado. Só então reconciliar #161 e o Gate 3 antes de avançar à evolução ocular.
+Na conferência inicial pós-merge ainda faltava relato físico. O maintainer posteriormente informou o resultado abaixo. A spec permanece validating para acompanhar a cobertura ampliada; não se exige repetir o teste básico já realizado nem se apresenta a matriz completa como executada.
+
+### Reteste informado pelo maintainer — 2026-11-11
+
+- Calibração na área da cidade considerada boa; navegação breve pelo mapa funcionou adequadamente.
+- Duas mãos testadas e funcionando.
+- Nenhuma perda da câmera percebida durante o uso; não houve relato de interrupção deliberada para testar recuperação.
+- Iluminação adequada. O maintainer adiou explicitamente a evolução de iluminação para depois.
+
+Relato qualitativo de uso real, sem contagens, tempos, câmera ou navegador informados. Registra aceite inicial do fluxo testado. Negativos de gestos, interrupção/reconexão provocada e cooperativo não foram relatados; ficam como acompanhamento em #161. Este relato não comprova precisão ocular. Responsável: @wezercarvalho. Fonte: mensagens do maintainer nesta conversa, incluindo “Testei com as duas mãos e funcionou. Não identifiquei perda da câmera. De momento mantive iluminação adequada. Posteriormente evoluímos a questão da iluminação.”
 
 ### Limpeza de branches
 
