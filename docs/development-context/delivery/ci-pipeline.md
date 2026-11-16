@@ -86,3 +86,20 @@ Trade-off aceito: um PR que não toca nenhum dos paths mapeados passa sem gate. 
 4. Testes em `test/gates/` e `test/sdd/check-gate.node-test.mjs`, documentação nesta página e em [checks de qualidade](../quality/quality-gates.md).
 
 O escopo `code` (issue #3) seguiu exatamente esses passos: padrão `CODE_PATTERN` + output `code` no `pr-gate.yml`, job `code` rodando `yarn check:all`, `code` em `SELECTED_JOBS` com `needs` no `gate`, escopo `code` no hook (`check:static`/`check:all`) e testes nos dois arquivos de gate.
+
+## Segurança do CI e revisão de contribuições
+
+- Actions externas são fixadas por SHA completo. As duas Actions atuais preservam a major 4, com as releases oficiais [checkout v4.4.0](https://github.com/actions/checkout/releases/tag/v4.4.0) e [setup-node v4.4.0](https://github.com/actions/setup-node/releases/tag/v4.4.0). Atualizações devem conferir tag, commit e nota oficial.
+- Jobs usam runners hospedados, privilégio mínimo (`contents: read`), tempos limitados e checkout sem persistência de credenciais. Não executar código de contribuições em contexto privilegiado, com segredos de produção ou runners próprios.
+- A seleção compara a base com o merge efetivamente testado, sem detectar renomes como um único caminho, com lista terminada por NUL. Falha do diff interrompe a seleção. Hook e checks locais preservam os nomes dos caminhos.
+- Os padrões incluem configuração Yarn/npm, atributos Git, Actions locais, manifests de workspaces na auditoria, workflows e CODEOWNERS nos escopos pertinentes. Alterar o pr-gate também seleciona código completo.
+- O consolidador final usa o script e runtime da base. Isso reduz a confiança em arquivos da contribuição, mas não torna o YAML independente: a definição do workflow, os comandos e os testes continuam sujeitos à proposta. Um CI verde não substitui a leitura do diff pelo mantenedor.
+- Auditorias programadas/manuais limitadas à main. O CI de PR permanece sem novos jobs e sem execução em rascunho. O cache existente não deve guardar segredos.
+
+### Revisão pelo mantenedor
+
+O repositório público aceita PRs de forks sem conceder escrita. O ruleset exige PR e check obrigatório; o mantenedor revisa a contribuição e decide o merge. CODEOWNERS identifica responsáveis por arquivos sensíveis, mas não impõe aprovação adicional enquanto o ruleset não exige revisão de code owner. Não ativar essa exigência sem avaliar o modelo de mantenedor único. Mudanças nos workflows, testes, scripts, manifests, lockfile e ferramentas requerem leitura cuidadosa do diff.
+
+Antes de ampliar a colaboração, conferir Settings: Collaborators (somente mantenedor com escrita); Actions (permissões padrão de leitura, não permitir que Actions criem/aprovem PRs, aprovação para colaboradores externos, não enviar tokens de escrita ou segredos a forks, política de Actions permitidas); Rulesets (check obrigatório vinculado ao GitHub Actions, sem bypass; avaliar branch atualizada e resolução de conversas); segurança (secret scanning e push protection). Não anotar valores de secrets. Configurações administrativas não foram alteradas e as que não puderam ser consultadas exigem conferência humana.
+
+Referência: [uso seguro do GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use).

@@ -40,6 +40,12 @@ test('AUDIT_PATTERN dispara só para o que muda o veredito', () => {
     for (const path of [
         'package.json',
         'yarn.lock',
+        '.yarnrc.yml',
+        '.npmrc',
+        '.yarn/patches/a.patch',
+        'apps/web/package.json',
+        'packages/core/package.json',
+        '.github/workflows/novo.yml',
         'scripts/audit-dependencies.mjs',
         'scripts/dependency-audit-exceptions.json',
         'scripts/lib/dependency-audit.mjs',
@@ -55,7 +61,7 @@ test('AUDIT_PATTERN dispara só para o que muda o veredito', () => {
         'specs/x/spec.md',
         'scripts/sdd/check-specs.mjs',
         'scripts/git-hooks/scopes.mjs',
-        'apps/web/package.json',
+        'apps/web/src/index.ts',
     ]) {
         assert.ok(!pattern.test(path), `não deveria disparar: ${path}`)
     }

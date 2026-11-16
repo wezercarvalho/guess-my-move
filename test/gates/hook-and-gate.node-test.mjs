@@ -298,7 +298,16 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         '.node-version': ['tooling', 'code', 'audit'],
         'package.json': ['sdd', 'tooling', 'code', 'audit'],
         'yarn.lock': ['sdd', 'tooling', 'code', 'audit'],
-        '.github/workflows/pr-gate.yml': ['sdd', 'root-docs', 'tooling', 'audit'],
+        '.github/workflows/pr-gate.yml': ['sdd', 'root-docs', 'tooling', 'code', 'audit'],
+        '.github/workflows/novo.yml': ['tooling', 'audit'],
+        '.github/CODEOWNERS': ['tooling'],
+        '.github/actions/local/action.yml': ['sdd', 'tooling', 'code', 'audit'],
+        '.yarnrc.yml': ['sdd', 'tooling', 'code', 'audit'],
+        '.npmrc': ['sdd', 'tooling', 'code', 'audit'],
+        '.yarn/patches/a.patch': ['sdd', 'tooling', 'code', 'audit'],
+        '.gitattributes': ['sdd', 'tooling', 'code', 'audit'],
+        'apps/web/package.json': ['code', 'audit'],
+        'packages/core/package.json': ['code', 'audit'],
         '.github/workflows/dependency-audit.yml': ['tooling', 'audit'],
         '.githooks/pre-push': ['tooling'],
         'scripts/git-hooks/scopes.mjs': ['tooling'],
@@ -378,7 +387,7 @@ test('parsePushLines lê as linhas do Git e ignora linhas em branco', () => {
 test('resolveChangedFiles usa o intervalo remote..local de uma branch existente', () => {
     const git = fakeGit({
         'cat-file -e R1^{commit}': '',
-        'diff --name-only R1..L1': 'scripts/a.mjs\ndocs/b.md\n',
+        'diff --no-renames --name-only -z R1..L1': 'scripts/a.mjs\0docs/b.md\0',
     })
     const lines = prePush.parsePushLines('refs/heads/x L1 refs/heads/x R1\n')
     const result = prePush.resolveChangedFiles({ lines, git })
@@ -391,7 +400,7 @@ test('resolveChangedFiles usa o merge-base com origin/main em branch nova', () =
     const git = fakeGit({
         'rev-parse --verify --quiet origin/main': 'MAIN\n',
         'merge-base L1 origin/main': 'MB\n',
-        'diff --name-only MB..L1': 'specs/x/spec.md\n',
+        'diff --no-renames --name-only -z MB..L1': 'specs/x/spec.md\0',
     })
     const lines = prePush.parsePushLines(`refs/heads/novo L1 refs/heads/novo ${ZERO}\n`)
     const result = prePush.resolveChangedFiles({ lines, git })
@@ -404,7 +413,7 @@ test('resolveChangedFiles cai no merge-base quando o remote sha não existe loca
     const git = fakeGit({
         'rev-parse --verify --quiet origin/main': 'MAIN\n',
         'merge-base L1 origin/main': 'MB\n',
-        'diff --name-only MB..L1': 'scripts/a.mjs\n',
+        'diff --no-renames --name-only -z MB..L1': 'scripts/a.mjs\0',
     })
     const lines = prePush.parsePushLines('refs/heads/x L1 refs/heads/x DESCONHECIDO\n')
     const result = prePush.resolveChangedFiles({ lines, git })
@@ -434,8 +443,8 @@ test('resolveChangedFiles une os intervalos de várias referências sem duplicar
     const git = fakeGit({
         'cat-file -e R1^{commit}': '',
         'cat-file -e R2^{commit}': '',
-        'diff --name-only R1..L1': 'docs/b.md\nscripts/a.mjs\n',
-        'diff --name-only R2..L2': 'scripts/a.mjs\nAGENTS.md\n',
+        'diff --no-renames --name-only -z R1..L1': 'docs/b.md\0scripts/a.mjs\0',
+        'diff --no-renames --name-only -z R2..L2': 'scripts/a.mjs\0AGENTS.md\0',
     })
     const lines = prePush.parsePushLines(
         'refs/heads/x L1 refs/heads/x R1\nrefs/heads/y L2 refs/heads/y R2\n',
@@ -729,8 +738,8 @@ test('local-checks usa o merge-base com origin/main e o working tree sem --files
     const git = fakeGit({
         'rev-parse --verify --quiet origin/main': 'MAIN\n',
         'merge-base HEAD origin/main': 'MB\n',
-        'diff --name-only MB': 'scripts/a.mjs\n',
-        'ls-files --others --exclude-standard': 'docs/novo.md\n',
+        'diff --no-renames --name-only -z MB': 'scripts/a.mjs\0',
+        'ls-files --others --exclude-standard -z': 'docs/novo.md\0',
     })
     const result = localChecks.resolveLocalFiles({ git })
     assert.deepEqual(result.files, ['docs/novo.md', 'scripts/a.mjs'])
@@ -871,4 +880,67 @@ test('AGENTS.md instala o hook de pré-push dentro da "Ordem obrigatória de tra
 test('README.md da raiz cita o comando de instalação do hook', async () => {
     const readme = await readFile(join(repoRoot, 'README.md'), 'utf8')
     assert.ok(readme.includes(installHookCommand), 'README.md deve citar o comando de instalação')
+})
+
+test('workflows mantêm Actions fixadas e credenciais fora do checkout', async () => {
+    for (const name of workflowFiles) {
+        const workflow = await readWorkflow(name)
+        assert.deepEqual(workflow.permissions, { contents: 'read' }, name)
+        for (const trigger of ['pull_request_target', 'workflow_run']) {
+            assert.ok(!(trigger in workflow.on), name + ': ' + trigger)
+        }
+        for (const job of Object.values(workflow.jobs)) {
+            assert.equal(job['runs-on'], 'ubuntu-latest', name)
+            assert.equal(job.permissions, undefined, name)
+            assert.ok(Number.isInteger(job['timeout-minutes']), name)
+            for (const step of job.steps ?? []) {
+                if (step.uses) {
+                    assert.match(step.uses, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, name)
+                    if (step.uses.startsWith('actions/checkout@')) {
+                        assert.equal(step.with?.['persist-credentials'], false, name)
+                    }
+                }
+            }
+        }
+        assert.doesNotMatch(JSON.stringify(workflow), /secrets\./, name)
+    }
+})
+
+test('o consolidador usa o checkout da base e a seleção usa o merge testado', () => {
+    const checkout = prGate.jobs.gate.steps.find((step) =>
+        step.uses?.startsWith('actions/checkout@'),
+    )
+    assert.equal(checkout.with.ref, '${{ github.event.pull_request.base.sha }}')
+    const filter = prGate.jobs['detect-changes'].steps.find((step) => step.id === 'filter')
+    assert.equal(filter.env.MERGE_SHA, '${{ github.sha }}')
+    assert.match(filter.run, /git diff --no-renames --name-only -z/)
+    assert.match(filter.run, /set -euo pipefail/)
+    assert.doesNotMatch(filter.run, /\$\{\{/)
+})
+
+test('auditorias periódicas só executam na main', async () => {
+    for (const name of ['runtime-audit.yml', 'dependency-audit.yml']) {
+        const workflow = await readWorkflow(name)
+        assert.equal(workflow.jobs.audit.if, "github.ref == 'refs/heads/main'")
+    }
+})
+
+test('hook preserva nomes de paths e classifica remoções e renomeações', () => {
+    const git = fakeGit({
+        'cat-file -e R1^{commit}': '',
+        'diff --no-renames --name-only -z R1..L1':
+            '.yarnrc.yml\0apps/web/arquivo\nnovo.ts\0docs/novo.md\0',
+    })
+    const lines = prePush.parsePushLines('refs/heads/x L1 refs/heads/x R1\n')
+    const result = prePush.resolveChangedFiles({ lines, git })
+    assert.deepEqual(result.files, ['.yarnrc.yml', 'apps/web/arquivo\nnovo.ts', 'docs/novo.md'])
+    assert.ok(scopes.affectedScopes(result.files).includes('audit'))
+    assert.ok(scopes.affectedScopes(result.files).includes('code'))
+})
+
+test('CODEOWNERS identifica a revisão de arquivos sensíveis', async () => {
+    const source = await readFile(join(repoRoot, '.github/CODEOWNERS'), 'utf8')
+    for (const path of ['/.github/', '/scripts/', '/package.json', '/yarn.lock', '/.yarnrc.yml']) {
+        assert.ok(source.split('\n').includes(path + ' @wezercarvalho'), path)
+    }
 })

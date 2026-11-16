@@ -1,0 +1,22 @@
+# Responsabilidade pela revisão, sem conceder escrita ou substituir a revisão humana.
+/.github/ @wezercarvalho
+/.githooks/ @wezercarvalho
+/scripts/ @wezercarvalho
+/test/ @wezercarvalho
+/specs/ @wezercarvalho
+/docs/development-strategies/ @wezercarvalho
+/docs/development-context/security/ @wezercarvalho
+/AGENTS.md @wezercarvalho
+/CLAUDE.md @wezercarvalho
+/package.json @wezercarvalho
+/yarn.lock @wezercarvalho
+/.node-version @wezercarvalho
+/.yarnrc.yml @wezercarvalho
+/.npmrc @wezercarvalho
+/.yarn/ @wezercarvalho
+/.gitattributes @wezercarvalho
+/.oxlintrc.json @wezercarvalho
+/tsconfig*.json @wezercarvalho
+/apps/*/package.json @wezercarvalho
+/packages/*/package.json @wezercarvalho
+/contracts/ @wezercarvalho

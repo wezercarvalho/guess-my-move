@@ -90,14 +90,14 @@ export function resolveChangedFiles({ lines: pushLines, git }) {
             if (merge.note) unknownRange(merge.note)
         }
         if (base === null) continue
-        const diff = git(['diff', '--name-only', `${base}..${localSha}`])
+        const diff = git(['diff', '--no-renames', '--name-only', '-z', `${base}..${localSha}`])
         if (diff.status !== 0) {
             unknownRange(
                 `Não foi possível calcular o diff de ${base}..${localSha}: verificando todos os escopos.`,
             )
             continue
         }
-        for (const file of lines(diff.stdout)) files.add(file)
+        for (const file of diff.stdout.split('\0').filter(Boolean)) files.add(file)
     }
     return { files: [...files].sort(), allScopes, notes: [...notes] }
 }

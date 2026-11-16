@@ -9,18 +9,18 @@
 // entra também em `SELECTED_JOBS` de `scripts/sdd/check-job-results.mjs`.
 
 export const PATH_PATTERNS = {
-    sdd: '^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\\.md$|^(package\\.json|yarn\\.lock)$|^\\.github/workflows/pr-gate\\.yml$',
+    sdd: '^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\\.md$|^(package\\.json|yarn\\.lock)$|^\\.github/workflows/pr-gate\\.yml$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/',
     'root-docs':
         '^(AGENTS\\.md|CLAUDE\\.md|README\\.md|\\.prettierrc|docs/|specs/|\\.github/workflows/pr-gate\\.yml$)',
     // Testes dos próprios gates: hook local, auditor de dependências e workflows.
     tooling:
-        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|audit-runtime\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$',
+        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|audit-runtime\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^\\.github/CODEOWNERS$',
     // Código da aplicação (apps/, packages/), manifesto/lockfile, tsconfig*, config do Oxlint e
     // .env.example e .node-version; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
-    code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$|^\\.node-version$',
+    code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$|^\\.node-version$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^\\.github/workflows/pr-gate\\.yml$',
     // Auditoria de dependências: só o que muda o veredito (manifesto, lockfile, auditor, exceções
     // e os workflows que a executam); `AUDIT_PATTERN` do gate.
-    audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs|scripts/audit-runtime\\.mjs|scripts/lib/runtime-audit\\.mjs|\\.node-version)$|^\\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\\.yml$',
+    audit: '^(package\\.json|yarn\\.lock|scripts/audit-dependencies\\.mjs|scripts/dependency-audit-exceptions\\.json|scripts/lib/dependency-audit[a-z-]*\\.mjs|scripts/audit-runtime\\.mjs|scripts/lib/runtime-audit\\.mjs|\\.node-version)$|^\\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\\.yml$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^(apps|packages)/[^/]+/package\\.json$|^\\.github/workflows/',
 }
 
 // Ordem de execução: leves primeiro, para falhar rápido; o escopo de código roda os gates da
