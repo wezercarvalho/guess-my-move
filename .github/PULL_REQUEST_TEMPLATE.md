@@ -5,9 +5,9 @@
 ## Vínculo e pendências
 
 <!-- Entrega completa em main: Closes #N. Parcial: Refs #N, critérios pendentes,
-responsável, evidência necessária e ação de encerramento. Spec com Gate 3: se o
-merge desta PR na main for a aprovação, declare aqui o veredito e os riscos
-aceitos (ver docs/development-strategies/sdd/validate.md).
+responsável, evidência necessária e ação de encerramento. Spec com Gate 3: por padrão, declare nesta PR o veredito proposto, os resultados,
+os riscos residuais e o aceite condicionado ao merge na main pelo maintainer
+(ver docs/development-strategies/sdd/validate.md). Não abrir PR só para o aceite.
 Remova instruções antes de publicar. -->
 
 ## Validação

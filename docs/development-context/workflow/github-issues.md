@@ -76,6 +76,10 @@ Issues novas começam em Triagem. Substitua a label de status a cada transição
 
 Ao criar ou atualizar uma PR cuja entrega seja de responsabilidade do maintainer, atribua **`@wezercarvalho`** em **Assignees** e confirme no GitHub que a atribuição persistiu. Preserve outros responsáveis. Assignees identifica quem acompanha a entrega; Reviewers e autorização de merge têm significados próprios.
 
+### Aceite SDD na mesma PR
+
+Por decisão do maintainer em 2026-11-16, o fluxo padrão consolida implementação, tarefas, evidências e registro do Gate 3 na mesma PR. O merge na `main` pelo maintainer é o ato de aprovação final quando a PR apresenta os resultados e os riscos residuais. Prepare a spec e o registro de aceite condicionados a esse merge; não abra outra PR apenas para formalizar o Gate 3. Se necessário, atualize as evidências na branch da PR e aguarde os checks do novo head antes do merge. Não inferir aceite de PR não integrada, merge intermediário, execução verde isolada ou aprovação feita pelo agente.
+
 ### Fechamento de issues
 
 Declare na descrição da PR se ela conclui a issue ou entrega só uma parte. Nome do branch, título e menção à issue não bastam.
@@ -97,7 +101,7 @@ Após o merge feito pelo maintainer:
 2. Confira os critérios de cada issue, a revisão do maintainer, os gates finais e as limitações. Separe novos bugs e trabalho futuro; mantenha issues parciais abertas com responsável e evidência faltante.
 3. Quando uma PR intermediária usa `Closes`, redirecione a PR ainda aberta para `main` antes da integração final, se esse for o fluxo escolhido, ou transfira os vínculos de fechamento para a PR que efetivamente chega à branch padrão. Depois confirme o resultado no GitHub.
 4. Se a entrega já chegou à `main` e o fechamento não ocorreu, registre um comentário com PRs, commit integrado e aceite conferido; encerre manualmente apenas as issues concluídas e substitua a label de status por `status:done`. Preserve metadados alheios. Não acrescente palavras de fechamento retroativamente esperando que um evento de merge seja reexecutado.
-5. Verifique separadamente o Gate 3 da spec. Merge não preenche aprovador, data, commit, escopo e riscos aceitos. Registre o veredito explícito do maintainer antes de promover a spec para `validated`; se faltar esse registro, mantenha o estado real e uma pendência rastreável.
+5. Confirme o Gate 3 na própria PR de implementação. Quando a PR declarar o aceite por merge, a integração na `main` pelo maintainer, após os checks aplicáveis, efetiva a aprovação dos resultados e riscos não bloqueadores explicitados. Confira a autoria, data e commit do merge no GitHub. Se faltar evidência, declaração de aceite ou decisão sobre risco bloqueador, não considere a spec validada.
 6. Confirme por leitura no GitHub os estados finais de PRs e issues. Não encerre iniciativas em standby, de prazo futuro ou sem aceite completo.
 
 Este checklist é compartilhado por humanos e agentes por meio de `AGENTS.md`; uma skill que apenas copie as mesmas regras não é necessária. Automação futura de reconciliação deve ser idempotente, distinguir entrega de aceite e nunca aprovar gates em nome do maintainer.
@@ -115,4 +119,4 @@ Selecione a estratégia no [roteador](../../development-strategies/README.md). P
 
 ## Registro mínimo de aceite pendente
 
-Quando o código já foi integrado mas faltar a declaração formal do Gate 3, registrar na própria validation.md: situação comprovada, motivo da pendência, responsável nominal, data de conferência, commit integrado, escopo e riscos a decidir. Estado e veredito ficam pendentes até a decisão humana; não usar comentário de um agente como assinatura do maintainer. Esse registro resolve a rastreabilidade mesmo quando o aceite é deliberadamente posterior ao merge.
+Excepcionalmente, quando o código já foi integrado sem a declaração de aceite por merge ou com critérios pendentes, registrar na própria validation.md: situação comprovada, motivo da pendência, responsável nominal, data de conferência, commit integrado, escopo e riscos a decidir. Estado e veredito ficam pendentes até a decisão humana; não usar comentário de um agente como assinatura do maintainer. Esse registro resolve a rastreabilidade mesmo quando o aceite é deliberadamente posterior ao merge.

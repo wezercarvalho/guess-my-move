@@ -5,14 +5,14 @@
 - [x] T003 [FR-003] [SC-002] Ampliar padrões, preservar paridade dos escopos e atualizar testes.
 - [x] T004 [FR-004] [SC-002] Ajustar seleção de paths, leitores locais e checkout da base no gate.
 - [x] T005 [FR-005] [SC-003] Adicionar CODEOWNERS e documentação de revisão e controles administrativos.
-- [ ] T006 [FR-001] [FR-002] [FR-003] [FR-004] [FR-005] [SC-004] Executar verificações oficiais, conferir logs e registrar resultados e aceite final.
+- [x] T006 [FR-001] [FR-002] [FR-003] [FR-004] [FR-005] [SC-004] Executar verificações oficiais, conferir logs e registrar resultados e aceite final.
 
 ## Análise de consistência
 
 - **Status:** aprovada
 - **Revisor:** agente assistente (manual)
 - **Data:** 2026-11-16
-- **Lacunas:** cobertura registrada; execução oficial, verificação administrativa e aceite final pendentes.
+- **Lacunas:** cobertura e execução oficial confirmadas; aceite registrado em validation.md. Configurações administrativas indisponíveis à integração permanecem como conferência do mantenedor, conforme escopo.
 
 ## Gate 2 — Plano e tarefas aprovados
 

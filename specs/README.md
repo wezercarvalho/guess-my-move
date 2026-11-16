@@ -62,4 +62,4 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Segurança do CI
 
-[`2026-11-16-engineering-ci-harden-pr-gates`](2026-11-16-engineering-ci-harden-pr-gates/spec.md) — `implementing`; endurecimento dos gates e revisão de contribuições externas (#172).
+[`2026-11-16-engineering-ci-harden-pr-gates`](2026-11-16-engineering-ci-harden-pr-gates/spec.md) — `validated`; endurecimento dos gates e revisão de contribuições externas (#172), com conferência administrativa residual registrada.

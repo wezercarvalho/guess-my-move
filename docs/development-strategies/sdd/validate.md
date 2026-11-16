@@ -28,3 +28,7 @@ Para cada lacuna: classifique (implementação, teste, documento, requisito ou p
 ## Gate 3
 
 Veredito: **aprovado**, **aprovado com risco aceito** (somente risco não bloqueador, com responsável e justificativa), **rejeitado** ou **bloqueado**. Para `validated`, o veredito deve ser `aprovado` ou `aprovado com risco aceito`, sem `TODO`/`TBD`, com seção `Estado` completa, aprovador, data, commit e escopo.
+
+### Aceite pelo merge da PR de implementação
+
+O maintainer autorizou em 2026-11-16 o merge na `main` como ato de aprovação final do Gate 3. Use, por padrão, a mesma PR para implementação e convergência. Antes do merge, reúna evidências reais, conclua as tarefas, declare o veredito proposto, o escopo, os riscos residuais não bloqueadores e o maintainer responsável em `validation.md` e na descrição da PR. Prepare a transição para `validated` como condicionada ao merge pelo maintainer; registre a data da declaração e o commit efetivamente testado, sem inventar um hash ou data de merge futuros. A identidade, o momento e o commit de integração ficam comprovados pelo histórico da PR. Aguarde os checks aplicáveis do head final. Se houver bloqueio, mantenha o estado pendente e use `Refs`, não `Closes`. O aceite não autoriza o agente a fazer merge. Não abra uma segunda PR apenas para registrar o aceite já efetivado.

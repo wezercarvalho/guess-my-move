@@ -7,7 +7,7 @@ strategy: sdd
 domain: engineering
 capability: ci
 objective: harden-pr-gates
-status: implementing
+status: validated
 owners:
     - wezercarvalho
 reviewers: []
