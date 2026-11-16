@@ -47,9 +47,9 @@ export function parseArgs(argv) {
 export function resolveLocalFiles({ git }) {
     const { base, note } = mergeBaseWithMain({ git, ref: 'HEAD' })
     if (base === null) return { files: [], allScopes: true, notes: [note] }
-    const names = (text) => text.split(/\r?\n/).filter(Boolean)
-    const diff = git(['diff', '--name-only', base])
-    const untracked = git(['ls-files', '--others', '--exclude-standard'])
+    const names = (text) => text.split('\0').filter(Boolean)
+    const diff = git(['diff', '--no-renames', '--name-only', '-z', base])
+    const untracked = git(['ls-files', '--others', '--exclude-standard', '-z'])
     if (diff.status !== 0 || untracked.status !== 0) {
         return {
             files: [],

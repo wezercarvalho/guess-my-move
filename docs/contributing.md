@@ -56,3 +56,7 @@ Mantenha o processamento de mãos e rosto no navegador. Não envie nem persista 
 O critério interno de avaliação das cartas não pode aparecer na projeção pública para o jogador ou uma futura IA jogadora. Preserve os contratos e os testes dessa separação.
 
 O código é MIT; dados, fontes e modelos de terceiros têm licenças próprias. Consulte as [atribuições do README](../README.md#licença-e-atribuições) antes de adicionar ou redistribuir ativos.
+
+## Segurança de contribuições externas
+
+Não inclua credenciais ou código de instalação inesperado nas contribuições. Mudanças em CI, ferramentas, manifests, lockfile, testes e políticas de segurança exigem revisão cuidadosa pelo mantenedor identificado no CODEOWNERS. Um CI verde não substitui revisão humana. Contribuições por fork não precisam de permissão de escrita. Consulte [segurança do CI](development-context/delivery/ci-pipeline.md#segurança-do-ci-e-revisão-de-contribuições).

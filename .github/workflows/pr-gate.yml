@@ -29,6 +29,7 @@ jobs:
         name: detectar paths alterados
         if: github.event.pull_request.draft == false
         runs-on: ubuntu-latest
+        timeout-minutes: 5
         outputs:
             sdd: ${{ steps.filter.outputs.sdd }}
             root-docs: ${{ steps.filter.outputs.root-docs }}
@@ -36,59 +37,47 @@ jobs:
             code: ${{ steps.filter.outputs.code }}
             audit: ${{ steps.filter.outputs.audit }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
+                  persist-credentials: false
                   fetch-depth: 0
 
-            # Os padrões abaixo são espelhados em scripts/git-hooks/scopes.mjs (hook local);
-            # um teste em test/gates/ compara os dois.
+            # Comparar a base com a árvore efetivamente testada; nomes tratados como dados.
             - name: Detectar paths alterados
               id: filter
+              shell: bash
+              env:
+                  BASE_SHA: ${{ github.event.pull_request.base.sha }}
+                  MERGE_SHA: ${{ github.sha }}
               run: |
-                  CHANGED=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
-                  echo "Arquivos alterados neste PR:"
-                  echo "$CHANGED"
+                  set -euo pipefail
+                  git diff --no-renames --name-only -z "$BASE_SHA" "$MERGE_SHA" > "$RUNNER_TEMP/pr-paths"
 
-                  SDD_PATTERN='^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\.md$|^(package\.json|yarn\.lock)$|^\.github/workflows/pr-gate\.yml$'
-                  if echo "$CHANGED" | grep -qE "$SDD_PATTERN"; then
-                    echo "sdd=true" >>"$GITHUB_OUTPUT"
-                  else
-                    echo "sdd=false" >>"$GITHUB_OUTPUT"
-                  fi
-
+                  SDD_PATTERN='^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\.md$|^(package\.json|yarn\.lock)$|^\.github/workflows/pr-gate\.yml$|^\.yarnrc\.yml$|^\.npmrc$|^\.yarn/|^\.gitattributes$|^\.github/actions/'
                   ROOT_DOCS_PATTERN='^(AGENTS\.md|CLAUDE\.md|README\.md|\.prettierrc|docs/|specs/|\.github/workflows/pr-gate\.yml$)'
-                  if echo "$CHANGED" | grep -qE "$ROOT_DOCS_PATTERN"; then
-                    echo "root-docs=true" >>"$GITHUB_OUTPUT"
-                  else
-                    echo "root-docs=false" >>"$GITHUB_OUTPUT"
-                  fi
+                  TOOLING_PATTERN='^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\.mjs|audit-runtime\.mjs|dependency-audit-exceptions\.json)$|^test/(gates|security)/|^\.githooks/|^\.github/workflows/|^(package\.json|yarn\.lock|\.prettierrc|\.node-version)$|^\.yarnrc\.yml$|^\.npmrc$|^\.yarn/|^\.gitattributes$|^\.github/actions/|^\.github/CODEOWNERS$'
+                  CODE_PATTERN='^apps/|^packages/|^contracts/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$|^\.node-version$|^\.yarnrc\.yml$|^\.npmrc$|^\.yarn/|^\.gitattributes$|^\.github/actions/|^\.github/workflows/pr-gate\.yml$'
+                  AUDIT_PATTERN='^(package\.json|yarn\.lock|scripts/audit-dependencies\.mjs|scripts/dependency-audit-exceptions\.json|scripts/lib/dependency-audit[a-z-]*\.mjs|scripts/audit-runtime\.mjs|scripts/lib/runtime-audit\.mjs|\.node-version)$|^\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\.yml$|^\.yarnrc\.yml$|^\.npmrc$|^\.yarn/|^\.gitattributes$|^\.github/actions/|^(apps|packages)/[^/]+/package\.json$|^\.github/workflows/'
 
-                  # Testes dos próprios gates: hook local, auditor de dependências e workflows.
-                  TOOLING_PATTERN='^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\.mjs|audit-runtime\.mjs|dependency-audit-exceptions\.json)$|^test/(gates|security)/|^\.githooks/|^\.github/workflows/|^(package\.json|yarn\.lock|\.prettierrc|\.node-version)$'
-                  if echo "$CHANGED" | grep -qE "$TOOLING_PATTERN"; then
-                    echo "tooling=true" >>"$GITHUB_OUTPUT"
-                  else
-                    echo "tooling=false" >>"$GITHUB_OUTPUT"
-                  fi
-
-                  # Código da aplicação: workspaces (apps/, packages/), manifesto e lockfile,
-                  # tsconfig*, config do Oxlint, .env.example e .node-version. Espelhado EXATAMENTE em
-                  # scripts/git-hooks/scopes.mjs.
-                  CODE_PATTERN='^apps/|^packages/|^contracts/|^(package\.json|yarn\.lock)$|^tsconfig[^/]*\.json$|^\.oxlintrc\.json$|^\.env\.example$|^\.node-version$'
-                  if echo "$CHANGED" | grep -qE "$CODE_PATTERN"; then
-                    echo "code=true" >>"$GITHUB_OUTPUT"
-                  else
-                    echo "code=false" >>"$GITHUB_OUTPUT"
-                  fi
-
-                  # Auditoria de dependências no PR: só quando algo que muda o veredito é tocado
-                  # (manifesto, lockfile, auditor, exceções ou os workflows que a executam).
-                  AUDIT_PATTERN='^(package\.json|yarn\.lock|scripts/audit-dependencies\.mjs|scripts/dependency-audit-exceptions\.json|scripts/lib/dependency-audit[a-z-]*\.mjs|scripts/audit-runtime\.mjs|scripts/lib/runtime-audit\.mjs|\.node-version)$|^\.github/workflows/(pr-gate|dependency-audit|runtime-audit)\.yml$'
-                  if echo "$CHANGED" | grep -qE "$AUDIT_PATTERN"; then
-                    echo "audit=true" >>"$GITHUB_OUTPUT"
-                  else
-                    echo "audit=false" >>"$GITHUB_OUTPUT"
-                  fi
+                  sdd=false
+                  root_docs=false
+                  tooling=false
+                  code=false
+                  audit=false
+                  while IFS= read -r -d '' FILE; do
+                    if [[ "$FILE" =~ $SDD_PATTERN ]]; then sdd=true; fi
+                    if [[ "$FILE" =~ $ROOT_DOCS_PATTERN ]]; then root_docs=true; fi
+                    if [[ "$FILE" =~ $TOOLING_PATTERN ]]; then tooling=true; fi
+                    if [[ "$FILE" =~ $CODE_PATTERN ]]; then code=true; fi
+                    if [[ "$FILE" =~ $AUDIT_PATTERN ]]; then audit=true; fi
+                  done < "$RUNNER_TEMP/pr-paths"
+                  {
+                    echo "sdd=$sdd"
+                    echo "root-docs=$root_docs"
+                    echo "tooling=$tooling"
+                    echo "code=$code"
+                    echo "audit=$audit"
+                  } >> "$GITHUB_OUTPUT"
 
     sdd:
         # Governança num job só: verificação do SDD, formatação dos docs da raiz e testes dos
@@ -98,17 +87,19 @@ jobs:
         needs: detect-changes
         if: needs.detect-changes.outputs.sdd == 'true' || needs.detect-changes.outputs.root-docs == 'true' || needs.detect-changes.outputs.tooling == 'true'
         runs-on: ubuntu-latest
+        timeout-minutes: 20
         env:
             COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
               with:
+                  persist-credentials: false
                   fetch-depth: 0
             - name: Instalar corepack (o Node 26 não o distribui)
               run: npm install --global corepack@0.36.0
             - name: Habilitar corepack
               run: corepack enable
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version-file: .node-version
                   cache: yarn
@@ -122,14 +113,16 @@ jobs:
               if: needs.detect-changes.outputs.sdd == 'true'
               env:
                   BASE_SHA: ${{ github.event.pull_request.base.sha }}
-                  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+                  MERGE_SHA: ${{ github.sha }}
               run: |
+                  set -euo pipefail
+                  git diff --no-renames --name-only -z "$BASE_SHA" "$MERGE_SHA" -- '*.md' > "$RUNNER_TEMP/pr-docs"
                   ARGS=()
                   while IFS= read -r -d '' FILE; do
                     if [[ "$FILE" != docs/development-strategies/sdd/templates/* ]] && [ -f "$FILE" ]; then
                       ARGS+=(--file "$FILE")
                     fi
-                  done < <(git diff --name-only -z "$BASE_SHA" "$HEAD_SHA" -- '*.md')
+                  done < "$RUNNER_TEMP/pr-docs"
                   yarn sdd:check "${ARGS[@]}"
             - name: Verificar formatação dos docs da raiz
               if: needs.detect-changes.outputs.root-docs == 'true'
@@ -143,15 +136,18 @@ jobs:
         needs: detect-changes
         if: needs.detect-changes.outputs.code == 'true'
         runs-on: ubuntu-latest
+        timeout-minutes: 25
         env:
             COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
             - name: Instalar corepack (o Node 26 não o distribui)
               run: npm install --global corepack@0.36.0
             - name: Habilitar corepack
               run: corepack enable
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version-file: .node-version
                   cache: yarn
@@ -170,12 +166,14 @@ jobs:
         env:
             COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
             - name: Instalar corepack (o Node 26 não o distribui)
               run: npm install --global corepack@0.36.0
             - name: Habilitar corepack
               run: corepack enable
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version-file: .node-version
                   cache: yarn
@@ -197,9 +195,13 @@ jobs:
         # ausente); em PR pronta continua rodando sempre.
         if: always() && github.event.pull_request.draft == false
         runs-on: ubuntu-latest
+        timeout-minutes: 5
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
+                  ref: ${{ github.event.pull_request.base.sha }}
+            - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
               with:
                   node-version-file: .node-version
             - name: Verificar resultado dos jobs condicionais
