@@ -1,21 +1,21 @@
 # Checks de qualidade
 
-**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `apps/server`, `packages/core`, `packages/marbles`, `packages/swing`). Além dos gates de governança (abaixo), o escopo de código roda `yarn check:all` (typecheck, lint, test, build e demonstração do servidor compilado) no [`pr-gate`](../delivery/ci-pipeline.md) e no [hook local de pré-push](../operations/local-development.md#verificações-locais-antes-do-push).
+**Estado atual:** o monorepo tem código de aplicação (`apps/web`, `apps/server`, `packages/core`, `packages/marbles`, `packages/swing`). Além dos gates de governança (abaixo), o escopo de código roda `yarn check:all` (typecheck, lint, test, build, demonstração do servidor compilado e contratos) no [`pr-gate`](../delivery/ci-pipeline.md) e no [hook local de pré-push](../operations/local-development.md#verificações-locais-antes-do-push).
 
 ## Gates de código (vigentes)
 
-| Script              | Propósito                                                               | Onde roda                             |
-| ------------------- | ----------------------------------------------------------------------- | ------------------------------------- |
-| `yarn typecheck`    | Tipos explícitos em todos os workspaces (`tsc --noEmit`).               | `pr-gate` (seleção `code`) e hook.    |
-| `yarn lint`         | Oxlint type-aware (`.oxlintrc.json`) em `apps/` e `packages/`.          | `pr-gate` (seleção `code`) e hook.    |
-| `yarn test`         | Vitest em todos os workspaces (um teste de fumaça real em cada um).     | `pr-gate` (seleção `code`).           |
-| `yarn build`        | Compila frontend, servidor e pacotes de domínio.                        | `pr-gate` (seleção `code`).           |
-| `yarn check:static` | Agregado leve: `typecheck` + `lint`.                                    | hook local no modo `static` (padrão). |
-| `yarn check:all`    | Agregado completo: `check:static` + `test` + `build` + smoke compilado. | `pr-gate` (job `code`) e hook `full`. |
+| Script              | Propósito                                                                           | Onde roda                             |
+| ------------------- | ----------------------------------------------------------------------------------- | ------------------------------------- |
+| `yarn typecheck`    | Tipos explícitos em todos os workspaces (`tsc --noEmit`).                           | `pr-gate` (seleção `code`) e hook.    |
+| `yarn lint`         | Oxlint type-aware (`.oxlintrc.json`) em `apps/` e `packages/`.                      | `pr-gate` (seleção `code`) e hook.    |
+| `yarn test`         | Vitest em todos os workspaces (um teste de fumaça real em cada um).                 | `pr-gate` (seleção `code`).           |
+| `yarn build`        | Compila frontend, servidor e pacotes de domínio.                                    | `pr-gate` (seleção `code`).           |
+| `yarn check:static` | Agregado leve: `typecheck` + `lint`.                                                | hook local no modo `static` (padrão). |
+| `yarn check:all`    | Agregado completo: `check:static` + `test` + `build` + smoke compilado + contratos. | `pr-gate` (job `code`) e hook `full`. |
 
 O hook local roda `check:static` por padrão e `check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
 
-O agregado `check:all` executa `yarn workspace @guess-my-move/server test:compiled` depois dos builds. Esse smoke inicia o servidor emitido pelo TypeScript em porta efêmera e comprova DI/metadados, export dos workspaces, health 200, início competitivo 201, recusa de payload inválido 400 e cancelamento 200. Desativa coleta externa e não registra tokens. A suíte transformada pelo SWC continua complementar a essa evidência.
+O agregado `check:all` executa `yarn workspace @guess-my-move/server test:compiled` depois dos builds. Esse smoke inicia o servidor emitido pelo TypeScript em porta efêmera e comprova DI/metadados, export dos workspaces, health 200, início competitivo 201, recusa de payload inválido 400 e cancelamento 200. Desativa coleta externa e não registra tokens. A suíte transformada pelo SWC continua complementar a essa evidência. Depois do smoke, `check:all` executa `yarn contracts:check`, que confere os três contratos versionados sem sobrescrevê-los. Qualquer divergência bloqueia o gate de código.
 
 ## Gates de governança (vigentes)
 

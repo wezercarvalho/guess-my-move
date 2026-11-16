@@ -41,3 +41,12 @@ A disponibilidade do novo runtime, registry e CI será verificada durante a vali
 - **Artefatos aprovados:** spec.md, clarification.md, conforme escopo e decisões apresentados na conversa.
 - **Referência:** sessão de 16/11/2026: após a apresentação do escopo, o mantenedor respondeu “Pode considerar tudo aprovado”.
 - **Observações:** sem merge, deploy, Codex ou Work; PR em draft. Aceite técnico final depende de evidências.
+
+## Emenda CQ-003 — Verificação permanente dos contratos (16/11/2026)
+
+- **Impacto:** médio; ampliação restrita à governança de código.
+- **Decisão aprovada:** incorporar `yarn contracts:check` permanentemente ao CI, para resolver a lacuna de validação da issue #132, sem alterar os contratos ou o comportamento dos jogos.
+- **Aprovador:** wezercarvalho (maintainer), na conversa de 16/11/2026, ao responder “Pode fazer” à proposta de implementação da melhoria no pipeline seguindo SDD.
+- **Limites:** continuar pelo chat, sem Codex/Work, sem merge pelo agente, sem deploy; executar CI existente para validação, após a fase de draft.
+- **Seções atualizadas:** objetivos, FR-005, SC-004 e edge cases em spec.md; o Gate 3 permanece condicionado às evidências.
+- **Registro:** aprovação da intenção e da implementação da melhoria; não houve revisão linha a linha dos novos artefatos pelo mantenedor.

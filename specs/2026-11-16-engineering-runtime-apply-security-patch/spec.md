@@ -20,6 +20,7 @@ code_paths:
     - package.json
     - README.md
     - docs/development-context/
+    - test/gates/hook-and-gate.node-test.mjs
 related_specs:
     - 2026-11-06-engineering-runtime-monitor-security-releases
     - 2026-10-21-engineering-toolchain-adopt-yarn4-oxlint-node26
@@ -38,12 +39,13 @@ Adotar a correção publicada para Node 26 e demonstrar a compatibilidade do mon
 
 ## Problema
 
-A main fixa 26.12.1. O monitor diário de runtime reprovou em 15/11/2026 por identificar 26.13.1 como release de segurança posterior. O [boletim oficial de novembro](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases) motiva a atualização. Um resultado positivo na auditoria npm não cobre o binário Node.
+Antes da PR #169, a main fixava 26.12.1. O monitor diário de runtime reprovou em 15/11/2026 por identificar 26.13.1 como release de segurança posterior. O [boletim oficial de novembro](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases) motiva a atualização. Um resultado positivo na auditoria npm não cobre o binário Node.
 
 ## Objetivos
 
 - Adotar a versão corretiva 26.13.1 de forma consistente no ambiente de desenvolvimento e no CI.
 - Demonstrar regressões e contratos no novo runtime e registrar evidências rastreáveis.
+- Tornar a validação dos contratos parte permanente do gate de código e do modo completo local, sem alterar contratos.
 
 ## Fora de escopo
 
@@ -87,6 +89,7 @@ Como mantenedor, quero evidências de regressão e privacidade antes de integrar
 - **FR-002:** A aplicação DEVE preservar o comportamento existente, comprovado pelos gates de código, smoke compilado e cenários de sessão dos jogos online.
 - **FR-003:** Os checks de contratos, governança e auditorias de dependências/runtime DEVEM ser executados no ambiente atualizado, sem enfraquecer critérios.
 - **FR-004:** A entrega DEVE registrar resultados, limitações, revisão humana pendente e vínculo com a issue #132 em artefatos rastreáveis.
+- **FR-005:** O gate de código completo DEVE executar a verificação oficial dos contratos, bloquear divergências e preservar o modo estático rápido.
 
 ## Requisitos não funcionais
 
@@ -99,6 +102,7 @@ Como mantenedor, quero evidências de regressão e privacidade antes de integrar
 - Release corretiva posterior: o auditor deve manter o comportamento de bloqueio; não ignorar a falha.
 - Falha de rede, disponibilização do binário ou instalação: registrar bloqueio sem inventar resultado.
 - PR em draft: os jobs completos ficam pendentes até a promoção autorizada para revisão.
+- Contrato divergente ou ausente: o check deve falhar, sem exportar ou sobrescrever automaticamente.
 
 ## Hipóteses e dependências
 
@@ -110,4 +114,5 @@ Como mantenedor, quero evidências de regressão e privacidade antes de integrar
 
 - **SC-001:** Pin, faixa e referências normativas consistentes na linha 26; auditoria do runtime aprovada no ambiente atualizado.
 - **SC-002:** Checks de código, contratos, governança, dependências e cenários multiplayer comprovados, com resultados e limitações documentados.
-- **SC-003:** Diff restrito ao escopo, PR em draft para revisão e nenhum merge/deploy.
+- **SC-003:** Diff restrito ao escopo, PR inicialmente em draft e nenhum merge/deploy pelo agente.
+- **SC-004:** Teste de regressão estrutural comprova a inclusão de `yarn contracts:check` em `check:all`; o job existente executa a verificação e uma falha impede o gate de código.
