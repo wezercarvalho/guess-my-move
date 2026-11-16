@@ -7,7 +7,7 @@ strategy: sdd
 domain: engineering
 capability: runtime
 objective: apply-security-patch
-status: implementing
+status: validated
 owners:
     - wezercarvalho
 reviewers: []
@@ -88,7 +88,7 @@ Como mantenedor, quero evidências de regressão e privacidade antes de integrar
 - **FR-001:** A configuração e a documentação DEVEM declarar Node 26.13.1 como versão pinada e mínima na linha 26.
 - **FR-002:** A aplicação DEVE preservar o comportamento existente, comprovado pelos gates de código, smoke compilado e cenários de sessão dos jogos online.
 - **FR-003:** Os checks de contratos, governança e auditorias de dependências/runtime DEVEM ser executados no ambiente atualizado, sem enfraquecer critérios.
-- **FR-004:** A entrega DEVE registrar resultados, limitações, revisão humana pendente e vínculo com a issue #132 em artefatos rastreáveis.
+- **FR-004:** A entrega DEVE registrar resultados, limitações, aceite humano e vínculo com a issue #132 em artefatos rastreáveis.
 - **FR-005:** O gate de código completo DEVE executar a verificação oficial dos contratos, bloquear divergências e preservar o modo estático rápido.
 
 ## Requisitos não funcionais
