@@ -4,7 +4,7 @@
 
 Use a webcam para jogar cartas de gestos e bolinhas de gude, explorar cidades no Arranha-Teia e formar acordes no Violão no Ar. O Guess My Move é um projeto open source em TypeScript: o MediaPipe detecta mãos e rosto no próprio navegador, e os núcleos dos jogos transformam esses sinais em ações.
 
-[Começar](#executar-localmente) · [Como jogar](docs/games.md) · [Contribuir](docs/contributing.md) · [Issues](https://github.com/wezercarvalho/guess-my-move/issues) · [Licença MIT](LICENSE)
+[Começar](#executar-localmente) · [Como jogar](docs/games.md) · [Contribuir](CONTRIBUTING.md) · [Segurança](SECURITY.md) · [Conduta](CODE_OF_CONDUCT.md) · [Issues](https://github.com/wezercarvalho/guess-my-move/issues) · [Licença MIT](LICENSE)
 
 ## Jogos disponíveis
 
@@ -93,7 +93,7 @@ Os núcleos são TypeScript puro: não dependem de DOM, câmera ou rede. Essa se
 
 Antes do primeiro push, instale o hook local com `node scripts/git-hooks/install.mjs`.
 
-Contribuições com correções, documentação e relatos de testes são bem-vindas. Comece pelo [guia de contribuição](docs/contributing.md): ele explica como reportar problemas, preparar o ambiente e enviar uma PR.
+Contribuições com correções, documentação e relatos de testes são bem-vindas. Comece pelo [guia de contribuição](CONTRIBUTING.md): ele explica como reportar problemas, preparar o ambiente e enviar uma PR.
 
 | Comando                      | Uso                                       |
 | ---------------------------- | ----------------------------------------- |
@@ -112,7 +112,9 @@ Para visualizar o frontend compilado, execute `yarn build` e depois `yarn worksp
 
 - [Como jogar e ajustar a câmera](docs/games.md)
 - [Contratos HTTP/eventos e observabilidade](docs/development-context/contracts/backend-api.md)
-- [Como contribuir](docs/contributing.md)
+- [Como contribuir](CONTRIBUTING.md)
+- [Política de segurança](SECURITY.md)
+- [Código de conduta](CODE_OF_CONDUCT.md)
 - [Produto e escopo](docs/product/PROJECT_SPEC.md)
 - [Contexto técnico: arquitetura, qualidade, CI e operações](docs/development-context/README.md)
 - [Estratégias de desenvolvimento](docs/development-strategies/README.md) e [catálogo de specs](specs/README.md)

@@ -9,12 +9,12 @@
 // entra também em `SELECTED_JOBS` de `scripts/sdd/check-job-results.mjs`.
 
 export const PATH_PATTERNS = {
-    sdd: '^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\\.md$|^(package\\.json|yarn\\.lock)$|^\\.github/workflows/pr-gate\\.yml$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/',
+    sdd: '^specs/|^scripts/sdd/|^test/sdd/|^docs/development-strategies/sdd/|^AGENTS\\.md$|^(package\\.json|yarn\\.lock)$|^\\.github/workflows/pr-gate\\.yml$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^(CONTRIBUTING|SECURITY|CODE_OF_CONDUCT)\\.md$|^\\.github/(ISSUE_TEMPLATE/|PULL_REQUEST_TEMPLATE\\.md$)',
     'root-docs':
-        '^(AGENTS\\.md|CLAUDE\\.md|README\\.md|\\.prettierrc|docs/|specs/|\\.github/workflows/pr-gate\\.yml$)',
+        '^(AGENTS\\.md|CLAUDE\\.md|README\\.md|\\.prettierrc|docs/|specs/|\\.github/workflows/pr-gate\\.yml$)|^(CONTRIBUTING|SECURITY|CODE_OF_CONDUCT)\\.md$|^\\.github/(ISSUE_TEMPLATE/|PULL_REQUEST_TEMPLATE\\.md$)',
     // Testes dos próprios gates: hook local, auditor de dependências e workflows.
     tooling:
-        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|audit-runtime\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^\\.github/CODEOWNERS$',
+        '^scripts/(git-hooks|lib)/|^scripts/(audit-dependencies\\.mjs|audit-runtime\\.mjs|dependency-audit-exceptions\\.json)$|^test/(gates|security)/|^\\.githooks/|^\\.github/workflows/|^(package\\.json|yarn\\.lock|\\.prettierrc|\\.node-version)$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^\\.github/CODEOWNERS$|^(CONTRIBUTING|SECURITY|CODE_OF_CONDUCT)\\.md$|^\\.github/(ISSUE_TEMPLATE/|PULL_REQUEST_TEMPLATE\\.md$)',
     // Código da aplicação (apps/, packages/), manifesto/lockfile, tsconfig*, config do Oxlint e
     // .env.example e .node-version; `CODE_PATTERN` do gate (espelhado EXATAMENTE).
     code: '^apps/|^packages/|^contracts/|^(package\\.json|yarn\\.lock)$|^tsconfig[^/]*\\.json$|^\\.oxlintrc\\.json$|^\\.env\\.example$|^\\.node-version$|^\\.yarnrc\\.yml$|^\\.npmrc$|^\\.yarn/|^\\.gitattributes$|^\\.github/actions/|^\\.github/workflows/pr-gate\\.yml$',

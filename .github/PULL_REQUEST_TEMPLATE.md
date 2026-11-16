@@ -17,3 +17,6 @@ Remova instruções antes de publicar. -->
 <!-- Consulte docs/development-context/workflow/github-issues.md. Atribua o
 responsável em Assignees; para entregas do maintainer, @wezercarvalho. Preserve
 outros assignees. Criar ou atribuir uma PR não autoriza merge. -->
+
+<!-- Não inclua segredos, dados de câmera ou detalhes de vulnerabilidades não divulgadas.
+Consulte https://github.com/wezercarvalho/guess-my-move/security/policy e o CODE_OF_CONDUCT.md. -->

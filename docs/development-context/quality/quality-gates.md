@@ -46,3 +46,5 @@ O teste de fronteira roda dentro do agregado `yarn test` do escopo `code`; qualq
 - Documentação puramente normativa pode usar revisão estrutural e verificação de links em vez de teste unitário.
 
 `yarn security:runtime` confere suporte e correções publicadas do Node pinado; roda no job audit, hook e rotina diária. Testes sem rede em test:gates. Ver [política de runtime](../security/runtime-node.md).
+
+Os documentos CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md e templates Markdown de contribuição integram os comandos de formatação e a seleção de governança local e remota.

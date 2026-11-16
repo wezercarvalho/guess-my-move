@@ -294,6 +294,11 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'AGENTS.md': ['sdd', 'root-docs'],
         'CLAUDE.md': ['root-docs'],
         'README.md': ['root-docs'],
+        'CONTRIBUTING.md': ['sdd', 'root-docs', 'tooling'],
+        'SECURITY.md': ['sdd', 'root-docs', 'tooling'],
+        'CODE_OF_CONDUCT.md': ['sdd', 'root-docs', 'tooling'],
+        '.github/ISSUE_TEMPLATE/config.yml': ['sdd', 'root-docs', 'tooling'],
+        '.github/PULL_REQUEST_TEMPLATE.md': ['sdd', 'root-docs', 'tooling'],
         '.prettierrc': ['root-docs', 'tooling'],
         '.node-version': ['tooling', 'code', 'audit'],
         'package.json': ['sdd', 'tooling', 'code', 'audit'],
@@ -943,4 +948,21 @@ test('CODEOWNERS identifica a revisão de arquivos sensíveis', async () => {
     for (const path of ['/.github/', '/scripts/', '/package.json', '/yarn.lock', '/.yarnrc.yml']) {
         assert.ok(source.split('\n').includes(path + ' @wezercarvalho'), path)
     }
+})
+
+test('documentos de governança são encontrados e cobertos pelos checks', async () => {
+    const docs = ['CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md']
+    const readme = await readFile(join(repoRoot, 'README.md'), 'utf8')
+    for (const file of docs) {
+        assert.ok(existsSync(join(repoRoot, file)), file)
+        assert.ok(readme.includes('(' + file + ')'), file)
+        assert.ok(packageJson.scripts['docs:format:check'].includes(file), file)
+        assert.ok(packageJson.scripts['docs:format:fix'].includes(file), file)
+        assert.deepEqual(scopes.affectedScopes([file]), ['sdd', 'root-docs', 'tooling'])
+    }
+    const security = await readFile(join(repoRoot, 'SECURITY.md'), 'utf8')
+    assert.ok(security.includes('/security/advisories/new'))
+    assert.match(security, /não publique/i)
+    const config = parse(await readFile(join(repoRoot, '.github/ISSUE_TEMPLATE/config.yml'), 'utf8'))
+    assert.ok(config.contact_links.some((link) => link.url.endsWith('/security/policy')))
 })
