@@ -103,3 +103,16 @@ O repositório público aceita PRs de forks sem conceder escrita. O ruleset exig
 Antes de ampliar a colaboração, conferir Settings: Collaborators (somente mantenedor com escrita); Actions (permissões padrão de leitura, não permitir que Actions criem/aprovem PRs, aprovação para colaboradores externos, não enviar tokens de escrita ou segredos a forks, política de Actions permitidas); Rulesets (check obrigatório vinculado ao GitHub Actions, sem bypass; avaliar branch atualizada e resolução de conversas); segurança (secret scanning e push protection). Não anotar valores de secrets. Configurações administrativas não foram alteradas e as que não puderam ser consultadas exigem conferência humana.
 
 Referência: [uso seguro do GitHub Actions](https://docs.github.com/en/actions/reference/security/secure-use).
+
+### Conferência administrativa — 16/11/2026
+
+Responsável: @wezercarvalho. O [ruleset da main](https://github.com/wezercarvalho/guess-my-move/rules/25522757) foi consultado após o merge da PR #173: ativo, sem bypass, com PR obrigatória, bloqueio de force push e exclusão, e check obrigatório vinculado à integração GitHub Actions. O acesso do mantenedor é admin. O ruleset não exige revisão de code owner, aprovação de outro mantenedor, atualização estrita da branch ou resolução de conversas.
+
+Antes de iniciar a revisão de contribuições externas, o mantenedor deve concluir a conferência manual dos itens abaixo:
+
+- [ ] [Collaborators](https://github.com/wezercarvalho/guess-my-move/settings/access): confirmar que não há outros usuários com escrita ou administração e revisar aplicativos com acesso de escrita.
+- [ ] [Actions](https://github.com/wezercarvalho/guess-my-move/settings/actions): confirmar permissões padrão de leitura, aprovação de execução para colaboradores externos, ausência de tokens de escrita e segredos em forks, e política de Actions permitidas. Desabilitar criação/aprovação de PR por Actions se não houver necessidade.
+- [ ] [Ruleset](https://github.com/wezercarvalho/guess-my-move/rules/25522757): avaliar exigir atualização da branch e resolução de conversas, sem exigir segundo aprovador; considerar controles externos ao código da PR quando disponíveis.
+- [ ] [Segurança do repositório](https://github.com/wezercarvalho/guess-my-move/settings/security_analysis): conferir secret scanning, push protection e alertas de dependências.
+
+A integração não permite ler a lista completa de colaboradores, configurações administrativas de Actions ou scanning; a API de proteção clássica respondeu 403. Nenhum ajuste administrativo foi realizado. Os itens acima não são considerados verificados pelo resultado do CI. O workflow continua sujeito a propostas de alteração, razão para revisar o diff antes de qualquer merge. O [registro SDD](../../../specs/2026-11-16-engineering-ci-harden-pr-gates/validation.md) separa essas limitações da entrega técnica.
