@@ -21,7 +21,7 @@ O menu inicial reúne os quatro jogos. No multiplayer de bolinhas, a sala mostra
 
 ## Executar localmente
 
-Requisitos: Git, **Node.js 26.12.1 ou superior da linha 26** (ver [`.node-version`](.node-version)), **Yarn 4.18.1** e Chrome desktop. A câmera exige permissão do navegador e um contexto seguro: `localhost` no desenvolvimento ou HTTPS na hospedagem.
+Requisitos: Git, **Node.js 26.13.1 ou superior da linha 26** (ver [`.node-version`](.node-version)), **Yarn 4.18.1** e Chrome desktop. A câmera exige permissão do navegador e um contexto seguro: `localhost` no desenvolvimento ou HTTPS na hospedagem.
 
 ```sh
 git clone https://github.com/wezercarvalho/guess-my-move.git

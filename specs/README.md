@@ -55,3 +55,7 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 ## Preparação guiada do Arranha-Teia
 
 [`2026-11-09-game-swing-guide-calibration-and-eye-alpha`](2026-11-09-game-swing-guide-calibration-and-eye-alpha/spec.md) — `validating`; preparação, positivo e ocular alpha (#156–#162).
+
+## Atualização de segurança do runtime Node
+
+[`2026-11-16-engineering-runtime-apply-security-patch`](2026-11-16-engineering-runtime-apply-security-patch/spec.md) — `implementing`; atualização corretiva de Node 26.13.1, validação pendente (#132).
