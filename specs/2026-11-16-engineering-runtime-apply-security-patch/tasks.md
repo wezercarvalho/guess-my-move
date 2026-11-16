@@ -4,11 +4,15 @@
 
 - [x] T001 [US-001] [FR-001] [SC-001] Registrar a falha RED do runtime na main e a versão corretiva indicada pelo monitor.
 - [x] T002 [US-001] [FR-001] [NFR-002] Preparar pin e engines e reconciliar referências vigentes, preservando histórico, lockfile e workflows.
-- [ ] T003 [US-001] [FR-001] [SC-001] Instalar no runtime atualizado e executar `yarn security:runtime` para demonstrar GREEN e registrar evidência.
-- [ ] T004 [US-002] [FR-002] [NFR-001] Executar `yarn check:all`, conferir servidor compilado e entrada, retomada e revanche nos dois jogos online.
+- [x] T003 [US-001] [FR-001] [SC-001] Instalar no runtime atualizado e executar `yarn security:runtime` para demonstrar GREEN e registrar evidência.
+- [x] T004 [US-002] [FR-002] [NFR-001] Executar `yarn check:all`, conferir servidor compilado e entrada, retomada e revanche nos dois jogos online.
 - [ ] T005 [US-002] [FR-003] [NFR-002] Executar `yarn contracts:check`, `yarn test:gates`, `yarn test:sdd`, `yarn sdd:check`, `yarn docs:format:check` e `yarn security:dependencies`.
 - [ ] T006 [US-002] [FR-004] [NFR-003] Registrar resultados reais, diff, limitações e rastreabilidade em validation.md.
 - [ ] T007 [FR-004] [SC-003] Conferir critérios da issue, publicar e verificar PR em draft; reconciliar evidências antes do aceite final.
+
+## Reconciliação pós-merge — 16/11/2026
+
+T003 e T004 concluídas com evidências do [CI da PR #169](https://github.com/wezercarvalho/guess-my-move/actions/runs/43806311592) no Node 26.13.1. T005 possui evidências de testes de gates e SDD, catálogo, formatação e auditoria de dependências; falta executar `yarn contracts:check`. T006 e T007 permanecem abertas para convergência final, embora a PR original tenha sido publicada em draft e posteriormente integrada pelo mantenedor. Ver [validation.md](validation.md).
 
 ## Cobertura
 
