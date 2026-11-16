@@ -36,3 +36,7 @@ O navegador envia somente inputs numéricos/booleanos derivados dos controles (t
 ## Observabilidade sem mídia
 
 Registre apenas eventos sem mídia bruta, com o id da rodada e tempos (por exemplo, início e fim da rodada, veredito). Os números de depuração (delegate, ângulo, inversões, amostras, quadros, latência) são mostrados na tela para ajuste, não persistidos. Nunca registre o conteúdo bruto de quadros ou landmarks.
+
+## Licenciamento de ativos
+
+A revisão dos três modelos MediaPipe e demais ativos está em [licenças e atribuições de terceiros](third-party-licenses.md). A verificação de SHA-256 não é prova de licença ou permissão para redistribuir.

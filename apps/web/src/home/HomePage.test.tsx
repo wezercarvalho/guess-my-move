@@ -66,3 +66,11 @@ describe('HomePage', () => {
         expect(screen.getByRole('note')).toHaveTextContent(/nada é enviado/i)
     })
 })
+
+it('oferece acesso local às licenças e atribuições', () => {
+    render(<HomePage />)
+    expect(screen.getByRole('link', { name: /licenças e atribuições/i })).toHaveAttribute(
+        'href',
+        'third-party.html',
+    )
+})

@@ -66,4 +66,8 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Governança open source
 
-[`2026-11-16-engineering-governance-open-source`](2026-11-16-engineering-governance-open-source/spec.md) — `implementing`; documentação de contribuições, conduta e reporte responsável (#175).
+[`2026-11-16-engineering-governance-open-source`](2026-11-16-engineering-governance-open-source/spec.md) — `validated`; documentação de contribuições, conduta e reporte responsável (#175).
+
+## Licenciamento de terceiros
+
+[`2026-11-16-engineering-governance-audit-licenses`](2026-11-16-engineering-governance-audit-licenses/spec.md) — `implementing`; inventário, avisos e política de redistribuição (#177).

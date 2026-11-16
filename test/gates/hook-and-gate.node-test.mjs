@@ -321,6 +321,7 @@ test('amostras de paths têm o mesmo escopo no hook e no padrão extraído do pr
         'scripts/lib/dependency-audit.mjs': ['tooling', 'audit'],
         'scripts/lib/dependency-audit-failure.mjs': ['tooling', 'audit'],
         'scripts/lib/outro.mjs': ['tooling'],
+        'scripts/lib/license-inventory.mjs': ['tooling', 'code'],
         'test/gates/hook-and-gate.node-test.mjs': ['tooling'],
         'test/security/dependency-audit.node-test.mjs': ['tooling'],
         'apps/web/src/App.tsx': ['code'],

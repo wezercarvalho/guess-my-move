@@ -127,4 +127,4 @@ O código do projeto é distribuído sob a [licença MIT](LICENSE). Copyright (c
 
 Dados das cidades reais vêm dos colaboradores do **OpenStreetMap**, sob **ODbL**, com atribuição exibida no jogo. As fontes locais incluem seus avisos **OFL** em [`apps/web/src/design/fonts`](apps/web/src/design/fonts). Dependências e dados de terceiros mantêm suas próprias licenças.
 
-A licença dos arquivos de modelo `.task` baixados pelo preparo de ativos ainda precisa de confirmação na fonte antes de sua redistribuição. A licença MIT do código não substitui essa verificação; consulte a [política de arquivos do detector](docs/development-context/security/privacy-and-secrets.md#arquivos-do-detector).
+Consulte a [auditoria de licenças e atribuições de terceiros](docs/development-context/security/third-party-licenses.md). O build web inclui uma página de licenças e avisos, sem equivaler a autorização de redistribuição. Os modelos MediaPipe e componentes transitivos com licença ou avisos pendentes não estão liberados para distribuição pública; a MIT do código não substitui essa verificação.

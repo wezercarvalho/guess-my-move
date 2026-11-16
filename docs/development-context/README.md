@@ -25,3 +25,5 @@ Regra: carregue apenas o que a mudança exige e confirme a realidade na configur
 [Prontidão para releases de Node e TypeScript](operations/toolchain-release-readiness.md): estado verificado, responsáveis e critérios de retomada das issues #52/#132.
 
 [Entrega consolidada dos jogos — 2026-11-09](delivery/consolidated-games-2026-11-09.md): procedência, validação integrada, revisão e fechamento das PRs #105/#151–#154.
+
+[Licenças e atribuições de terceiros](security/third-party-licenses.md): inventário, fontes, avisos e revisão antes de distribuir artefatos.
