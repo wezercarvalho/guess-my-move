@@ -58,4 +58,4 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Atualização de segurança do runtime Node
 
-[`2026-11-16-engineering-runtime-apply-security-patch`](2026-11-16-engineering-runtime-apply-security-patch/spec.md) — `implementing`; atualização corretiva de Node 26.13.1, validação pendente (#132).
+[`2026-11-16-engineering-runtime-apply-security-patch`](2026-11-16-engineering-runtime-apply-security-patch/spec.md) — `validated`; atualização corretiva de Node 26.13.1 e gate de contratos aprovados (#132).

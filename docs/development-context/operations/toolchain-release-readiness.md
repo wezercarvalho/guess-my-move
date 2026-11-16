@@ -21,7 +21,7 @@ Próxima conferência extraordinária: **11/11/2026, Brasília**, repetindo apó
 
 ### Retomada em 16/11/2026
 
-A publicação de Node 26.13.1 e a falha do monitor em 15/11 motivam a atualização da issue #132. A adoção e a validação seguem a [spec de atualização](../../../specs/2026-11-16-engineering-runtime-apply-security-patch/spec.md) e a [política de runtime](../security/runtime-node.md). Os registros de 08/11 acima são históricos; nenhuma decisão nova sobre TypeScript/Nest CLI foi tomada.
+A publicação de Node 26.13.1 e a falha do monitor em 15/11 motivaram a atualização da issue #132. A adoção na main, a validação automatizada e o aceite do mantenedor foram concluídos em 16/11/2026 pelas PRs #169 e #170. Evidências na [spec de atualização](../../../specs/2026-11-16-engineering-runtime-apply-security-patch/validation.md) e na [política de runtime](../security/runtime-node.md). Os registros de 08/11 acima são históricos; nenhuma decisão nova sobre TypeScript/Nest CLI foi tomada.
 
 ## TypeScript/Nest CLI — #52
 
