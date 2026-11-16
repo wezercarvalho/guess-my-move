@@ -1,1 +1,6 @@
 blank_issues_enabled: false
+
+contact_links:
+    - name: Reportar uma vulnerabilidade com responsabilidade
+      url: https://github.com/wezercarvalho/guess-my-move/security/policy
+      about: Consulte a política antes de enviar detalhes sensíveis. Não use uma issue pública.

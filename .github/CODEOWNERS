@@ -20,3 +20,7 @@
 /apps/*/package.json @wezercarvalho
 /packages/*/package.json @wezercarvalho
 /contracts/ @wezercarvalho
+
+/CONTRIBUTING.md @wezercarvalho
+/SECURITY.md @wezercarvalho
+/CODE_OF_CONDUCT.md @wezercarvalho

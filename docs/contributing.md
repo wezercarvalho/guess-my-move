@@ -60,3 +60,7 @@ O código é MIT; dados, fontes e modelos de terceiros têm licenças próprias.
 ## Segurança de contribuições externas
 
 Não inclua credenciais ou código de instalação inesperado nas contribuições. Mudanças em CI, ferramentas, manifests, lockfile, testes e políticas de segurança exigem revisão cuidadosa pelo mantenedor identificado no CODEOWNERS. Um CI verde não substitui revisão humana. Contribuições por fork não precisam de permissão de escrita. Consulte [segurança do CI](development-context/delivery/ci-pipeline.md#segurança-do-ci-e-revisão-de-contribuições).
+
+## Conduta e reporte responsável
+
+Siga o [código de conduta](../CODE_OF_CONDUCT.md). Suspeitas de vulnerabilidade, exposição de dados ou segredos devem seguir a [política de segurança](../SECURITY.md), não um relato público com detalhes sensíveis.

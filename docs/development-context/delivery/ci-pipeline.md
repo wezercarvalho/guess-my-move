@@ -116,3 +116,7 @@ Antes de iniciar a revisão de contribuições externas, o mantenedor deve concl
 - [ ] [Segurança do repositório](https://github.com/wezercarvalho/guess-my-move/settings/security_analysis): conferir secret scanning, push protection e alertas de dependências.
 
 A integração não permite ler a lista completa de colaboradores, configurações administrativas de Actions ou scanning; a API de proteção clássica respondeu 403. Nenhum ajuste administrativo foi realizado. Os itens acima não são considerados verificados pelo resultado do CI. O workflow continua sujeito a propostas de alteração, razão para revisar o diff antes de qualquer merge. O [registro SDD](../../../specs/2026-11-16-engineering-ci-harden-pr-gates/validation.md) separa essas limitações da entrega técnica.
+
+### Documentos de governança open source
+
+CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, templates de issue e de PR selecionam SDD (checker de links), formatação e testes de governança no CI e no hook local. Os scripts de formatação incluem os três documentos da raiz e os templates Markdown de contribuição. O CI não verifica disponibilidade de canais privados nem substitui revisão humana do conteúdo.

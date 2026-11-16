@@ -63,3 +63,7 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 ## Segurança do CI
 
 [`2026-11-16-engineering-ci-harden-pr-gates`](2026-11-16-engineering-ci-harden-pr-gates/spec.md) — `validated`; endurecimento dos gates e revisão de contribuições externas (#172), com conferência administrativa residual registrada.
+
+## Governança open source
+
+[`2026-11-16-engineering-governance-open-source`](2026-11-16-engineering-governance-open-source/spec.md) — `implementing`; documentação de contribuições, conduta e reporte responsável (#175).

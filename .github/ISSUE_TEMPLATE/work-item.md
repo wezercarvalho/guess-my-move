@@ -14,6 +14,8 @@ Antes de publicar, reavalie a main atualizada e as iniciativas existentes.
 Preencha as quatro seções abaixo e remova estas instruções.
 -->
 
+**Segurança:** se houver suspeita de vulnerabilidade ou exposição de dados, consulte a [política de segurança](https://github.com/wezercarvalho/guess-my-move/security/policy) e não publique detalhes sensíveis nesta issue.
+
 ## Contexto / Problema
 
 <!-- Situação atual, evidência e impacto. Em bugs, inclua reprodução. -->
