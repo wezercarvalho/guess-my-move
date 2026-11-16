@@ -102,7 +102,7 @@ Contribuições com correções, documentação e relatos de testes são bem-vin
 | `yarn check:static`          | Verificar tipos e lint.                   |
 | `yarn test`                  | Executar os testes dos workspaces.        |
 | `yarn build`                 | Compilar todos os workspaces.             |
-| `yarn check:all`             | Executar tipos, lint, testes e build.     |
+| `yarn check:all`             | Executar gates de código e contratos.     |
 | `yarn docs:format:check`     | Verificar a formatação da documentação.   |
 | `yarn security:dependencies` | Auditar dependências.                     |
 

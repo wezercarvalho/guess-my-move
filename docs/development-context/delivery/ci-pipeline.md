@@ -55,7 +55,7 @@ O checker estrutural (`yarn sdd:check`) verifica o catálogo e os guias SDD; o w
 
 ### Job de código
 
-A seleção `code` liga o job `code`, que instala as dependências e roda `yarn check:all` (um só comando que executa `typecheck`, `lint`, `test` e `build` em todos os workspaces). O padrão de path cobre `apps/`, `packages/`, o manifesto e o lockfile, `tsconfig*.json`, `.oxlintrc.json` e `.env.example`, e é espelhado EXATAMENTE em `scripts/git-hooks/scopes.mjs` (um teste em `test/gates/` compara os dois). No hook local o escopo `code` roda `yarn check:static` (typecheck + lint) por padrão e `yarn check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
+A seleção `code` liga o job `code`, que instala as dependências e roda `yarn check:all` (um só comando que executa `typecheck`, `lint`, `test` e `build` em todos os workspaces, o smoke compilado e `yarn contracts:check`). O padrão de path cobre `apps/`, `packages/`, o manifesto e o lockfile, `tsconfig*.json`, `.oxlintrc.json` e `.env.example`, e é espelhado EXATAMENTE em `scripts/git-hooks/scopes.mjs` (um teste em `test/gates/` compara os dois). A verificação de contratos compara os três arquivos versionados em `contracts/` com os documentos gerados, sem escrevê-los; divergências falham no job de código e impedem o gate obrigatório. No hook local o escopo `code` roda `yarn check:static` (typecheck + lint) por padrão e `yarn check:all` com `--mode full`; o gate remoto sempre roda `check:all`.
 
 ### Auditoria de dependências
 

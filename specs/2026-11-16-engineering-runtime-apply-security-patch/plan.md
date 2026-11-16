@@ -64,3 +64,26 @@ Manter a faixa da major 26 e elevar seu mínimo. Preservar referências históri
 ## Complexidade e desvios
 
 Nenhum desvio de escopo requerido. A evidência RED é a execução existente; não se cria teste artificial para a simples mudança de pin. O hook local e os comandos oficiais ainda precisam de execução em ambiente apropriado.
+
+## Emenda CQ-003 — Design do gate de contratos
+
+### Constitution Check — pré-design
+
+- PASS: objetivo de tornar a verificação permanente autorizado pelo mantenedor; escopo restrito ao gate de código.
+- PASS: a lacuna foi observada em `package.json` e no workflow existente; nenhum contrato ou código de produto precisa mudar.
+
+### Decisão técnica
+
+Acrescentar `&& yarn contracts:check` ao final de `check:all` em `package.json`, depois do build e do smoke compilado. O job de código e o hook em modo full já chamam esse agregado; o modo static permanece rápido. O comando oficial recompila os workspaces necessários e compara os três contratos versionados sem escrever arquivos. A recompilação adicional é preferível nesta entrega a refatorar os comandos oficiais. Não criar outro workflow/job, não modificar filtros, não alterar lockfile nem relaxar gates.
+
+Adicionar teste estrutural em `test/gates/hook-and-gate.node-test.mjs` para exigir o comando como segmento final encadeado por `&&`. A mesma asserção rejeita o script anterior. Atualizar documentação e reconciliar resultados do CI da PR #170. Rollback da melhoria: reverter apenas a alteração do agregado e o teste/documentação em PR, sem reverter o pin do Node; não integrar se houver divergência de contrato.
+
+### Constitution Check — pós-design
+
+- PASS: implementação mínima, verificações anteriores preservadas e falha do comando propaga código de saída.
+- PASS: sem alteração de contrato, dados, código dos jogos, permissões de CI ou infraestrutura.
+- LIMITAÇÃO: o ambiente deste chat não tem acesso de rede ao GitHub/registry nem o runtime do projeto. A asserção estrutural pode ser conferida isoladamente com o manifesto remoto; a suíte oficial, formatação, instalação e hook local não podem ser executados aqui. O CI existente deve fornecer a evidência completa antes do aceite.
+
+### Rastreabilidade da emenda
+
+FR-005 / SC-004: T008–T010. FR-003 / SC-002: a execução real do comando de contratos fecha a lacuna T005; T006–T007 consolidam resultados e aceite. A aprovação da implementação pelo mantenedor está registrada em CQ-003; a escolha do desenho mínimo e a limitação operacional são registradas pelo agente, sem alegar revisão linha a linha ou aceite final antecipado.

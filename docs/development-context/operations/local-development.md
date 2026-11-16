@@ -16,10 +16,10 @@ O repositório não tem workflow de CI por `push` em branches de trabalho; quem 
 1. `sdd`: `yarn test:sdd` e `yarn sdd:check` (como os passos do job de governança `sdd`);
 2. `root-docs`: `yarn docs:format:check`, Prettier com o estilo de `/.prettierrc` em `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/` e `specs/`;
 3. `tooling`: `yarn test:gates`, testes do hook, do auditor e dos workflows;
-4. `code`: `yarn check:static` (typecheck + lint) por padrão, ou `yarn check:all` (typecheck + lint + test + build) no `--mode full`, quando o PR toca `apps/`, `packages/`, manifesto/lockfile, `tsconfig*.json`, `.oxlintrc.json` ou `.env.example`;
+4. `code`: `yarn check:static` (typecheck + lint) por padrão, ou `yarn check:all` (typecheck + lint + test + build + smoke compilado + contratos) no `--mode full`, quando o PR toca `apps/`, `packages/`, manifesto/lockfile, `tsconfig*.json`, `.oxlintrc.json` ou `.env.example`;
 5. `audit`: `yarn security:dependencies`, se os arquivos casarem o padrão de auditoria do `pr-gate`.
 
-Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. O gate remoto roda sempre o `yarn check:all` do escopo de código; o hook roda `check:static` por padrão para falhar rápido.
+Um push sem arquivos nesses escopos termina em segundos, sem rodar nada. Falha em qualquer passo barra o push, com a mensagem do passo. O gate remoto roda sempre o `yarn check:all` do escopo de código, incluindo `yarn contracts:check` após o smoke compilado; o hook roda `check:static` por padrão para falhar rápido.
 
 **Auditoria de dependências.** Ela roda `yarn npm audit` na sua máquina (uma vez por ambiente, produção e tooling), não consome minutos de Actions e usa rede (consulta o registry). Vulnerabilidade High ou Critical barra o push e a saída do auditor aparece. Se o registry ou a rede falhar, o auditor imprime `registry-indisponivel` e diz que o problema não é vulnerabilidade: o hook só avisa, não barra, e informa que o `pr-gate` fará a verificação. A política está em [auditoria de dependências](../security/dependency-audit.md).
 

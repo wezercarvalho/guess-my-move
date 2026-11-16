@@ -21,7 +21,7 @@
         "test": "yarn workspaces foreach --all --topological run test",
         "build": "yarn workspaces foreach --all --topological run build",
         "check:static": "yarn typecheck && yarn lint",
-        "check:all": "yarn check:static && yarn test && yarn build && yarn workspace @guess-my-move/server test:compiled",
+        "check:all": "yarn check:static && yarn test && yarn build && yarn workspace @guess-my-move/server test:compiled && yarn contracts:check",
         "dev:server": "yarn workspace @guess-my-move/server dev",
         "dev:web": "yarn workspace @guess-my-move/web dev",
         "sdd:check": "node scripts/sdd/check-specs.mjs --root .",

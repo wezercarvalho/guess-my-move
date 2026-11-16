@@ -121,6 +121,14 @@ test('o escopo code é um job condicional que roda yarn check:all como os demais
     }
 })
 
+test('check:all exige a validação dos contratos após o smoke compilado', () => {
+    assert.equal(
+        packageJson.scripts['check:all'].split(' && ').at(-1),
+        'yarn contracts:check',
+    )
+    assert.equal(typeof packageJson.scripts['contracts:check'], 'string')
+})
+
 // Hook local de pré-push: os escopos, os comandos e a seleção por path vêm de
 // `scripts/git-hooks/scopes.mjs` e precisam permanecer equivalentes ao `pr-gate.yml` e ao
 // `package.json`.
