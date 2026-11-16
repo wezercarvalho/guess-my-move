@@ -2,7 +2,7 @@
 
 ## Requisitos
 
-- Node.js 26.12.1 ou superior da linha 26 (`.node-version`) e Yarn 4.18 via Corepack. O Node 26 não distribui o Corepack: rode `npm install --global corepack@0.36.0` e depois `corepack enable`.
+- Node.js 26.13.1 ou superior da linha 26 (`.node-version`) e Yarn 4.18 via Corepack. O Node 26 não distribui o Corepack: rode `npm install --global corepack@0.36.0` e depois `corepack enable`.
 - Instalação das dependências na raiz: `yarn install --immutable` instala a raiz e todos os workspaces (`apps/web`, `packages/core`) de uma vez.
 
 ## Verificações locais antes do push

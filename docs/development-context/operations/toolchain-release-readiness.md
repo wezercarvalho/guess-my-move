@@ -19,6 +19,10 @@ Próxima conferência extraordinária: **11/11/2026, Brasília**, repetindo apó
 3. Executar a matriz da política de runtime, com instalação imutável, código, contratos, sessões/retomada/revanche e servidor compilado no novo binário.
 4. Abrir PR draft com evidências; confirmar a versão implantada separadamente do merge. Só então avaliar encerramento de #132.
 
+### Retomada em 16/11/2026
+
+A publicação de Node 26.13.1 e a falha do monitor em 15/11 motivam a atualização da issue #132. A adoção e a validação seguem a [spec de atualização](../../../specs/2026-11-16-engineering-runtime-apply-security-patch/spec.md) e a [política de runtime](../security/runtime-node.md). Os registros de 08/11 acima são históricos; nenhuma decisão nova sobre TypeScript/Nest CLI foi tomada.
+
 ## TypeScript/Nest CLI — #52
 
 O [registry oficial do TypeScript](https://registry.npmjs.org/typescript) ainda publica **7.0.2** como `latest` e **7.1.0-beta** como `beta`; a tag `next` é **7.1.0-dev.20261107.1**. O [anúncio do beta](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/) descreve APIs novas e separadas (`typescript/sync`, `typescript/async`, `typescript/fs`), não a restauração transparente da API antiga.
