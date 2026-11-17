@@ -74,4 +74,4 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Revisão de evidências de licença
 
-[`2026-11-16-engineering-governance-review-license-evidence`](2026-11-16-engineering-governance-review-license-evidence/spec.md) — `implementing`; correção do scanner e inspeção de artefatos, sem liberação de distribuição (#179).
+[`2026-11-16-engineering-governance-review-license-evidence`](2026-11-16-engineering-governance-review-license-evidence/spec.md) — `validated`; correção do scanner e inspeção de artefatos, com aceite condicionado ao merge e pendências de distribuição na #179.
