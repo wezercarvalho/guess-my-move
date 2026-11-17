@@ -64,3 +64,7 @@ Não inclua credenciais ou código de instalação inesperado nas contribuiçõe
 ## Conduta e reporte responsável
 
 Siga o [código de conduta](../CODE_OF_CONDUCT.md). Suspeitas de vulnerabilidade, exposição de dados ou segredos devem seguir a [política de segurança](../SECURITY.md), não um relato público com detalhes sensíveis.
+
+## Dependências e ativos de terceiros
+
+Ao adicionar ou atualizar dependência, fonte, dado ou modelo, consulte a [política de licenças](development-context/security/third-party-licenses.md). Registre origem, versão, licença e avisos; não atribua MIT automaticamente a material de terceiros.

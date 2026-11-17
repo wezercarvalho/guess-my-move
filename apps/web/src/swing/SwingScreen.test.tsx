@@ -78,6 +78,7 @@ describe('SwingScreen', () => {
         expect(screen.getByRole('heading', { level: 1, name: 'Arranha-Teia' })).toBeInTheDocument()
         expect(screen.getByText(/Midtown Manhattan · Nova York, Estados Unidos/i)).toBeInTheDocument()
         expect(screen.getByTestId('map-credit')).toHaveTextContent(/OpenStreetMap \(ODbL\)/)
+        expect(screen.getByRole('link', { name: /OpenStreetMap/ })).toHaveAttribute('href', 'swing/LICENSE.txt')
     })
 
     it('começa com o status de carregamento da cidade', () => {

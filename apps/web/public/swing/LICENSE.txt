@@ -1,0 +1,13 @@
+Dados do mapa © colaboradores do OpenStreetMap.
+Open Database License (ODbL) v1.0:
+https://opendatacommons.org/licenses/odbl/1-0/
+https://www.openstreetmap.org/copyright
+
+Os dados derivados distribuídos neste diretório (midtown.json, paulista.json,
+santa-maria.json) estão sob ODbL 1.0, e não sob a licença MIT do código.
+As cópias integrais em formato legível por máquina estão disponíveis sem
+custo nos próprios arquivos JSON neste diretório e no repositório:
+https://github.com/wezercarvalho/guess-my-move/tree/main/apps/web/public/swing
+
+Produção: conversor city-from-osm.mjs e build-city.mjs de Guess My Move,
+a partir da Overpass API; fontes/recortes em city-sources.mjs.

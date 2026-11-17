@@ -454,7 +454,11 @@ export function SwingScreen({
                     </div>
                     <div className="swing-stage-footer">
                         <p className="swing-credit" data-testid="map-credit">
-                            {game.attribution}
+                            {game.attribution.includes('OpenStreetMap') ? (
+                                <a href="swing/LICENSE.txt">{game.attribution}</a>
+                            ) : (
+                                game.attribution
+                            )}
                         </p>
                         <PrivacyNotice />
                     </div>

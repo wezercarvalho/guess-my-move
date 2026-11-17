@@ -66,6 +66,9 @@ export function HomePage() {
                     badge="Alpha"
                 />
             </div>
+            <footer>
+                <a href="third-party.html">Licenças e atribuições</a>
+            </footer>
         </main>
     )
 }

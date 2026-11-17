@@ -7,7 +7,7 @@ strategy: sdd
 domain: engineering
 capability: governance
 objective: open-source
-status: implementing
+status: validated
 owners:
     - wezercarvalho
 reviewers: []
