@@ -28,6 +28,7 @@ Execução oficial [43997274737](https://github.com/wezercarvalho/guess-my-move/
 - PASS: `yarn licenses:inspect`; [log de código e inspeção](https://github.com/wezercarvalho/guess-my-move/actions/runs/43997274737/job/133752365070): 15 candidatos externos na web e 111 no servidor, avisos copiados e verificados. MIT/OFL/ODbL preservados; não houve empacotamento de servidor em container ou distribuição de artefato.
 - PASS: auditorias de dependências e runtime Node; [job de segurança](https://github.com/wezercarvalho/guess-my-move/actions/runs/43997274737/job/133752365082), zero achados npm na consulta; runtime 26.13.1.
 - PASS: [gate obrigatório](https://github.com/wezercarvalho/guess-my-move/actions/runs/43997274737/job/133752943846).
+- FAIL: [CI da consolidação documental 43997627630](https://github.com/wezercarvalho/guess-my-move/actions/runs/43997627630), head `6303f99aa763f263b49a2d48cb3c25bcfed57c86`. `sdd:check` rejeitou link local para pesquisa histórica removida da árvore atual; código e auditorias passaram. Corrigido o link para o commit histórico verificado; aguardar CI da correção antes de merge.
 - BLOCKED: execução oficial RED e hook local não disponíveis no ambiente da integração. Commit de teste anterior à implementação `342cb8548151158aec35cc927c31f600729ec16e`; RED por ausência da função na base. GREEN comprovado no CI.
 - BLOCKED: liberação jurídica/artifact-specific de redistribuição pública e confirmação integral de avisos; fora do aceite deste incremento e ainda acompanhadas pela #179.
 
