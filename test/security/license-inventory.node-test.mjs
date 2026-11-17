@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { lockRows, scanInstalled } from '../../scripts/lib/license-inventory.mjs'
+import { declaredLicense, lockRows, scanInstalled } from '../../scripts/lib/license-inventory.mjs'
 
 test('inventário diferencia runtime direto, transitivo, tooling e versões resolvidas', () => {
     const source = JSON.stringify({
@@ -48,4 +48,14 @@ test('inspeção distingue licença declarada de arquivo de aviso e preserva ver
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }
+})
+
+test('licenças legadas inequívocas são reconhecidas e conflitos continuam em revisão', () => {
+    assert.equal(declaredLicense({ licenses: [{ type: 'MIT', url: 'https://example.org' }] }), 'MIT')
+    assert.equal(declaredLicense({ license: 'MIT', licenses: [{ type: 'MIT' }] }), 'MIT')
+    assert.equal(declaredLicense({ license: 'MIT', licenses: [{ type: 'Apache-2.0' }] }), null)
+    assert.equal(declaredLicense({ licenses: [{ type: 'MIT' }, { type: 'Apache-2.0' }] }), null)
+    assert.equal(declaredLicense({ licenses: [{ url: 'https://example.org' }] }), null)
+    assert.equal(declaredLicense({ license: '', licenses: [{ type: 'MIT' }] }), null)
+    assert.equal(declaredLicense({ license: 'Apache-2.0 AND MIT' }), 'Apache-2.0 AND MIT')
 })
