@@ -70,4 +70,8 @@ Procure por título, domínio, capacidade, objetivo ou aliases no frontmatter de
 
 ## Licenciamento de terceiros
 
-[`2026-11-16-engineering-governance-audit-licenses`](2026-11-16-engineering-governance-audit-licenses/spec.md) — `implementing`; inventário, avisos e política de redistribuição (#177).
+[`2026-11-16-engineering-governance-audit-licenses`](2026-11-16-engineering-governance-audit-licenses/spec.md) — `validated`; inventário, avisos e política de redistribuição (#177); revisão de direitos em #179.
+
+## Revisão de evidências de licença
+
+[`2026-11-16-engineering-governance-review-license-evidence`](2026-11-16-engineering-governance-review-license-evidence/spec.md) — `validated`; correção do scanner e inspeção de artefatos, com aceite condicionado ao merge e pendências de distribuição na #179.

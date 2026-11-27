@@ -1,0 +1,12 @@
+{
+    "@mediapipe/tasks-vision@npm:1.1.1": {
+        "file": "mediapipe-1.1.1-LICENSE.txt",
+        "source": "https://github.com/google-ai-edge/mediapipe/blob/50505c8312c7eacb1bd411cecdc4cc9fd08d53cb/LICENSE",
+        "gitBlob": "0e03e3911e0ac02c72ed527b34efe250f0fb9bef"
+    },
+    "@tokenizer/token@npm:0.3.0": {
+        "file": "tokenizer-token-0.3.0-README.txt",
+        "source": "https://github.com/Borewit/tokenizer-token/blob/e068a455370090f44c757946b8571bb3fb1f117e/README.md",
+        "gitBlob": "1c1ba32406aa515a758e7f080124208dfc049f1e"
+    }
+}

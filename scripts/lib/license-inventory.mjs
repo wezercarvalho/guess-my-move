@@ -84,6 +84,19 @@ export function lockRows(source, workspaces) {
         .sort((a, b) => a.locator.localeCompare(b.locator, 'en'))
 }
 
+export function declaredLicense(manifest) {
+    const nonempty = (value) => typeof value === 'string' && value.trim().length > 0
+    const modern = manifest.license
+    const legacy = manifest.licenses
+    if (modern !== undefined && !nonempty(modern)) return null
+    if (legacy === undefined) return modern?.trim() ?? null
+    if (!Array.isArray(legacy) || legacy.length !== 1 || !nonempty(legacy[0]?.type)) {
+        return null
+    }
+    const type = legacy[0].type.trim()
+    return modern === undefined || modern.trim() === type ? type : null
+}
+
 export function scanInstalled(repoRoot, workspacePaths) {
     const records = new Map()
     const seen = new Set()
@@ -108,7 +121,7 @@ export function scanInstalled(repoRoot, workspacePaths) {
             const key = manifest.name + '@' + manifest.version
             const record = {
                 location: relative(repoRoot, packageDir).split('\\').join('/'),
-                declaredLicense: typeof manifest.license === 'string' ? manifest.license : null,
+                declaredLicense: declaredLicense(manifest),
                 notices,
             }
             if (!records.has(key)) records.set(key, [])
@@ -167,23 +180,28 @@ const publicRecord = ({ copies, ...row }) => ({
     })),
 })
 
-export function writeWebNotices(repoRoot, rows) {
-    const out = join(repoRoot, 'apps/web/dist/licenses')
+function writeArtifactNotices(repoRoot, rows, target) {
+    const out = join(repoRoot, 'apps', target, 'dist', 'licenses')
+    const supplementsDir = join(repoRoot, 'scripts/lib/license-notices')
+    const supplements = json(join(supplementsDir, 'sources.json'))
     mkdirSync(out, { recursive: true })
     const index = []
     const writeVerified = (path, bytes) => {
         writeFileSync(path, bytes)
         if (!readFileSync(path).equals(bytes)) throw new Error('Aviso não preservado: ' + path)
     }
-    for (const [source, file] of [
-        ['LICENSE', 'PROJECT-MIT.txt'],
-        ['apps/web/src/design/fonts/OFL-DM-Sans.txt', 'OFL-DM-Sans.txt'],
-        ['apps/web/src/design/fonts/OFL-Space-Grotesk.txt', 'OFL-Space-Grotesk.txt'],
-    ]) writeVerified(join(out, file), readFileSync(join(repoRoot, source)))
-    const sourceMapNotice = readFileSync(join(repoRoot, 'apps/web/public/swing/LICENSE.txt'))
-    const builtMapNotice = readFileSync(join(repoRoot, 'apps/web/dist/swing/LICENSE.txt'))
-    if (!sourceMapNotice.equals(builtMapNotice)) throw new Error('Aviso ODbL ausente no build')
-    for (const row of rows.filter((entry) => entry.scope.includes('web-candidate') && entry.status !== 'workspace')) {
+    writeVerified(join(out, 'PROJECT-MIT.txt'), readFileSync(join(repoRoot, 'LICENSE')))
+    if (target === 'web') {
+        for (const name of ['OFL-DM-Sans.txt', 'OFL-Space-Grotesk.txt']) {
+            writeVerified(join(out, name), readFileSync(join(repoRoot, 'apps/web/src/design/fonts', name)))
+        }
+        const sourceMapNotice = readFileSync(join(repoRoot, 'apps/web/public/swing/LICENSE.txt'))
+        const builtMapNotice = readFileSync(join(repoRoot, 'apps/web/dist/swing/LICENSE.txt'))
+        if (!sourceMapNotice.equals(builtMapNotice)) throw new Error('Aviso ODbL ausente no build')
+    }
+    for (const row of rows.filter(
+        (entry) => entry.scope.includes(target + '-candidate') && entry.status !== 'workspace',
+    )) {
         const item = publicRecord(row)
         item.files = []
         for (const copy of row.copies) {
@@ -195,10 +213,30 @@ export function writeWebNotices(repoRoot, rows) {
                 item.files.push({ filename, upstream: notice.file, sha256: notice.sha256 })
             }
         }
+        const supplement = supplements[row.locator]
+        if (supplement && row.copies.length > 0) {
+            const bytes = readFileSync(join(supplementsDir, supplement.file))
+            const gitBlob = createHash('sha1')
+                .update(Buffer.from('blob ' + bytes.length + '\0'))
+                .update(bytes)
+                .digest('hex')
+            if (gitBlob !== supplement.gitBlob) throw new Error('Aviso upstream alterado')
+            writeVerified(join(out, supplement.file), bytes)
+            item.supplemental = { ...supplement, sha256: sha(bytes) }
+            // Não promover automaticamente notice-review: texto upstream não prova todos os avisos do binário.
+        }
         index.push(item)
     }
     writeVerified(join(out, 'index.json'), Buffer.from(JSON.stringify(index, null, 2) + '\n'))
-    console.log('LICENSE-BUILD: MIT + 2 OFL + ODbL + ' + index.length + ' candidatos web; textos copiados e conferidos')
+    console.log('LICENSE-BUILD: ' + target + ' — ' + index.length + ' candidatos; avisos copiados e conferidos')
+}
+
+export function writeWebNotices(repoRoot, rows) {
+    writeArtifactNotices(repoRoot, rows, 'web')
+}
+
+export function writeServerNotices(repoRoot, rows) {
+    writeArtifactNotices(repoRoot, rows, 'server')
 }
 
 function main() {
@@ -208,6 +246,7 @@ function main() {
     for (const row of rows) counts[row.status] = (counts[row.status] ?? 0) + 1
     console.log('LICENSE-SUMMARY ' + JSON.stringify({ total: rows.length, counts }))
     if (process.argv.includes('--web-dist')) writeWebNotices(root, rows)
+    if (process.argv.includes('--server-dist')) writeServerNotices(root, rows)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
